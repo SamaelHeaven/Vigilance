@@ -6,9 +6,9 @@ typedef struct Array {
     struct Handle *handle;
 } Array;
 
-Array array_new(int32_t element_size);
+Array array_create(int32_t element_size);
 
-void array_free(Array *array);
+void array_destroy(Array *array);
 
 void array_add(Array *array, const void *element);
 
@@ -66,12 +66,12 @@ int32_t array_element_size(const Array *array);
         struct Handle *handle;                                                                                         \
     } Array_##name;                                                                                                    \
                                                                                                                        \
-    static inline Array_##name array_##name##_new(void) {                                                              \
-        Array result = array_new(sizeof(type));                                                                        \
+    static inline Array_##name array_##name##_create(void) {                                                              \
+        Array result = array_create(sizeof(type));                                                                        \
         return *((Array_##name *) &result);                                                                            \
     }                                                                                                                  \
                                                                                                                        \
-    static inline void array_##name##_free(Array_##name *array) { array_free((Array *) array); }                       \
+    static inline void array_##name##_destroy(Array_##name *array) { array_destroy((Array *) array); }                       \
                                                                                                                        \
     static inline void array_##name##_add(Array_##name *array, type element) { array_add((Array *) array, &element); } \
                                                                                                                        \

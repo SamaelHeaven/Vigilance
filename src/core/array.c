@@ -52,7 +52,7 @@ static void merge_sort(void *elements, const int32_t left, const int32_t right, 
     }
 }
 
-Array array_new(const int32_t element_size) {
+Array array_create(const int32_t element_size) {
     assert(element_size > 0);
     const Array array = {.handle = gc_malloc(sizeof(Handle))};
     Handle *handle = array.handle;
@@ -63,7 +63,7 @@ Array array_new(const int32_t element_size) {
     return array;
 }
 
-void array_free(Array *array) {
+void array_destroy(Array *array) {
     if (array) {
         if (array->handle) {
             gc_free(array->handle->elements);
@@ -245,7 +245,7 @@ Array array_copy(const Array *array) {
     assert(array);
     const Handle *src_handle = array->handle;
     assert(src_handle);
-    const Array copy = array_new(src_handle->element_size);
+    const Array copy = array_create(src_handle->element_size);
     Handle *copy_handle = copy.handle;
     copy_handle->size = src_handle->size;
     copy_handle->capacity = src_handle->capacity;
@@ -259,7 +259,7 @@ Array array_slice(const Array *array, const int32_t begin, const int32_t end) {
     const Handle *handle = array->handle;
     assert(handle && begin >= 0 && end >= begin && end <= handle->size);
     const int32_t slice_size = end - begin;
-    const Array slice = array_new(handle->element_size);
+    const Array slice = array_create(handle->element_size);
     Handle *slice_handle = slice.handle;
     slice_handle->size = slice_size;
     slice_handle->capacity = slice_size;
