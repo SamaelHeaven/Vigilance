@@ -2,4 +2,4 @@
 
 #include "vigilance-core.h"
 
-#define main lib_main
+#define main vigilance_main

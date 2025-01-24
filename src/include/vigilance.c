@@ -4,7 +4,7 @@
 
 #undef main
 
-void lib_main(Array_char_ptr args);
+void vigilance_main(Array_char_ptr args);
 
 int main(const int32_t argc, char **argv) {
     GC_INIT();
@@ -13,6 +13,6 @@ int main(const int32_t argc, char **argv) {
     for (int32_t i = 0; i < argc; ++i) {
         array_char_ptr_add(&args, argv[i]);
     }
-    lib_main(args);
+    vigilance_main(args);
     return 0;
 }
