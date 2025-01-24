@@ -54,12 +54,11 @@ static void merge_sort(void *elements, const int32_t left, const int32_t right, 
 
 Array array_new(const int32_t element_size) {
     assert(element_size > 0);
-    constexpr int32_t initial_capacity = 1;
     const Array array = {.handle = gc_malloc(sizeof(Handle))};
     Handle *handle = array.handle;
-    handle->elements = gc_malloc(element_size * initial_capacity);
+    handle->elements = gc_malloc(element_size * 1);
     handle->size = 0;
-    handle->capacity = initial_capacity;
+    handle->capacity = 1;
     handle->element_size = element_size;
     return array;
 }
