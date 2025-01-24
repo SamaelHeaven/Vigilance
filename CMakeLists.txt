@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.28)
 project(vigilance C)
 
 set(CMAKE_C_STANDARD 23)
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -DNDEBUG")
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
 
 set(gc_VERSION 8.2.8)
