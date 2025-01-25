@@ -67,7 +67,7 @@ int32_t array_capacity(const Array *array);
 
 int32_t array_element_size(const Array *array);
 
-#define ARRAY_DECLARE(type_name, namespace, el_type)                                                                   \
+#define DECLARE_ARRAY_PRO(type_name, namespace, el_type, const_ptr_el_type)                                            \
                                                                                                                        \
     typedef struct type_name {                                                                                         \
         struct Handle *handle;                                                                                         \
@@ -89,7 +89,7 @@ int32_t array_element_size(const Array *array);
         array_add_all((Array *) dest, (Array *) src);                                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_concat(type_name *array, const el_type *elements, int32_t count) {                  \
+    inline static void namespace##_concat(type_name *array, const_ptr_el_type elements, int32_t count) {               \
         array_concat((Array *) array, elements, count);                                                                \
     }                                                                                                                  \
                                                                                                                        \
@@ -105,7 +105,7 @@ int32_t array_element_size(const Array *array);
         array_remove_all((Array *) dest, (Array *) src);                                                               \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_remove_if(type_name *array, bool (*predicate)(const el_type *element)) {            \
+    inline static void namespace##_remove_if(type_name *array, bool (*predicate)(const_ptr_el_type element)) {         \
         array_remove_if((Array *) array, (bool (*)(const void *element)) predicate);                                   \
     }                                                                                                                  \
                                                                                                                        \
@@ -137,12 +137,13 @@ int32_t array_element_size(const Array *array);
         array_reserve((Array *) array, new_capacity);                                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_sort(type_name *array, int32_t (*comparator)(const el_type *a, const el_type *b)) { \
+    inline static void namespace##_sort(type_name *array,                                                              \
+                                        int32_t (*comparator)(const_ptr_el_type a, const_ptr_el_type b)) {             \
         array_sort((Array *) array, (int32_t(*)(const void *a, const void *b))(comparator));                           \
     }                                                                                                                  \
                                                                                                                        \
     inline static void namespace##_stable_sort(type_name *array,                                                       \
-                                               int32_t (*comparator)(const el_type *a, const el_type *b)) {            \
+                                               int32_t (*comparator)(const_ptr_el_type a, const_ptr_el_type b)) {      \
         array_stable_sort((Array *) array, (int32_t(*)(const void *a, const void *b)) comparator);                     \
     }                                                                                                                  \
     inline static void namespace##_shrink(type_name *array) { array_shrink((Array *) array); }                         \
@@ -165,8 +166,8 @@ int32_t array_element_size(const Array *array);
                                                                                                                        \
     inline static el_type *namespace##_to_ptr(const type_name *array) { return array_to_ptr((Array *) array); }        \
                                                                                                                        \
-    inline static const el_type *namespace##_data(const type_name *array) {                                            \
-        return (const el_type *) array_data((Array *) array);                                                          \
+    inline static const_ptr_el_type namespace##_data(const type_name *array) {                                         \
+        return (const_ptr_el_type) array_data((Array *) array);                                                        \
     }                                                                                                                  \
                                                                                                                        \
     inline static int32_t namespace##_size(const type_name *array) { return array_size((Array *) array); }             \
@@ -177,34 +178,39 @@ int32_t array_element_size(const Array *array);
         return array_element_size((Array *) array);                                                                    \
     }
 
-ARRAY_DECLARE(Int8Array, int8_array, int8_t)
+#define DECLARE_ARRAY(type_name, namespace, el_type) DECLARE_ARRAY_PRO(type_name, namespace, el_type, const el_type *)
 
-ARRAY_DECLARE(Int16Array, int16_array, int16_t)
+#define DECLARE_PTR_ARRAY(type_name, namespace, el_type)                                                               \
+    DECLARE_ARRAY_PRO(type_name, namespace, el_type, el_type const *)
 
-ARRAY_DECLARE(Int32Array, int32_array, int32_t)
+DECLARE_ARRAY(Int8Array, int8_array, int8_t)
 
-ARRAY_DECLARE(Int64Array, int64_array, int64_t)
+DECLARE_ARRAY(Int16Array, int16_array, int16_t)
 
-ARRAY_DECLARE(UInt8Array, uint8_array, uint8_t)
+DECLARE_ARRAY(Int32Array, int32_array, int32_t)
 
-ARRAY_DECLARE(UInt16Array, uint16_array, uint16_t)
+DECLARE_ARRAY(Int64Array, int64_array, int64_t)
 
-ARRAY_DECLARE(UInt32Array, uint32_array, uint32_t)
+DECLARE_ARRAY(UInt8Array, uint8_array, uint8_t)
 
-ARRAY_DECLARE(UInt64Array, uint64_array, uint64_t)
+DECLARE_ARRAY(UInt16Array, uint16_array, uint16_t)
 
-ARRAY_DECLARE(SizeArray, size_array, size_t)
+DECLARE_ARRAY(UInt32Array, uint32_array, uint32_t)
 
-ARRAY_DECLARE(FloatArray, float_array, float)
+DECLARE_ARRAY(UInt64Array, uint64_array, uint64_t)
 
-ARRAY_DECLARE(DoubleArray, double_array, double)
+DECLARE_ARRAY(SizeArray, size_array, size_t)
 
-ARRAY_DECLARE(BoolArray, bool_array, bool)
+DECLARE_ARRAY(FloatArray, float_array, float)
 
-ARRAY_DECLARE(CharArray, char_array, char)
+DECLARE_ARRAY(DoubleArray, double_array, double)
 
-ARRAY_DECLARE(PtrArray, ptr_array, void *)
+DECLARE_ARRAY(BoolArray, bool_array, bool)
 
-ARRAY_DECLARE(CharPtrArray, char_ptr_array, char *)
+DECLARE_ARRAY(CharArray, char_array, char)
 
-ARRAY_DECLARE(StringArray, string_array, String)
+DECLARE_PTR_ARRAY(PtrArray, ptr_array, void *)
+
+DECLARE_PTR_ARRAY(CharPtrArray, char_ptr_array, char *)
+
+DECLARE_ARRAY(StringArray, string_array, String)
