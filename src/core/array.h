@@ -100,7 +100,7 @@ int32_t array_element_size(const Array *array);
     }                                                                                                                  \
                                                                                                                        \
     static inline void array_##name##_remove_if(Array_##name *array, bool (*predicate)(const type *element)) {         \
-        array_remove_if((Array *) array, predicate);                                                                   \
+        array_remove_if((Array *) array, (bool (*)(const void *element)) predicate);                                   \
     }                                                                                                                  \
                                                                                                                        \
     static inline bool array_##name##_contains(const Array_##name *array, type element) {                              \
