@@ -26,6 +26,8 @@ void string_remove(String *string, char element);
 
 void string_remove_at(String *string, int32_t index);
 
+void string_reverse(String *string);
+
 String string_substring(const String *string, int32_t start, int32_t end);
 
 void string_reserve(String *string, int32_t new_capacity);

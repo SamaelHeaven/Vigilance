@@ -63,6 +63,12 @@ void string_remove_at(String *string, const int32_t index) {
     array_char_remove_at((Array_char *) string, index);
 }
 
+void string_reverse(String *string) {
+    array_char_remove_at((Array_char *) string, string_length(string));
+    array_char_reverse((Array_char *) string);
+    array_char_add((Array_char *) string, '\0');
+}
+
 String string_substring(const String *string, const int32_t start, const int32_t end) {
     assert(end <= string_length(string));
     Array_char result = array_char_slice((Array_char *) string, start, end);
