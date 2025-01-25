@@ -67,19 +67,23 @@ int32_t array_capacity(const Array *array);
 
 int32_t array_element_size(const Array *array);
 
-#define DECLARE_ARRAY(type_name, namespace, el_type)                                                                   \
+#define DECLARE_ARRAY(type_name, namespace, el_type, ...)                                                              \
                                                                                                                        \
     typedef struct type_name {                                                                                         \
         struct Handle *handle;                                                                                         \
     } type_name;                                                                                                       \
                                                                                                                        \
-    inline static type_name namespace##_create(void) { return CAST(type_name, array_create(sizeof(el_type))); }        \
+    inline static type_name namespace##_create(void) {                                                                 \
+        return CAST(type_name, array_create(sizeof(__VA_ARGS__ el_type)));                                             \
+    }                                                                                                                  \
                                                                                                                        \
     inline static void namespace##_destroy(type_name *array) { array_destroy((Array *) array); }                       \
                                                                                                                        \
-    inline static void namespace##_add(type_name *array, el_type element) { array_add((Array *) array, &element); }    \
+    inline static void namespace##_add(type_name *array COMMA __VA_ARGS__ el_type element) {                           \
+        array_add((Array *) array, &element);                                                                          \
+    }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_add_at(type_name *array, const int32_t index, el_type element) {                    \
+    inline static void namespace##_add_at(type_name *array, const int32_t index COMMA __VA_ARGS__ el_type element) {   \
         array_add_at((Array *) array, index, &element);                                                                \
     }                                                                                                                  \
                                                                                                                        \
@@ -87,11 +91,11 @@ int32_t array_element_size(const Array *array);
         array_add_all((Array *) dest, (Array *) src);                                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_concat(type_name *array, el_type const *elements, int32_t count) {                  \
+    inline static void namespace##_concat(type_name *array COMMA __VA_ARGS__ el_type const *elements, int32_t count) { \
         array_concat((Array *) array, elements, count);                                                                \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_remove(type_name *array, el_type element) {                                         \
+    inline static void namespace##_remove(type_name *array COMMA __VA_ARGS__ el_type element) {                        \
         array_remove((Array *) array, &element);                                                                       \
     }                                                                                                                  \
                                                                                                                        \
@@ -103,31 +107,33 @@ int32_t array_element_size(const Array *array);
         array_remove_all((Array *) dest, (Array *) src);                                                               \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_remove_if(type_name *array, bool (*predicate)(el_type const *element)) {            \
+    inline static void namespace##_remove_if(type_name *array,                                                         \
+                                             bool (*predicate)(__VA_ARGS__ el_type const *element)) {                  \
         array_remove_if((Array *) array, (bool (*)(const void *element)) predicate);                                   \
     }                                                                                                                  \
                                                                                                                        \
-    inline static bool namespace##_contains(const type_name *array, el_type element) {                                 \
+    inline static bool namespace##_contains(const type_name *array COMMA __VA_ARGS__ el_type element) {                \
         return array_contains((Array *) array, &element);                                                              \
     }                                                                                                                  \
                                                                                                                        \
     inline static bool namespace##_is_empty(const type_name *array) { return array_is_empty((Array *) array); }        \
                                                                                                                        \
-    inline static int32_t namespace##_index_of(const type_name *array, el_type element) {                              \
+    inline static int32_t namespace##_index_of(const type_name *array COMMA __VA_ARGS__ el_type element) {             \
         return array_index_of((Array *) array, &element);                                                              \
     }                                                                                                                  \
                                                                                                                        \
     inline static void namespace##_clear(type_name *array) { array_clear((Array *) array); }                           \
                                                                                                                        \
-    inline static el_type namespace##_get(const type_name *array, const int32_t index) {                               \
-        return *(el_type *) array_get((Array *) array, index);                                                         \
+    inline static __VA_ARGS__ el_type namespace##_get(const type_name *array, const int32_t index) {                   \
+        return *(__VA_ARGS__ el_type *) array_get((Array *) array, index);                                             \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_set(type_name *array, const int32_t index, el_type element) {                       \
+    inline static void namespace##_set(type_name *array, const int32_t index COMMA __VA_ARGS__ el_type element) {      \
         array_set((Array *) array, index, &element);                                                                   \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_replace(type_name *array, el_type element, el_type by) {                            \
+    inline static void namespace##_replace(                                                                            \
+            type_name *array COMMA __VA_ARGS__ el_type element COMMA __VA_ARGS__ el_type by) {                         \
         array_replace((Array *) array, &element, &by);                                                                 \
     }                                                                                                                  \
                                                                                                                        \
@@ -135,12 +141,15 @@ int32_t array_element_size(const Array *array);
         array_reserve((Array *) array, new_capacity);                                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_sort(type_name *array, int32_t (*comparator)(el_type const *a, el_type const *b)) { \
+    inline static void namespace##_sort(                                                                               \
+            type_name *array,                                                                                          \
+            int32_t (*comparator)(__VA_ARGS__ el_type const *a COMMA __VA_ARGS__ el_type const *b)) {                  \
         array_sort((Array *) array, (int32_t(*)(const void *a, const void *b))(comparator));                           \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void namespace##_stable_sort(type_name *array,                                                       \
-                                               int32_t (*comparator)(el_type const *a, el_type const *b)) {            \
+    inline static void namespace##_stable_sort(                                                                        \
+            type_name *array,                                                                                          \
+            int32_t (*comparator)(__VA_ARGS__ el_type const *a COMMA __VA_ARGS__ el_type const *b)) {                  \
         array_stable_sort((Array *) array, (int32_t(*)(const void *a, const void *b)) comparator);                     \
     }                                                                                                                  \
     inline static void namespace##_shrink(type_name *array) { array_shrink((Array *) array); }                         \
@@ -155,16 +164,18 @@ int32_t array_element_size(const Array *array);
                                                                                                                        \
     inline static void namespace##_reverse(type_name *array) { array_reverse((Array *) array); }                       \
                                                                                                                        \
-    inline static void namespace##_for_each(const type_name *array, void (*callback)(const el_type element)) {         \
+    inline static void namespace##_for_each(const type_name *array, void (*callback)(__VA_ARGS__ el_type element)) {   \
         for (int32_t i = 0; i < array_size((Array *) array); ++i) {                                                    \
-            callback(*(el_type *) array_get((Array *) array, i));                                                      \
+            callback(*(__VA_ARGS__ el_type *) array_get((Array *) array, i));                                          \
         }                                                                                                              \
     }                                                                                                                  \
                                                                                                                        \
-    inline static el_type *namespace##_to_ptr(const type_name *array) { return array_to_ptr((Array *) array); }        \
+    inline static __VA_ARGS__ el_type *namespace##_to_ptr(const type_name *array) {                                    \
+        return array_to_ptr((Array *) array);                                                                          \
+    }                                                                                                                  \
                                                                                                                        \
-    inline static el_type const *namespace##_data(const type_name *array) {                                            \
-        return (el_type const *) array_data((Array *) array);                                                          \
+    inline static __VA_ARGS__ el_type const *namespace##_data(const type_name *array) {                                \
+        return (__VA_ARGS__ el_type const *) array_data((Array *) array);                                              \
     }                                                                                                                  \
                                                                                                                        \
     inline static int32_t namespace##_size(const type_name *array) { return array_size((Array *) array); }             \
@@ -203,6 +214,10 @@ DECLARE_ARRAY(CharArray, char_array, char)
 
 DECLARE_ARRAY(PtrArray, ptr_array, void *)
 
+DECLARE_ARRAY(ConstPtrArray, const_ptr_array, void *, const)
+
 DECLARE_ARRAY(CharPtrArray, char_ptr_array, char *)
+
+DECLARE_ARRAY(ConstCharPtrArray, const_char_ptr_array, char *, const)
 
 DECLARE_ARRAY(StringArray, string_array, String)

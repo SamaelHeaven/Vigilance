@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define COMMA ,
+
 #define LVALUE(rvalue)                                                                                                 \
     (*({                                                                                                               \
         volatile typeof(rvalue) VALUE__ = (rvalue);                                                                    \
