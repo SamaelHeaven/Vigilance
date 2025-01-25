@@ -17,6 +17,8 @@ void array_add_at(Array *array, int32_t index, const void *element);
 
 void array_add_all(Array *dest, const Array *src);
 
+void array_append(Array *dest, const void *elements, int32_t count);
+
 void array_remove(Array *array, const void *element);
 
 void array_remove_at(Array *array, int32_t index);
@@ -85,6 +87,10 @@ int32_t array_element_size(const Array *array);
                                                                                                                        \
     static inline void array_##name##_add_all(Array_##name *dest, const Array_##name *src) {                           \
         array_add_all((Array *) dest, (Array *) src);                                                                  \
+    }                                                                                                                  \
+                                                                                                                       \
+    static inline void array_##name##_append(Array_##name *dest, const type *elements, int32_t count) {                \
+        array_append((Array *) dest, elements, count);                                                                 \
     }                                                                                                                  \
                                                                                                                        \
     static inline void array_##name##_remove(Array_##name *array, type element) {                                      \

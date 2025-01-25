@@ -2,21 +2,12 @@
 
 #include "array.h"
 
-typedef struct Handle {
-    void *elements;
-    int32_t size;
-    int32_t capacity;
-    int32_t element_size;
-} Handle;
-
 String string_create(const char *char_ptr) {
     Array_char string = array_char_create();
-    const int32_t len = char_ptr ? strlen(char_ptr) : 0;
-    char *data = array_char_data(&string);
-    array_char_reserve(&string, len + 1);
-    string.handle->size = len + 1;
-    memccpy(data, char_ptr, '\0', len);
-    data[len] = '\0';
+    if (char_ptr) {
+        array_char_append(&string, char_ptr,  strlen(char_ptr));
+    }
+    array_char_add(&string, '\0');
     return *(String *) &string;
 }
 
@@ -57,14 +48,9 @@ void string_append(String *string, const char character) {
 
 void string_append_all(String *string, const char *char_ptr) {
     assert(char_ptr);
-    const int32_t ptr_len = strlen(char_ptr);
-    const int32_t len = string_length(string);
-    const int32_t new_len = len + ptr_len + 1;
-    char *data = string_data(string);
-    string_reserve(string, new_len);
-    string->handle->size = new_len;
-    memccpy(data + len, char_ptr, '\0', ptr_len);
-    data[len] = '\0';
+    string_remove_at(string, string_length(string));
+    array_char_append((Array_char *) string, char_ptr,  strlen(char_ptr));
+    array_char_add((Array_char *) string, '\0');
 }
 
 void string_concat(String *string, const String *other) { string_append_all(string, string_data(other)); }

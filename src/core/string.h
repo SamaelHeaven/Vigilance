@@ -8,7 +8,7 @@ typedef struct String {
 
 String string_create(const char *char_ptr);
 
-String string_format(const char* format, ...);
+String string_format(const char *format, ...);
 
 void string_destroy(String *string);
 

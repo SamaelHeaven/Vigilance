@@ -104,16 +104,23 @@ void array_add_at(Array *array, const int32_t index, const void *element) {
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
 void array_add_all(Array *dest, const Array *src) {
     assert(dest && src);
-    Handle *dest_handle = dest->handle;
     const Handle *src_handle = src->handle;
-    assert(dest_handle && src_handle);
-    if (dest_handle->size + src_handle->size > dest_handle->capacity) {
-        dest_handle->capacity = dest_handle->size + src_handle->size;
-        dest_handle->elements = gc_realloc(dest_handle->elements, dest_handle->element_size * dest_handle->capacity);
+    assert(src_handle);
+    array_append(dest, src_handle->elements, src_handle->size);
+}
+
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+void array_append(Array *dest, const void *elements, const int32_t count) {
+    assert(dest && elements);
+    Handle *handle = dest->handle;
+    assert(handle);
+    if (handle->size + count > handle->capacity) {
+        handle->capacity = handle->size + count;
+        handle->elements = gc_realloc(handle->elements, handle->element_size * handle->capacity);
     }
-    memcpy(dest_handle->elements + dest_handle->size * dest_handle->element_size, src_handle->elements,
-           src_handle->size * src_handle->element_size);
-    dest_handle->size += src_handle->size;
+    memcpy(handle->elements + handle->size * handle->element_size, elements,
+           count * handle->element_size);
+    handle->size += count;
 }
 
 void array_remove(Array *array, const void *element) {
