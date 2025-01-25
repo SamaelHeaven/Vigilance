@@ -14,3 +14,5 @@
         typeof(rvalue) VALUE__ = (rvalue);                                                                             \
         &VALUE__;                                                                                                      \
     }))
+
+#define CAST(type, value) *(type *) &LVALUE(value)

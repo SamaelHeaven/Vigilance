@@ -73,9 +73,7 @@ int32_t array_element_size(const Array *array);
         struct Handle *handle;                                                                                         \
     } type_name;                                                                                                       \
                                                                                                                        \
-    inline static type_name namespace##_create(void) {                                                                 \
-        return *((type_name *) &LVALUE(array_create(sizeof(el_type))));                                                \
-    }                                                                                                                  \
+    inline static type_name namespace##_create(void) { return CAST(type_name, array_create(sizeof(el_type))); }        \
                                                                                                                        \
     inline static void namespace##_destroy(type_name *array) { array_destroy((Array *) array); }                       \
                                                                                                                        \
@@ -148,11 +146,11 @@ int32_t array_element_size(const Array *array);
     inline static void namespace##_shrink(type_name *array) { array_shrink((Array *) array); }                         \
                                                                                                                        \
     inline static type_name namespace##_copy(const type_name *array) {                                                 \
-        return *((type_name *) &LVALUE(array_copy((Array *) array)));                                                  \
+        return CAST(type_name, array_copy((Array *) array));                                                           \
     }                                                                                                                  \
                                                                                                                        \
     inline static type_name namespace##_slice(const type_name *array, int32_t begin, int32_t end) {                    \
-        return *((type_name *) &LVALUE(array_slice((Array *) array, begin, end)));                                     \
+        return CAST(type_name, array_slice((Array *) array, begin, end));                                              \
     }                                                                                                                  \
                                                                                                                        \
     inline static void namespace##_reverse(type_name *array) { array_reverse((Array *) array); }                       \

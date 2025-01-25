@@ -10,7 +10,7 @@ String string_create(const char *char_ptr) {
         char_array_concat(&string, char_ptr, len);
     }
     char_array_add(&string, '\0');
-    return *(String *) &string;
+    return CAST(String, string);
 }
 
 String string_format(const char *format, ...) {
@@ -75,7 +75,7 @@ String string_substring(const String *string, const int32_t start, const int32_t
     assert(end <= string_length(string));
     CharArray result = char_array_slice((CharArray *) string, start, end);
     char_array_add(&result, '\0');
-    return *(String *) &result;
+    return CAST(String, result);
 }
 
 void string_reserve(String *string, const int32_t new_capacity) {
