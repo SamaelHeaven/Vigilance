@@ -67,144 +67,142 @@ int32_t array_capacity(const Array *array);
 
 int32_t array_element_size(const Array *array);
 
-#define ARRAY_DEFINE(type, name)                                                                                       \
+#define ARRAY_DECLARE(type_name, namespace, el_type)                                                                   \
                                                                                                                        \
-    typedef struct Array_##name {                                                                                      \
+    typedef struct type_name {                                                                                         \
         struct Handle *handle;                                                                                         \
-    } Array_##name;                                                                                                    \
+    } type_name;                                                                                                       \
                                                                                                                        \
-    inline static Array_##name array_##name##_create(void) {                                                           \
-        return *((Array_##name *) &LVALUE(array_create(sizeof(type))));                                                \
+    inline static type_name namespace##_create(void) {                                                                 \
+        return *((type_name *) &LVALUE(array_create(sizeof(el_type))));                                                \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_destroy(Array_##name *array) { array_destroy((Array *) array); }                 \
+    inline static void namespace##_destroy(type_name *array) { array_destroy((Array *) array); }                       \
                                                                                                                        \
-    inline static void array_##name##_add(Array_##name *array, type element) { array_add((Array *) array, &element); } \
+    inline static void namespace##_add(type_name *array, el_type element) { array_add((Array *) array, &element); }    \
                                                                                                                        \
-    inline static void array_##name##_add_at(Array_##name *array, const int32_t index, type element) {                 \
+    inline static void namespace##_add_at(type_name *array, const int32_t index, el_type element) {                    \
         array_add_at((Array *) array, index, &element);                                                                \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_add_all(Array_##name *dest, const Array_##name *src) {                           \
+    inline static void namespace##_add_all(type_name *dest, const type_name *src) {                                    \
         array_add_all((Array *) dest, (Array *) src);                                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_concat(Array_##name *array, const type *elements, int32_t count) {                \
-        array_concat((Array *) array, elements, count);                                                                 \
+    inline static void namespace##_concat(type_name *array, const el_type *elements, int32_t count) {                  \
+        array_concat((Array *) array, elements, count);                                                                \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_remove(Array_##name *array, type element) {                                      \
+    inline static void namespace##_remove(type_name *array, el_type element) {                                         \
         array_remove((Array *) array, &element);                                                                       \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_remove_at(Array_##name *array, const int32_t index) {                            \
+    inline static void namespace##_remove_at(type_name *array, const int32_t index) {                                  \
         array_remove_at((Array *) array, index);                                                                       \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_remove_all(Array_##name *dest, const Array_##name *src) {                        \
+    inline static void namespace##_remove_all(type_name *dest, const type_name *src) {                                 \
         array_remove_all((Array *) dest, (Array *) src);                                                               \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_remove_if(Array_##name *array, bool (*predicate)(const type *element)) {         \
+    inline static void namespace##_remove_if(type_name *array, bool (*predicate)(const el_type *element)) {            \
         array_remove_if((Array *) array, (bool (*)(const void *element)) predicate);                                   \
     }                                                                                                                  \
                                                                                                                        \
-    inline static bool array_##name##_contains(const Array_##name *array, type element) {                              \
+    inline static bool namespace##_contains(const type_name *array, el_type element) {                                 \
         return array_contains((Array *) array, &element);                                                              \
     }                                                                                                                  \
                                                                                                                        \
-    inline static bool array_##name##_is_empty(const Array_##name *array) { return array_is_empty((Array *) array); }  \
+    inline static bool namespace##_is_empty(const type_name *array) { return array_is_empty((Array *) array); }        \
                                                                                                                        \
-    inline static int32_t array_##name##_index_of(const Array_##name *array, type element) {                           \
+    inline static int32_t namespace##_index_of(const type_name *array, el_type element) {                              \
         return array_index_of((Array *) array, &element);                                                              \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_clear(Array_##name *array) { array_clear((Array *) array); }                     \
+    inline static void namespace##_clear(type_name *array) { array_clear((Array *) array); }                           \
                                                                                                                        \
-    inline static type array_##name##_get(const Array_##name *array, const int32_t index) {                            \
-        return *(type *) array_get((Array *) array, index);                                                            \
+    inline static el_type namespace##_get(const type_name *array, const int32_t index) {                               \
+        return *(el_type *) array_get((Array *) array, index);                                                         \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_set(Array_##name *array, const int32_t index, type element) {                    \
+    inline static void namespace##_set(type_name *array, const int32_t index, el_type element) {                       \
         array_set((Array *) array, index, &element);                                                                   \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_replace(Array_##name *array, type element, type by) {                            \
+    inline static void namespace##_replace(type_name *array, el_type element, el_type by) {                            \
         array_replace((Array *) array, &element, &by);                                                                 \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_reserve(Array_##name *array, const int32_t new_capacity) {                       \
+    inline static void namespace##_reserve(type_name *array, const int32_t new_capacity) {                             \
         array_reserve((Array *) array, new_capacity);                                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_sort(Array_##name *array, int32_t (*comparator)(const type *a, const type *b)) { \
+    inline static void namespace##_sort(type_name *array, int32_t (*comparator)(const el_type *a, const el_type *b)) { \
         array_sort((Array *) array, (int32_t(*)(const void *a, const void *b))(comparator));                           \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_stable_sort(Array_##name *array,                                                 \
-                                                  int32_t (*comparator)(const type *a, const type *b)) {               \
+    inline static void namespace##_stable_sort(type_name *array,                                                       \
+                                               int32_t (*comparator)(const el_type *a, const el_type *b)) {            \
         array_stable_sort((Array *) array, (int32_t(*)(const void *a, const void *b)) comparator);                     \
     }                                                                                                                  \
-    inline static void array_##name##_shrink(Array_##name *array) { array_shrink((Array *) array); }                   \
+    inline static void namespace##_shrink(type_name *array) { array_shrink((Array *) array); }                         \
                                                                                                                        \
-    inline static Array_##name array_##name##_copy(const Array_##name *array) {                                        \
-        return *((Array_##name *) &LVALUE(array_copy((Array *) array)));                                               \
+    inline static type_name namespace##_copy(const type_name *array) {                                                 \
+        return *((type_name *) &LVALUE(array_copy((Array *) array)));                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    inline static Array_##name array_##name##_slice(const Array_##name *array, int32_t begin, int32_t end) {           \
-        return *((Array_##name *) &LVALUE(array_slice((Array *) array, begin, end)));                                  \
+    inline static type_name namespace##_slice(const type_name *array, int32_t begin, int32_t end) {                    \
+        return *((type_name *) &LVALUE(array_slice((Array *) array, begin, end)));                                     \
     }                                                                                                                  \
                                                                                                                        \
-    inline static void array_##name##_reverse(Array_##name *array) { array_reverse((Array *) array); }                 \
+    inline static void namespace##_reverse(type_name *array) { array_reverse((Array *) array); }                       \
                                                                                                                        \
-    inline static void array_##name##_for_each(const Array_##name *array, void (*callback)(type element)) {            \
+    inline static void namespace##_for_each(const type_name *array, void (*callback)(el_type element)) {               \
         for (int32_t i = 0; i < array_size((Array *) array); ++i) {                                                    \
-            callback(*(type *) array_get((Array *) array, i));                                                         \
+            callback(*(el_type *) array_get((Array *) array, i));                                                      \
         }                                                                                                              \
     }                                                                                                                  \
                                                                                                                        \
-    inline static type *array_##name##_to_ptr(const Array_##name *array) { return array_to_ptr((Array *) array); }     \
+    inline static el_type *namespace##_to_ptr(const type_name *array) { return array_to_ptr((Array *) array); }        \
                                                                                                                        \
-    inline static const type *array_##name##_data(const Array_##name *array) { return array_data((Array *) array); }         \
+    inline static const el_type *namespace##_data(const type_name *array) { return array_data((Array *) array); }      \
                                                                                                                        \
-    inline static int32_t array_##name##_size(const Array_##name *array) { return array_size((Array *) array); }       \
+    inline static int32_t namespace##_size(const type_name *array) { return array_size((Array *) array); }             \
                                                                                                                        \
-    inline static int32_t array_##name##_capacity(const Array_##name *array) {                                         \
-        return array_capacity((Array *) array);                                                                        \
-    }                                                                                                                  \
+    inline static int32_t namespace##_capacity(const type_name *array) { return array_capacity((Array *) array); }     \
                                                                                                                        \
-    inline static int32_t array_##name##_element_size(const Array_##name *array) {                                     \
+    inline static int32_t namespace##_element_size(const type_name *array) {                                           \
         return array_element_size((Array *) array);                                                                    \
     }
 
-ARRAY_DEFINE(int8_t, int8)
+ARRAY_DECLARE(Int8Array, int8_array, int8_t)
 
-ARRAY_DEFINE(int16_t, int16)
+ARRAY_DECLARE(Int16Array, int16_array, int16_t)
 
-ARRAY_DEFINE(int32_t, int32)
+ARRAY_DECLARE(Int32Array, int32_array, int32_t)
 
-ARRAY_DEFINE(int64_t, int64)
+ARRAY_DECLARE(Int64Array, int64_array, int64_t)
 
-ARRAY_DEFINE(uint8_t, uint8)
+ARRAY_DECLARE(UInt8Array, uint8_array, uint8_t)
 
-ARRAY_DEFINE(uint16_t, uint16)
+ARRAY_DECLARE(UInt16Array, uint16_array, uint16_t)
 
-ARRAY_DEFINE(uint32_t, uint32)
+ARRAY_DECLARE(UInt32Array, uint32_array, uint32_t)
 
-ARRAY_DEFINE(uint64_t, uint64)
+ARRAY_DECLARE(UInt64Array, uint64_array, uint64_t)
 
-ARRAY_DEFINE(size_t, size)
+ARRAY_DECLARE(SizeArray, size_array, size_t)
 
-ARRAY_DEFINE(float, float)
+ARRAY_DECLARE(FloatArray, float_array, float)
 
-ARRAY_DEFINE(double, double)
+ARRAY_DECLARE(DoubleArray, double_array, double)
 
-ARRAY_DEFINE(bool, bool)
+ARRAY_DECLARE(BoolArray, bool_array, bool)
 
-ARRAY_DEFINE(char, char)
+ARRAY_DECLARE(CharArray, char_array, char)
 
-ARRAY_DEFINE(void *, ptr)
+ARRAY_DECLARE(PtrArray, ptr_array, void *)
 
-ARRAY_DEFINE(char *, char_ptr)
+ARRAY_DECLARE(CharPtrArray, char_ptr_array, char *)
 
-ARRAY_DEFINE(String, string)
+ARRAY_DECLARE(StringArray, string_array, String)

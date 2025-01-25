@@ -62,7 +62,7 @@ int32_t string_compare_ignore_case(const String *string, const char *other);
 
 String string_copy(const String *string);
 
-struct Array_char string_to_array(const String *string);
+struct CharArray string_to_array(const String *string);
 
 char *string_to_ptr(const String *string);
 

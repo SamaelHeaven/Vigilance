@@ -8,7 +8,7 @@
 
 #undef main
 
-void vigilance_main(Array_char_ptr args);
+void vigilance_main(CharPtrArray args);
 
 int main(const int32_t argc, char **argv) {
     GC_INIT();
@@ -16,10 +16,10 @@ int main(const int32_t argc, char **argv) {
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
 #endif
-    Array_char_ptr args = array_char_ptr_create();
-    array_char_ptr_reserve(&args, argc);
+    CharPtrArray args = char_ptr_array_create();
+    char_ptr_array_reserve(&args, argc);
     for (int32_t i = 0; i < argc; ++i) {
-        array_char_ptr_add(&args, argv[i]);
+        char_ptr_array_add(&args, argv[i]);
     }
     vigilance_main(args);
     return 0;
