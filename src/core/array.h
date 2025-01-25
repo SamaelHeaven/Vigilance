@@ -165,7 +165,9 @@ int32_t array_element_size(const Array *array);
                                                                                                                        \
     inline static el_type *namespace##_to_ptr(const type_name *array) { return array_to_ptr((Array *) array); }        \
                                                                                                                        \
-    inline static const el_type *namespace##_data(const type_name *array) { return array_data((Array *) array); }      \
+    inline static const el_type *namespace##_data(const type_name *array) {                                            \
+        return (const el_type *) array_data((Array *) array);                                                          \
+    }                                                                                                                  \
                                                                                                                        \
     inline static int32_t namespace##_size(const type_name *array) { return array_size((Array *) array); }             \
                                                                                                                        \
