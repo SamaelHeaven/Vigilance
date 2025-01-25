@@ -4,14 +4,14 @@
 
 #undef main
 
-void vigilance_main(Array_string args);
+void vigilance_main(Array_char_ptr args);
 
-int main(const int32_t argc, const char **argv) {
+int main(const int32_t argc, char **argv) {
     GC_INIT();
-    Array_string args = array_string_create();
-    array_string_reserve(&args, argc);
+    Array_char_ptr args = array_char_ptr_create();
+    array_char_ptr_reserve(&args, argc);
     for (int32_t i = 0; i < argc; ++i) {
-        array_string_add(&args, string_create(argv[i]));
+        array_char_ptr_add(&args, argv[i]);
     }
     vigilance_main(args);
     return 0;
