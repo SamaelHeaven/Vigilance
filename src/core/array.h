@@ -157,7 +157,7 @@ int32_t array_element_size(const Array *array);
                                                                                                                        \
     inline static void namespace##_reverse(type_name *array) { array_reverse((Array *) array); }                       \
                                                                                                                        \
-    inline static void namespace##_for_each(const type_name *array, void (*callback)(el_type element)) {               \
+    inline static void namespace##_for_each(const type_name *array, void (*callback)(const el_type element)) {         \
         for (int32_t i = 0; i < array_size((Array *) array); ++i) {                                                    \
             callback(*(el_type *) array_get((Array *) array, i));                                                      \
         }                                                                                                              \
