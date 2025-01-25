@@ -135,21 +135,20 @@ int32_t string_compare(const String *string, const char *other) {
 }
 
 int32_t string_compare_ignore_case(const String *string, const char *other) {
-    const char *data_1 = array_char_data((Array_char *) string);
-    const char *data_2 = other;
-    if (data_1 == NULL || data_2 == NULL) {
-        return data_1 == data_2 ? 0 : data_1 == NULL ? -1 : 1;
+    const char *data = array_char_data((Array_char *) string);
+    if (data == NULL || other == NULL) {
+        return data == other ? 0 : data == NULL ? -1 : 1;
     }
-    while (*data_1 && *data_2) {
-        const unsigned char c1 = tolower(*data_1);
-        const unsigned char c2 = tolower(*data_2);
+    while (*data && *other) {
+        const unsigned char c1 = tolower(*data);
+        const unsigned char c2 = tolower(*other);
         if (c1 != c2) {
             return c1 - c2;
         }
-        data_1++;
-        data_2++;
+        data++;
+        other++;
     }
-    return (unsigned char) tolower(*data_1) - (unsigned char) tolower(*data_2);
+    return (unsigned char) tolower(*data) - (unsigned char) tolower(*other);
 }
 
 String string_copy(const String *string) { return *(String *) &LVALUE(array_char_copy((Array_char *) string)); }
