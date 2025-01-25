@@ -151,6 +151,18 @@ void array_remove_all(Array *dest, const Array *src) {
     }
 }
 
+void array_remove_if(Array *array, bool (*predicate)(const void *element)) {
+    assert(array);
+    Handle *handle = array->handle;
+    assert(handle);
+    for (int32_t i = 0; i < handle->size; ++i) {
+        if (predicate(handle->elements + i * handle->element_size)) {
+            array_remove_at(array, i);
+            i--;
+        }
+    }
+}
+
 bool array_contains(const Array *array, const void *element) {
     assert(array);
     return array_index_of(array, element) != -1;
@@ -200,6 +212,18 @@ void array_set(Array *array, const int32_t index, const void *element) {
     const Handle *handle = array->handle;
     assert(handle && index >= 0 && index < handle->size);
     memcpy(handle->elements + index * handle->element_size, element, handle->element_size);
+}
+
+// ReSharper disable once CppParameterMayBeConstPtrOrRef
+void array_replace(Array *array, const void *element, const void *by) {
+    assert(array && element && by);
+    const Handle *handle = array->handle;
+    assert(handle);
+    for (int32_t i = 0; i < handle->size; ++i) {
+        if (memcmp(handle->elements + i * handle->element_size, element, handle->element_size) == 0) {
+            memcpy(handle->elements + i * handle->element_size, by, handle->element_size);
+        }
+    }
 }
 
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
@@ -304,7 +328,7 @@ void *array_to_ptr(const Array *array) {
     return result;
 }
 
-void *array_elements(const Array *array) {
+void *array_data(const Array *array) {
     assert(array && array->handle);
     return array->handle->elements;
 }
