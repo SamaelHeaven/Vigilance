@@ -10,7 +10,7 @@
 
 void vigilance_main(CharPtrArray args);
 
-int main(const int32_t argc, char *const *argv) {
+int main(const int32_t argc, char **argv) {
     GC_INIT();
 #ifdef _WIN32
     SetConsoleCP(CP_UTF8);
