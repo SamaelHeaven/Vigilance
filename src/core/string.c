@@ -5,7 +5,7 @@
 String string_create(const char *char_ptr) {
     Array_char string = array_char_create();
     if (char_ptr) {
-        array_char_append(&string, char_ptr,  strlen(char_ptr));
+        array_char_append(&string, char_ptr, strlen(char_ptr));
     }
     array_char_add(&string, '\0');
     return *(String *) &string;
@@ -38,26 +38,28 @@ void string_set_char(String *string, const int32_t index, const char character) 
 
 void string_replace(String *string, const char character, const char by) {
     array_char_replace((Array_char *) string, character, by);
-    string_data(string)[string_length(string)] = '\0';
+    array_char_data((Array_char *) string)[string_length(string)] = '\0';
 }
 
 void string_append(String *string, const char character) {
     array_char_add((Array_char *) string, '\0');
-    string_set_char(string, string_length(string) - 1, character);
+    array_char_set((Array_char *) string, string_length(string) - 1, character);
 }
 
 void string_append_all(String *string, const char *char_ptr) {
     assert(char_ptr);
-    string_remove_at(string, string_length(string));
-    array_char_append((Array_char *) string, char_ptr,  strlen(char_ptr));
+    array_char_remove_at((Array_char *) string, string_length(string));
+    array_char_append((Array_char *) string, char_ptr, strlen(char_ptr));
     array_char_add((Array_char *) string, '\0');
 }
 
-void string_concat(String *string, const String *other) { string_append_all(string, string_data(other)); }
+void string_concat(String *string, const String *other) {
+    string_append_all(string, array_char_data((Array_char *) other));
+}
 
 void string_remove(String *string, const char element) {
     array_char_remove((Array_char *) string, element);
-    string_data(string)[string_length(string)] = '\0';
+    array_char_data((Array_char *) string)[string_length(string)] = '\0';
 }
 
 void string_remove_at(String *string, const int32_t index) {
@@ -81,11 +83,11 @@ void string_shrink(String *string) { array_char_shrink((Array_char *) string); }
 String string_trim(const String *string) {
     const int32_t len = string_length(string);
     int32_t start = 0;
-    while (start < len && isspace(string_char_at(string, start))) {
+    while (start < len && isspace(array_char_get((Array_char *) string, start))) {
         start++;
     }
     int32_t end = len - 1;
-    while (end >= start && isspace(string_char_at(string, end))) {
+    while (end >= start && isspace(array_char_get((Array_char *) string, end))) {
         end--;
     }
     return start <= end ? string_substring(string, start, end + 1) : string_create("");
@@ -93,13 +95,13 @@ String string_trim(const String *string) {
 
 void string_lowercase(String *string) {
     for (int32_t i = 0; i < string_length(string); ++i) {
-        string_set_char(string, i, tolower(string_char_at(string, i)));
+        array_char_set((Array_char *) string, i, tolower(array_char_get((Array_char *) string, i)));
     }
 }
 
 void string_uppercase(String *string) {
     for (int32_t i = 0; i < string_length(string); ++i) {
-        string_set_char(string, i, toupper(string_char_at(string, i)));
+        array_char_set((Array_char *) string, i, toupper(array_char_get((Array_char *) string, i)));
     }
 }
 
@@ -137,8 +139,8 @@ int32_t string_compare(const String *string, const String *other) {
 }
 
 int32_t string_compare_ignore_case(const String *string, const String *other) {
-    const char *data_1 = string_data(string);
-    const char *data_2 = string_data(other);
+    const char *data_1 = array_char_data((Array_char *) string);
+    const char *data_2 = array_char_data((Array_char *) other);
     if (data_1 == NULL || data_2 == NULL) {
         return data_1 == data_2 ? 0 : data_1 == NULL ? -1 : 1;
     }
