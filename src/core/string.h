@@ -20,9 +20,7 @@ void string_replace(String *string, char character, char by);
 
 void string_append(String *string, char character);
 
-void string_append_all(String *string, const char *char_ptr);
-
-void string_concat(String *string, const String *other);
+void string_concat(String *string, const char *char_ptr);
 
 void string_remove(String *string, char element);
 
@@ -52,13 +50,13 @@ bool string_is_empty(const String *string);
 
 void string_clear(String *string);
 
-int32_t string_equals(const String *string, const String *other);
+int32_t string_equals(const String *string, const char *other);
 
-int32_t string_equals_ignore_case(const String *string, const String *other);
+int32_t string_equals_ignore_case(const String *string, const char *other);
 
-int32_t string_compare(const String *string, const String *other);
+int32_t string_compare(const String *string, const char *other);
 
-int32_t string_compare_ignore_case(const String *string, const String *other);
+int32_t string_compare_ignore_case(const String *string, const char *other);
 
 String string_copy(const String *string);
 

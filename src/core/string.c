@@ -46,15 +46,11 @@ void string_append(String *string, const char character) {
     array_char_set((Array_char *) string, string_length(string) - 1, character);
 }
 
-void string_append_all(String *string, const char *char_ptr) {
+void string_concat(String *string, const char *char_ptr) {
     assert(char_ptr);
     array_char_remove_at((Array_char *) string, string_length(string));
     array_char_append((Array_char *) string, char_ptr, strlen(char_ptr));
     array_char_add((Array_char *) string, '\0');
-}
-
-void string_concat(String *string, const String *other) {
-    string_append_all(string, array_char_data((Array_char *) other));
 }
 
 void string_remove(String *string, const char element) {
@@ -128,19 +124,19 @@ int32_t string_index_of(const String *string, const char character) {
 
 void string_clear(String *string) { array_char_clear((Array_char *) string); }
 
-int32_t string_equals(const String *string, const String *other) { return string_compare(string, other) == 0; }
+int32_t string_equals(const String *string, const char *other) { return string_compare(string, other) == 0; }
 
-int32_t string_equals_ignore_case(const String *string, const String *other) {
+int32_t string_equals_ignore_case(const String *string, const char *other) {
     return string_compare_ignore_case(string, other) == 0;
 }
 
-int32_t string_compare(const String *string, const String *other) {
-    return strcmp(array_char_data((Array_char *) string), array_char_data((Array_char *) other));
+int32_t string_compare(const String *string, const char *other) {
+    return strcmp(array_char_data((Array_char *) string), other);
 }
 
-int32_t string_compare_ignore_case(const String *string, const String *other) {
+int32_t string_compare_ignore_case(const String *string, const char *other) {
     const char *data_1 = array_char_data((Array_char *) string);
-    const char *data_2 = array_char_data((Array_char *) other);
+    const char *data_2 = other;
     if (data_1 == NULL || data_2 == NULL) {
         return data_1 == data_2 ? 0 : data_1 == NULL ? -1 : 1;
     }
