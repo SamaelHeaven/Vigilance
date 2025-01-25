@@ -13,10 +13,11 @@ void vigilance_main(CharPtrArray args);
 int32_t main(const int32_t argc, char **argv) {
     GC_INIT();
 #ifdef _WIN32
+    const HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD console_mode;
-    GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &console_mode);
+    GetConsoleMode(console_handle, &console_mode);
     console_mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), console_mode);
+    SetConsoleMode(console_handle, console_mode);
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
 #endif
