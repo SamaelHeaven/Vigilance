@@ -110,9 +110,9 @@ void array_add_all(Array *dest, const Array *src) {
 }
 
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
-void array_concat(Array *dest, const void *elements, const int32_t count) {
-    assert(dest && elements);
-    Handle *handle = dest->handle;
+void array_concat(Array *array, const void *elements, const int32_t count) {
+    assert(array && elements);
+    Handle *handle = array->handle;
     assert(handle);
     if (handle->size + count > handle->capacity) {
         handle->capacity = handle->size + count;
@@ -335,7 +335,7 @@ void *array_to_ptr(const Array *array) {
     return result;
 }
 
-void *array_data(const Array *array) {
+const void *array_data(const Array *array) {
     assert(array && array->handle);
     return array->handle->elements;
 }

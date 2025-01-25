@@ -66,7 +66,7 @@ struct Array_char string_to_array(const String *string);
 
 char *string_to_ptr(const String *string);
 
-char *string_data(const String *string);
+const char *string_data(const String *string);
 
 int32_t string_length(const String *string);
 

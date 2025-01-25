@@ -4,8 +4,10 @@
 
 String string_create(const char *char_ptr) {
     Array_char string = array_char_create();
+    const int32_t len = char_ptr ? strlen(char_ptr) : 0;
+    array_char_reserve(&string, len + 1);
     if (char_ptr) {
-        array_char_concat(&string, char_ptr, strlen(char_ptr));
+        array_char_concat(&string, char_ptr, len);
     }
     array_char_add(&string, '\0');
     return *(String *) &string;
@@ -38,7 +40,7 @@ void string_set_char(String *string, const int32_t index, const char character) 
 
 void string_replace(String *string, const char character, const char by) {
     array_char_replace((Array_char *) string, character, by);
-    array_char_data((Array_char *) string)[string_length(string)] = '\0';
+    array_char_set((Array_char *) string, string_length(string), '\0');
 }
 
 void string_append(String *string, const char character) {
@@ -55,7 +57,7 @@ void string_concat(String *string, const char *char_ptr) {
 
 void string_remove(String *string, const char element) {
     array_char_remove((Array_char *) string, element);
-    array_char_data((Array_char *) string)[string_length(string)] = '\0';
+    array_char_set((Array_char *) string, string_length(string), '\0');
 }
 
 void string_remove_at(String *string, const int32_t index) {
@@ -163,7 +165,7 @@ Array_char string_to_array(const String *string) { return array_char_copy((Array
 
 char *string_to_ptr(const String *string) { return array_char_to_ptr((Array_char *) string); }
 
-char *string_data(const String *string) { return array_char_data((Array_char *) string); }
+const char *string_data(const String *string) { return array_char_data((Array_char *) string); }
 
 int32_t string_length(const String *string) { return array_char_size((Array_char *) string) - 1; }
 
