@@ -106,11 +106,11 @@ void array_add_all(Array *dest, const Array *src) {
     assert(dest && src);
     const Handle *src_handle = src->handle;
     assert(src_handle);
-    array_append(dest, src_handle->elements, src_handle->size);
+    array_concat(dest, src_handle->elements, src_handle->size);
 }
 
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
-void array_append(Array *dest, const void *elements, const int32_t count) {
+void array_concat(Array *dest, const void *elements, const int32_t count) {
     assert(dest && elements);
     Handle *handle = dest->handle;
     assert(handle);

@@ -5,7 +5,7 @@
 String string_create(const char *char_ptr) {
     Array_char string = array_char_create();
     if (char_ptr) {
-        array_char_append(&string, char_ptr, strlen(char_ptr));
+        array_char_concat(&string, char_ptr, strlen(char_ptr));
     }
     array_char_add(&string, '\0');
     return *(String *) &string;
@@ -49,7 +49,7 @@ void string_append(String *string, const char character) {
 void string_concat(String *string, const char *char_ptr) {
     assert(char_ptr);
     array_char_remove_at((Array_char *) string, string_length(string));
-    array_char_append((Array_char *) string, char_ptr, strlen(char_ptr));
+    array_char_concat((Array_char *) string, char_ptr, strlen(char_ptr));
     array_char_add((Array_char *) string, '\0');
 }
 
