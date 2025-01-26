@@ -16,7 +16,7 @@ String string_create(const char *char_ptr) {
 String string_format(const char *format, ...) {
     va_list args;
     va_start(args, format);
-    const int32_t len = vsnprintf(NULL, 0, format, args);
+    const int32_t len = vsnprintf(nullptr, 0, format, args);
     char *buffer = malloc(len + 1);
     vsnprintf(buffer, len + 1, format, args);
     va_end(args);
@@ -94,7 +94,7 @@ String string_trim(const String *string) {
     while (end >= start && isspace(char_array_get((CharArray *) string, end))) {
         end--;
     }
-    return start <= end ? string_substring(string, start, end + 1) : string_create(NULL);
+    return start <= end ? string_substring(string, start, end + 1) : string_create(nullptr);
 }
 
 void string_lowercase(String *string) {
@@ -144,8 +144,8 @@ int32_t string_compare(const String *string, const char *other) {
 
 int32_t string_compare_ignore_case(const String *string, const char *other) {
     const char *data = char_array_data((CharArray *) string);
-    if (data == NULL || other == NULL) {
-        return data == other ? 0 : data == NULL ? -1 : 1;
+    if (data == nullptr || other == nullptr) {
+        return data == other ? 0 : data == nullptr ? -1 : 1;
     }
     while (*data && *other) {
         const unsigned char c1 = tolower(*data);

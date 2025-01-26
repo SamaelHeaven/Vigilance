@@ -37,7 +37,7 @@ void console_println_err(const char *format, ...) {
 char console_read_char() { return getchar(); }
 
 String console_read_line() {
-    String result = string_create(NULL);
+    String result = string_create(nullptr);
     char character;
     while ((character = (char) getchar()) != '\n' && character != EOF) {
         string_append(&result, character);

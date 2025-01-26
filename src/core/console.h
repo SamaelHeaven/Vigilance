@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../vigilance.h"
 #include "string.h"
 
 #define ANSI_COLOR_BLACK "\x1b[30m"
