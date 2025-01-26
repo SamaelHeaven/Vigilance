@@ -149,7 +149,7 @@ int32_t string_equals_ignore_case(const String *string, const char *other) {
 }
 
 int32_t string_compare(const String *string, const char *other) {
-    return strcmp(char_array_data((CharArray *) string), other);
+    return char_ptr_compare(char_array_data((CharArray *) string), other);
 }
 
 int32_t string_compare_ignore_case(const String *string, const char *other) {
