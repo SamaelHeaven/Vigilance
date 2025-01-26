@@ -1,6 +1,7 @@
 #include "string.h"
 
 #include "array.h"
+#include "char-ptr.h"
 
 String string_create(const char *char_ptr) {
     CharArray string = char_array_create();
@@ -143,20 +144,7 @@ int32_t string_compare(const String *string, const char *other) {
 }
 
 int32_t string_compare_ignore_case(const String *string, const char *other) {
-    const char *data = char_array_data((CharArray *) string);
-    if (data == nullptr || other == nullptr) {
-        return data == other ? 0 : data == nullptr ? -1 : 1;
-    }
-    while (*data && *other) {
-        const unsigned char c1 = tolower(*data);
-        const unsigned char c2 = tolower(*other);
-        if (c1 != c2) {
-            return c1 - c2;
-        }
-        data++;
-        other++;
-    }
-    return (unsigned char) tolower(*data) - (unsigned char) tolower(*other);
+    return char_ptr_compare_ignore_case(char_array_data((CharArray *) string), other);
 }
 
 String string_copy(const String *string) { return *(String *) &LVALUE(char_array_copy((CharArray *) string)); }
