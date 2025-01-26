@@ -1,5 +1,7 @@
 #include "char-ptr.h"
 
+#include "gc.h"
+
 int32_t char_ptr_equals(const char *char_ptr, const char *other) {
     return char_ptr_compare(char_ptr, other) == 0;
 }
@@ -34,7 +36,7 @@ int32_t char_ptr_compare_ignore_case(const char *char_ptr, const char *other) {
 char *char_ptr_copy(const char *char_ptr) {
     assert(char_ptr);
     const int32_t len = strlen(char_ptr);
-    char *buffer = malloc(len + 1);
+    char *buffer = gc_malloc(len + 1);
     memcpy(buffer, char_ptr, len);
     buffer[len] = '\0';
     return buffer;
