@@ -60,7 +60,7 @@ static void merge_sort(void *elements, const int32_t left, const int32_t right, 
     }
 }
 
-Array array_create(const int32_t element_size) {
+WritableArray array_create(const int32_t element_size) {
     assert(element_size > 0);
     const Array array = {.handle = gc_malloc(sizeof(Handle))};
     Handle *handle = array.handle;
@@ -71,7 +71,7 @@ Array array_create(const int32_t element_size) {
     return array;
 }
 
-void array_destroy(const Array array) {
+void array_destroy(const WritableArray array) {
     array_assert_writable(array);
     Handle *handle = handle_decode(array.handle);
     if (handle) {
@@ -96,7 +96,7 @@ bool array_is_readonly(const Array array) {
 
 void array_assert_writable(const Array array) { assert(!array_is_readonly(array) && "Array is readonly"); }
 
-void array_add(const Array array, const void *element) {
+void array_add(const WritableArray array, const void *element) {
     array_assert_writable(array);
     Handle *handle = handle_decode(array.handle);
     assert(handle);
@@ -108,7 +108,7 @@ void array_add(const Array array, const void *element) {
     handle->size++;
 }
 
-void array_add_at(const Array array, const int32_t index, const void *element) {
+void array_add_at(const WritableArray array, const int32_t index, const void *element) {
     array_assert_writable(array);
     Handle *handle = handle_decode(array.handle);
     assert(handle && index >= 0 && index <= handle->size);
@@ -124,14 +124,14 @@ void array_add_at(const Array array, const int32_t index, const void *element) {
     handle->size++;
 }
 
-void array_add_all(const Array dest, const Array src) {
+void array_add_all(const WritableArray dest, const Array src) {
     array_assert_writable(dest);
     const Handle *src_handle = handle_decode(src.handle);
     assert(src_handle);
     array_concat(dest, src_handle->elements, src_handle->size);
 }
 
-void array_concat(const Array array, const void *elements, const int32_t count) {
+void array_concat(const WritableArray array, const void *elements, const int32_t count) {
     array_assert_writable(array);
     assert(elements);
     Handle *handle = handle_decode(array.handle);
@@ -144,7 +144,7 @@ void array_concat(const Array array, const void *elements, const int32_t count) 
     handle->size += count;
 }
 
-void array_remove(const Array array, const void *element) {
+void array_remove(const WritableArray array, const void *element) {
     int32_t index;
     do {
         index = array_index_of(array, element);
@@ -154,7 +154,7 @@ void array_remove(const Array array, const void *element) {
     } while (index != -1);
 }
 
-void array_remove_at(const Array array, const int32_t index) {
+void array_remove_at(const WritableArray array, const int32_t index) {
     array_assert_writable(array);
     Handle *handle = handle_decode(array.handle);
     assert(handle && index >= 0 && index < handle->size);
@@ -169,7 +169,7 @@ void array_remove_at(const Array array, const int32_t index) {
     }
 }
 
-void array_remove_all(const Array dest, const Array src) {
+void array_remove_all(const WritableArray dest, const Array src) {
     array_assert_writable(dest);
     const Handle *src_handle = handle_decode(src.handle);
     assert(src_handle);
@@ -178,7 +178,7 @@ void array_remove_all(const Array dest, const Array src) {
     }
 }
 
-void array_remove_if(const Array array, bool (*predicate)(const void *element)) {
+void array_remove_if(const WritableArray array, bool (*predicate)(const void *element)) {
     array_assert_writable(array);
     const Handle *handle = handle_decode(array.handle);
     assert(handle);
@@ -211,7 +211,7 @@ int32_t array_index_of(const Array array, const void *element) {
     return -1;
 }
 
-void array_clear(const Array array) {
+void array_clear(const WritableArray array) {
     array_assert_writable(array);
     Handle *handle = handle_decode(array.handle);
     assert(handle);
@@ -229,7 +229,7 @@ void *array_get(const Array array, const int32_t index) {
     return handle->elements + index * handle->element_size;
 }
 
-void array_set(const Array array, const int32_t index, const void *element) {
+void array_set(const WritableArray array, const int32_t index, const void *element) {
     array_assert_writable(array);
     assert(element);
     const Handle *handle = handle_decode(array.handle);
@@ -237,7 +237,7 @@ void array_set(const Array array, const int32_t index, const void *element) {
     memcpy(handle->elements + index * handle->element_size, element, handle->element_size);
 }
 
-void array_replace(const Array array, const void *element, const void *by) {
+void array_replace(const WritableArray array, const void *element, const void *by) {
     array_assert_writable(array);
     assert(element && by);
     const Handle *handle = handle_decode(array.handle);
@@ -249,7 +249,7 @@ void array_replace(const Array array, const void *element, const void *by) {
     }
 }
 
-void array_reserve(const Array array, const int32_t new_capacity) {
+void array_reserve(const WritableArray array, const int32_t new_capacity) {
     array_assert_writable(array);
     assert(new_capacity >= 0);
     Handle *handle = handle_decode(array.handle);
@@ -260,7 +260,7 @@ void array_reserve(const Array array, const int32_t new_capacity) {
     }
 }
 
-void array_sort(const Array array, int32_t (*comparator)(const void *a, const void *b)) {
+void array_sort(const WritableArray array, int32_t (*comparator)(const void *a, const void *b)) {
     array_assert_writable(array);
     assert(comparator);
     const Handle *handle = handle_decode(array.handle);
@@ -268,7 +268,7 @@ void array_sort(const Array array, int32_t (*comparator)(const void *a, const vo
     qsort(handle->elements, handle->size, handle->element_size, comparator);
 }
 
-void array_stable_sort(const Array array, int32_t (*comparator)(const void *a, const void *b)) {
+void array_stable_sort(const WritableArray array, int32_t (*comparator)(const void *a, const void *b)) {
     array_assert_writable(array);
     assert(comparator);
     const Handle *handle = handle_decode(array.handle);
@@ -278,7 +278,7 @@ void array_stable_sort(const Array array, int32_t (*comparator)(const void *a, c
     }
 }
 
-void array_shrink(const Array array) {
+void array_shrink(const WritableArray array) {
     array_assert_writable(array);
     Handle *handle = handle_decode(array.handle);
     assert(handle);
@@ -288,7 +288,7 @@ void array_shrink(const Array array) {
     }
 }
 
-Array array_copy(const Array array) {
+WritableArray array_copy(const Array array) {
     const Handle *src_handle = handle_decode(array.handle);
     assert(src_handle);
     const Array copy = array_create(src_handle->element_size);
@@ -300,7 +300,7 @@ Array array_copy(const Array array) {
     return copy;
 }
 
-Array array_slice(const Array array, const int32_t begin, const int32_t end) {
+WritableArray array_slice(const Array array, const int32_t begin, const int32_t end) {
     const Handle *handle = handle_decode(array.handle);
     assert(handle && begin >= 0 && end >= begin && end <= handle->size);
     const int32_t slice_size = end - begin;
@@ -314,7 +314,7 @@ Array array_slice(const Array array, const int32_t begin, const int32_t end) {
 }
 
 
-void array_reverse(const Array array) {
+void array_reverse(const WritableArray array) {
     array_assert_writable(array);
     const Handle *handle = handle_decode(array.handle);
     assert(handle);
