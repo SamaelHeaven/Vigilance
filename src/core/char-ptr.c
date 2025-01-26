@@ -9,6 +9,9 @@ int32_t char_ptr_equals_ignore_case(const char *char_ptr, const char *other) {
 }
 
 int32_t char_ptr_compare(const char *char_ptr, const char *other) {
+    if (char_ptr == nullptr || other == nullptr) {
+        return char_ptr == other ? 0 : char_ptr == nullptr ? -1 : 1;
+    }
     return strcmp(char_ptr, other);
 }
 
@@ -29,6 +32,7 @@ int32_t char_ptr_compare_ignore_case(const char *char_ptr, const char *other) {
 }
 
 char *char_ptr_copy(const char *char_ptr) {
+    assert(char_ptr);
     const int32_t len = strlen(char_ptr);
     char *buffer = malloc(len + 1);
     memcpy(buffer, char_ptr, len);
