@@ -4,7 +4,7 @@
 #include "char-ptr.h"
 
 WritableString string_create(const char *char_ptr) {
-    ArrayChar string = array_char_create();
+    const ArrayChar string = array_char_create();
     const int32_t len = char_ptr ? strlen(char_ptr) : 0;
     array_char_reserve(string, len + 1);
     if (char_ptr) {
@@ -102,7 +102,7 @@ void string_reverse(const WritableString string) {
 
 WritableString string_substring(const String string, const int32_t start, const int32_t end) {
     assert(end <= string_length(string));
-    ArrayChar result = array_char_slice(*(ArrayChar *) &string, start, end);
+    const ArrayChar result = array_char_slice(*(ArrayChar *) &string, start, end);
     array_char_add(result, '\0');
     return *(String *) &result;
 }
