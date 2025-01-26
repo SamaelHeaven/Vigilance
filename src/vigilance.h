@@ -16,7 +16,7 @@
 
 #define LVALUE(rvalue)                                                                                                 \
     (*({                                                                                                               \
-        volatile typeof(rvalue) VALUE__ = (rvalue);                                                                    \
+        volatile const typeof(rvalue) VALUE__ = (rvalue);                                                              \
         &VALUE__;                                                                                                      \
     }))
 
