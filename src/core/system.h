@@ -31,4 +31,4 @@ void println_err(const char *format, ...);
 
 char read_char(void);
 
-String read_line(void);
+WritableString read_line(void);

@@ -36,7 +36,7 @@ void println_err(const char *format, ...) {
 
 char read_char(void) { return getchar(); }
 
-String read_line(void) {
+WritableString read_line(void) {
     const String result = string_create(nullptr);
     char character;
     while ((character = (char) getchar()) != '\n' && character != EOF) {
