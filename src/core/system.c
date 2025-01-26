@@ -37,10 +37,10 @@ void println_err(const char *format, ...) {
 char read_char() { return getchar(); }
 
 String read_line() {
-    String result = string_create(nullptr);
+    const String result = string_create(nullptr);
     char character;
     while ((character = (char) getchar()) != '\n' && character != EOF) {
-        string_append(&result, character);
+        string_append(result, character);
     }
     return result;
 }
