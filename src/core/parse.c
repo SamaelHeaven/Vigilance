@@ -48,7 +48,7 @@ bool parse_int64(const char *char_ptr, int64_t *out) {
     errno = 0;
     char *end;
     const int64_t value = strtoll(char_ptr, &end, 10);
-    if (char_ptr == end || errno == ERANGE || *end || value < LLONG_MIN || value > LLONG_MAX) {
+    if (char_ptr == end || errno == ERANGE || *end) {
         return false;
     }
     *out = value;
@@ -108,7 +108,7 @@ bool parse_float(const char *char_ptr, float *out) {
     errno = 0;
     char *end;
     const float value = strtof(char_ptr, &end);
-    if (char_ptr == end || errno == ERANGE || *end || value < -FLT_MAX || value > FLT_MAX) {
+    if (char_ptr == end || errno == ERANGE || *end) {
         return false;
     }
     *out = value;
@@ -120,7 +120,7 @@ bool parse_double(const char *char_ptr, double *out) {
     errno = 0;
     char *end;
     const double value = strtod(char_ptr, &end);
-    if (char_ptr == end || errno == ERANGE || *end || value < -DBL_MAX || value > DBL_MAX) {
+    if (char_ptr == end || errno == ERANGE || *end) {
         return false;
     }
     *out = value;
