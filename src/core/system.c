@@ -34,9 +34,9 @@ void println_err(const char *format, ...) {
     fflush(stderr);
 }
 
-char read_char() { return getchar(); }
+char read_char(void) { return getchar(); }
 
-String read_line() {
+String read_line(void) {
     const String result = string_create(nullptr);
     char character;
     while ((character = (char) getchar()) != '\n' && character != EOF) {

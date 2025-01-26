@@ -29,6 +29,6 @@ void print_err(const char *format, ...);
 
 void println_err(const char *format, ...);
 
-char read_char();
+char read_char(void);
 
-String read_line();
+String read_line(void);
