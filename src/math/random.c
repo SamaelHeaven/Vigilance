@@ -1,6 +1,6 @@
 #include "random.h"
 
-#include "gc.h"
+#include "../core/gc.h"
 
 #define MT_N 624
 #define MT_M 397
