@@ -11,7 +11,7 @@ String string_create(const char *char_ptr) {
         array_char_concat(string, char_ptr, len);
     }
     array_char_add(string, '\0');
-    return CAST(String, string);
+    return *(String *) &string;
 }
 
 String string_format(const char *format, ...) {
@@ -91,7 +91,7 @@ String string_substring(const String string, const int32_t start, const int32_t 
     assert(end <= string_length(string));
     ArrayChar result = array_char_slice(*(ArrayChar *) &string, start, end);
     array_char_add(result, '\0');
-    return CAST(String, result);
+    return *(String *) &result;
 }
 
 void string_reserve(const String string, const int32_t new_capacity) {
