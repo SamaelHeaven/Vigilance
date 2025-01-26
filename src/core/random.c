@@ -50,6 +50,12 @@ Random random_create(const uint32_t seed) {
     return random;
 }
 
+void random_destroy(const Random random) {
+    if (random.handle) {
+        gc_free(random.handle);
+    }
+}
+
 Random random() {
     static Random random = random_create(time(nullptr));
     return random;
