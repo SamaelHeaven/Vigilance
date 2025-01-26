@@ -26,7 +26,7 @@ void string_remove(String *string, char element);
 
 void string_remove_at(String *string, int32_t index);
 
-void string_remove_if(String *string, bool (*predicate)(const char *element));
+void string_remove_if(String *string, bool (*predicate)(char element));
 
 void string_reverse(String *string);
 

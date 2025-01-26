@@ -66,8 +66,13 @@ void string_remove_at(String *string, const int32_t index) {
     char_array_remove_at((CharArray *) string, index);
 }
 
-void string_remove_if(String *string, bool (*predicate)(const char *element)) {
-    char_array_remove_if((CharArray *) string, predicate);
+void string_remove_if(String *string, bool (*predicate)(char element)) {
+    for (int32_t i = 0; i < string_length(string); ++i) {
+        if (predicate(char_array_get((CharArray *) string, i))) {
+            char_array_remove_at((CharArray *) string, i);
+            i--;
+        }
+    }
 }
 
 void string_reverse(String *string) {
