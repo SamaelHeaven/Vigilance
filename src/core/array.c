@@ -42,15 +42,13 @@ static void merge(void *elements, const int32_t left, const int32_t mid, const i
     free(right_array);
 }
 
-static void merge_sort(void *elements, const int32_t size, const int32_t element_size,
+static void merge_sort(void *elements, const int32_t left, const int32_t right, const int32_t element_size,
                        int32_t (*comparator)(const void *a, const void *b)) {
-    for (int32_t current_size = 1; current_size < size; current_size *= 2) {
-        for (int32_t left_start = 0; left_start < size - 1; left_start += 2 * current_size) {
-            const int32_t mid = left_start + current_size - 1;
-            const int32_t right =
-                    left_start + 2 * current_size - 1 < size - 1 ? left_start + 2 * current_size - 1 : size - 1;
-            merge(elements, left_start, mid, right, element_size, comparator);
-        }
+    if (left < right) {
+        const int32_t mid = left + (right - left) / 2;
+        merge_sort(elements, left, mid, element_size, comparator);
+        merge_sort(elements, mid + 1, right, element_size, comparator);
+        merge(elements, left, mid, right, element_size, comparator);
     }
 }
 
@@ -258,7 +256,7 @@ void array_stable_sort(Array *array, int32_t (*comparator)(const void *a, const 
     const Handle *handle = array->handle;
     assert(handle);
     if (handle->size > 1) {
-        merge_sort(handle->elements, handle->size - 1, handle->element_size, comparator);
+        merge_sort(handle->elements, 0, handle->size - 1, handle->element_size, comparator);
     }
 }
 
