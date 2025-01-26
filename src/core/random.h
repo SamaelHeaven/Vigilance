@@ -10,7 +10,7 @@ Random random_create(uint32_t seed);
 
 void random_destroy(Random random);
 
-Random random();
+Random random(void);
 
 bool random_bool(Random random);
 

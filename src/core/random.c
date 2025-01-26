@@ -56,7 +56,7 @@ void random_destroy(const Random random) {
     }
 }
 
-Random random() {
+Random random(void) {
     static Random *random = nullptr;
     if (random == nullptr) {
         random = gc_malloc(sizeof(Random));
