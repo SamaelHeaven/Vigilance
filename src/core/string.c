@@ -94,7 +94,7 @@ String string_trim(const String *string) {
     while (end >= start && isspace(char_array_get((CharArray *) string, end))) {
         end--;
     }
-    return start <= end ? string_substring(string, start, end + 1) : string_create("");
+    return start <= end ? string_substring(string, start, end + 1) : string_create(NULL);
 }
 
 void string_lowercase(String *string) {
