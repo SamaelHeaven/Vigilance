@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PRINTF(...) printf(__VA_ARGS__); fflush(stdout);
+#define PRINTF(...) printf(__VA_ARGS__); fflush(stdout)
 
 #define COMMA ,
 
