@@ -101,7 +101,7 @@ void array_add(const Array array, const void *element) {
     Handle *handle = decode_handle(array.handle);
     assert(handle);
     if (handle->size == handle->capacity) {
-        handle->capacity = ceilf((float) handle->capacity * 1.5f);
+        handle->capacity = handle->capacity * 3 / 2 + 1;
         handle->elements = gc_realloc(handle->elements, handle->element_size * handle->capacity);
     }
     memcpy(handle->elements + handle->size * handle->element_size, element, handle->element_size);
@@ -113,7 +113,7 @@ void array_add_at(const Array array, const int32_t index, const void *element) {
     Handle *handle = decode_handle(array.handle);
     assert(handle && index >= 0 && index <= handle->size);
     if (handle->size == handle->capacity) {
-        handle->capacity = ceilf((float) handle->capacity * 1.5f);
+        handle->capacity = handle->capacity * 3 / 2 + 1;
         handle->elements = gc_realloc(handle->elements, handle->element_size * handle->capacity);
     }
     if (index < handle->size) {
