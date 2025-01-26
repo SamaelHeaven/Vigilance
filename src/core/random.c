@@ -25,8 +25,7 @@ static void random_twist(const Random random) {
     handle->index = 0;
 }
 
-static uint32_t random_next_uint32(Random random) {
-    assert(random);
+static uint32_t random_next_uint32(const Random random) {
     Handle *handle = random.handle;
     assert(handle);
     if (handle->index >= MT_N) {
