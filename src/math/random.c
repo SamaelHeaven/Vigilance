@@ -56,7 +56,7 @@ void random_destroy(const Random random) {
     }
 }
 
-Random random(void) {
+Random random_get(void) {
     static Random random = {};
     if (!random.handle) {
         random = random_create(time(nullptr));
