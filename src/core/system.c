@@ -1,6 +1,6 @@
-#include "console.h"
+#include "system.h"
 
-void console_print(const char *format, ...) {
+void print(const char *format, ...) {
     va_list args;
     va_start(args, format);
     vprintf(format, args);
@@ -8,7 +8,7 @@ void console_print(const char *format, ...) {
     fflush(stdout);
 }
 
-void console_println(const char *format, ...) {
+void println(const char *format, ...) {
     va_list args;
     va_start(args, format);
     vprintf(format, args);
@@ -17,7 +17,7 @@ void console_println(const char *format, ...) {
     fflush(stdout);
 }
 
-void console_print_err(const char *format, ...) {
+void print_err(const char *format, ...) {
     va_list args;
     va_start(args, format);
     vfprintf(stderr, format, args);
@@ -25,7 +25,7 @@ void console_print_err(const char *format, ...) {
     fflush(stderr);
 }
 
-void console_println_err(const char *format, ...) {
+void println_err(const char *format, ...) {
     va_list args;
     va_start(args, format);
     vfprintf(stderr, format, args);
@@ -34,9 +34,9 @@ void console_println_err(const char *format, ...) {
     fflush(stderr);
 }
 
-char console_read_char() { return getchar(); }
+char read_char() { return getchar(); }
 
-String console_read_line() {
+String read_line() {
     String result = string_create(nullptr);
     char character;
     while ((character = (char) getchar()) != '\n' && character != EOF) {

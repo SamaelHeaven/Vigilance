@@ -21,14 +21,14 @@
 #define ANSI_COLOR_BG_CYAN "\x1b[46m"
 #define ANSI_COLOR_BG_WHITE "\x1b[47m"
 
-void console_print(const char *format, ...);
+void print(const char *format, ...);
 
-void console_println(const char *format, ...);
+void println(const char *format, ...);
 
-void console_print_err(const char *format, ...);
+void print_err(const char *format, ...);
 
-void console_println_err(const char *format, ...);
+void println_err(const char *format, ...);
 
-char console_read_char();
+char read_char();
 
-String console_read_line();
+String read_line();
