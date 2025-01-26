@@ -16,7 +16,7 @@ int32_t main(const int32_t argc, char **argv) {
     const HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD console_mode;
     GetConsoleMode(console_handle, &console_mode);
-    console_mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    console_mode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING;
     SetConsoleMode(console_handle, console_mode);
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
