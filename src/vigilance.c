@@ -21,8 +21,8 @@ int32_t main(const int32_t argc, char **argv) {
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
 #endif
-    CharPtrArray args = char_ptr_array_create();
-    char_ptr_array_concat(&args, argv, argc);
+    const CharPtrArray args = char_ptr_array_create();
+    char_ptr_array_concat(args, argv, argc);
     vigilance_main(args);
     return 0;
 }

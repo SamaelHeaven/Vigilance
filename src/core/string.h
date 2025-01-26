@@ -10,66 +10,66 @@ String string_create(const char *char_ptr);
 
 String string_format(const char *format, ...);
 
-void string_destroy(String *string);
+void string_destroy(String string);
 
-char string_char_at(const String *string, int32_t index);
+char string_char_at(String string, int32_t index);
 
-void string_set_char(String *string, int32_t index, char character);
+void string_set_char(String string, int32_t index, char character);
 
-void string_replace(String *string, char character, char by);
+void string_replace(String string, char character, char by);
 
-void string_append(String *string, char character);
+void string_append(String string, char character);
 
-void string_concat(String *string, const char *char_ptr);
+void string_concat(String string, const char *char_ptr);
 
-void string_remove(String *string, char element);
+void string_remove(String string, char element);
 
-void string_remove_at(String *string, int32_t index);
+void string_remove_at(String string, int32_t index);
 
-void string_remove_if(String *string, bool (*predicate)(char element));
+void string_remove_if(String string, bool (*predicate)(char element));
 
-void string_reverse(String *string);
+void string_reverse(String string);
 
-String string_substring(const String *string, int32_t start, int32_t end);
+String string_substring(String string, int32_t start, int32_t end);
 
-void string_reserve(String *string, int32_t new_capacity);
+void string_reserve(String string, int32_t new_capacity);
 
-void string_shrink(String *string);
+void string_shrink(String string);
 
-String string_trim(const String *string);
+String string_trim(String string);
 
-void string_lowercase(String *string);
+void string_lowercase(String string);
 
-void string_uppercase(String *string);
+void string_uppercase(String string);
 
-String string_to_uppercase(const String *string);
+String string_to_uppercase(String string);
 
-String string_to_lowercase(const String *string);
+String string_to_lowercase(String string);
 
-bool string_contains(const String *string, char character);
+bool string_contains(String string, char character);
 
-int32_t string_index_of(const String *string, char character);
+int32_t string_index_of(String string, char character);
 
-bool string_is_empty(const String *string);
+bool string_is_empty(String string);
 
-void string_clear(String *string);
+void string_clear(String string);
 
-int32_t string_equals(const String *string, const char *other);
+int32_t string_equals(String string, const char *other);
 
-int32_t string_equals_ignore_case(const String *string, const char *other);
+int32_t string_equals_ignore_case(String string, const char *other);
 
-int32_t string_compare(const String *string, const char *other);
+int32_t string_compare(String string, const char *other);
 
-int32_t string_compare_ignore_case(const String *string, const char *other);
+int32_t string_compare_ignore_case(String string, const char *other);
 
-String string_copy(const String *string);
+String string_copy(String string);
 
-struct CharArray string_to_array(const String *string);
+struct CharArray string_to_array(String string);
 
-char *string_to_ptr(const String *string);
+char *string_to_ptr(String string);
 
-const char *string_data(const String *string);
+const char *string_data(String string);
 
-int32_t string_length(const String *string);
+int32_t string_length(String string);
 
-int32_t string_capacity(const String *string);
+int32_t string_capacity(String string);

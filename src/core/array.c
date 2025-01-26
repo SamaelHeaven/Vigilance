@@ -63,19 +63,15 @@ Array array_create(const int32_t element_size) {
     return array;
 }
 
-void array_destroy(Array *array) {
-    if (array) {
-        if (array->handle) {
-            gc_free(array->handle->elements);
-            gc_free(array->handle);
-        }
-        gc_free(array);
+void array_destroy(const Array array) {
+    if (array.handle) {
+        gc_free(array.handle->elements);
+        gc_free(array.handle);
     }
 }
 
-void array_add(Array *array, const void *element) {
-    assert(array);
-    Handle *handle = array->handle;
+void array_add(const Array array, const void *element) {
+    Handle *handle = array.handle;
     assert(handle);
     if (handle->size == handle->capacity) {
         handle->capacity = ceilf((float) handle->capacity * 1.5f);
@@ -85,9 +81,8 @@ void array_add(Array *array, const void *element) {
     handle->size++;
 }
 
-void array_add_at(Array *array, const int32_t index, const void *element) {
-    assert(array);
-    Handle *handle = array->handle;
+void array_add_at(const Array array, const int32_t index, const void *element) {
+    Handle *handle = array.handle;
     assert(handle && index >= 0 && index <= handle->size);
     if (handle->size == handle->capacity) {
         handle->capacity = ceilf((float) handle->capacity * 1.5f);
@@ -101,18 +96,15 @@ void array_add_at(Array *array, const int32_t index, const void *element) {
     handle->size++;
 }
 
-// ReSharper disable once CppParameterMayBeConstPtrOrRef
-void array_add_all(Array *dest, const Array *src) {
-    assert(dest && src);
-    const Handle *src_handle = src->handle;
+void array_add_all(const Array dest, const Array src) {
+    const Handle *src_handle = src.handle;
     assert(src_handle);
     array_concat(dest, src_handle->elements, src_handle->size);
 }
 
-// ReSharper disable once CppParameterMayBeConstPtrOrRef
-void array_concat(Array *array, const void *elements, const int32_t count) {
-    assert(array && elements);
-    Handle *handle = array->handle;
+void array_concat(const Array array, const void *elements, const int32_t count) {
+    assert(elements);
+    Handle *handle = array.handle;
     assert(handle);
     if (handle->size + count > handle->capacity) {
         handle->capacity = handle->size + count;
@@ -122,8 +114,7 @@ void array_concat(Array *array, const void *elements, const int32_t count) {
     handle->size += count;
 }
 
-void array_remove(Array *array, const void *element) {
-    assert(array);
+void array_remove(const Array array, const void *element) {
     int32_t index;
     do {
         index = array_index_of(array, element);
@@ -133,9 +124,8 @@ void array_remove(Array *array, const void *element) {
     } while (index != -1);
 }
 
-void array_remove_at(Array *array, const int32_t index) {
-    assert(array);
-    Handle *handle = array->handle;
+void array_remove_at(const Array array, const int32_t index) {
+    Handle *handle = array.handle;
     assert(handle && index >= 0 && index < handle->size);
     if (index < handle->size - 1) {
         memmove(handle->elements + index * handle->element_size, handle->elements + (index + 1) * handle->element_size,
@@ -148,18 +138,16 @@ void array_remove_at(Array *array, const int32_t index) {
     }
 }
 
-void array_remove_all(Array *dest, const Array *src) {
-    assert(dest && src);
-    const Handle *src_handle = src->handle;
+void array_remove_all(const Array dest, const Array src) {
+    const Handle *src_handle = src.handle;
     assert(src_handle);
     for (int32_t i = 0; i < src_handle->size; ++i) {
         array_remove(dest, src_handle->elements + i * src_handle->element_size);
     }
 }
 
-void array_remove_if(Array *array, bool (*predicate)(const void *element)) {
-    assert(array);
-    Handle *handle = array->handle;
+void array_remove_if(const Array array, bool (*predicate)(const void *element)) {
+    Handle *handle = array.handle;
     assert(handle);
     for (int32_t i = 0; i < handle->size; ++i) {
         if (predicate(handle->elements + i * handle->element_size)) {
@@ -169,19 +157,16 @@ void array_remove_if(Array *array, bool (*predicate)(const void *element)) {
     }
 }
 
-bool array_contains(const Array *array, const void *element) {
-    assert(array);
-    return array_index_of(array, element) != -1;
+bool array_contains(const Array array, const void *element) { return array_index_of(array, element) != -1; }
+
+bool array_is_empty(const Array array) {
+    assert(array.handle);
+    return array.handle->size == 0;
 }
 
-bool array_is_empty(const Array *array) {
-    assert(array && array->handle);
-    return array->handle->size == 0;
-}
-
-int32_t array_index_of(const Array *array, const void *element) {
-    assert(array && element);
-    const Handle *handle = array->handle;
+int32_t array_index_of(const Array array, const void *element) {
+    assert(element);
+    const Handle *handle = array.handle;
     assert(handle);
     for (int32_t i = 0; i < handle->size; ++i) {
         const void *current_element = handle->elements + i * handle->element_size;
@@ -192,18 +177,16 @@ int32_t array_index_of(const Array *array, const void *element) {
     return -1;
 }
 
-void array_clear(Array *array) {
-    assert(array);
-    Handle *handle = array->handle;
+void array_clear(const Array array) {
+    Handle *handle = array.handle;
     assert(handle);
     handle->elements = gc_realloc(handle->elements, handle->element_size * 1);
     handle->size = 0;
     handle->capacity = 1;
 }
 
-void *array_get(const Array *array, const int32_t index) {
-    assert(array);
-    const Handle *handle = array->handle;
+void *array_get(const Array array, const int32_t index) {
+    const Handle *handle = array.handle;
     assert(handle);
     if (index < 0 || index >= handle->size) {
         return nullptr;
@@ -211,18 +194,16 @@ void *array_get(const Array *array, const int32_t index) {
     return handle->elements + index * handle->element_size;
 }
 
-// ReSharper disable once CppParameterMayBeConstPtrOrRef
-void array_set(Array *array, const int32_t index, const void *element) {
-    assert(array && element);
-    const Handle *handle = array->handle;
+void array_set(const Array array, const int32_t index, const void *element) {
+    assert(element);
+    const Handle *handle = array.handle;
     assert(handle && index >= 0 && index < handle->size);
     memcpy(handle->elements + index * handle->element_size, element, handle->element_size);
 }
 
-// ReSharper disable once CppParameterMayBeConstPtrOrRef
-void array_replace(Array *array, const void *element, const void *by) {
-    assert(array && element && by);
-    const Handle *handle = array->handle;
+void array_replace(const Array array, const void *element, const void *by) {
+    assert(element && by);
+    const Handle *handle = array.handle;
     assert(handle);
     for (int32_t i = 0; i < handle->size; ++i) {
         if (memcmp(handle->elements + i * handle->element_size, element, handle->element_size) == 0) {
@@ -231,10 +212,9 @@ void array_replace(Array *array, const void *element, const void *by) {
     }
 }
 
-// ReSharper disable once CppParameterMayBeConstPtrOrRef
-void array_reserve(Array *array, const int32_t new_capacity) {
-    assert(array && new_capacity >= 0);
-    Handle *handle = array->handle;
+void array_reserve(const Array array, const int32_t new_capacity) {
+    assert(new_capacity >= 0);
+    Handle *handle = array.handle;
     assert(handle);
     if (new_capacity > handle->capacity) {
         handle->elements = gc_realloc(handle->elements, handle->element_size * new_capacity);
@@ -242,27 +222,24 @@ void array_reserve(Array *array, const int32_t new_capacity) {
     }
 }
 
-// ReSharper disable once CppParameterMayBeConstPtrOrRef
-void array_sort(Array *array, int32_t (*comparator)(const void *a, const void *b)) {
-    assert(array && comparator);
-    const Handle *handle = array->handle;
+void array_sort(const Array array, int32_t (*comparator)(const void *a, const void *b)) {
+    assert(comparator);
+    const Handle *handle = array.handle;
     assert(handle);
     qsort(handle->elements, handle->size, handle->element_size, comparator);
 }
 
-// ReSharper disable once CppParameterMayBeConstPtrOrRef
-void array_stable_sort(Array *array, int32_t (*comparator)(const void *a, const void *b)) {
-    assert(array && comparator);
-    const Handle *handle = array->handle;
+void array_stable_sort(const Array array, int32_t (*comparator)(const void *a, const void *b)) {
+    assert(comparator);
+    const Handle *handle = array.handle;
     assert(handle);
     if (handle->size > 1) {
         merge_sort(handle->elements, 0, handle->size - 1, handle->element_size, comparator);
     }
 }
 
-void array_shrink(Array *array) {
-    assert(array);
-    Handle *handle = array->handle;
+void array_shrink(const Array array) {
+    Handle *handle = array.handle;
     assert(handle);
     if (handle->size < handle->capacity) {
         handle->capacity = handle->size;
@@ -270,9 +247,8 @@ void array_shrink(Array *array) {
     }
 }
 
-Array array_copy(const Array *array) {
-    assert(array);
-    const Handle *src_handle = array->handle;
+Array array_copy(const Array array) {
+    const Handle *src_handle = array.handle;
     assert(src_handle);
     const Array copy = array_create(src_handle->element_size);
     Handle *copy_handle = copy.handle;
@@ -283,9 +259,8 @@ Array array_copy(const Array *array) {
     return copy;
 }
 
-Array array_slice(const Array *array, const int32_t begin, const int32_t end) {
-    assert(array);
-    const Handle *handle = array->handle;
+Array array_slice(const Array array, const int32_t begin, const int32_t end) {
+    const Handle *handle = array.handle;
     assert(handle && begin >= 0 && end >= begin && end <= handle->size);
     const int32_t slice_size = end - begin;
     const Array slice = array_create(handle->element_size);
@@ -298,9 +273,8 @@ Array array_slice(const Array *array, const int32_t begin, const int32_t end) {
 }
 
 
-void array_reverse(Array *array) {
-    assert(array);
-    const Handle *handle = array->handle;
+void array_reverse(const Array array) {
+    const Handle *handle = array.handle;
     assert(handle);
     const int32_t element_size = handle->element_size;
     const int32_t size = handle->size;
@@ -315,40 +289,39 @@ void array_reverse(Array *array) {
     free(temp);
 }
 
-void array_for_each(const Array *array, void (*callback)(void *element)) {
-    assert(array && callback);
-    const Handle *handle = array->handle;
+void array_for_each(const Array array, void (*callback)(void *element)) {
+    assert(callback);
+    const Handle *handle = array.handle;
     assert(handle);
     for (int32_t i = 0; i < handle->size; ++i) {
         callback(handle->elements + i * handle->element_size);
     }
 }
 
-void *array_to_ptr(const Array *array) {
-    assert(array);
-    const Handle *handle = array->handle;
+void *array_to_ptr(const Array array) {
+    const Handle *handle = array.handle;
     assert(handle);
     void *result = gc_malloc(handle->element_size * handle->size);
     memcpy(result, handle->elements, handle->element_size * handle->size);
     return result;
 }
 
-const void *array_data(const Array *array) {
-    assert(array && array->handle);
-    return array->handle->elements;
+const void *array_data(const Array array) {
+    assert(array.handle);
+    return array.handle->elements;
 }
 
-int32_t array_size(const Array *array) {
-    assert(array && array->handle);
-    return array->handle->size;
+int32_t array_size(const Array array) {
+    assert(array.handle);
+    return array.handle->size;
 }
 
-int32_t array_capacity(const Array *array) {
-    assert(array && array->handle);
-    return array->handle->capacity;
+int32_t array_capacity(const Array array) {
+    assert(array.handle);
+    return array.handle->capacity;
 }
 
-int32_t array_element_size(const Array *array) {
-    assert(array && array->handle);
-    return array->handle->element_size;
+int32_t array_element_size(const Array array) {
+    assert(array.handle);
+    return array.handle->element_size;
 }
