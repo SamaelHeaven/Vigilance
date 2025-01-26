@@ -4,6 +4,8 @@
 
 bool parse_bool(const char *char_ptr);
 
+bool parse_char(const char *char_ptr, char *out);
+
 bool parse_int8(const char *char_ptr, int8_t *out);
 
 bool parse_int16(const char *char_ptr, int16_t *out);

@@ -7,6 +7,15 @@ bool parse_bool(const char *char_ptr) {
     return char_ptr_equals_ignore_case(char_ptr, "true");
 }
 
+bool parse_char(const char *char_ptr, char *out) {
+    assert(char_ptr && out);
+    if (strlen(char_ptr) != 1) {
+        return false;
+    }
+    *out = char_ptr[0];
+    return true;
+}
+
 bool parse_int8(const char *char_ptr, int8_t *out) {
     assert(char_ptr && out);
     errno = 0;
