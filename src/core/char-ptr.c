@@ -13,9 +13,7 @@ char *char_ptr_format(const char *format, ...) {
     return buffer;
 }
 
-int32_t char_ptr_equals(const char *char_ptr, const char *other) {
-    return char_ptr_compare(char_ptr, other) == 0;
-}
+int32_t char_ptr_equals(const char *char_ptr, const char *other) { return char_ptr_compare(char_ptr, other) == 0; }
 
 int32_t char_ptr_equals_ignore_case(const char *char_ptr, const char *other) {
     return char_ptr_compare_ignore_case(char_ptr, other) == 0;

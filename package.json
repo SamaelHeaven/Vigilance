@@ -2,7 +2,7 @@
   "name": "inferno",
   "private": true,
   "scripts": {
-    "format": "clang-format --glob=src/**/*.{cpp,h} -i"
+    "format": "clang-format --glob=src/**/*.{c,h} -i"
   },
   "devDependencies": {
     "clang-format": "^1.8.0"
