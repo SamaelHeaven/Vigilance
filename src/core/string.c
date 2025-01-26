@@ -27,13 +27,18 @@ String string_format(const char *format, ...) {
     return result;
 }
 
-void string_destroy(const String string) { array_char_destroy(*(ArrayChar *) &string); }
+void string_destroy(const String string) {
+    string_assert_writable(string);
+    array_char_destroy(*(ArrayChar *) &string);
+}
 
-ReadonlyString string_readonly(String string) {
+ReadonlyString string_readonly(const String string) {
     return CAST(ReadonlyString, array_char_readonly(*(ArrayChar *) &string));
 }
 
-bool string_is_readonly(String string) { return array_char_is_readonly(*(ArrayChar *) &string); }
+bool string_is_readonly(const String string) { return array_char_is_readonly(*(ArrayChar *) &string); }
+
+void string_assert_writable(const String string) { assert(!string_is_readonly(string) && "String is readonly"); }
 
 char string_char_at(const String string, const int32_t index) {
     assert(index < string_length(string));
@@ -41,21 +46,25 @@ char string_char_at(const String string, const int32_t index) {
 }
 
 void string_set_char(const String string, const int32_t index, const char character) {
+    string_assert_writable(string);
     assert(index < string_length(string));
     array_char_set(*(ArrayChar *) &string, index, character);
 }
 
 void string_replace(const String string, const char character, const char by) {
+    string_assert_writable(string);
     array_char_replace(*(ArrayChar *) &string, character, by);
     array_char_set(*(ArrayChar *) &string, string_length(string), '\0');
 }
 
 void string_append(const String string, const char character) {
+    string_assert_writable(string);
     array_char_add(*(ArrayChar *) &string, '\0');
     array_char_set(*(ArrayChar *) &string, string_length(string) - 1, character);
 }
 
 void string_concat(const String string, const char *char_ptr) {
+    string_assert_writable(string);
     assert(char_ptr);
     array_char_remove_at(*(ArrayChar *) &string, string_length(string));
     array_char_concat(*(ArrayChar *) &string, char_ptr, strlen(char_ptr));
@@ -63,16 +72,19 @@ void string_concat(const String string, const char *char_ptr) {
 }
 
 void string_remove(const String string, const char element) {
+    string_assert_writable(string);
     array_char_remove(*(ArrayChar *) &string, element);
     array_char_set(*(ArrayChar *) &string, string_length(string), '\0');
 }
 
 void string_remove_at(const String string, const int32_t index) {
+    string_assert_writable(string);
     assert(index < string_length(string));
     array_char_remove_at(*(ArrayChar *) &string, index);
 }
 
 void string_remove_if(const String string, bool (*predicate)(char element)) {
+    string_assert_writable(string);
     for (int32_t i = 0; i < string_length(string); ++i) {
         if (predicate(array_char_get(*(ArrayChar *) &string, i))) {
             array_char_remove_at(*(ArrayChar *) &string, i);
@@ -82,6 +94,7 @@ void string_remove_if(const String string, bool (*predicate)(char element)) {
 }
 
 void string_reverse(const String string) {
+    string_assert_writable(string);
     array_char_remove_at(*(ArrayChar *) &string, string_length(string));
     array_char_reverse(*(ArrayChar *) &string);
     array_char_add(*(ArrayChar *) &string, '\0');
@@ -95,10 +108,14 @@ String string_substring(const String string, const int32_t start, const int32_t 
 }
 
 void string_reserve(const String string, const int32_t new_capacity) {
+    string_assert_writable(string);
     array_char_reserve(*(ArrayChar *) &string, new_capacity);
 }
 
-void string_shrink(const String string) { array_char_shrink(*(ArrayChar *) &string); }
+void string_shrink(const String string) {
+    string_assert_writable(string);
+    array_char_shrink(*(ArrayChar *) &string);
+}
 
 String string_trim(const String string) {
     const int32_t len = string_length(string);
@@ -114,12 +131,14 @@ String string_trim(const String string) {
 }
 
 void string_lowercase(const String string) {
+    string_assert_writable(string);
     for (int32_t i = 0; i < string_length(string); ++i) {
         array_char_set(*(ArrayChar *) &string, i, tolower(array_char_get(*(ArrayChar *) &string, i)));
     }
 }
 
 void string_uppercase(const String string) {
+    string_assert_writable(string);
     for (int32_t i = 0; i < string_length(string); ++i) {
         array_char_set(*(ArrayChar *) &string, i, toupper(array_char_get(*(ArrayChar *) &string, i)));
     }
@@ -146,7 +165,10 @@ int32_t string_index_of(const String string, const char character) {
     return result == string_length(string) ? -1 : result;
 }
 
-void string_clear(const String string) { array_char_clear(*(ArrayChar *) &string); }
+void string_clear(const String string) {
+    string_assert_writable(string);
+    array_char_clear(*(ArrayChar *) &string);
+}
 
 int32_t string_equals(const String string, const char *other) { return string_compare(string, other) == 0; }
 

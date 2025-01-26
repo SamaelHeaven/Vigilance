@@ -17,6 +17,8 @@ ReadonlyArray array_readonly(Array array);
 
 bool array_is_readonly(Array array);
 
+void array_assert_writable(Array array);
+
 void array_add(Array array, const void *element);
 
 void array_add_at(Array array, int32_t index, const void *element);
@@ -90,6 +92,8 @@ int32_t array_element_size(Array array);
     }                                                                                                                  \
                                                                                                                        \
     inline static bool namespace##_is_readonly(type_name array) { return array_is_readonly(*(Array *) &array); }       \
+                                                                                                                       \
+    inline static void namespace##_assert_writable(type_name array) { array_assert_writable(*(Array *) &array); }      \
                                                                                                                        \
     inline static void namespace##_add(type_name array, el_type element) { array_add(*(Array *) &array, &element); }   \
                                                                                                                        \

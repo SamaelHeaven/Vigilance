@@ -17,8 +17,6 @@ static Handle *decode_handle(Handle *handle) { return (Handle *) ((uintptr_t) ha
 
 static bool is_readonly_handle(Handle *handle) { return ((uintptr_t) handle & READONLY_TAG) != 0; }
 
-static void assert_writable(const Array array) { assert(!is_readonly_handle(array.handle) && "Array is read-only"); }
-
 static void merge(void *elements, const int32_t left, const int32_t mid, const int32_t right,
                   const int32_t element_size, int32_t (*comparator)(const void *a, const void *b)) {
     const int32_t n1 = mid - left + 1;
@@ -74,7 +72,7 @@ Array array_create(const int32_t element_size) {
 }
 
 void array_destroy(const Array array) {
-    assert_writable(array);
+    array_assert_writable(array);
     Handle *handle = decode_handle(array.handle);
     if (handle) {
         gc_free(handle->elements);
@@ -96,8 +94,10 @@ bool array_is_readonly(const Array array) {
     return is_readonly_handle(array.handle);
 }
 
+void array_assert_writable(const Array array) { assert(!array_is_readonly(array) && "Array is readonly"); }
+
 void array_add(const Array array, const void *element) {
-    assert_writable(array);
+    array_assert_writable(array);
     Handle *handle = decode_handle(array.handle);
     assert(handle);
     if (handle->size == handle->capacity) {
@@ -109,7 +109,7 @@ void array_add(const Array array, const void *element) {
 }
 
 void array_add_at(const Array array, const int32_t index, const void *element) {
-    assert_writable(array);
+    array_assert_writable(array);
     Handle *handle = decode_handle(array.handle);
     assert(handle && index >= 0 && index <= handle->size);
     if (handle->size == handle->capacity) {
@@ -125,14 +125,14 @@ void array_add_at(const Array array, const int32_t index, const void *element) {
 }
 
 void array_add_all(const Array dest, const Array src) {
-    assert_writable(dest);
+    array_assert_writable(dest);
     const Handle *src_handle = decode_handle(src.handle);
     assert(src_handle);
     array_concat(dest, src_handle->elements, src_handle->size);
 }
 
 void array_concat(const Array array, const void *elements, const int32_t count) {
-    assert_writable(array);
+    array_assert_writable(array);
     assert(elements);
     Handle *handle = decode_handle(array.handle);
     assert(handle);
@@ -155,7 +155,7 @@ void array_remove(const Array array, const void *element) {
 }
 
 void array_remove_at(const Array array, const int32_t index) {
-    assert_writable(array);
+    array_assert_writable(array);
     Handle *handle = decode_handle(array.handle);
     assert(handle && index >= 0 && index < handle->size);
     if (index < handle->size - 1) {
@@ -170,7 +170,7 @@ void array_remove_at(const Array array, const int32_t index) {
 }
 
 void array_remove_all(const Array dest, const Array src) {
-    assert_writable(dest);
+    array_assert_writable(dest);
     const Handle *src_handle = decode_handle(src.handle);
     assert(src_handle);
     for (int32_t i = 0; i < src_handle->size; ++i) {
@@ -179,7 +179,7 @@ void array_remove_all(const Array dest, const Array src) {
 }
 
 void array_remove_if(const Array array, bool (*predicate)(const void *element)) {
-    assert_writable(array);
+    array_assert_writable(array);
     const Handle *handle = decode_handle(array.handle);
     assert(handle);
     for (int32_t i = 0; i < handle->size; ++i) {
@@ -212,7 +212,7 @@ int32_t array_index_of(const Array array, const void *element) {
 }
 
 void array_clear(const Array array) {
-    assert_writable(array);
+    array_assert_writable(array);
     Handle *handle = decode_handle(array.handle);
     assert(handle);
     handle->elements = gc_realloc(handle->elements, handle->element_size * 1);
@@ -230,7 +230,7 @@ void *array_get(const Array array, const int32_t index) {
 }
 
 void array_set(const Array array, const int32_t index, const void *element) {
-    assert_writable(array);
+    array_assert_writable(array);
     assert(element);
     const Handle *handle = decode_handle(array.handle);
     assert(handle && index >= 0 && index < handle->size);
@@ -238,7 +238,7 @@ void array_set(const Array array, const int32_t index, const void *element) {
 }
 
 void array_replace(const Array array, const void *element, const void *by) {
-    assert_writable(array);
+    array_assert_writable(array);
     assert(element && by);
     const Handle *handle = decode_handle(array.handle);
     assert(handle);
@@ -250,7 +250,7 @@ void array_replace(const Array array, const void *element, const void *by) {
 }
 
 void array_reserve(const Array array, const int32_t new_capacity) {
-    assert_writable(array);
+    array_assert_writable(array);
     assert(new_capacity >= 0);
     Handle *handle = decode_handle(array.handle);
     assert(handle);
@@ -261,7 +261,7 @@ void array_reserve(const Array array, const int32_t new_capacity) {
 }
 
 void array_sort(const Array array, int32_t (*comparator)(const void *a, const void *b)) {
-    assert_writable(array);
+    array_assert_writable(array);
     assert(comparator);
     const Handle *handle = decode_handle(array.handle);
     assert(handle);
@@ -269,7 +269,7 @@ void array_sort(const Array array, int32_t (*comparator)(const void *a, const vo
 }
 
 void array_stable_sort(const Array array, int32_t (*comparator)(const void *a, const void *b)) {
-    assert_writable(array);
+    array_assert_writable(array);
     assert(comparator);
     const Handle *handle = decode_handle(array.handle);
     assert(handle);
@@ -279,7 +279,7 @@ void array_stable_sort(const Array array, int32_t (*comparator)(const void *a, c
 }
 
 void array_shrink(const Array array) {
-    assert_writable(array);
+    array_assert_writable(array);
     Handle *handle = decode_handle(array.handle);
     assert(handle);
     if (handle->size < handle->capacity) {
@@ -315,7 +315,7 @@ Array array_slice(const Array array, const int32_t begin, const int32_t end) {
 
 
 void array_reverse(const Array array) {
-    assert_writable(array);
+    array_assert_writable(array);
     const Handle *handle = decode_handle(array.handle);
     assert(handle);
     const int32_t element_size = handle->element_size;
