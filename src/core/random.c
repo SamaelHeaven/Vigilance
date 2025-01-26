@@ -8,8 +8,6 @@
 #define MT_UPPER_MASK 0x80000000U
 #define MT_LOWER_MASK 0x7fffffffU
 
-const Random RANDOM = random_create(time(nullptr));
-
 typedef struct Handle {
     uint32_t mt[MT_N];
     int32_t index;
@@ -50,6 +48,11 @@ Random random_create(const uint32_t seed) {
         handle->mt[i] = 1812433253U * (handle->mt[i - 1] ^ handle->mt[i - 1] >> 30) + i;
     }
     handle->index = MT_N;
+    return random;
+}
+
+Random random() {
+    static Random random = random_create(time(nullptr));
     return random;
 }
 

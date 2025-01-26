@@ -6,9 +6,9 @@ typedef struct Random {
     struct Handle *handle;
 } Random;
 
-extern const Random RANDOM;
-
 Random random_create(uint32_t seed);
+
+Random random();
 
 bool random_bool(Random random);
 
