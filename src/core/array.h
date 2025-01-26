@@ -236,4 +236,6 @@ DECLARE_ARRAY(ArrayConstCharPtr, array_const_char_ptr, const char *)
 
 DECLARE_ARRAY(ArrayString, array_string, String)
 
+DECLARE_ARRAY(ArrayWritableString, array_writable_string, WritableString)
+
 DECLARE_ARRAY(ArrayReadonlyString, array_readonly_string, ReadonlyString)
