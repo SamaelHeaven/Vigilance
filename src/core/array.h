@@ -187,38 +187,40 @@ int32_t array_element_size(Array array);
                                                                                                                        \
     inline static int32_t namespace##_element_size(type_name array) { return array_element_size(*(Array *) &array); }
 
-DECLARE_ARRAY(Int8Array, int8_array, int8_t)
+DECLARE_ARRAY(ArrayInt8, array_int8, int8_t)
 
-DECLARE_ARRAY(Int16Array, int16_array, int16_t)
+DECLARE_ARRAY(ArrayInt16, array_int16, int16_t)
 
-DECLARE_ARRAY(Int32Array, int32_array, int32_t)
+DECLARE_ARRAY(ArrayInt32, array_int32, int32_t)
 
-DECLARE_ARRAY(Int64Array, int64_array, int64_t)
+DECLARE_ARRAY(ArrayInt64, array_int64, int64_t)
 
-DECLARE_ARRAY(UInt8Array, uint8_array, uint8_t)
+DECLARE_ARRAY(ArrayUInt8, array_uint8, uint8_t)
 
-DECLARE_ARRAY(UInt16Array, uint16_array, uint16_t)
+DECLARE_ARRAY(ArrayUInt16, array_uint16, uint16_t)
 
-DECLARE_ARRAY(UInt32Array, uint32_array, uint32_t)
+DECLARE_ARRAY(ArrayUInt32, array_uint32, uint32_t)
 
-DECLARE_ARRAY(UInt64Array, uint64_array, uint64_t)
+DECLARE_ARRAY(ArrayUInt64, array_uint64, uint64_t)
 
-DECLARE_ARRAY(SizeArray, size_array, size_t)
+DECLARE_ARRAY(ArraySize, array_size, size_t)
 
-DECLARE_ARRAY(FloatArray, float_array, float)
+DECLARE_ARRAY(ArrayFloat, array_float, float)
 
-DECLARE_ARRAY(DoubleArray, double_array, double)
+DECLARE_ARRAY(ArrayDouble, array_double, double)
 
-DECLARE_ARRAY(BoolArray, bool_array, bool)
+DECLARE_ARRAY(ArrayBool, array_bool, bool)
 
-DECLARE_ARRAY(CharArray, char_array, char)
+DECLARE_ARRAY(ArrayChar, array_char, char)
 
-DECLARE_ARRAY(PtrArray, ptr_array, void *)
+DECLARE_ARRAY(ArrayPtr, array_ptr, void *)
 
-DECLARE_ARRAY(ConstPtrArray, const_ptr_array, const void *)
+DECLARE_ARRAY(ArrayConstPtr, array_const_ptr, const void *)
 
-DECLARE_ARRAY(CharPtrArray, char_ptr_array, char *)
+DECLARE_ARRAY(ArrayCharPtr, array_char_ptr, char *)
 
-DECLARE_ARRAY(ConstCharPtrArray, const_char_ptr_array, const char *)
+DECLARE_ARRAY(ArrayConstCharPtr, array_const_char_ptr, const char *)
 
-DECLARE_ARRAY(StringArray, string_array, String)
+DECLARE_ARRAY(ArrayString, array_string, String)
+
+DECLARE_ARRAY(ArrayReadonlyString, array_readonly_string, ReadonlyString)

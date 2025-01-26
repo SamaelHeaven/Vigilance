@@ -8,7 +8,7 @@
 
 #undef main
 
-void vigilance_main(CharPtrArray args);
+void vigilance_main(ArrayCharPtr args);
 
 int32_t main(const int32_t argc, char **argv) {
     GC_INIT();
@@ -21,8 +21,8 @@ int32_t main(const int32_t argc, char **argv) {
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
 #endif
-    const CharPtrArray args = char_ptr_array_create();
-    char_ptr_array_concat(args, argv, argc);
+    const ArrayCharPtr args = array_char_ptr_create();
+    array_char_ptr_concat(args, argv, argc);
     vigilance_main(args);
     return 0;
 }

@@ -6,11 +6,17 @@ typedef struct String {
     struct Handle *handle;
 } String;
 
+typedef String ReadonlyString;
+
 String string_create(const char *char_ptr);
 
 String string_format(const char *format, ...);
 
 void string_destroy(String string);
+
+ReadonlyString string_readonly(String string);
+
+bool string_is_readonly(String string);
 
 char string_char_at(String string, int32_t index);
 
@@ -64,7 +70,7 @@ int32_t string_compare_ignore_case(String string, const char *other);
 
 String string_copy(String string);
 
-struct CharArray string_to_array(String string);
+struct ArrayChar string_to_array(String string);
 
 char *string_to_ptr(String string);
 
