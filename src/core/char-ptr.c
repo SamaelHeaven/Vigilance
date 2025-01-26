@@ -2,6 +2,17 @@
 
 #include "gc.h"
 
+char *char_ptr_format(const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    const int32_t len = vsnprintf(nullptr, 0, format, args);
+    char *buffer = gc_malloc(len + 1);
+    vsnprintf(buffer, len + 1, format, args);
+    va_end(args);
+    buffer[len] = '\0';
+    return buffer;
+}
+
 int32_t char_ptr_equals(const char *char_ptr, const char *other) {
     return char_ptr_compare(char_ptr, other) == 0;
 }
