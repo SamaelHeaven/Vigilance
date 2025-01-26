@@ -7,9 +7,15 @@ typedef struct Array {
     struct Handle *handle;
 } Array;
 
+typedef Array ReadonlyArray;
+
 Array array_create(int32_t element_size);
 
 void array_destroy(Array array);
+
+ReadonlyArray array_readonly(Array array);
+
+bool array_is_readonly(Array array);
 
 void array_add(Array array, const void *element);
 
@@ -73,9 +79,17 @@ int32_t array_element_size(Array array);
         struct Handle *handle;                                                                                         \
     } type_name;                                                                                                       \
                                                                                                                        \
+    typedef type_name Readonly##type_name;                                                                             \
+                                                                                                                       \
     inline static type_name namespace##_create(void) { return CAST(type_name, array_create(sizeof(el_type))); }        \
                                                                                                                        \
     inline static void namespace##_destroy(type_name array) { array_destroy(*(Array *) &array); }                      \
+                                                                                                                       \
+    inline static Readonly##type_name namespace##_readonly(type_name array) {                                          \
+        return CAST(Readonly##type_name, array_readonly(*(Array *) &array));                                           \
+    }                                                                                                                  \
+                                                                                                                       \
+    inline static bool namespace##_is_readonly(type_name array) { return array_is_readonly(*(Array *) &array); }       \
                                                                                                                        \
     inline static void namespace##_add(type_name array, el_type element) { array_add(*(Array *) &array, &element); }   \
                                                                                                                        \
