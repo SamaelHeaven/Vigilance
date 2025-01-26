@@ -57,8 +57,12 @@ void random_destroy(const Random random) {
 }
 
 Random random() {
-    static Random random = random_create(time(nullptr));
-    return random;
+    static Random *random = nullptr;
+    if (random == nullptr) {
+        random = gc_malloc(sizeof(Random));
+        *random = random_create(time(nullptr));
+    }
+    return *random;
 }
 
 bool random_bool(const Random random) { return random_next_uint32(random) % 2; }
