@@ -21,8 +21,6 @@
 
 #define CAST(type, value) *(type *) &LVALUE(value)
 
-#define NBSP "\u200b"
-
 #define ANSI_COLOR_BLACK "\x1b[30m"
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
