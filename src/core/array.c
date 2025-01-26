@@ -186,7 +186,6 @@ int32_t array_index_of(const Array *array, const void *element) {
     const Handle *handle = array->handle;
     assert(handle);
     for (int32_t i = 0; i < handle->size; ++i) {
-        // ReSharper disable once CppDFANullDereference
         const void *current_element = handle->elements + i * handle->element_size;
         if (memcmp(current_element, element, handle->element_size) == 0) {
             return i;
