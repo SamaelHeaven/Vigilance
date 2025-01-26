@@ -5,3 +5,4 @@
 #include "../core/gc.h"
 #include "../core/string.h"
 #include "../core/system.h"
+#include "../core/parse.h"

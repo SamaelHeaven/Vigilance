@@ -2,6 +2,9 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
