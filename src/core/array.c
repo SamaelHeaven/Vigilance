@@ -13,33 +13,33 @@ static void merge(void *elements, const int32_t left, const int32_t mid, const i
                   const int32_t element_size, int32_t (*comparator)(const void *a, const void *b)) {
     const int32_t n1 = mid - left + 1;
     const int32_t n2 = right - mid;
-    void *left_array = malloc(n1 * element_size);
-    void *right_array = malloc(n2 * element_size);
-    memcpy(left_array, elements + left * element_size, n1 * element_size);
-    memcpy(right_array, elements + (mid + 1) * element_size, n2 * element_size);
+    void *left_buffer = malloc(n1 * element_size);
+    void *right_buffer = malloc(n2 * element_size);
+    memcpy(left_buffer, elements + left * element_size, n1 * element_size);
+    memcpy(right_buffer, elements + (mid + 1) * element_size, n2 * element_size);
     int32_t i = 0, j = 0, k = left;
     while (i < n1 && j < n2) {
-        if (comparator(left_array + i * element_size, right_array + j * element_size) <= 0) {
-            memcpy(elements + k * element_size, left_array + i * element_size, element_size);
+        if (comparator(left_buffer + i * element_size, right_buffer + j * element_size) <= 0) {
+            memcpy(elements + k * element_size, left_buffer + i * element_size, element_size);
             i++;
         } else {
-            memcpy(elements + k * element_size, right_array + j * element_size, element_size);
+            memcpy(elements + k * element_size, right_buffer + j * element_size, element_size);
             j++;
         }
         k++;
     }
     while (i < n1) {
-        memcpy(elements + k * element_size, left_array + i * element_size, element_size);
+        memcpy(elements + k * element_size, left_buffer + i * element_size, element_size);
         i++;
         k++;
     }
     while (j < n2) {
-        memcpy(elements + k * element_size, right_array + j * element_size, element_size);
+        memcpy(elements + k * element_size, right_buffer + j * element_size, element_size);
         j++;
         k++;
     }
-    free(left_array);
-    free(right_array);
+    free(left_buffer);
+    free(right_buffer);
 }
 
 static void merge_sort(void *elements, const int32_t left, const int32_t right, const int32_t element_size,
@@ -78,7 +78,7 @@ void array_add(Array *array, const void *element) {
     Handle *handle = array->handle;
     assert(handle);
     if (handle->size == handle->capacity) {
-        handle->capacity *= 2;
+        handle->capacity = ceilf((float) handle->capacity * 1.5f);
         handle->elements = gc_realloc(handle->elements, handle->element_size * handle->capacity);
     }
     memcpy(handle->elements + handle->size * handle->element_size, element, handle->element_size);
@@ -90,7 +90,7 @@ void array_add_at(Array *array, const int32_t index, const void *element) {
     Handle *handle = array->handle;
     assert(handle && index >= 0 && index <= handle->size);
     if (handle->size == handle->capacity) {
-        handle->capacity *= 2;
+        handle->capacity = ceilf((float) handle->capacity * 1.5f);
         handle->elements = gc_realloc(handle->elements, handle->element_size * handle->capacity);
     }
     if (index < handle->size) {
