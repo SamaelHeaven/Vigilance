@@ -27,7 +27,7 @@
 #else
 #define ASSERT(expr)                                                                                                   \
     ((expr) ? (void) 0                                                                                                 \
-            : (fprintf(stderr, "[ASSERTION FAILED] %s:%d %s(): %s\n    at %s\n", strrchr("/"__FILE__, '/') + 1,        \
+            : (fprintf(stderr, "[ASSERTION FAILED] %s:%d %s(): %s\n    at %s\n", strrchr("/" __FILE__, '/') + 1,       \
                        __LINE__, __func__, #expr, __FILE__),                                                           \
                abort()))
 #endif
