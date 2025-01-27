@@ -1,6 +1,9 @@
-#pragma once
+// ReSharper disable once CppMissingIncludeGuard
+#undef ASSERT
 
-#include <assert.h>
+#ifndef VIGILANCE_H
+#define VIGILANCE_H
+
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -17,8 +20,20 @@
 
 #define LVALUE(rvalue)                                                                                                 \
     *({                                                                                                                \
-        volatile const typeof(rvalue) VALUE__ = rvalue;                                                                \
-        &VALUE__;                                                                                                      \
+        volatile const typeof(rvalue) value_ = rvalue;                                                                 \
+        &value_;                                                                                                       \
     })
 
 #define CAST(type, value) *(type *) &LVALUE(value)
+
+#ifdef NDEBUG
+#define ASSERT(expr) ((void) 0)
+#else
+#define ASSERT(expr)                                                                                                   \
+    ((expr) ? (void) 0                                                                                                 \
+            : (fprintf(stderr, "Assertion failed: %s, function %s, file %s, line %d.\n", #expr, __func__, __FILE__,    \
+                       __LINE__),                                                                                      \
+               abort()))
+#endif
+
+#endif

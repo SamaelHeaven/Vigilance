@@ -2,28 +2,28 @@
 
 #define MIN(a, b)                                                                                                      \
     ({                                                                                                                 \
-        const typeof(a) A__ = a;                                                                                       \
-        const typeof(b) B__ = b;                                                                                       \
-        A__ < B__ ? A__ : B__;                                                                                         \
+        const typeof(a) a_ = a;                                                                                        \
+        const typeof(b) b_ = b;                                                                                        \
+        a_ < b_ ? a_ : b_;                                                                                             \
     })
 
 #define MAX(a, b)                                                                                                      \
     ({                                                                                                                 \
-        const typeof(a) A__ = a;                                                                                       \
-        const typeof(b) B__ = b;                                                                                       \
-        A__ > B__ ? A__ : B__;                                                                                         \
+        const typeof(a) a_ = a;                                                                                        \
+        const typeof(b) b_ = b;                                                                                        \
+        a_ > b_ ? a_ : b_;                                                                                             \
     })
 
 #define ABS(value)                                                                                                     \
     ({                                                                                                                 \
-        const typeof(value) VALUE__ = value;                                                                           \
-        VALUE__ < 0 ? -VALUE__ : VALUE__;                                                                              \
+        const typeof(value) value_ = value;                                                                            \
+        value_ < 0 ? -value_ : value_;                                                                                 \
     })
 
 #define CLAMP(value, min, max)                                                                                         \
     ({                                                                                                                 \
-        const typeof(value) VALUE__ = value;                                                                           \
-        const typeof(min) MIN__ = min;                                                                                 \
-        const typeof(max) MAX__ = max;                                                                                 \
-        VALUE__<MIN__ ? MIN__ : VALUE__> MAX__ ? MAX__ : VALUE__;                                                      \
+        const typeof(value) value_ = value;                                                                            \
+        const typeof(min) min_ = min;                                                                                  \
+        const typeof(max) max_ = max;                                                                                  \
+        value_<min_ ? min_ : value_> max_ ? max_ : value_;                                                             \
     })

@@ -3,7 +3,7 @@
 #include "gc.h"
 
 char *char_ptr_format(const char *format, ...) {
-    assert(format);
+    ASSERT(format);
     va_list args;
     va_start(args, format);
     const int32_t len = vsnprintf(nullptr, 0, format, args);
@@ -44,7 +44,7 @@ int32_t char_ptr_compare_ignore_case(const char *char_ptr, const char *other) {
 }
 
 char *char_ptr_copy(const char *char_ptr) {
-    assert(char_ptr);
+    ASSERT(char_ptr);
     const int32_t len = strlen(char_ptr);
     char *buffer = gc_malloc(len + 1);
     memcpy(buffer, char_ptr, len);

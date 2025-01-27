@@ -27,7 +27,7 @@ static void random_twist(const Random random) {
 
 static uint32_t random_next_uint32(const Random random) {
     Handle *handle = random.handle;
-    assert(handle);
+    ASSERT(handle);
     if (handle->index >= MT_N) {
         random_twist(random);
     }
@@ -67,51 +67,51 @@ Random random_get(void) {
 bool random_bool(const Random random) { return random_next_uint32(random) % 2; }
 
 int8_t random_int8(const Random random, const int8_t min, const int8_t max) {
-    assert(min < max);
+    ASSERT(min < max);
     return (int8_t) (random_next_uint32(random) % (max - min)) + min;
 }
 
 int16_t random_int16(const Random random, const int16_t min, const int16_t max) {
-    assert(min < max);
+    ASSERT(min < max);
     return (int16_t) (random_next_uint32(random) % (max - min)) + min;
 }
 
 int32_t random_int32(const Random random, const int32_t min, const int32_t max) {
-    assert(min < max);
+    ASSERT(min < max);
     return (int32_t) (random_next_uint32(random) % (max - min)) + min;
 }
 
 int64_t random_int64(const Random random, const int64_t min, const int64_t max) {
-    assert(min < max);
+    ASSERT(min < max);
     return ((int64_t) random_next_uint32(random) << 32 | random_next_uint32(random)) % (max - min) + min;
 }
 
 uint8_t random_uint8(const Random random, const uint8_t min, const uint8_t max) {
-    assert(min < max);
+    ASSERT(min < max);
     return (uint8_t) (random_next_uint32(random) % (max - min)) + min;
 }
 
 uint16_t random_uint16(const Random random, const uint16_t min, const uint16_t max) {
-    assert(min < max);
+    ASSERT(min < max);
     return (uint16_t) (random_next_uint32(random) % (max - min)) + min;
 }
 
 uint32_t random_uint32(const Random random, const uint32_t min, const uint32_t max) {
-    assert(min < max);
+    ASSERT(min < max);
     return random_next_uint32(random) % (max - min) + min;
 }
 
 uint64_t random_uint64(const Random random, const uint64_t min, const uint64_t max) {
-    assert(min < max);
+    ASSERT(min < max);
     return ((uint64_t) random_next_uint32(random) << 32 | random_next_uint32(random)) % (max - min) + min;
 }
 
 float random_float(const Random random, const float min, const float max) {
-    assert(min < max);
+    ASSERT(min < max);
     return (float) random_next_uint32(random) / 0xFFFFFFFF * (max - min) + min;
 }
 
 double random_double(const Random random, const double min, const double max) {
-    assert(min < max);
+    ASSERT(min < max);
     return (double) random_next_uint32(random) / 0xFFFFFFFF * (max - min) + min;
 }

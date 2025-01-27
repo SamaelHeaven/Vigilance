@@ -20,8 +20,6 @@ ReadonlyString string_readonly(String string);
 
 bool string_is_readonly(String string);
 
-void string_assert_writable(String string);
-
 char string_char_at(String string, int32_t index);
 
 void string_set_char(WritableString string, int32_t index, char character);
