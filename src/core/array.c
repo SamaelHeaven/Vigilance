@@ -2,7 +2,7 @@
 
 #include "gc.h"
 
-#define READONLY_TAG 0x1
+#define ARRAY_READONLY_TAG 0x1
 
 typedef struct Handle {
     void *elements;
@@ -11,11 +11,13 @@ typedef struct Handle {
     int32_t element_size;
 } Handle;
 
-static Handle *array_handle_mark_readonly(Handle *handle) { return (Handle *) ((uintptr_t) handle | READONLY_TAG); }
+static Handle *array_handle_mark_readonly(Handle *handle) {
+    return (Handle *) ((uintptr_t) handle | ARRAY_READONLY_TAG);
+}
 
-static Handle *array_handle_decode(Handle *handle) { return (Handle *) ((uintptr_t) handle & ~READONLY_TAG); }
+static Handle *array_handle_decode(Handle *handle) { return (Handle *) ((uintptr_t) handle & ~ARRAY_READONLY_TAG); }
 
-static bool array_handle_is_readonly(Handle *handle) { return ((uintptr_t) handle & READONLY_TAG) != 0; }
+static bool array_handle_is_readonly(Handle *handle) { return ((uintptr_t) handle & ARRAY_READONLY_TAG) != 0; }
 
 static void array_merge(void *elements, const int32_t left, const int32_t mid, const int32_t right,
                         const int32_t element_size, int32_t (*comparator)(const void *a, const void *b)) {
@@ -64,7 +66,7 @@ WritableArray array_create(const int32_t element_size) {
     assert(element_size > 0);
     const Array array = {.handle = gc_malloc(sizeof(Handle))};
     Handle *handle = array.handle;
-    handle->elements = gc_malloc(element_size * 1);
+    handle->elements = gc_malloc(element_size);
     handle->size = 0;
     handle->capacity = 1;
     handle->element_size = element_size;
@@ -215,7 +217,7 @@ void array_clear(const WritableArray array) {
     array_assert_writable(array);
     Handle *handle = array_handle_decode(array.handle);
     assert(handle);
-    handle->elements = gc_realloc(handle->elements, handle->element_size * 1);
+    handle->elements = gc_realloc(handle->elements, handle->element_size);
     handle->size = 0;
     handle->capacity = 1;
 }
