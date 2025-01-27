@@ -14,6 +14,7 @@ void *gc_malloc(const size_t size) {
 }
 
 void *gc_realloc(void *ptr, const size_t size) {
+    assert(ptr);
     void *result = GC_REALLOC(ptr, size);
     assert(result);
     return result;

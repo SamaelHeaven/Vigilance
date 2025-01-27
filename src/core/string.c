@@ -15,6 +15,7 @@ WritableString string_create(const char *char_ptr) {
 }
 
 WritableString string_format(const char *format, ...) {
+    assert(format);
     va_list args;
     va_start(args, format);
     const int32_t len = vsnprintf(nullptr, 0, format, args);

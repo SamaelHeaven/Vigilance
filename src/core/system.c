@@ -1,6 +1,7 @@
 #include "system.h"
 
 void print(const char *format, ...) {
+    assert(format);
     va_list args;
     va_start(args, format);
     vprintf(format, args);
@@ -9,6 +10,7 @@ void print(const char *format, ...) {
 }
 
 void println(const char *format, ...) {
+    assert(format);
     va_list args;
     va_start(args, format);
     vprintf(format, args);
@@ -18,6 +20,7 @@ void println(const char *format, ...) {
 }
 
 void print_err(const char *format, ...) {
+    assert(format);
     va_list args;
     va_start(args, format);
     vfprintf(stderr, format, args);
@@ -26,6 +29,7 @@ void print_err(const char *format, ...) {
 }
 
 void println_err(const char *format, ...) {
+    assert(format);
     va_list args;
     va_start(args, format);
     vfprintf(stderr, format, args);

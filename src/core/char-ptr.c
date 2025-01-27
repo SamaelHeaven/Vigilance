@@ -3,6 +3,7 @@
 #include "gc.h"
 
 char *char_ptr_format(const char *format, ...) {
+    assert(format);
     va_list args;
     va_start(args, format);
     const int32_t len = vsnprintf(nullptr, 0, format, args);
