@@ -1,8 +1,4 @@
-// ReSharper disable once CppMissingIncludeGuard
-#undef ASSERT
-
-#ifndef VIGILANCE_H
-#define VIGILANCE_H
+#pragma once
 
 #include <ctype.h>
 #include <errno.h>
@@ -34,6 +30,4 @@
             : (fprintf(stderr, "Assertion failed: %s, function %s, file %s, line %d.\n", #expr, __func__, __FILE__,    \
                        __LINE__),                                                                                      \
                abort()))
-#endif
-
 #endif
