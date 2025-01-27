@@ -342,6 +342,18 @@ void array_for_each(const Array array, void (*callback)(void *element)) {
     }
 }
 
+void *array_find(const Array array, bool (*predicate)(const void *element)) {
+    const Handle *handle = array_handle_decode(array.handle);
+    assert(handle);
+    for (int32_t i = 0; i < handle->size; ++i) {
+        void *element = handle->elements + i * handle->element_size;
+        if (predicate(element)) {
+            return element;
+        }
+    }
+    return nullptr;
+}
+
 void *array_to_ptr(const Array array) {
     const Handle *handle = array_handle_decode(array.handle);
     assert(handle);

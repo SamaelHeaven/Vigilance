@@ -67,6 +67,8 @@ void array_stable_sort(WritableArray array, int32_t (*comparator)(const void *a,
 
 void array_for_each(Array array, void (*callback)(void *element));
 
+void *array_find(Array array, bool (*predicate)(const void *element));
+
 void *array_to_ptr(Array array);
 
 const void *array_data(Array array);
@@ -130,7 +132,7 @@ int32_t array_element_size(Array array);
     }                                                                                                                  \
                                                                                                                        \
     inline static void namespace##_remove_if(Writable##type_name array, bool (*predicate)(el_type const *element)) {   \
-        array_remove_if(*(Array *) &array, (bool (*)(const void *element)) predicate);                                 \
+        array_remove_if(*(Array *) &array, (bool (*)(const void *)) predicate);                                        \
     }                                                                                                                  \
                                                                                                                        \
     inline static bool namespace##_contains(type_name array, el_type element) {                                        \
@@ -163,12 +165,12 @@ int32_t array_element_size(Array array);
                                                                                                                        \
     inline static void namespace##_sort(Writable##type_name array,                                                     \
                                         int32_t (*comparator)(el_type const *a, el_type const *b)) {                   \
-        array_sort(*(Array *) &array, (int32_t(*)(const void *a, const void *b))(comparator));                         \
+        array_sort(*(Array *) &array, (int32_t(*)(const void *, const void *))(comparator));                           \
     }                                                                                                                  \
                                                                                                                        \
     inline static void namespace##_stable_sort(Writable##type_name array,                                              \
                                                int32_t (*comparator)(el_type const *a, el_type const *b)) {            \
-        array_stable_sort(*(Array *) &array, (int32_t(*)(const void *a, const void *b)) comparator);                   \
+        array_stable_sort(*(Array *) &array, (int32_t(*)(const void *, const void *)) comparator);                     \
     }                                                                                                                  \
     inline static void namespace##_shrink(Writable##type_name array) { array_shrink(*(Array *) &array); }              \
                                                                                                                        \
@@ -186,6 +188,10 @@ int32_t array_element_size(Array array);
         for (int32_t i = 0; i < array_size(*(Array *) &array); ++i) {                                                  \
             callback(*(el_type *) array_get(*(Array *) &array, i));                                                    \
         }                                                                                                              \
+    }                                                                                                                  \
+                                                                                                                       \
+    inline static el_type *namespace##_find(type_name array, bool (*predicate)(el_type const *element)) {              \
+        return array_find(*(Array *) &array, (bool (*)(const void *)) predicate);                                      \
     }                                                                                                                  \
                                                                                                                        \
     inline static el_type *namespace##_to_ptr(type_name array) { return array_to_ptr(*(Array *) &array); }             \
