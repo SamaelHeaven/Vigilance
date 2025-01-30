@@ -198,7 +198,7 @@ WritableArrayCharPtr string_split(const String string, const char *char_ptr) {
     char *token = strtok(string_to_ptr(string), char_ptr);
     while (token) {
         array_char_ptr_add(result, token);
-        token = strtok(NULL, char_ptr);
+        token = strtok(nullptr, char_ptr);
     }
     return result;
 }
