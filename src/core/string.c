@@ -157,50 +157,24 @@ WritableString string_to_lowercase(const String string) {
 
 bool string_is_empty(const String string) { return array_char_is_empty(*(ArrayChar *) &string); }
 
-bool string_starts_with(const String string, const char *char_ptr) {
-    ASSERT(char_ptr);
-    const int32_t prefix_len = strlen(char_ptr);
-    const int32_t str_len = string_length(string);
-    if (prefix_len > str_len) {
-        return false;
-    }
-    for (int32_t i = 0; i < prefix_len; ++i) {
-        if (array_char_get(*(ArrayChar *) &string, i) != char_ptr[i]) {
-            return false;
-        }
-    }
-    return true;
+bool string_starts_with(const String string, const char *prefix) {
+    ASSERT(prefix);
+    return char_ptr_starts_with(array_char_data(*(ArrayChar *) &string), prefix);
 }
 
-bool string_ends_with(const String string, const char *char_ptr) {
-    ASSERT(char_ptr);
-    const int32_t suffix_len = strlen(char_ptr);
-    const int32_t str_len = string_length(string);
-    if (suffix_len > str_len) {
-        return false;
-    }
-    for (int32_t i = 0; i < suffix_len; ++i) {
-        if (array_char_get(*(ArrayChar *) &string, str_len - suffix_len + i) != char_ptr[i]) {
-            return false;
-        }
-    }
-    return true;
+bool string_ends_with(const String string, const char *suffix) {
+    ASSERT(suffix);
+    return char_ptr_ends_with(array_char_data(*(ArrayChar *) &string), suffix);
 }
 
-bool string_contains(const String string, const char *char_ptr) {
-    ASSERT(char_ptr);
-    return strstr(string_data(string), char_ptr) != nullptr;
+bool string_contains(const String string, const char *substr) {
+    ASSERT(substr);
+    return char_ptr_contains(array_char_data(*(ArrayChar *) &string), substr);
 }
 
-WritableArrayCharPtr string_split(const String string, const char *char_ptr) {
-    ASSERT(char_ptr);
-    const ArrayCharPtr result = array_char_ptr_create();
-    char *token = strtok(string_to_ptr(string), char_ptr);
-    while (token) {
-        array_char_ptr_add(result, token);
-        token = strtok(nullptr, char_ptr);
-    }
-    return result;
+WritableArrayCharPtr string_split(const String string, const char *delim) {
+    ASSERT(delim);
+    return char_ptr_split(array_char_data(*(ArrayChar *) &string), delim);
 }
 
 int32_t string_index_of(const String string, const char character) {

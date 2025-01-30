@@ -54,13 +54,13 @@ WritableString string_to_uppercase(String string);
 
 WritableString string_to_lowercase(String string);
 
-bool string_starts_with(String string, const char *char_ptr);
+bool string_starts_with(String string, const char *prefix);
 
-bool string_ends_with(String string, const char *char_ptr);
+bool string_ends_with(String string, const char *suffix);
 
-bool string_contains(String string, const char *char_ptr);
+bool string_contains(String string, const char *substr);
 
-WritableArrayCharPtr string_split(String string, const char *char_ptr);
+WritableArrayCharPtr string_split(String string, const char *delim);
 
 int32_t string_index_of(String string, char character);
 
