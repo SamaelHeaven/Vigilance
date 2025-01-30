@@ -157,7 +157,51 @@ WritableString string_to_lowercase(const String string) {
 
 bool string_is_empty(const String string) { return array_char_is_empty(*(ArrayChar *) &string); }
 
-bool string_contains(const String string, const char character) { return string_index_of(string, character) != -1; }
+bool string_starts_with(const String string, const char *char_ptr) {
+    ASSERT(char_ptr);
+    const int32_t prefix_len = strlen(char_ptr);
+    const int32_t str_len = string_length(string);
+    if (prefix_len > str_len) {
+        return false;
+    }
+    for (int32_t i = 0; i < prefix_len; ++i) {
+        if (array_char_get(*(ArrayChar *) &string, i) != char_ptr[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool string_ends_with(const String string, const char *char_ptr) {
+    ASSERT(char_ptr);
+    const int32_t suffix_len = strlen(char_ptr);
+    const int32_t str_len = string_length(string);
+    if (suffix_len > str_len) {
+        return false;
+    }
+    for (int32_t i = 0; i < suffix_len; ++i) {
+        if (array_char_get(*(ArrayChar *) &string, str_len - suffix_len + i) != char_ptr[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool string_contains(const String string, const char *char_ptr) {
+    ASSERT(char_ptr);
+    return strstr(string_data(string), char_ptr) != nullptr;
+}
+
+WritableArrayCharPtr string_split(const String string, const char *char_ptr) {
+    ASSERT(char_ptr);
+    const ArrayCharPtr result = array_char_ptr_create();
+    char *token = strtok(string_to_ptr(string), char_ptr);
+    while (token) {
+        array_char_ptr_add(result, token);
+        token = strtok(NULL, char_ptr);
+    }
+    return result;
+}
 
 int32_t string_index_of(const String string, const char character) {
     const int32_t result = array_char_index_of(*(ArrayChar *) &string, character);
@@ -185,7 +229,7 @@ int32_t string_compare_ignore_case(const String string, const char *other) {
 
 WritableString string_copy(const String string) { return CAST(String, array_char_copy(*(ArrayChar *) &string)); }
 
-ArrayChar string_to_array(const String string) { return array_char_copy(*(ArrayChar *) &string); }
+WritableArrayChar string_to_array(const String string) { return array_char_copy(*(ArrayChar *) &string); }
 
 char *string_to_ptr(const String string) { return array_char_to_ptr(*(ArrayChar *) &string); }
 

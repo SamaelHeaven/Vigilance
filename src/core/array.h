@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../vigilance.h"
-#include "string.h"
 
 typedef struct Array {
     struct Handle *handle;
@@ -233,6 +232,8 @@ DECLARE_ARRAY(ArrayConstPtr, array_const_ptr, const void *)
 DECLARE_ARRAY(ArrayCharPtr, array_char_ptr, char *)
 
 DECLARE_ARRAY(ArrayConstCharPtr, array_const_char_ptr, const char *)
+
+#include "string.h"
 
 DECLARE_ARRAY(ArrayString, array_string, String)
 

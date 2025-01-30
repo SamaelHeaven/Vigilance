@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../vigilance.h"
+#include "array.h"
 
 typedef struct String {
     struct Handle *handle;
@@ -54,7 +54,13 @@ WritableString string_to_uppercase(String string);
 
 WritableString string_to_lowercase(String string);
 
-bool string_contains(String string, char character);
+bool string_starts_with(String string, const char *char_ptr);
+
+bool string_ends_with(String string, const char *char_ptr);
+
+bool string_contains(String string, char *char_ptr);
+
+WritableArrayCharPtr string_split(String string, const char *char_ptr);
 
 int32_t string_index_of(String string, char character);
 
@@ -72,7 +78,7 @@ int32_t string_compare_ignore_case(String string, const char *other);
 
 WritableString string_copy(String string);
 
-struct ArrayChar string_to_array(String string);
+WritableArrayChar string_to_array(String string);
 
 char *string_to_ptr(String string);
 
