@@ -1,6 +1,6 @@
 #pragma once
 
-#include "array.h"
+#include "char-ptr.h"
 
 typedef struct String {
     struct Handle *handle;
@@ -87,3 +87,9 @@ const char *string_data(String string);
 int32_t string_length(String string);
 
 int32_t string_capacity(String string);
+
+DECLARE_ARRAY(ArrayString, array_string, String)
+
+DECLARE_ARRAY(ArrayWritableString, array_writable_string, WritableString)
+
+DECLARE_ARRAY(ArrayReadonlyString, array_readonly_string, ReadonlyString)

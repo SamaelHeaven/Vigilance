@@ -228,15 +228,3 @@ DECLARE_ARRAY(ArrayChar, array_char, char)
 DECLARE_ARRAY(ArrayPtr, array_ptr, void *)
 
 DECLARE_ARRAY(ArrayConstPtr, array_const_ptr, const void *)
-
-DECLARE_ARRAY(ArrayCharPtr, array_char_ptr, char *)
-
-DECLARE_ARRAY(ArrayConstCharPtr, array_const_char_ptr, const char *)
-
-#include "string.h"
-
-DECLARE_ARRAY(ArrayString, array_string, String)
-
-DECLARE_ARRAY(ArrayWritableString, array_writable_string, WritableString)
-
-DECLARE_ARRAY(ArrayReadonlyString, array_readonly_string, ReadonlyString)
