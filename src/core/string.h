@@ -58,7 +58,7 @@ bool string_starts_with(String string, const char *char_ptr);
 
 bool string_ends_with(String string, const char *char_ptr);
 
-bool string_contains(String string, char *char_ptr);
+bool string_contains(String string, const char *char_ptr);
 
 WritableArrayCharPtr string_split(String string, const char *char_ptr);
 
