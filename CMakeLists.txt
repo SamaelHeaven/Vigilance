@@ -18,18 +18,6 @@ if (NOT gc_FOUND)
     FetchContent_MakeAvailable(gc)
 endif ()
 
-set(flecs_VERSION 4.0.4)
-find_package(flecs ${flecs_VERSION} QUIET)
-if (NOT flecs_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(
-            flecs
-            DOWNLOAD_EXTRACT_TIMESTAMP OFF
-            URL https://github.com/SanderMertens/flecs/archive/refs/tags/v${flecs_VERSION}.tar.gz
-    )
-    FetchContent_MakeAvailable(flecs)
-endif ()
-
 set(raylib_VERSION 5.5)
 find_package(raylib ${raylib_VERSION} QUIET)
 if (NOT raylib_FOUND)
