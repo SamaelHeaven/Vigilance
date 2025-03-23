@@ -2,15 +2,22 @@
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
+        <PackageId>Vigilance</PackageId>
+        <Version>0.0.1</Version>
+        <Authors>Samael Heaven</Authors>
+        <Description>2D Game Engine</Description>
+        <RepositoryUrl>https://github.com/SamaelHeaven/Vigilance</RepositoryUrl>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Box2D.NetStandard" Version="2.4.7-alpha"/>
-        <PackageReference Include="Flecs.NET.Debug" Version="4.0.4-build.548" Condition="'$(Configuration)' == 'Debug'"/>
-        <PackageReference Include="Flecs.NET.Release" Version="4.0.4-build.548" Condition="'$(Configuration)' == 'Release'"/>
+        <PackageReference Include="Box2D.NET.Debug" Version="3.0.0" Condition="'$(Configuration)' == 'Debug'"/>
+        <PackageReference Include="Box2D.NET.Release" Version="3.0.0" Condition="'$(Configuration)' == 'Release'"/>
+        <PackageReference Include="Flecs.NET.Debug" Version="4.0.3" Condition="'$(Configuration)' == 'Debug'"/>
+        <PackageReference Include="Flecs.NET.Release" Version="4.0.3" Condition="'$(Configuration)' == 'Release'"/>
         <PackageReference Include="Raylib-cs" Version="7.0.1"/>
     </ItemGroup>
 
