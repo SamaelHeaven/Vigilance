@@ -7,6 +7,7 @@
         <Authors>Samael Heaven</Authors>
         <Description>2D Game Engine</Description>
         <RepositoryUrl>https://github.com/SamaelHeaven/Vigilance</RepositoryUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
