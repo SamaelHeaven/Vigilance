@@ -23,7 +23,7 @@ jobs:
 
       - name: Bump version number
         run: |
-          CURRENT_VERSION=$(grep -oPm1 "(?<=<Version>)(.*)(?=</Version>)" src/Vigilance.csproj)
+          CURRENT_VERSION=$(grep -oPm1 "(?<=<Version>)(.*)(?=</Version>)" src/Vigilance/Vigilance.csproj)
           echo "Current version: $CURRENT_VERSION"
 
           IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
@@ -32,7 +32,7 @@ jobs:
           NEW_PATCH_VERSION=$((PATCH_VERSION + 1))
           NEW_VERSION="${VERSION_PARTS[0]}.${VERSION_PARTS[1]}.$NEW_PATCH_VERSION"
 
-          sed -i "s|<Version>.*</Version>|<Version>$NEW_VERSION</Version>|" src/Vigilance.csproj
+          sed -i "s|<Version>.*</Version>|<Version>$NEW_VERSION</Version>|" src/Vigilance/Vigilance.csproj
           echo "Updated version to: $NEW_VERSION"
 
       - name: Build
