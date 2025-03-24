@@ -7,6 +7,8 @@ namespace Vigilance.Drawing;
 
 public readonly struct Graphics
 {
+    internal static WritableTexture? CurrentBuffer;
+
     internal static GameSystem System =>
         scene =>
         {
@@ -28,8 +30,6 @@ public readonly struct Graphics
         Game.EnsureRunning();
         Buffer = buffer;
     }
-
-    private bool IsRenderer => Buffer == Renderer.Buffer;
 
     public static void PushState()
     {
@@ -63,21 +63,9 @@ public readonly struct Graphics
 
     public static void Transform(Transform transform)
     {
+        Game.EnsureRunning();
         Transform(transform, out _, out var scale);
         Scale(scale);
-    }
-
-    private static void Transform(Transform transform, out Vector2 position, out Vector2 scale)
-    {
-        position = transform.Position;
-        scale = transform.Scale.Abs();
-        var pivotPoint = transform.PivotPoint;
-        var rotation = transform.Rotation;
-        var positionOffset = -(scale * 0.5f);
-        var rotationOffset = position + pivotPoint;
-        Translate(rotationOffset);
-        Rotate(rotation);
-        Translate(-rotationOffset + positionOffset);
     }
 
     public void ClearBackground(Color color)
@@ -222,27 +210,35 @@ public readonly struct Graphics
     {
         if (camera.HasValue)
         {
-            var c = camera.Value;
             PushState();
-            var camera2D = new Camera2D(c.Offset, c.Target, c.Rotation, c.Zoom);
+            var cam = camera.Value;
+            var camera2D = new Camera2D(cam.Offset, cam.Target, cam.Rotation, cam.Zoom);
             Rlgl.MultMatrixf(Raylib.GetCameraMatrix2D(camera2D));
         }
 
-        if (IsRenderer)
+        if (CurrentBuffer == Buffer)
             return;
+        CurrentBuffer = Buffer;
         Raylib.EndTextureMode();
         Raylib.BeginTextureMode(Buffer.RenderTexture2D);
     }
 
-    private void EndDraw(Camera? camera = null)
+    private static void EndDraw(Camera? camera = null)
     {
-        if (!IsRenderer)
-        {
-            Raylib.EndTextureMode();
-            Raylib.BeginTextureMode(Renderer.Buffer.RenderTexture2D);
-        }
-
         if (camera.HasValue)
             PopState();
+    }
+
+    private static void Transform(Transform transform, out Vector2 position, out Vector2 scale)
+    {
+        position = transform.Position;
+        scale = transform.Scale.Abs();
+        var pivotPoint = transform.PivotPoint;
+        var rotation = transform.Rotation;
+        var positionOffset = -(scale * 0.5f);
+        var rotationOffset = position + pivotPoint;
+        Translate(rotationOffset);
+        Rotate(rotation);
+        Translate(-rotationOffset + positionOffset);
     }
 }
