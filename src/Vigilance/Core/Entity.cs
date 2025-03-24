@@ -105,7 +105,6 @@ public unsafe struct Entity
         return ref this;
     }
 
-
     public ref Entity SetPosition(Vector2 position)
     {
         Position = position;
@@ -226,166 +225,166 @@ public unsafe struct Entity
     public bool Has<T0, T1, T2, T3, T4, T5>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>();
     }
 
     public bool Has<T0, T1, T2, T3, T4, T5, T6>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>()
-               && FEntity.Has<T6>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>()
+            && FEntity.Has<T6>();
     }
 
     public bool Has<T0, T1, T2, T3, T4, T5, T6, T7>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>()
-               && FEntity.Has<T6>()
-               && FEntity.Has<T7>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>()
+            && FEntity.Has<T6>()
+            && FEntity.Has<T7>();
     }
 
     public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>()
-               && FEntity.Has<T6>()
-               && FEntity.Has<T7>()
-               && FEntity.Has<T8>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>()
+            && FEntity.Has<T6>()
+            && FEntity.Has<T7>()
+            && FEntity.Has<T8>();
     }
 
     public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>()
-               && FEntity.Has<T6>()
-               && FEntity.Has<T7>()
-               && FEntity.Has<T8>()
-               && FEntity.Has<T9>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>()
+            && FEntity.Has<T6>()
+            && FEntity.Has<T7>()
+            && FEntity.Has<T8>()
+            && FEntity.Has<T9>();
     }
 
     public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>()
-               && FEntity.Has<T6>()
-               && FEntity.Has<T7>()
-               && FEntity.Has<T8>()
-               && FEntity.Has<T9>()
-               && FEntity.Has<T10>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>()
+            && FEntity.Has<T6>()
+            && FEntity.Has<T7>()
+            && FEntity.Has<T8>()
+            && FEntity.Has<T9>()
+            && FEntity.Has<T10>();
     }
 
     public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>()
-               && FEntity.Has<T6>()
-               && FEntity.Has<T7>()
-               && FEntity.Has<T8>()
-               && FEntity.Has<T9>()
-               && FEntity.Has<T10>()
-               && FEntity.Has<T11>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>()
+            && FEntity.Has<T6>()
+            && FEntity.Has<T7>()
+            && FEntity.Has<T8>()
+            && FEntity.Has<T9>()
+            && FEntity.Has<T10>()
+            && FEntity.Has<T11>();
     }
 
     public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>()
-               && FEntity.Has<T6>()
-               && FEntity.Has<T7>()
-               && FEntity.Has<T8>()
-               && FEntity.Has<T9>()
-               && FEntity.Has<T10>()
-               && FEntity.Has<T11>()
-               && FEntity.Has<T12>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>()
+            && FEntity.Has<T6>()
+            && FEntity.Has<T7>()
+            && FEntity.Has<T8>()
+            && FEntity.Has<T9>()
+            && FEntity.Has<T10>()
+            && FEntity.Has<T11>()
+            && FEntity.Has<T12>();
     }
 
     public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>()
-               && FEntity.Has<T6>()
-               && FEntity.Has<T7>()
-               && FEntity.Has<T8>()
-               && FEntity.Has<T9>()
-               && FEntity.Has<T10>()
-               && FEntity.Has<T11>()
-               && FEntity.Has<T12>()
-               && FEntity.Has<T13>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>()
+            && FEntity.Has<T6>()
+            && FEntity.Has<T7>()
+            && FEntity.Has<T8>()
+            && FEntity.Has<T9>()
+            && FEntity.Has<T10>()
+            && FEntity.Has<T11>()
+            && FEntity.Has<T12>()
+            && FEntity.Has<T13>();
     }
 
     public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>()
-               && FEntity.Has<T6>()
-               && FEntity.Has<T7>()
-               && FEntity.Has<T8>()
-               && FEntity.Has<T9>()
-               && FEntity.Has<T10>()
-               && FEntity.Has<T11>()
-               && FEntity.Has<T12>()
-               && FEntity.Has<T13>()
-               && FEntity.Has<T14>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>()
+            && FEntity.Has<T6>()
+            && FEntity.Has<T7>()
+            && FEntity.Has<T8>()
+            && FEntity.Has<T9>()
+            && FEntity.Has<T10>()
+            && FEntity.Has<T11>()
+            && FEntity.Has<T12>()
+            && FEntity.Has<T13>()
+            && FEntity.Has<T14>();
     }
 
     public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>()
     {
         return FEntity.Has<T0>()
-               && FEntity.Has<T1>()
-               && FEntity.Has<T2>()
-               && FEntity.Has<T3>()
-               && FEntity.Has<T4>()
-               && FEntity.Has<T5>()
-               && FEntity.Has<T6>()
-               && FEntity.Has<T7>()
-               && FEntity.Has<T8>()
-               && FEntity.Has<T9>()
-               && FEntity.Has<T10>()
-               && FEntity.Has<T11>()
-               && FEntity.Has<T12>()
-               && FEntity.Has<T13>()
-               && FEntity.Has<T14>()
-               && FEntity.Has<T15>();
+            && FEntity.Has<T1>()
+            && FEntity.Has<T2>()
+            && FEntity.Has<T3>()
+            && FEntity.Has<T4>()
+            && FEntity.Has<T5>()
+            && FEntity.Has<T6>()
+            && FEntity.Has<T7>()
+            && FEntity.Has<T8>()
+            && FEntity.Has<T9>()
+            && FEntity.Has<T10>()
+            && FEntity.Has<T11>()
+            && FEntity.Has<T12>()
+            && FEntity.Has<T13>()
+            && FEntity.Has<T14>()
+            && FEntity.Has<T15>();
     }
 
     #endregion
