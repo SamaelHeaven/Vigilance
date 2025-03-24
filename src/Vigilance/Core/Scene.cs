@@ -23,7 +23,7 @@ public sealed unsafe class Scene
 
     public bool Initialized { get; private set; }
 
-    public ref Camera Camera => ref _world.GetMut<Camera>();
+    public ref Camera Camera => ref Get<Camera>();
 
     public Entity Entity(string name = "")
     {
@@ -150,13 +150,15 @@ public sealed unsafe class Scene
 
     public ref T Get<T>()
     {
+        EnsureInitialized();
         return ref _world.GetMut<T>();
     }
 
-    public void Set<T>(T data)
+    public void Set<T>(ref T data)
     {
+        EnsureInitialized();
         var hadT = _world.Has<T>();
-        Set(ref data);
+        _world.Set(ref data);
         var entity = _world.Singleton<T>();
         if (hadT)
         {
@@ -171,13 +173,20 @@ public sealed unsafe class Scene
         _world.Event<AddEvent>().Id<T>().Entity(entity).Emit();
     }
 
-    public void Set<T>(ref T data)
+    public void Set<T>(T data)
     {
-        _world.Set(ref data);
+        Set(ref data);
+    }
+
+    public int Count<T>()
+    {
+        EnsureInitialized();
+        return _world.Count<T>();
     }
 
     public void Remove<T>()
     {
+        EnsureInitialized();
         _world.Remove<T>();
     }
 
