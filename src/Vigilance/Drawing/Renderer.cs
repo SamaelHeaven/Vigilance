@@ -19,6 +19,7 @@ public sealed class Renderer
         _graphics = new Graphics(_buffer);
         Raylib.SetTextureFilter(_buffer.RenderTexture2D.Texture, (TextureFilter)_interpolation);
         Raylib.BeginTextureMode(_buffer.RenderTexture2D);
+        Graphics.CurrentBuffer = _buffer;
     }
 
     public static Interpolation Interpolation
