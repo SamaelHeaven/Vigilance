@@ -9,9 +9,9 @@ public sealed unsafe class Scene
     private readonly List<Action> _initializeActions = [];
     private readonly List<Action<Entity>> _renderActions = [];
     private readonly List<Action> _updateActions = [];
-    private readonly World _world = World.Create();
     private Query<int> _orderedQuery;
     private float _time;
+    private World _world = World.Create();
 
     public Scene()
     {

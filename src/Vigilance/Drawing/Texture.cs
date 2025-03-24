@@ -6,14 +6,14 @@ namespace Vigilance.Drawing;
 
 public sealed class Texture
 {
-    private readonly bool _cleanup;
+    private readonly object? _owner;
     internal readonly Texture2D Texture2D;
 
-    internal Texture(Texture2D texture2D, bool cleanup)
+    internal Texture(Texture2D texture2D, object owner)
     {
         Game.EnsureRunning();
         Texture2D = texture2D;
-        _cleanup = cleanup;
+        _owner = owner;
     }
 
     public Texture(string path)
@@ -23,7 +23,6 @@ public sealed class Texture
         if (!FileSystem.FileExists(path))
             throw new ArgumentException($"Could not find texture file '{path}'.");
         Texture2D = Raylib.LoadTexture(path);
-        _cleanup = true;
     }
 
     public int Width => Texture2D.Width;
@@ -34,7 +33,7 @@ public sealed class Texture
 
     ~Texture()
     {
-        if (!_cleanup)
+        if (_owner != null)
             return;
         Game.RunLater(() =>
         {

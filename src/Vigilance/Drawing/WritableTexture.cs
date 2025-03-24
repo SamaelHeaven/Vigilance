@@ -16,7 +16,7 @@ public sealed class WritableTexture
     {
         Game.EnsureRunning();
         RenderTexture2D = Raylib.LoadRenderTexture(width, height);
-        Texture = new Texture(RenderTexture2D.Texture, false);
+        Texture = new Texture(RenderTexture2D.Texture, this);
     }
 
     public static implicit operator Texture(WritableTexture writableTexture)
@@ -26,6 +26,9 @@ public sealed class WritableTexture
 
     ~WritableTexture()
     {
-        Game.RunLater(() => { Raylib.UnloadRenderTexture(RenderTexture2D); });
+        Game.RunLater(() =>
+        {
+            Raylib.UnloadRenderTexture(RenderTexture2D);
+        });
     }
 }
