@@ -205,7 +205,7 @@ public sealed unsafe class Scene
     private void Initialize()
     {
         foreach (var system in Game.Systems)
-            system.Invoke(this);
+            system.Configure(this);
         Initialized = true;
         foreach (var action in _initializeActions)
             action.Invoke();

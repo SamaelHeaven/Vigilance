@@ -8,19 +8,6 @@ namespace Vigilance.Drawing;
 public readonly struct Graphics
 {
     internal static WritableTexture? CurrentBuffer;
-
-    internal static GameSystem System =>
-        scene =>
-        {
-            scene.OnRender(entity =>
-            {
-                var graphics = Renderer.Graphics;
-
-                if (entity.Has<Rectangle>())
-                    graphics.DrawRectangle(entity.WorldTransform, entity.Get<Rectangle>());
-            });
-        };
-
     public const float DefaultRectangleRoundness = 0.1f;
     public const float DefaultStrokeWidth = 1;
     public readonly WritableTexture Buffer;

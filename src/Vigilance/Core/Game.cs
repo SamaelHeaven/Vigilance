@@ -2,13 +2,13 @@ using Raylib_cs;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
-using Raylib = Raylib_cs.Raylib;
+using Vigilance.Systems;
 
 namespace Vigilance.Core;
 
 public sealed class Game
 {
-    internal static readonly List<GameSystem> Systems = [];
+    internal static readonly List<ISystem> Systems = [];
     private static Game? _game;
     private readonly List<Action> _actions = [];
     private GameConfig _config;
@@ -18,8 +18,8 @@ public sealed class Game
 
     static Game()
     {
-        System(Camera.System);
-        System(Graphics.System);
+        System(new CameraSystem());
+        System(new GraphicsSystem());
     }
 
     private Game()
@@ -155,7 +155,7 @@ public sealed class Game
         }
     }
 
-    public static void System(GameSystem system)
+    public static void System(ISystem system)
     {
         EnsureNotRunning();
         Systems.Add(system);
