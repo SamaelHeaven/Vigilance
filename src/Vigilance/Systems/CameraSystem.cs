@@ -12,7 +12,7 @@ public struct CameraSystem : ISystem
         });
 
         scene.OnRemove<Camera>(
-            (entity, _) =>
+            static (entity, _) =>
             {
                 if (entity.IsSingleton)
                     throw new InvalidOperationException("Cannot remove camera from scene.");

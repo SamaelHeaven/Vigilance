@@ -30,16 +30,36 @@ public readonly struct Graphics
         Rlgl.PopMatrix();
     }
 
+    public static void Translate(float v1, float? v2 = null)
+    {
+        Translate(new Vector2(v1, v2 ?? v1));
+    }
+
     public static void Translate(Vector2 translation)
     {
         Game.EnsureRunning();
         Rlgl.Translatef(translation.X, translation.Y, 0);
     }
 
-    public static void Rotate(float angle)
+    public static void Rotate(float angle, float v1, float? v2 = null)
+    {
+        Rotate(angle, new Vector2(v1, v2 ?? v1));
+    }
+
+
+    public static void Rotate(float angle, Vector2? position = null)
     {
         Game.EnsureRunning();
+        if (position.HasValue)
+            Rlgl.Translatef(position.Value.X, position.Value.Y, 0);
         Rlgl.Rotatef(angle, 0, 0, 1);
+        if (position.HasValue)
+            Rlgl.Translatef(-position.Value.X, -position.Value.Y, 0);
+    }
+
+    public static void Scale(float v1, float? v2 = null)
+    {
+        Scale(new Vector2(v1, v2 ?? v1));
     }
 
     public static void Scale(Vector2 scale)
@@ -224,8 +244,7 @@ public readonly struct Graphics
         var rotation = transform.Rotation;
         var positionOffset = -(scale * 0.5f);
         var rotationOffset = position + pivotPoint;
-        Translate(rotationOffset);
-        Rotate(rotation);
-        Translate(-rotationOffset + positionOffset);
+        Rotate(rotation, rotationOffset);
+        Translate(positionOffset);
     }
 }
