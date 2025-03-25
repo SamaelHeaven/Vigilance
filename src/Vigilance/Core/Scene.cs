@@ -64,90 +64,6 @@ public sealed unsafe class Scene
         _renderActions.Add(action);
     }
 
-    public void OnAdd<T>(Action<Entity, T> action)
-    {
-        EnsureNotInitialized();
-        _world
-            .Observer<T>()
-            .Event<AddEvent>()
-            .Each(
-                (Iter it, int i, ref T t) =>
-                {
-                    action.Invoke(new Entity(it.Entity(i)), t);
-                }
-            );
-    }
-
-    public void OnAdd<T>(Action<T> action)
-    {
-        EnsureNotInitialized();
-        _world
-            .Observer<T>()
-            .Event<AddEvent>()
-            .Each(
-                (Iter _, int _, ref T t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
-
-    public void OnSet<T>(Action<Entity, T> action)
-    {
-        EnsureNotInitialized();
-        _world
-            .Observer<T>()
-            .Event<SetEvent>()
-            .Each(
-                (Iter it, int i, ref T t) =>
-                {
-                    action.Invoke(new Entity(it.Entity(i)), t);
-                }
-            );
-    }
-
-    public void OnSet<T>(Action<T> action)
-    {
-        EnsureNotInitialized();
-        _world
-            .Observer<T>()
-            .Event<SetEvent>()
-            .Each(
-                (Iter _, int _, ref T t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
-
-    public void OnRemove<T>(Action<Entity, T> action)
-    {
-        EnsureNotInitialized();
-        _world
-            .Observer<T>()
-            .Event(Ecs.OnRemove)
-            .Each(
-                (Iter it, int i, ref T t) =>
-                {
-                    action.Invoke(new Entity(it.Entity(i)), t);
-                }
-            );
-    }
-
-    public void OnRemove<T>(Action<T> action)
-    {
-        EnsureNotInitialized();
-        _world
-            .Observer<T>()
-            .Event(Ecs.OnRemove)
-            .Each(
-                (Iter _, int _, ref T t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
-
     public ref T Get<T>()
     {
         EnsureInitialized();
@@ -248,6 +164,144 @@ public sealed unsafe class Scene
             _world.Dispose();
         });
     }
+
+    #region OnAdd
+
+    public void OnAdd<T>(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event<AddEvent>()
+            .Each(
+                (Iter it, int i, ref T _) =>
+                {
+                    action.Invoke(new Entity(it.Entity(i)));
+                }
+            );
+    }
+
+    public void OnAdd<T>(Action<T> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event<AddEvent>()
+            .Each(
+                (Iter _, int _, ref T t) =>
+                {
+                    action.Invoke(t);
+                }
+            );
+    }
+
+    public void OnAdd<T>(Action<Entity, T> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event<AddEvent>()
+            .Each(
+                (Iter it, int i, ref T t) =>
+                {
+                    action.Invoke(new Entity(it.Entity(i)), t);
+                }
+            );
+    }
+
+    #endregion
+
+    #region OnSet
+
+    public void OnSet<T>(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event<SetEvent>()
+            .Each(
+                (Iter it, int i, ref T _) =>
+                {
+                    action.Invoke(new Entity(it.Entity(i)));
+                }
+            );
+    }
+
+    public void OnSet<T>(Action<T> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event<SetEvent>()
+            .Each(
+                (Iter _, int _, ref T t) =>
+                {
+                    action.Invoke(t);
+                }
+            );
+    }
+
+    public void OnSet<T>(Action<Entity, T> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event<SetEvent>()
+            .Each(
+                (Iter it, int i, ref T t) =>
+                {
+                    action.Invoke(new Entity(it.Entity(i)), t);
+                }
+            );
+    }
+
+    #endregion
+
+    #region OnRemove
+
+    public void OnRemove<T>(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event(Ecs.OnRemove)
+            .Each(
+                (Iter it, int i, ref T _) =>
+                {
+                    action.Invoke(new Entity(it.Entity(i)));
+                }
+            );
+    }
+
+    public void OnRemove<T>(Action<T> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event(Ecs.OnRemove)
+            .Each(
+                (Iter _, int _, ref T t) =>
+                {
+                    action.Invoke(t);
+                }
+            );
+    }
+
+    public void OnRemove<T>(Action<Entity, T> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event(Ecs.OnRemove)
+            .Each(
+                (Iter it, int i, ref T t) =>
+                {
+                    action.Invoke(new Entity(it.Entity(i)), t);
+                }
+            );
+    }
+
+    #endregion
 
     #region Each
 

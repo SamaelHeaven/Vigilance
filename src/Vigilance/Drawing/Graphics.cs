@@ -46,7 +46,6 @@ public readonly struct Graphics
         Rotate(angle, new Vector2(v1, v2 ?? v1));
     }
 
-
     public static void Rotate(float angle, Vector2? position = null)
     {
         Game.EnsureRunning();
