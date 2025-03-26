@@ -83,6 +83,8 @@ public readonly struct Graphics
         EndDraw();
     }
 
+    #region Rectangle
+
     public void FillRectangle(float x, float y, float width, float height, Color color, Camera? camera = null)
     {
         FillRectangle(new Vector2(x, y), new Vector2(width, height), color, camera);
@@ -176,7 +178,7 @@ public readonly struct Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || strokeWidth <= 0)
             return;
         BeginDraw(camera);
         Raylib.DrawRectangleRoundedLinesEx(
@@ -211,6 +213,68 @@ public readonly struct Graphics
 
         PopState();
     }
+
+    #endregion
+
+    #region Circle
+
+    public void FillCircle(float x, float y, float radius, Color color, Camera? camera = null)
+    {
+        FillCircle(new Vector2(x, y), radius, color, camera);
+    }
+
+    public void FillCircle(Vector2 center, float radius, Color color, Camera? camera = null)
+    {
+        if (color == Color.Transparent)
+            return;
+        BeginDraw(camera);
+        Raylib.DrawCircleV(center, radius, color.RColor);
+        EndDraw(camera);
+    }
+
+    public void StrokeCircle(
+        float x,
+        float y,
+        float radius,
+        Color color,
+        float strokeWidth = DefaultStrokeWidth,
+        Camera? camera = null
+    )
+    {
+        StrokeCircle(new Vector2(x, y), radius, color, strokeWidth, camera);
+    }
+
+    public void StrokeCircle(
+        Vector2 center,
+        float radius,
+        Color color,
+        float strokeWidth = DefaultStrokeWidth,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || strokeWidth <= 0)
+            return;
+        BeginDraw(camera);
+        Raylib.DrawRing(center, radius - strokeWidth, radius + 1, 0, 360, 0, color.RColor);
+        EndDraw(camera);
+    }
+
+    public void DrawCircle(Transform transform, Circle circle)
+    {
+        var camera = circle.Camera();
+        var fill = circle.Fill;
+        var stroke = circle.Stroke;
+        var strokeWidth = circle.StrokeWidth;
+        PushState();
+        Transform(transform, out var position, out var scale);
+        var radius = (scale.X + scale.Y) * 0.25f;
+        position += radius;
+        FillCircle(position, radius, fill, camera);
+        StrokeCircle(position, radius, stroke, strokeWidth, camera);
+        PopState();
+    }
+
+    #endregion
 
     private void BeginDraw(Camera? camera = null)
     {

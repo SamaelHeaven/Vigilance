@@ -12,6 +12,8 @@ public struct GraphicsSystem : ISystem
             var graphics = Renderer.Graphics;
             if (entity.Has<Rectangle>())
                 graphics.DrawRectangle(entity.WorldTransform, entity.Get<Rectangle>());
+            if (entity.Has<Circle>())
+                graphics.DrawCircle(entity.WorldTransform, entity.Get<Circle>());
         });
     }
 }
