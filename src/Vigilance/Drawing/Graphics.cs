@@ -8,9 +8,6 @@ namespace Vigilance.Drawing;
 public readonly struct Graphics
 {
     internal static WritableTexture? CurrentBuffer;
-    public const float DefaultRectangleRoundness = 0.1f;
-    public const float DefaultStrokeWidth = 1;
-    public const float DefaultFontSize = 48;
     public readonly WritableTexture Buffer;
 
     public Graphics(WritableTexture buffer)
@@ -106,7 +103,7 @@ public readonly struct Graphics
         float width,
         float height,
         Color color,
-        float strokeWidth = DefaultStrokeWidth,
+        float strokeWidth = 1,
         Camera? camera = null
     )
     {
@@ -117,7 +114,7 @@ public readonly struct Graphics
         Vector2 position,
         Vector2 size,
         Color color,
-        float strokeWidth = DefaultStrokeWidth,
+        float strokeWidth = 1,
         Camera? camera = null
     )
     {
@@ -134,7 +131,7 @@ public readonly struct Graphics
         float width,
         float height,
         Color color,
-        float roundness = DefaultRectangleRoundness,
+        float roundness,
         Camera? camera = null
     )
     {
@@ -145,7 +142,7 @@ public readonly struct Graphics
         Vector2 position,
         Vector2 size,
         Color color,
-        float roundness = DefaultRectangleRoundness,
+        float roundness,
         Camera? camera = null
     )
     {
@@ -162,8 +159,8 @@ public readonly struct Graphics
         float width,
         float height,
         Color color,
-        float roundness = DefaultRectangleRoundness,
-        float strokeWidth = DefaultStrokeWidth,
+        float roundness,
+        float strokeWidth = 1,
         Camera? camera = null
     )
     {
@@ -174,8 +171,8 @@ public readonly struct Graphics
         Vector2 position,
         Vector2 size,
         Color color,
-        float roundness = DefaultRectangleRoundness,
-        float strokeWidth = DefaultStrokeWidth,
+        float roundness,
+        float strokeWidth = 1,
         Camera? camera = null
     )
     {
@@ -233,25 +230,12 @@ public readonly struct Graphics
         EndDraw(camera);
     }
 
-    public void StrokeCircle(
-        float x,
-        float y,
-        float radius,
-        Color color,
-        float strokeWidth = DefaultStrokeWidth,
-        Camera? camera = null
-    )
+    public void StrokeCircle(float x, float y, float radius, Color color, float strokeWidth = 1, Camera? camera = null)
     {
         StrokeCircle(new Vector2(x, y), radius, color, strokeWidth, camera);
     }
 
-    public void StrokeCircle(
-        Vector2 center,
-        float radius,
-        Color color,
-        float strokeWidth = DefaultStrokeWidth,
-        Camera? camera = null
-    )
+    public void StrokeCircle(Vector2 center, float radius, Color color, float strokeWidth = 1, Camera? camera = null)
     {
         if (color == Color.Transparent || strokeWidth <= 0)
             return;
@@ -285,7 +269,7 @@ public readonly struct Graphics
         float y,
         Color color,
         Font? font = null,
-        float fontSize = DefaultFontSize,
+        float? fontSize = null,
         float spacing = 0,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -299,7 +283,7 @@ public readonly struct Graphics
         Vector2 position,
         Color color,
         Font? font = null,
-        float fontSize = DefaultFontSize,
+        float? fontSize = null,
         float spacing = 0,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -307,7 +291,7 @@ public readonly struct Graphics
     {
         if (text == "" || color == Color.Transparent)
             return;
-        font ??= Font.Default;
+        font ??= Game.DefaultFont;
         Raylib.SetTextureFilter(font.Atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDraw(camera);
         var rColor = color.RColor;
@@ -324,7 +308,7 @@ public readonly struct Graphics
                 );
             },
             text,
-            fontSize,
+            fontSize ?? Game.DefaultFontSize,
             spacing
         );
         EndDraw(camera);
@@ -336,8 +320,8 @@ public readonly struct Graphics
         float y,
         Color color,
         Font? font = null,
-        float fontSize = DefaultFontSize,
-        float strokeWidth = DefaultStrokeWidth,
+        float? fontSize = null,
+        float strokeWidth = 1,
         float spacing = 0,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -351,8 +335,8 @@ public readonly struct Graphics
         Vector2 position,
         Color color,
         Font? font = null,
-        float fontSize = DefaultFontSize,
-        float strokeWidth = DefaultStrokeWidth,
+        float? fontSize = null,
+        float strokeWidth = 1,
         float spacing = 0,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -360,7 +344,7 @@ public readonly struct Graphics
     {
         if (text == "" || color == Color.Transparent || strokeWidth <= 0)
             return;
-        font ??= Font.Default;
+        font ??= Game.DefaultFont;
         var (atlas, glyphInfos) = font.GetStroke((int)MathF.Round(strokeWidth));
         Raylib.SetTextureFilter(atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDraw(camera);
@@ -378,7 +362,7 @@ public readonly struct Graphics
                 );
             },
             text,
-            fontSize,
+            fontSize ?? Game.DefaultFontSize,
             spacing,
             glyphInfos
         );

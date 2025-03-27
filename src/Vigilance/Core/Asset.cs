@@ -25,12 +25,12 @@ public static class Asset
 
     public static Texture TextureResource(
         string resource,
-        string? workingNamespace = null,
+        string? module = null,
         Assembly? assembly = null,
         bool cache = true
     )
     {
-        resource = FileSystem.FormatResource(resource, workingNamespace ?? FileSystem.WorkingNamespace);
+        resource = FileSystem.FormatResource(resource, module ?? FileSystem.WorkingModule);
         if (TextureResources.TryGetValue(resource, out var texture))
             return texture;
         if (!FileSystem.ResourceExists(resource, "", assembly))
@@ -41,41 +41,38 @@ public static class Asset
         return texture;
     }
 
-    public static Font FontFile(
-        string path,
-        int quality = Font.DefaultQuality,
-        string charset = Font.DefaultCharset,
-        bool cache = true
-    )
+    public static Font FontFile(string path, int? quality = null, string? charset = null, bool cache = true)
     {
         path = FileSystem.FormatPath(FileSystem.WorkingDirectory + "/" + path);
-        if (FontFiles.TryGetValue((path, quality, charset), out var font))
+        var args = (path, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset);
+        if (FontFiles.TryGetValue(args, out var font))
             return font;
         if (!FileSystem.FileExists(path))
             throw new ArgumentException($"Could not find font file '{path}'.");
         font = new Font(FileSystem.ReadBytes(path), quality, charset);
         if (cache)
-            FontFiles[(path, quality, charset)] = font;
+            FontFiles[args] = font;
         return font;
     }
 
     public static Font FontResource(
         string resource,
-        int quality = Font.DefaultQuality,
-        string charset = Font.DefaultCharset,
-        string? workingNamespace = null,
+        int? quality = null,
+        string? charset = null,
+        string? module = null,
         Assembly? assembly = null,
         bool cache = true
     )
     {
-        resource = FileSystem.FormatResource(resource, workingNamespace ?? FileSystem.WorkingNamespace);
-        if (FontResources.TryGetValue((resource, quality, charset), out var font))
+        resource = FileSystem.FormatResource(resource, module ?? FileSystem.WorkingModule);
+        var args = (resource, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset);
+        if (FontResources.TryGetValue(args, out var font))
             return font;
         if (!FileSystem.ResourceExists(resource, "", assembly))
             throw new ArgumentException($"Could not find font resource '{resource}'.");
         font = new Font(FileSystem.ReadResourceBytes(resource, "", assembly), quality, charset);
         if (cache)
-            FontResources[(resource, quality, charset)] = font;
+            FontResources[args] = font;
         return font;
     }
 }

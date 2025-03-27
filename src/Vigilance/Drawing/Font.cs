@@ -8,11 +8,6 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Font
 {
-    public const int DefaultQuality = 128;
-
-    public const string DefaultCharset =
-        "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-
     private static readonly FT_LibraryRec_* Library = new FreeTypeLibrary().Native;
     private readonly string _charset;
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
@@ -22,21 +17,14 @@ public sealed unsafe class Font
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
 
-    public Font(byte[] bytes, int quality = DefaultQuality, string charset = DefaultCharset)
+    public Font(byte[] bytes, int? quality = null, string? charset = null)
     {
         Game.EnsureRunning();
-        _quality = quality;
-        _charset = string.Concat(charset.Distinct());
+        _quality = quality ?? Game.DefaultFontQuality;
+        _charset = string.Concat((charset ?? Game.DefaultFontCharset).Distinct());
         var glyphs = LoadGlyphs(bytes);
         Atlas = DrawAtlas(glyphs);
     }
-
-    public static Font Default =>
-        Asset.FontResource(
-            "DefaultFont.ttf",
-            workingNamespace: "Vigilance.Resources",
-            assembly: FileSystem.VigilanceAssembly
-        );
 
     internal Texture2D Atlas { get; }
 

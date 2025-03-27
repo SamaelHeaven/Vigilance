@@ -8,8 +8,8 @@ public struct Text
     public string Value = "";
     public Color Fill = Color.Transparent;
     public Color Stroke = Color.Transparent;
-    public Font Font = Font.Default;
-    public float FontSize = Graphics.DefaultFontSize;
+    public Font Font = Game.DefaultFont;
+    public float FontSize = Game.DefaultFontSize;
     public float StrokeWidth = 0;
     public float Spacing = 0;
     public Interpolation? Interpolation = null;

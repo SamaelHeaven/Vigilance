@@ -75,7 +75,7 @@ public struct Color
 
     public override bool Equals(object? obj)
     {
-        return obj is Color c && c.R == R && c.G == G && c.B == B;
+        return obj is Color c && c.R == R && c.G == G && c.B == B && c.A == A;
     }
 
     public static bool operator ==(Color a, Color b)

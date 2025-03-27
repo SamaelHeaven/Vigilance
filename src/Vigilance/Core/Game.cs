@@ -3,6 +3,7 @@ using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
 using Vigilance.Systems;
+using Font = Vigilance.Drawing.Font;
 
 namespace Vigilance.Core;
 
@@ -140,11 +141,15 @@ public sealed class Game
         }
     }
 
-    public static Interpolation DefaultInterpolation
-    {
-        get => GetGame()._config.DefaultInterpolation;
-        set => GetGame()._config.DefaultInterpolation = value;
-    }
+    public static Interpolation DefaultInterpolation => GetGame()._config.DefaultInterpolation;
+
+    public static int DefaultFontQuality => GetGame()._config.DefaultFontQuality;
+
+    public static float DefaultFontSize => GetGame()._config.DefaultFontSize;
+
+    public static Font DefaultFont => GetGame()._config.DefaultFont();
+
+    public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
 
     public static bool Focused
     {
@@ -188,7 +193,7 @@ public sealed class Game
         var game = GetGame();
         game._config = gameConfig;
         game._scene = scene;
-        FileSystem.WorkingNamespace = gameConfig.WorkingNamespace;
+        FileSystem.WorkingModule = gameConfig.WorkingModule;
         FileSystem.ChangeDirectory(gameConfig.WorkingDirectory);
         Raylib.SetTraceLogLevel(gameConfig.Debug ? TraceLogLevel.All : TraceLogLevel.Error);
         Raylib.SetConfigFlags(game.GetConfigFlags());
