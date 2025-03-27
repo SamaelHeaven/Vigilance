@@ -28,6 +28,16 @@ public struct Vector2
         return new Vector2(v.X, v.Y);
     }
 
+    public static implicit operator (float, float)(Vector2 v)
+    {
+        return (v.X, v.Y);
+    }
+
+    public (float, float) ToTuple()
+    {
+        return this;
+    }
+
     public override string ToString()
     {
         return $"{{ X: {X}, Y: {Y} }}";

@@ -28,7 +28,7 @@ public sealed unsafe class Font
 
     internal Texture2D Atlas { get; }
 
-    public Vector2 MeasureText(string text, float fontSize, float spacing = 0)
+    public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)
     {
         var size = Vector2.Zero;
         HandleText(
@@ -48,22 +48,23 @@ public sealed unsafe class Font
         Action<Vector2, Vector2, Vector2, Vector2> action,
         string text,
         float fontSize,
-        float spacing,
+        Vector2? spacing = null,
         Dictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
         var aspectRatio = _quality / fontSize;
         var position = Vector2.Zero;
+        var (spacingX, spacingY) = (spacing ?? Game.DefaultTextSpacing).ToTuple();
         foreach (var c in text)
         {
             switch (c)
             {
                 case '\n':
                     position.X = 0;
-                    position.Y += fontSize;
+                    position.Y += fontSize + spacingY;
                     continue;
                 case ' ':
-                    position.X += _spaceSize / aspectRatio + spacing;
+                    position.X += _spaceSize / aspectRatio + spacingX;
                     continue;
             }
 
@@ -74,7 +75,7 @@ public sealed unsafe class Font
             var destPosition = position + new Vector2(glyph.OffsetX, glyph.OffsetY) / aspectRatio;
             var destSize = sourceSize / aspectRatio;
             action.Invoke(sourcePosition, sourceSize, destPosition, destSize);
-            position.X += glyph.Advance / aspectRatio + spacing;
+            position.X += glyph.Advance / aspectRatio + spacingX;
         }
     }
 

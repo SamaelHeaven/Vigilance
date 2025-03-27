@@ -11,7 +11,7 @@ public struct Text
     public Font Font = Game.DefaultFont;
     public float FontSize = Game.DefaultFontSize;
     public float StrokeWidth = 0;
-    public float Spacing = 0;
+    public Vector2 Spacing = Game.DefaultTextSpacing;
     public Interpolation? Interpolation = null;
     public Func<Camera>? Camera = static () => Game.Scene.Camera;
 

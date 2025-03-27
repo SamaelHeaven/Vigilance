@@ -1,5 +1,6 @@
 using Vigilance.Drawing;
 using Vigilance.Input;
+using Vigilance.Math;
 
 namespace Vigilance.Core;
 
@@ -22,11 +23,12 @@ public struct GameConfig
     public bool Resizable = true;
     public bool Debug = false;
     public Interpolation DefaultInterpolation = Interpolation.None;
+    public Vector2 DefaultTextSpacing = new(0, 4);
     public int DefaultFontQuality = 128;
     public float DefaultFontSize = 32;
 
     public Func<Font> DefaultFont = static () =>
-        Asset.FontResource("DefaultFont.ttf", module: "Vigilance.Resources", assembly: FileSystem.VigilanceAssembly);
+        Asset.FontResource("DefaultFont.ttf", module: "Vigilance.Resources", assembly: FileSystem.EngineAssembly);
 
     public string DefaultFontCharset =
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";

@@ -270,7 +270,7 @@ public readonly struct Graphics
         Color color,
         Font? font = null,
         float? fontSize = null,
-        float spacing = 0,
+        Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -284,7 +284,7 @@ public readonly struct Graphics
         Color color,
         Font? font = null,
         float? fontSize = null,
-        float spacing = 0,
+        Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -322,7 +322,7 @@ public readonly struct Graphics
         Font? font = null,
         float? fontSize = null,
         float strokeWidth = 1,
-        float spacing = 0,
+        Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -337,7 +337,7 @@ public readonly struct Graphics
         Font? font = null,
         float? fontSize = null,
         float strokeWidth = 1,
-        float spacing = 0,
+        Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
     )

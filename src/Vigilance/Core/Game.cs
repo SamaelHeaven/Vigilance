@@ -143,6 +143,8 @@ public sealed class Game
 
     public static Interpolation DefaultInterpolation => GetGame()._config.DefaultInterpolation;
 
+    public static Vector2 DefaultTextSpacing => GetGame()._config.DefaultTextSpacing;
+
     public static int DefaultFontQuality => GetGame()._config.DefaultFontQuality;
 
     public static float DefaultFontSize => GetGame()._config.DefaultFontSize;

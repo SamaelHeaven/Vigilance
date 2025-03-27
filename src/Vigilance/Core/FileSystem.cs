@@ -10,7 +10,7 @@ public static unsafe partial class FileSystem
 {
     private static readonly Dictionary<Assembly, string[]> ResourceNames = new();
     public static readonly Assembly GameAssembly = Assembly.GetEntryAssembly()!;
-    public static readonly Assembly VigilanceAssembly = Assembly.GetExecutingAssembly();
+    public static readonly Assembly EngineAssembly = Assembly.GetExecutingAssembly();
     public static readonly string ApplicationDirectory = FormatPath(new string(Raylib.GetApplicationDirectory()));
 
     static FileSystem()
