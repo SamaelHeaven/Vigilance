@@ -3,12 +3,12 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public struct Text(Font font, string value = "")
+public struct Text
 {
-    public string Value = value;
+    public string Value = "";
     public Color Fill = Color.Transparent;
     public Color Stroke = Color.Transparent;
-    public Font Font = font;
+    public Font Font = Font.Default;
     public float FontSize = Graphics.DefaultFontSize;
     public float StrokeWidth = 0;
     public float Spacing = 0;
@@ -16,4 +16,6 @@ public struct Text(Font font, string value = "")
     public Func<Camera>? Camera = static () => Game.Scene.Camera;
 
     public Vector2 Size => Font.MeasureText(Value, FontSize, Spacing);
+
+    public Text() { }
 }

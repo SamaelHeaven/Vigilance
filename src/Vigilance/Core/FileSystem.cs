@@ -8,8 +8,8 @@ namespace Vigilance.Core;
 
 public static unsafe partial class FileSystem
 {
-    private static readonly Assembly Assembly = Assembly.GetEntryAssembly()!;
-    private static readonly string[] ResourceNames = Assembly.GetManifestResourceNames();
+    public static readonly Assembly GameAssembly = Assembly.GetEntryAssembly()!;
+    public static readonly Assembly VigilanceAssembly = Assembly.GetExecutingAssembly();
     public static readonly string ApplicationDirectory = FormatPath(new string(Raylib.GetApplicationDirectory()));
 
     static FileSystem()
@@ -25,6 +25,11 @@ public static unsafe partial class FileSystem
     public static string FormatPath(string path)
     {
         return DuplicatedSlashRegex().Replace(path.Replace('\\', '/'), "/").Trim('/');
+    }
+
+    public static string FormatResource(string resource, string workingNamespace = "")
+    {
+        return workingNamespace == "" ? resource : workingNamespace + "." + resource;
     }
 
     public static bool ChangeDirectory(string path)
@@ -54,10 +59,11 @@ public static unsafe partial class FileSystem
         return Raylib.DirectoryExists(buffer.AsPointer());
     }
 
-    public static bool ResourceExists(string resource, string? workingNamespace = null)
+    public static bool ResourceExists(string resource, string? workingNamespace = null, Assembly? assembly = null)
     {
-        resource = workingNamespace == "" ? resource : workingNamespace ?? WorkingNamespace + "." + resource;
-        return ResourceNames.Contains(resource);
+        return (assembly ?? GameAssembly)
+            .GetManifestResourceNames()
+            .Contains(FormatResource(resource, workingNamespace ?? WorkingNamespace));
     }
 
     public static DateTime FileModTime(string path)
@@ -89,9 +95,9 @@ public static unsafe partial class FileSystem
         return result;
     }
 
-    public static string ReadResourceText(string resource, string? workingNamespace = null)
+    public static string ReadResourceText(string resource, string? workingNamespace = null, Assembly? assembly = null)
     {
-        return Encoding.UTF8.GetString(ReadResourceBytes(resource, workingNamespace));
+        return Encoding.UTF8.GetString(ReadResourceBytes(resource, workingNamespace, assembly));
     }
 
     public static bool WriteText(string path, string text)
@@ -115,10 +121,11 @@ public static unsafe partial class FileSystem
         return bytes;
     }
 
-    public static byte[] ReadResourceBytes(string resource, string? workingNamespace = null)
+    public static byte[] ReadResourceBytes(string resource, string? workingNamespace = null, Assembly? assembly = null)
     {
-        resource = workingNamespace == "" ? resource : workingNamespace ?? WorkingNamespace + "." + resource;
-        using var stream = Assembly.GetManifestResourceStream(resource);
+        using var stream = (assembly ?? GameAssembly).GetManifestResourceStream(
+            FormatResource(resource, workingNamespace ?? WorkingNamespace)
+        );
         if (stream == null)
             return Array.Empty<byte>();
         using var ms = new MemoryStream();

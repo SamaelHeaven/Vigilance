@@ -284,7 +284,7 @@ public readonly struct Graphics
         float x,
         float y,
         Color color,
-        Font font,
+        Font? font = null,
         float fontSize = DefaultFontSize,
         float spacing = 0,
         Interpolation? interpolation = null,
@@ -298,7 +298,7 @@ public readonly struct Graphics
         string text,
         Vector2 position,
         Color color,
-        Font font,
+        Font? font = null,
         float fontSize = DefaultFontSize,
         float spacing = 0,
         Interpolation? interpolation = null,
@@ -307,6 +307,7 @@ public readonly struct Graphics
     {
         if (text == "" || color == Color.Transparent)
             return;
+        font ??= Font.Default;
         Raylib.SetTextureFilter(font.Atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDraw(camera);
         var rColor = color.RColor;
@@ -334,7 +335,7 @@ public readonly struct Graphics
         float x,
         float y,
         Color color,
-        Font font,
+        Font? font = null,
         float fontSize = DefaultFontSize,
         float strokeWidth = DefaultStrokeWidth,
         float spacing = 0,
@@ -349,7 +350,7 @@ public readonly struct Graphics
         string text,
         Vector2 position,
         Color color,
-        Font font,
+        Font? font = null,
         float fontSize = DefaultFontSize,
         float strokeWidth = DefaultStrokeWidth,
         float spacing = 0,
@@ -359,6 +360,7 @@ public readonly struct Graphics
     {
         if (text == "" || color == Color.Transparent || strokeWidth <= 0)
             return;
+        font ??= Font.Default;
         var (atlas, glyphInfos) = font.GetStroke((int)MathF.Round(strokeWidth));
         Raylib.SetTextureFilter(atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDraw(camera);

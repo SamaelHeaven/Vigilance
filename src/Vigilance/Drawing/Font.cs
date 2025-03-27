@@ -31,6 +31,13 @@ public sealed unsafe class Font
         Atlas = DrawAtlas(glyphs);
     }
 
+    public static Font Default =>
+        Asset.FontResource(
+            "DefaultFont.ttf",
+            workingNamespace: "Vigilance.Resources",
+            assembly: FileSystem.VigilanceAssembly
+        );
+
     internal Texture2D Atlas { get; }
 
     public Vector2 MeasureText(string text, float fontSize, float spacing = 0)
@@ -106,25 +113,20 @@ public sealed unsafe class Font
 
     private Texture2D DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
     {
-        const int spacing = 4;
-        var width = glyphs.Sum(glyph => glyph.Width) + (glyphs.Count - 1) * spacing;
+        const int spacing = 2;
+        var width = glyphs.Sum(glyph => glyph.Width) + (glyphs.Count - 1) * spacing + spacing * 2;
         var height = glyphs.Select(glyph => glyph.Height).Prepend(0).Max() + spacing * 2;
         var image = Raylib.GenImageColor(width, height, Raylib_cs.Color.Blank);
         var maxAscent = glyphs.Select(glyph => glyph.BearerY).Prepend(0).Max();
-        var x = 0;
+        var x = spacing;
         foreach (var glyph in glyphs)
         {
             for (var row = 0; row < glyph.Height; row++)
             for (var col = 0; col < glyph.Width; col++)
             {
                 var alpha = glyph.Bitmap[row * glyph.Width + col];
-                if (alpha != 0)
-                    Raylib.ImageDrawPixel(
-                        ref image,
-                        x + col,
-                        row + spacing,
-                        new Raylib_cs.Color((byte)255, (byte)255, (byte)255, alpha)
-                    );
+                if (alpha == 255)
+                    Raylib.ImageDrawPixel(ref image, x + col, row + spacing, Raylib_cs.Color.White);
             }
 
             (glyphInfos ?? _glyphInfos)[glyph.Character] = new GlyphInfo(
@@ -134,7 +136,7 @@ public sealed unsafe class Font
                 glyph.Height,
                 glyph.Advance,
                 glyph.BearerX,
-                spacing + maxAscent - glyph.BearerY
+                maxAscent - glyph.BearerY
             );
             x += glyph.Width + spacing;
         }

@@ -10,6 +10,8 @@ public struct GraphicsSystem : ISystem
         scene.OnRender(static entity =>
         {
             var graphics = Renderer.Graphics;
+            if (entity.Has<Color>())
+                graphics.DrawRectangle(entity.WorldTransform, new Rectangle { Fill = entity.Get<Color>() });
             if (entity.Has<Rectangle>())
                 graphics.DrawRectangle(entity.WorldTransform, entity.Get<Rectangle>());
             if (entity.Has<Circle>())

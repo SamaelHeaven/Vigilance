@@ -16,7 +16,7 @@ public struct GameConfig
     public int ScreenWidth = 0;
     public int ScreenHeight = 0;
     public int FpsTarget = 60;
-    public Interpolation DefaultInterpolation = Interpolation.Bilinear;
+    public Interpolation DefaultInterpolation = Interpolation.None;
     public bool Fullscreen = false;
     public bool Decorated = true;
     public bool Vsync = true;
