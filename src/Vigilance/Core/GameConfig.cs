@@ -8,6 +8,7 @@ public struct GameConfig
     public string Title = "";
     public string Icon = "";
     public string WorkingDirectory = "";
+    public string WorkingNamespace = "";
     public Key? ExitKey = null;
     public Key? FullscreenKey = null;
     public int Width = 800;

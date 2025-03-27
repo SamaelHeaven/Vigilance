@@ -188,6 +188,7 @@ public sealed class Game
         var game = GetGame();
         game._config = gameConfig;
         game._scene = scene;
+        FileSystem.WorkingNamespace = gameConfig.WorkingNamespace;
         FileSystem.ChangeDirectory(gameConfig.WorkingDirectory);
         Raylib.SetTraceLogLevel(gameConfig.Debug ? TraceLogLevel.All : TraceLogLevel.Error);
         Raylib.SetConfigFlags(game.GetConfigFlags());

@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using Raylib_cs;
 
@@ -6,6 +8,8 @@ namespace Vigilance.Core;
 
 public static unsafe partial class FileSystem
 {
+    private static readonly Assembly Assembly = Assembly.GetEntryAssembly()!;
+    private static readonly string[] ResourceNames = Assembly.GetManifestResourceNames();
     public static readonly string ApplicationDirectory = FormatPath(new string(Raylib.GetApplicationDirectory()));
 
     static FileSystem()
@@ -13,6 +17,8 @@ public static unsafe partial class FileSystem
         if (!Game.Running)
             Raylib.SetTraceLogLevel(TraceLogLevel.Error);
     }
+
+    public static string WorkingNamespace { get; set; } = "";
 
     public static string WorkingDirectory => FormatPath(new string(Raylib.GetWorkingDirectory()));
 
@@ -48,6 +54,12 @@ public static unsafe partial class FileSystem
         return Raylib.DirectoryExists(buffer.AsPointer());
     }
 
+    public static bool ResourceExists(string resource, string? workingNamespace = null)
+    {
+        resource = workingNamespace == "" ? resource : workingNamespace ?? WorkingNamespace + "." + resource;
+        return ResourceNames.Contains(resource);
+    }
+
     public static DateTime FileModTime(string path)
     {
         path = FormatPath(path);
@@ -77,6 +89,11 @@ public static unsafe partial class FileSystem
         return result;
     }
 
+    public static string ReadResourceText(string resource, string? workingNamespace = null)
+    {
+        return Encoding.UTF8.GetString(ReadResourceBytes(resource, workingNamespace));
+    }
+
     public static bool WriteText(string path, string text)
     {
         path = FormatPath(path);
@@ -96,6 +113,17 @@ public static unsafe partial class FileSystem
         Marshal.Copy((IntPtr)data, bytes, 0, bytesRead);
         Raylib.UnloadFileData(data);
         return bytes;
+    }
+
+    public static byte[] ReadResourceBytes(string resource, string? workingNamespace = null)
+    {
+        resource = workingNamespace == "" ? resource : workingNamespace ?? WorkingNamespace + "." + resource;
+        using var stream = Assembly.GetManifestResourceStream(resource);
+        if (stream == null)
+            return Array.Empty<byte>();
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
     }
 
     public static bool WriteBytes(string path, byte[] bytes)

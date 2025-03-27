@@ -16,13 +16,12 @@ public sealed class Texture
         _owner = owner;
     }
 
-    public Texture(string path)
+    public Texture(string fileType, byte[] bytes)
     {
         Game.EnsureRunning();
-        path = FileSystem.FormatPath(path);
-        if (!FileSystem.FileExists(path))
-            throw new ArgumentException($"Could not find texture file '{path}'.");
-        Texture2D = Raylib.LoadTexture(path);
+        var image = Raylib.LoadImageFromMemory(fileType, bytes);
+        Texture2D = Raylib.LoadTextureFromImage(image);
+        Raylib.UnloadImage(image);
     }
 
     public int Width => Texture2D.Width;

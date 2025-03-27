@@ -8,26 +8,26 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Font
 {
-    public const float DefaultQuality = 128;
+    public const int DefaultQuality = 128;
 
     public const string DefaultCharset =
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
-    private static readonly FreeTypeLibrary FreeTypeLibrary = new();
+    private static readonly FT_LibraryRec_* Library = new FreeTypeLibrary().Native;
     private readonly string _charset;
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
-    private readonly float _quality;
+    private readonly int _quality;
     private readonly Dictionary<int, (Texture2D, Dictionary<char, GlyphInfo>)> _strokes = new();
     private FT_FaceRec_* _face;
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
 
-    public Font(string path, float quality = DefaultQuality, string charset = DefaultCharset)
+    public Font(byte[] bytes, int quality = DefaultQuality, string charset = DefaultCharset)
     {
         Game.EnsureRunning();
         _quality = quality;
         _charset = string.Concat(charset.Distinct());
-        var glyphs = LoadGlyphs(path);
+        var glyphs = LoadGlyphs(bytes);
         Atlas = DrawAtlas(glyphs);
     }
 
@@ -83,22 +83,22 @@ public sealed unsafe class Font
         }
     }
 
-    private List<Glyph> LoadGlyphs(string path)
+    private List<Glyph> LoadGlyphs(byte[] bytes)
     {
-        if (!FileSystem.FileExists(path))
-            throw new ArgumentException($"Could not find font file '{path}'.");
-        path = FileSystem.FormatPath(FileSystem.WorkingDirectory + "/" + path);
         fixed (FT_FaceRec_** face = &_face)
         {
-            FtEnsureOk(FT.FT_New_Face(FreeTypeLibrary.Native, (byte*)Marshal.StringToHGlobalAnsi(path), 0, face));
+            fixed (byte* buffer = bytes)
+            {
+                FtEnsureOk(FT.FT_New_Memory_Face(Library, buffer, bytes.Length, 0, face));
+            }
         }
 
-        FtEnsureOk(FT.FT_Set_Char_Size(_face, 0, (nint)(_quality * 64), 0, 0));
+        FtEnsureOk(FT.FT_Set_Char_Size(_face, 0, _quality * 64, 0, 0));
         FtEnsureOk(FT.FT_Load_Char(_face, ' ', FT_LOAD.FT_LOAD_DEFAULT));
         _spaceSize = _face->glyph->metrics.horiAdvance.ToInt32() / 64;
         fixed (FT_StrokerRec_** stroke = &_stroker)
         {
-            FtEnsureOk(FT.FT_Stroker_New(FreeTypeLibrary.Native, stroke));
+            FtEnsureOk(FT.FT_Stroker_New(Library, stroke));
         }
 
         return _charset.Select(c => LoadGlyph(c, false)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
