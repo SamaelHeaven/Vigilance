@@ -10,6 +10,7 @@ public readonly struct Graphics
     internal static WritableTexture? CurrentBuffer;
     public const float DefaultRectangleRoundness = 0.1f;
     public const float DefaultStrokeWidth = 1;
+    public const float DefaultFontSize = 48;
     public readonly WritableTexture Buffer;
 
     public Graphics(WritableTexture buffer)
@@ -193,7 +194,7 @@ public readonly struct Graphics
 
     public void DrawRectangle(Transform transform, Rectangle rectangle)
     {
-        var camera = rectangle.Camera();
+        var camera = rectangle.Camera?.Invoke();
         var fill = rectangle.Fill;
         var stroke = rectangle.Stroke;
         var roundness = rectangle.Roundness;
@@ -261,7 +262,7 @@ public readonly struct Graphics
 
     public void DrawCircle(Transform transform, Circle circle)
     {
-        var camera = circle.Camera();
+        var camera = circle.Camera?.Invoke();
         var fill = circle.Fill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
@@ -271,6 +272,135 @@ public readonly struct Graphics
         position += radius;
         FillCircle(position, radius, fill, camera);
         StrokeCircle(position, radius, stroke, strokeWidth, camera);
+        PopState();
+    }
+
+    #endregion
+
+    #region Text
+
+    public void FillText(
+        string text,
+        float x,
+        float y,
+        Color color,
+        Font font,
+        float fontSize = DefaultFontSize,
+        float spacing = 0,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        FillText(text, new Vector2(x, y), color, font, fontSize, spacing, interpolation, camera);
+    }
+
+    public void FillText(
+        string text,
+        Vector2 position,
+        Color color,
+        Font font,
+        float fontSize = DefaultFontSize,
+        float spacing = 0,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        if (text == "" || color == Color.Transparent)
+            return;
+        Raylib.SetTextureFilter(font.Atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
+        BeginDraw(camera);
+        var rColor = color.RColor;
+        font.HandleText(
+            (sourcePosition, sourceSize, destPosition, destSize) =>
+            {
+                Raylib.DrawTexturePro(
+                    font.Atlas,
+                    new Raylib_cs.Rectangle(sourcePosition, sourceSize),
+                    new Raylib_cs.Rectangle(destPosition + position, destSize),
+                    new Vector2(),
+                    0,
+                    rColor
+                );
+            },
+            text,
+            fontSize,
+            spacing
+        );
+        EndDraw(camera);
+    }
+
+    public void StrokeText(
+        string text,
+        float x,
+        float y,
+        Color color,
+        Font font,
+        float fontSize = DefaultFontSize,
+        float strokeWidth = DefaultStrokeWidth,
+        float spacing = 0,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        StrokeText(text, new Vector2(x, y), color, font, fontSize, strokeWidth, spacing, interpolation, camera);
+    }
+
+    public void StrokeText(
+        string text,
+        Vector2 position,
+        Color color,
+        Font font,
+        float fontSize = DefaultFontSize,
+        float strokeWidth = DefaultStrokeWidth,
+        float spacing = 0,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        if (text == "" || color == Color.Transparent || strokeWidth <= 0)
+            return;
+        var (atlas, glyphInfos) = font.GetStroke((int)MathF.Round(strokeWidth));
+        Raylib.SetTextureFilter(atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
+        BeginDraw(camera);
+        var rColor = color.RColor;
+        font.HandleText(
+            (sourcePosition, sourceSize, destPosition, destSize) =>
+            {
+                Raylib.DrawTexturePro(
+                    atlas,
+                    new Raylib_cs.Rectangle(sourcePosition, sourceSize),
+                    new Raylib_cs.Rectangle(destPosition + position - strokeWidth * 0.5f, destSize),
+                    new Vector2(),
+                    0,
+                    rColor
+                );
+            },
+            text,
+            fontSize,
+            spacing,
+            glyphInfos
+        );
+        EndDraw(camera);
+    }
+
+    public void DrawText(Transform transform, Text text)
+    {
+        var camera = text.Camera?.Invoke();
+        var value = text.Value;
+        var fill = text.Fill;
+        var stroke = text.Stroke;
+        var font = text.Font;
+        var fontSize = text.FontSize;
+        var strokeWidth = text.StrokeWidth;
+        var spacing = text.Spacing;
+        var interpolation = text.Interpolation;
+        PushState();
+        var scale = transform.Scale.Abs();
+        fontSize *= (scale.X + scale.Y) / 2;
+        transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
+        Transform(transform, out var position, out _);
+        FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
+        StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
         PopState();
     }
 
