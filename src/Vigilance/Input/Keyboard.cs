@@ -1,4 +1,5 @@
-﻿using Raylib_cs;
+﻿using System.Text;
+using Raylib_cs;
 using Vigilance.Core;
 
 namespace Vigilance.Input;
@@ -10,6 +11,7 @@ public sealed class Keyboard
     private readonly List<Key> _downKeys = [];
     private readonly List<Key> _pressedKeys = [];
     private readonly List<Key> _releasedKeys = [];
+    private readonly StringBuilder _typedString = new();
     private readonly List<Key> _upKeys = [];
 
     static Keyboard()
@@ -20,6 +22,7 @@ public sealed class Keyboard
 
     private Keyboard() { }
 
+    public static string TypedString => GetKeyboard()._typedString.ToString();
     public static IReadOnlyList<Key> DownKeys => GetKeyboard()._downKeys.AsReadOnly();
     public static IReadOnlyList<Key> UpKeys => GetKeyboard()._upKeys.AsReadOnly();
     public static IReadOnlyList<Key> PressedKeys => GetKeyboard()._pressedKeys.AsReadOnly();
@@ -61,6 +64,7 @@ public sealed class Keyboard
 
     private void Reset()
     {
+        _typedString.Clear();
         _downKeys.Clear();
         _upKeys.Clear();
         _upKeys.AddRange(KeyValues);
@@ -70,6 +74,8 @@ public sealed class Keyboard
 
     private void UpdateState()
     {
+        for (var c = (char)Raylib.GetCharPressed(); c != 0; c = (char)Raylib.GetCharPressed())
+            _typedString.Append(c);
         foreach (var key in KeyValues)
         {
             if (Raylib.IsKeyDown((KeyboardKey)key))
