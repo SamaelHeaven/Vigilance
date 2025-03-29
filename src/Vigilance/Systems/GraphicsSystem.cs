@@ -13,11 +13,11 @@ public struct GraphicsSystem : ISystem
             if (entity.Has<Color>())
                 graphics.DrawRectangle(entity.WorldTransform, new Rectangle { Fill = entity.Get<Color>() });
             if (entity.Has<Rectangle>())
-                graphics.DrawRectangle(entity.WorldTransform, entity.Get<Rectangle>());
+                graphics.DrawRectangle(entity.WorldTransform, ref entity.Get<Rectangle>());
             if (entity.Has<Circle>())
-                graphics.DrawCircle(entity.WorldTransform, entity.Get<Circle>());
+                graphics.DrawCircle(entity.WorldTransform, ref entity.Get<Circle>());
             if (entity.Has<Text>())
-                graphics.DrawText(entity.WorldTransform, entity.Get<Text>());
+                graphics.DrawText(entity.WorldTransform, ref entity.Get<Text>());
         });
     }
 }

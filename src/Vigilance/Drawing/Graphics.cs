@@ -67,8 +67,13 @@ public readonly struct Graphics
 
     public static void Transform(Transform transform)
     {
+        Transform(ref transform);
+    }
+
+    public static void Transform(ref Transform transform)
+    {
         Game.EnsureRunning();
-        Transform(transform, out _, out var scale);
+        Transform(ref transform, out _, out var scale);
         Scale(scale);
     }
 
@@ -191,13 +196,28 @@ public readonly struct Graphics
 
     public void DrawRectangle(Transform transform, Rectangle rectangle)
     {
+        DrawRectangle(ref transform, ref rectangle);
+    }
+
+    public void DrawRectangle(ref Transform transform, Rectangle rectangle)
+    {
+        DrawRectangle(ref transform, ref rectangle);
+    }
+
+    public void DrawRectangle(Transform transform, ref Rectangle rectangle)
+    {
+        DrawRectangle(ref transform, ref rectangle);
+    }
+
+    public void DrawRectangle(ref Transform transform, ref Rectangle rectangle)
+    {
         var camera = rectangle.Camera?.Invoke();
         var fill = rectangle.Fill;
         var stroke = rectangle.Stroke;
         var roundness = rectangle.Roundness;
         var strokeWidth = rectangle.StrokeWidth;
         PushState();
-        Transform(transform, out var position, out var scale);
+        Transform(ref transform, out var position, out var scale);
         if (roundness > 0)
         {
             FillRoundedRectangle(position, scale, fill, roundness, camera);
@@ -246,12 +266,27 @@ public readonly struct Graphics
 
     public void DrawCircle(Transform transform, Circle circle)
     {
+        DrawCircle(ref transform, ref circle);
+    }
+
+    public void DrawCircle(ref Transform transform, Circle circle)
+    {
+        DrawCircle(ref transform, ref circle);
+    }
+
+    public void DrawCircle(Transform transform, ref Circle circle)
+    {
+        DrawCircle(ref transform, ref circle);
+    }
+
+    public void DrawCircle(ref Transform transform, ref Circle circle)
+    {
         var camera = circle.Camera?.Invoke();
         var fill = circle.Fill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
         PushState();
-        Transform(transform, out var position, out var scale);
+        Transform(ref transform, out var position, out var scale);
         var radius = (scale.X + scale.Y) * 0.25f;
         position += radius;
         FillCircle(position, radius, fill, camera);
@@ -371,6 +406,21 @@ public readonly struct Graphics
 
     public void DrawText(Transform transform, Text text)
     {
+        DrawText(ref transform, ref text);
+    }
+
+    public void DrawText(ref Transform transform, Text text)
+    {
+        DrawText(ref transform, ref text);
+    }
+
+    public void DrawText(Transform transform, ref Text text)
+    {
+        DrawText(ref transform, ref text);
+    }
+
+    public void DrawText(ref Transform transform, ref Text text)
+    {
         var camera = text.Camera?.Invoke();
         var value = text.Value;
         var fill = text.Fill;
@@ -380,11 +430,12 @@ public readonly struct Graphics
         var strokeWidth = text.StrokeWidth;
         var spacing = text.Spacing;
         var interpolation = text.Interpolation;
+        var scale = transform.Scale;
         PushState();
-        var scale = transform.Scale.Abs();
-        fontSize *= (scale.X + scale.Y) / 2;
+        fontSize *= (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) / 2;
         transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
-        Transform(transform, out var position, out _);
+        Transform(ref transform, out var position, out _);
+        transform.Scale = scale;
         FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
         StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
         PopState();
@@ -415,7 +466,7 @@ public readonly struct Graphics
             PopState();
     }
 
-    private static void Transform(Transform transform, out Vector2 position, out Vector2 scale)
+    private static void Transform(ref Transform transform, out Vector2 position, out Vector2 scale)
     {
         position = transform.Position;
         scale = transform.Scale.Abs();
