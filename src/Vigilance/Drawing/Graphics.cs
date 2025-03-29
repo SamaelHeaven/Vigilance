@@ -309,7 +309,7 @@ public readonly struct Graphics
             },
             text,
             fontSize ?? Game.DefaultFontSize,
-            spacing
+            spacing ?? Game.DefaultTextSpacing
         );
         EndDraw(camera);
     }
@@ -363,7 +363,7 @@ public readonly struct Graphics
             },
             text,
             fontSize ?? Game.DefaultFontSize,
-            spacing,
+            spacing ?? Game.DefaultTextSpacing,
             glyphInfos
         );
         EndDraw(camera);

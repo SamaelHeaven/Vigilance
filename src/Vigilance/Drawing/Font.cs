@@ -8,11 +8,12 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Font
 {
-    private static readonly FT_LibraryRec_* Library = new FreeTypeLibrary().Native;
+    private static readonly FreeTypeLibrary FtLibrary = new();
     private readonly string _charset;
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
     private readonly int _quality;
     private readonly Dictionary<int, (Texture2D, Dictionary<char, GlyphInfo>)> _strokes = new();
+    private IntPtr _buffer;
     private FT_FaceRec_* _face;
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
@@ -30,16 +31,16 @@ public sealed unsafe class Font
 
     public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)
     {
-        var size = Vector2.Zero;
+        var (spacingX, spacingY) = (spacing ?? Game.DefaultTextSpacing).ToTuple();
+        var size = new Vector2(0, fontSize + text.Count(c => c == '\n') * (fontSize + spacingY));
         HandleText(
             (_, _, destPosition, destSize) =>
             {
                 size.X = MathF.Max(size.X, destPosition.X + destSize.X);
-                size.Y = MathF.Max(size.Y, destPosition.Y + destSize.Y);
             },
             text,
             fontSize,
-            spacing
+            (spacingX, spacingY)
         );
         return size;
     }
@@ -48,23 +49,22 @@ public sealed unsafe class Font
         Action<Vector2, Vector2, Vector2, Vector2> action,
         string text,
         float fontSize,
-        Vector2? spacing = null,
+        Vector2 spacing,
         Dictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
         var aspectRatio = _quality / fontSize;
         var position = Vector2.Zero;
-        var (spacingX, spacingY) = (spacing ?? Game.DefaultTextSpacing).ToTuple();
         foreach (var c in text)
         {
             switch (c)
             {
                 case '\n':
                     position.X = 0;
-                    position.Y += fontSize + spacingY;
+                    position.Y += fontSize + spacing.Y;
                     continue;
                 case ' ':
-                    position.X += _spaceSize / aspectRatio + spacingX;
+                    position.X += _spaceSize / aspectRatio + spacing.X;
                     continue;
             }
 
@@ -75,18 +75,17 @@ public sealed unsafe class Font
             var destPosition = position + new Vector2(glyph.OffsetX, glyph.OffsetY) / aspectRatio;
             var destSize = sourceSize / aspectRatio;
             action.Invoke(sourcePosition, sourceSize, destPosition, destSize);
-            position.X += glyph.Advance / aspectRatio + spacingX;
+            position.X += glyph.Advance / aspectRatio + spacing.X;
         }
     }
 
     private List<Glyph> LoadGlyphs(byte[] bytes)
     {
+        _buffer = Marshal.AllocHGlobal(bytes.Length);
+        Marshal.Copy(bytes, 0, _buffer, bytes.Length);
         fixed (FT_FaceRec_** face = &_face)
         {
-            fixed (byte* buffer = bytes)
-            {
-                FtEnsureOk(FT.FT_New_Memory_Face(Library, buffer, bytes.Length, 0, face));
-            }
+            FtEnsureOk(FT.FT_New_Memory_Face(FtLibrary.Native, (byte*)_buffer, bytes.Length, 0, face));
         }
 
         FtEnsureOk(FT.FT_Set_Char_Size(_face, 0, _quality * 64, 0, 0));
@@ -94,7 +93,7 @@ public sealed unsafe class Font
         _spaceSize = _face->glyph->metrics.horiAdvance.ToInt32() / 64;
         fixed (FT_StrokerRec_** stroke = &_stroker)
         {
-            FtEnsureOk(FT.FT_Stroker_New(Library, stroke));
+            FtEnsureOk(FT.FT_Stroker_New(FtLibrary.Native, stroke));
         }
 
         return _charset.Select(c => LoadGlyph(c, false)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
@@ -203,6 +202,7 @@ public sealed unsafe class Font
         {
             FT.FT_Stroker_Done(_stroker);
             FT.FT_Done_Face(_face);
+            Marshal.FreeHGlobal(_buffer);
             Raylib.UnloadTexture(Atlas);
             foreach (var stroke in _strokes)
                 Raylib.UnloadTexture(stroke.Value.Item1);
