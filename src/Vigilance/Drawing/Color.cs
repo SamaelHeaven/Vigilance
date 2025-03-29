@@ -34,6 +34,9 @@ public struct Color
     public byte B;
     public byte A;
 
+    internal Color(Raylib_cs.Color color)
+        : this(color.R, color.G, color.B, color.A) { }
+
     public Color(byte r, byte g, byte b, byte a = 255)
     {
         R = r;

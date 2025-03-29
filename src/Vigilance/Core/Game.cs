@@ -189,32 +189,27 @@ public sealed class Game
         }
     }
 
-    public static void Launch(GameConfig gameConfig, Scene scene)
+    public static void Launch(GameConfig config, Scene scene)
     {
         Running = true;
         var game = GetGame();
-        game._config = gameConfig;
+        game._config = config;
         game._scene = scene;
-        FileSystem.WorkingModule = gameConfig.WorkingModule;
-        FileSystem.ChangeDirectory(gameConfig.WorkingDirectory);
-        Raylib.SetTraceLogLevel(gameConfig.Debug ? TraceLogLevel.All : TraceLogLevel.Error);
+        FileSystem.WorkingModule = config.WorkingModule;
+        FileSystem.ChangeDirectory(config.WorkingDirectory);
+        Raylib.SetTraceLogLevel(config.Debug ? TraceLogLevel.All : TraceLogLevel.Error);
         Raylib.SetConfigFlags(game.GetConfigFlags());
-        Raylib.InitWindow(gameConfig.Width, gameConfig.Height, gameConfig.Title);
-        Raylib.SetTargetFPS(gameConfig.FpsTarget);
-        Raylib.SetExitKey(gameConfig.ExitKey.HasValue ? (KeyboardKey)gameConfig.ExitKey.Value : KeyboardKey.Null);
+        Raylib.InitWindow(config.Width, config.Height, config.Title);
+        Raylib.SetTargetFPS(config.FpsTarget);
+        Raylib.SetExitKey(config.ExitKey.HasValue ? (KeyboardKey)config.ExitKey.Value : KeyboardKey.Null);
         Raylib.SetWindowSize(
-            gameConfig.ScreenWidth <= 0 ? gameConfig.Width : gameConfig.ScreenWidth,
-            gameConfig.ScreenHeight <= 0 ? gameConfig.Height : gameConfig.ScreenHeight
+            config.ScreenWidth <= 0 ? config.Width : config.ScreenWidth,
+            config.ScreenHeight <= 0 ? config.Height : config.ScreenHeight
         );
-        if (gameConfig.Fullscreen)
+        if (config.Fullscreen)
             ToggleFullscreen();
-        if (FileSystem.FileExists(gameConfig.Icon))
-        {
-            var icon = Raylib.LoadImage(FileSystem.FormatPath(gameConfig.Icon));
-            Raylib.SetWindowIcon(icon);
-            Raylib.UnloadImage(icon);
-        }
-
+        if (config.Icon != null)
+            Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
         game.Loop();
     }
 

@@ -9,7 +9,7 @@ public sealed class Texture
     private readonly object? _owner;
     internal readonly Texture2D Texture2D;
 
-    internal Texture(Texture2D texture2D, object owner)
+    internal Texture(Texture2D texture2D, object? owner = null)
     {
         Game.EnsureRunning();
         Texture2D = texture2D;
@@ -29,6 +29,11 @@ public sealed class Texture
     public int Height => Texture2D.Height;
 
     public Vector2 Size => new(Width, Height);
+
+    public Image ToImage()
+    {
+        return new Image(Raylib.LoadImageFromTexture(Texture2D));
+    }
 
     ~Texture()
     {

@@ -7,9 +7,9 @@ namespace Vigilance.Core;
 public struct GameConfig
 {
     public string Title = "";
-    public string Icon = "";
     public string WorkingDirectory = "";
     public string WorkingModule = "";
+    public Func<Image>? Icon = null;
     public Key? ExitKey = null;
     public Key? FullscreenKey = null;
     public int Width = 800;
