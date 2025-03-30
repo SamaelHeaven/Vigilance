@@ -4,6 +4,7 @@ using Vigilance.Input;
 using Vigilance.Math;
 using Vigilance.Systems;
 using Font = Vigilance.Drawing.Font;
+using Image = Vigilance.Drawing.Image;
 
 namespace Vigilance.Core;
 
@@ -160,6 +161,11 @@ public sealed class Game
             EnsureRunning();
             return Raylib.IsWindowFocused();
         }
+    }
+
+    public static Image Screenshot()
+    {
+        return new Image(Raylib.LoadImageFromScreen());
     }
 
     public static void System(ISystem system)

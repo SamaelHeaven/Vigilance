@@ -37,6 +37,11 @@ public sealed class Image
         return new Texture(Raylib.LoadTextureFromImage(RImage));
     }
 
+    public Image Copy()
+    {
+        return new Image(Raylib.ImageCopy(RImage));
+    }
+
     public Color GetPixel(Vector2 position)
     {
         return GetPixel((int)position.X, (int)position.Y);
@@ -55,6 +60,16 @@ public sealed class Image
     public void SetPixel(int x, int y, Color color)
     {
         Raylib.ImageDrawPixel(ref RImage, x, y, color.RColor);
+    }
+
+    public void FlipHorizontally()
+    {
+        Raylib.ImageFlipHorizontal(ref RImage);
+    }
+
+    public void FlipVertically()
+    {
+        Raylib.ImageFlipVertical(ref RImage);
     }
 
     ~Image()
