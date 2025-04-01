@@ -24,10 +24,10 @@ public sealed class Mouse
 
     private Mouse() { }
 
-    public static IReadOnlyList<MouseButton> DownButtons => GetMouse()._downButtons.ToArray();
-    public static IReadOnlyList<MouseButton> UpButtons => GetMouse()._upButtons.ToArray();
-    public static IReadOnlyList<MouseButton> PressedButtons => GetMouse()._pressedButtons.ToArray();
-    public static IReadOnlyList<MouseButton> ReleasedButtons => GetMouse()._releasedButtons.ToArray();
+    public static IReadOnlyList<MouseButton> DownButtons => GetMouse()._downButtons.AsReadOnly();
+    public static IReadOnlyList<MouseButton> UpButtons => GetMouse()._upButtons.AsReadOnly();
+    public static IReadOnlyList<MouseButton> PressedButtons => GetMouse()._pressedButtons.AsReadOnly();
+    public static IReadOnlyList<MouseButton> ReleasedButtons => GetMouse()._releasedButtons.AsReadOnly();
 
     public static bool OnScreen => Raylib.IsCursorOnScreen();
 

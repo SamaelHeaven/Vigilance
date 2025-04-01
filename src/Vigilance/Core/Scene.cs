@@ -1,4 +1,6 @@
-﻿using Flecs.NET.Core;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Flecs.NET.Core;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
@@ -15,15 +17,22 @@ public sealed unsafe class Scene
 
     public Scene()
     {
-        _orderedQuery = _world
-            .QueryBuilder<int>()
-            .OrderBy<int>(static (_, zIndex1, _, zIndex2) => (*(int*)zIndex2).CompareTo(*(int*)zIndex1))
-            .Build();
+        delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> orderByCallback = &CompareEntities;
+        var queryBuilder = _world.QueryBuilder<int>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)orderByCallback;
+        _orderedQuery = queryBuilder.Build();
     }
 
     public bool Initialized { get; private set; }
 
     public ref Camera Camera => ref Get<Camera>();
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static int CompareEntities(ulong e1, void* zIndex1, ulong e2, void* zIndex2)
+    {
+        return (*(int*)zIndex1).CompareTo(*(int*)zIndex2);
+    }
 
     public Entity Entity(string name = "")
     {
@@ -161,6 +170,7 @@ public sealed unsafe class Scene
     {
         Game.RunLater(() =>
         {
+            _orderedQuery.Dispose();
             _world.Dispose();
         });
     }

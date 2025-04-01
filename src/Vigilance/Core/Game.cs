@@ -60,6 +60,8 @@ public sealed class Game
         }
         set
         {
+            if (!Platform.Desktop.IsCurrent())
+                return;
             if (Fullscreen && value != Width)
                 return;
             if (ScreenWidth == value)
@@ -77,6 +79,8 @@ public sealed class Game
         }
         set
         {
+            if (!Platform.Desktop.IsCurrent())
+                return;
             if (Fullscreen && value != Height)
                 return;
             if (ScreenHeight == value)
@@ -90,6 +94,8 @@ public sealed class Game
         get => new(ScreenWidth, ScreenHeight);
         set
         {
+            if (!Platform.Desktop.IsCurrent())
+                return;
             var size = value.Round();
             if (Fullscreen && size != Size)
                 return;
@@ -208,21 +214,23 @@ public sealed class Game
         Raylib.InitWindow(config.Width, config.Height, config.Title);
         Raylib.SetTargetFPS(config.FpsTarget);
         Raylib.SetExitKey(config.ExitKey.HasValue ? (KeyboardKey)config.ExitKey.Value : KeyboardKey.Null);
-        Raylib.SetWindowSize(
-            config.ScreenWidth <= 0 ? config.Width : config.ScreenWidth,
-            config.ScreenHeight <= 0 ? config.Height : config.ScreenHeight
-        );
+        if (Platform.Desktop.IsCurrent())
+            Raylib.SetWindowSize(
+                config.ScreenWidth <= 0 ? config.Width : config.ScreenWidth,
+                config.ScreenHeight <= 0 ? config.Height : config.ScreenHeight
+            );
         if (config.Fullscreen)
             ToggleFullscreen();
-        if (config.Icon != null)
+        if (Platform.Desktop.IsCurrent() && config.Icon != null)
             Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
         game.Loop();
     }
 
     public static void ToggleFullscreen()
     {
-        EnsureRunning();
         var game = GetGame();
+        if (Platform.Web.IsCurrent())
+            return;
         if (Fullscreen)
         {
             game._resetSize = true;

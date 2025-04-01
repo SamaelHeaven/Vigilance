@@ -102,13 +102,14 @@ public static class Asset
 
         public TValue File(ref string path, bool cache, Func<TKey> getKey, Func<byte[], TValue> getValue)
         {
+            var filePath = FileSystem.FormatPath(path);
             path = FileSystem.FormatPath(FileSystem.WorkingDirectory + "/" + path);
             var key = getKey.Invoke();
             if (_files.TryGetValue(key, out var value))
                 return value;
-            if (!FileSystem.FileExists(path))
+            if (!FileSystem.FileExists(filePath))
                 throw new ArgumentException($"Could not find file '{path}'.");
-            value = getValue.Invoke(FileSystem.ReadBytes(path));
+            value = getValue.Invoke(FileSystem.ReadBytes(filePath));
             if (cache)
                 _files[key] = value;
             return value;
