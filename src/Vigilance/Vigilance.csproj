@@ -24,9 +24,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="Vigilance.props" Pack="true" PackagePath="build/Vigilance.props"/>
-        <None Include="$(MSBuildThisFileDirectory)../../README.MD" Pack="true" PackagePath="README.MD"/>
-        <None Include="$(LibsPath)\**\*" Pack="true" PackagePath="libs\"/>
+        <None Include="Vigilance.props" Pack="true" PackagePath="build\Vigilance.props"/>
+        <None Include="$(MSBuildThisFileDirectory)..\../README.MD" Pack="true" PackagePath="README.MD"/>
+        <None Include="$(LibsPath)\**\*" Pack="true" PackagePath="build\libs\"/>
         <EmbeddedResource Include="Resources\**\*"/>
     </ItemGroup>
 
