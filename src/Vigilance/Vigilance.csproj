@@ -13,11 +13,6 @@
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <IsAotCompatible>true</IsAotCompatible>
-        <LibsPath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..\..\libs\'))</LibsPath>
-        <Box2dPath>$(LibsPath)box2d.a</Box2dPath>
-        <FlecsPath>$(LibsPath)flecs.a</FlecsPath>
-        <FreetypePath>$(LibsPath)freetype.a</FreetypePath>
-        <RaylibPath>$(LibsPath)raylib.a</RaylibPath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -28,6 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Include="Vigilance.props" Pack="true" PackagePath="build/Vigilance.props"/>
         <None Include="$(MSBuildThisFileDirectory)../../README.MD" Pack="true" PackagePath="README.MD"/>
         <None Include="$(LibsPath)\**\*" Pack="true" PackagePath="libs\"/>
         <EmbeddedResource Include="Resources\**\*"/>
