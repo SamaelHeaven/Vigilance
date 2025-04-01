@@ -173,6 +173,7 @@ public sealed unsafe class Font
 
     internal (Texture2D, Dictionary<char, GlyphInfo>) GetStroke(int strokeWidth)
     {
+        strokeWidth = System.Math.Clamp(strokeWidth, 0, 50);
         if (_strokes.TryGetValue(strokeWidth, out var stroke))
             return stroke;
         FT.FT_Stroker_Set(
