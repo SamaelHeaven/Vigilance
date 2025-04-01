@@ -124,7 +124,7 @@ public sealed unsafe class Scene
 
     private void Initialize()
     {
-        foreach (var system in Game.Systems)
+        foreach (var system in Game.SystemList)
             system.Configure(this);
         Initialized = true;
         foreach (var action in _initializeActions)
@@ -478,17 +478,17 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                Flecs.NET.Core.Entity entity,
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8
-            ) =>
+                    Flecs.NET.Core.Entity entity,
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8
+                ) =>
                 action.Invoke(
                     new Entity(entity),
                     ref t0,
@@ -530,18 +530,18 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                Flecs.NET.Core.Entity entity,
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8,
-                ref T9 t9
-            ) =>
+                    Flecs.NET.Core.Entity entity,
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8,
+                    ref T9 t9
+                ) =>
                 action.Invoke(
                     new Entity(entity),
                     ref t0,
@@ -587,19 +587,19 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                Flecs.NET.Core.Entity entity,
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8,
-                ref T9 t9,
-                ref T10 t10
-            ) =>
+                    Flecs.NET.Core.Entity entity,
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8,
+                    ref T9 t9,
+                    ref T10 t10
+                ) =>
                 action.Invoke(
                     new Entity(entity),
                     ref t0,
@@ -624,19 +624,19 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8,
-                ref T9 t9,
-                ref T10 t10,
-                ref T11 t11
-            ) =>
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8,
+                    ref T9 t9,
+                    ref T10 t10,
+                    ref T11 t11
+                ) =>
                 action.Invoke(
                     ref t0,
                     ref t1,
@@ -661,20 +661,20 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                Flecs.NET.Core.Entity entity,
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8,
-                ref T9 t9,
-                ref T10 t10,
-                ref T11 t11
-            ) =>
+                    Flecs.NET.Core.Entity entity,
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8,
+                    ref T9 t9,
+                    ref T10 t10,
+                    ref T11 t11
+                ) =>
                 action.Invoke(
                     new Entity(entity),
                     ref t0,
@@ -700,20 +700,20 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8,
-                ref T9 t9,
-                ref T10 t10,
-                ref T11 t11,
-                ref T12 t12
-            ) =>
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8,
+                    ref T9 t9,
+                    ref T10 t10,
+                    ref T11 t11,
+                    ref T12 t12
+                ) =>
                 action.Invoke(
                     ref t0,
                     ref t1,
@@ -739,21 +739,21 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                Flecs.NET.Core.Entity entity,
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8,
-                ref T9 t9,
-                ref T10 t10,
-                ref T11 t11,
-                ref T12 t12
-            ) =>
+                    Flecs.NET.Core.Entity entity,
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8,
+                    ref T9 t9,
+                    ref T10 t10,
+                    ref T11 t11,
+                    ref T12 t12
+                ) =>
                 action.Invoke(
                     new Entity(entity),
                     ref t0,
@@ -780,21 +780,21 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8,
-                ref T9 t9,
-                ref T10 t10,
-                ref T11 t11,
-                ref T12 t12,
-                ref T13 t13
-            ) =>
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8,
+                    ref T9 t9,
+                    ref T10 t10,
+                    ref T11 t11,
+                    ref T12 t12,
+                    ref T13 t13
+                ) =>
                 action.Invoke(
                     ref t0,
                     ref t1,
@@ -821,22 +821,22 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                Flecs.NET.Core.Entity entity,
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8,
-                ref T9 t9,
-                ref T10 t10,
-                ref T11 t11,
-                ref T12 t12,
-                ref T13 t13
-            ) =>
+                    Flecs.NET.Core.Entity entity,
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8,
+                    ref T9 t9,
+                    ref T10 t10,
+                    ref T11 t11,
+                    ref T12 t12,
+                    ref T13 t13
+                ) =>
                 action.Invoke(
                     new Entity(entity),
                     ref t0,
@@ -864,22 +864,22 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8,
-                ref T9 t9,
-                ref T10 t10,
-                ref T11 t11,
-                ref T12 t12,
-                ref T13 t13,
-                ref T14 t14
-            ) =>
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8,
+                    ref T9 t9,
+                    ref T10 t10,
+                    ref T11 t11,
+                    ref T12 t12,
+                    ref T13 t13,
+                    ref T14 t14
+                ) =>
                 action.Invoke(
                     ref t0,
                     ref t1,
@@ -907,23 +907,23 @@ public sealed unsafe class Scene
         EnsureInitialized();
         _world.Each(
             (
-                Flecs.NET.Core.Entity entity,
-                ref T0 t0,
-                ref T1 t1,
-                ref T2 t2,
-                ref T3 t3,
-                ref T4 t4,
-                ref T5 t5,
-                ref T6 t6,
-                ref T7 t7,
-                ref T8 t8,
-                ref T9 t9,
-                ref T10 t10,
-                ref T11 t11,
-                ref T12 t12,
-                ref T13 t13,
-                ref T14 t14
-            ) =>
+                    Flecs.NET.Core.Entity entity,
+                    ref T0 t0,
+                    ref T1 t1,
+                    ref T2 t2,
+                    ref T3 t3,
+                    ref T4 t4,
+                    ref T5 t5,
+                    ref T6 t6,
+                    ref T7 t7,
+                    ref T8 t8,
+                    ref T9 t9,
+                    ref T10 t10,
+                    ref T11 t11,
+                    ref T12 t12,
+                    ref T13 t13,
+                    ref T14 t14
+                ) =>
                 action.Invoke(
                     new Entity(entity),
                     ref t0,

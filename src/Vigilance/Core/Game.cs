@@ -10,7 +10,7 @@ namespace Vigilance.Core;
 
 public sealed class Game
 {
-    internal static readonly List<ISystem> Systems = [];
+    internal static readonly List<ISystem> SystemList = [];
     private static Game? _game;
     private readonly List<Action> _actions = [];
     private GameConfig _config;
@@ -20,8 +20,10 @@ public sealed class Game
 
     static Game()
     {
-        System(new CameraSystem());
-        System(new GraphicsSystem());
+        Systems([
+            new CameraSystem(),
+            new GraphicsSystem()
+        ]);
     }
 
     private Game()
@@ -226,7 +228,13 @@ public sealed class Game
     public static void System(ISystem system)
     {
         EnsureNotRunning();
-        Systems.Add(system);
+        SystemList.Add(system);
+    }
+
+    public static void Systems(IEnumerable<ISystem> systems)
+    {
+        EnsureNotRunning();
+        SystemList.AddRange(systems);
     }
 
     public static void EnsureRunning()
