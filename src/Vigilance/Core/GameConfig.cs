@@ -18,6 +18,7 @@ public struct GameConfig
     public int ScreenHeight = 0;
     public int FpsTarget = 60;
     public bool Fullscreen = false;
+    public bool Maximized = false;
     public bool Decorated = true;
     public bool Vsync = true;
     public bool Resizable = true;

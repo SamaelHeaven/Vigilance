@@ -356,7 +356,7 @@ public readonly struct Graphics
         Color color,
         Font? font = null,
         float? fontSize = null,
-        float strokeWidth = 1,
+        float strokeWidth = 2,
         Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -371,7 +371,7 @@ public readonly struct Graphics
         Color color,
         Font? font = null,
         float? fontSize = null,
-        float strokeWidth = 1,
+        float strokeWidth = 2,
         Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null

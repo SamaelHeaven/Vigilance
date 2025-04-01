@@ -160,6 +160,55 @@ public sealed class Game
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
 
+    public static bool Debug
+    {
+        get => GetGame()._config.Debug;
+        set
+        {
+            GetGame()._config.Debug = value;
+            Raylib.SetTraceLogLevel(value ? TraceLogLevel.All : TraceLogLevel.Error);
+        }
+    }
+
+    public static bool Hidden
+    {
+        get
+        {
+            EnsureRunning();
+            return Raylib.IsWindowHidden();
+        }
+    }
+
+    public static bool Maximized
+    {
+        get
+        {
+            EnsureRunning();
+            return Raylib.IsWindowMaximized();
+        }
+        set
+        {
+            EnsureRunning();
+            if (!Maximized && value)
+                Raylib.MaximizeWindow();
+        }
+    }
+
+    public static bool Minimized
+    {
+        get
+        {
+            EnsureRunning();
+            return Raylib.IsWindowMinimized();
+        }
+        set
+        {
+            EnsureRunning();
+            if (!Minimized && value)
+                Raylib.MinimizeWindow();
+        }
+    }
+
     public static bool Focused
     {
         get
@@ -219,6 +268,8 @@ public sealed class Game
                 config.ScreenWidth <= 0 ? config.Width : config.ScreenWidth,
                 config.ScreenHeight <= 0 ? config.Height : config.ScreenHeight
             );
+        if (config.Maximized)
+            Maximized = true;
         if (config.Fullscreen)
             ToggleFullscreen();
         if (Platform.Desktop.IsCurrent() && config.Icon != null)
