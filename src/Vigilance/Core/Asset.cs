@@ -11,12 +11,7 @@ public static class Asset
 
     public static Texture TextureFile(string path, bool cache = true)
     {
-        return TextureContainer.File(
-            ref path,
-            cache,
-            () => path,
-            bytes => new Texture(Path.GetExtension(path), bytes)
-        );
+        return TextureContainer.File(ref path, cache, () => path, bytes => new Texture(Path.GetExtension(path), bytes));
     }
 
     public static Texture TextureResource(
@@ -38,12 +33,7 @@ public static class Asset
 
     public static Image ImageFile(string path, bool cache = true)
     {
-        return ImageContainer.File(
-            ref path,
-            cache,
-            () => path,
-            bytes => new Image(Path.GetExtension(path), bytes)
-        );
+        return ImageContainer.File(ref path, cache, () => path, bytes => new Image(Path.GetExtension(path), bytes));
     }
 
     public static Image ImageResource(

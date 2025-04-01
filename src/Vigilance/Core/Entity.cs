@@ -367,25 +367,5 @@ public unsafe struct Entity
             && _entity.Has<T14>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>()
-            && _entity.Has<T6>()
-            && _entity.Has<T7>()
-            && _entity.Has<T8>()
-            && _entity.Has<T9>()
-            && _entity.Has<T10>()
-            && _entity.Has<T11>()
-            && _entity.Has<T12>()
-            && _entity.Has<T13>()
-            && _entity.Has<T14>()
-            && _entity.Has<T15>();
-    }
-
     #endregion
 }
