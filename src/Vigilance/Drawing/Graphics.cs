@@ -81,9 +81,9 @@ public readonly struct Graphics
     {
         if (color == Color.Transparent)
             return;
-        BeginDraw();
+        BeginDrawing();
         Raylib.ClearBackground(color.RColor);
-        EndDraw();
+        EndDrawing();
     }
 
     #region Rectangle
@@ -97,9 +97,9 @@ public readonly struct Graphics
     {
         if (color == Color.Transparent)
             return;
-        BeginDraw(camera);
+        BeginDrawing(camera);
         Raylib.DrawRectangleRec(new Raylib_cs.Rectangle(position, size), color.RColor);
-        EndDraw(camera);
+        EndDrawing(camera);
     }
 
     public void StrokeRectangle(
@@ -125,9 +125,9 @@ public readonly struct Graphics
     {
         if (color == Color.Transparent || strokeWidth <= 0)
             return;
-        BeginDraw(camera);
+        BeginDrawing(camera);
         Raylib.DrawRectangleLinesEx(new Raylib_cs.Rectangle(position, size), strokeWidth, color.RColor);
-        EndDraw(camera);
+        EndDrawing(camera);
     }
 
     public void FillRoundedRectangle(
@@ -153,9 +153,9 @@ public readonly struct Graphics
     {
         if (color == Color.Transparent)
             return;
-        BeginDraw(camera);
+        BeginDrawing(camera);
         Raylib.DrawRectangleRounded(new Raylib_cs.Rectangle(position, size), roundness, 0, color.RColor);
-        EndDraw(camera);
+        EndDrawing(camera);
     }
 
     public void StrokeRoundedRectangle(
@@ -183,7 +183,7 @@ public readonly struct Graphics
     {
         if (color == Color.Transparent || strokeWidth <= 0)
             return;
-        BeginDraw(camera);
+        BeginDrawing(camera);
         Raylib.DrawRectangleRoundedLinesEx(
             new Raylib_cs.Rectangle(position, size),
             roundness,
@@ -191,7 +191,7 @@ public readonly struct Graphics
             strokeWidth,
             color.RColor
         );
-        EndDraw(camera);
+        EndDrawing(camera);
     }
 
     public void DrawRectangle(Transform transform, Rectangle rectangle)
@@ -245,9 +245,9 @@ public readonly struct Graphics
     {
         if (color == Color.Transparent)
             return;
-        BeginDraw(camera);
+        BeginDrawing(camera);
         Raylib.DrawCircleV(center, radius, color.RColor);
-        EndDraw(camera);
+        EndDrawing(camera);
     }
 
     public void StrokeCircle(float x, float y, float radius, Color color, float strokeWidth = 1, Camera? camera = null)
@@ -259,9 +259,9 @@ public readonly struct Graphics
     {
         if (color == Color.Transparent || strokeWidth <= 0)
             return;
-        BeginDraw(camera);
+        BeginDrawing(camera);
         Raylib.DrawRing(center, radius - strokeWidth, radius + 1, 0, 360, 0, color.RColor);
-        EndDraw(camera);
+        EndDrawing(camera);
     }
 
     public void DrawCircle(Transform transform, Circle circle)
@@ -328,7 +328,7 @@ public readonly struct Graphics
             return;
         font ??= Game.DefaultFont;
         Raylib.SetTextureFilter(font.Atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
-        BeginDraw(camera);
+        BeginDrawing(camera);
         var rColor = color.RColor;
         font.HandleText(
             (sourcePosition, sourceSize, destPosition, destSize) =>
@@ -346,7 +346,7 @@ public readonly struct Graphics
             fontSize ?? Game.DefaultFontSize,
             spacing ?? Game.DefaultTextSpacing
         );
-        EndDraw(camera);
+        EndDrawing(camera);
     }
 
     public void StrokeText(
@@ -382,7 +382,7 @@ public readonly struct Graphics
         font ??= Game.DefaultFont;
         var (atlas, glyphInfos) = font.GetStroke((int)MathF.Round(strokeWidth));
         Raylib.SetTextureFilter(atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
-        BeginDraw(camera);
+        BeginDrawing(camera);
         var rColor = color.RColor;
         font.HandleText(
             (sourcePosition, sourceSize, destPosition, destSize) =>
@@ -401,7 +401,7 @@ public readonly struct Graphics
             spacing ?? Game.DefaultTextSpacing,
             glyphInfos
         );
-        EndDraw(camera);
+        EndDrawing(camera);
     }
 
     public void DrawText(Transform transform, Text text)
@@ -443,7 +443,7 @@ public readonly struct Graphics
 
     #endregion
 
-    private void BeginDraw(Camera? camera = null)
+    private void BeginDrawing(Camera? camera = null)
     {
         if (camera.HasValue)
         {
@@ -460,7 +460,7 @@ public readonly struct Graphics
         Raylib.BeginTextureMode(Buffer.RenderTexture2D);
     }
 
-    private static void EndDraw(Camera? camera = null)
+    private static void EndDrawing(Camera? camera = null)
     {
         if (camera.HasValue)
             PopState();
