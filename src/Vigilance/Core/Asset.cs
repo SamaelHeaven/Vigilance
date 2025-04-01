@@ -15,7 +15,7 @@ public static class Asset
             ref path,
             cache,
             () => path,
-            bytes => new Texture(Path.GetExtension(path)[1..], bytes)
+            bytes => new Texture(Path.GetExtension(path), bytes)
         );
     }
 
@@ -32,7 +32,7 @@ public static class Asset
             assembly,
             cache,
             () => resource,
-            bytes => new Texture(Path.GetExtension(resource)[1..], bytes)
+            bytes => new Texture(Path.GetExtension(resource), bytes)
         );
     }
 
@@ -42,7 +42,7 @@ public static class Asset
             ref path,
             cache,
             () => path,
-            bytes => new Image(Path.GetExtension(path)[1..], bytes)
+            bytes => new Image(Path.GetExtension(path), bytes)
         );
     }
 
@@ -59,7 +59,7 @@ public static class Asset
             assembly,
             cache,
             () => resource,
-            bytes => new Image(Path.GetExtension(resource)[1..], bytes)
+            bytes => new Image(Path.GetExtension(resource), bytes)
         );
     }
 
