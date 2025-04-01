@@ -7,7 +7,7 @@
         <Authors>Samael Heaven</Authors>
         <Description>2D Game Engine</Description>
         <RepositoryUrl>https://github.com/SamaelHeaven/Vigilance</RepositoryUrl>
-        <PackageReadmeFile>$(MSBuildThisFileDirectory)..\..\README.md</PackageReadmeFile>
+        <PackageReadmeFile>README.MD</PackageReadmeFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -28,6 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)../../README.MD" Pack="true" PackagePath="README.MD"/>
         <None Include="$(LibsPath)\**\*" Pack="true" PackagePath="libs\"/>
         <EmbeddedResource Include="Resources\**\*"/>
     </ItemGroup>
