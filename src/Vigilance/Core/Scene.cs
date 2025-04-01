@@ -20,12 +20,11 @@ public sealed unsafe class Scene
 
     public ref Camera Camera => ref Get<Camera>();
 
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    // ReSharper disable once UseCollectionExpression
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static int CompareEntities(ulong e1, void* zIndex1, ulong e2, void* zIndex2)
     {
-        var z1 = *(int*)zIndex1;
-        var z2 = *(int*)zIndex2;
-        var result = z1.CompareTo(z2);
+        var result = (*(int*)zIndex1).CompareTo(*(int*)zIndex2);
         return result == 0 ? e1.CompareTo(e2) : result;
     }
 

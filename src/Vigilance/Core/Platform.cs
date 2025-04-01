@@ -10,8 +10,6 @@ public static class PlatformExtensions
 {
     public static bool IsCurrent(this Platform platform)
     {
-        if (OperatingSystem.IsBrowser())
-            return platform == Platform.Web;
-        return platform == Platform.Desktop;
+        return platform == (OperatingSystem.IsBrowser() ? Platform.Web : Platform.Desktop);
     }
 }
