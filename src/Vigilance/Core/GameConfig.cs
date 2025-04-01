@@ -28,7 +28,11 @@ public struct GameConfig
     public float DefaultFontSize = 32;
 
     public Func<Font> DefaultFont = static () =>
-        Asset.FontResource("DefaultFont.ttf", module: "Vigilance.Resources", assembly: FileSystem.EngineAssembly);
+        Asset.FontResource(
+            "DefaultFont.ttf",
+            module: FileSystem.EngineAssembly.GetName().Name! + ".Resources",
+            assembly: FileSystem.EngineAssembly
+        );
 
     public string DefaultFontCharset =
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
