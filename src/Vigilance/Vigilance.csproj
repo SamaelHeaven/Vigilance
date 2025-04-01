@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <PackageId>Vigilance</PackageId>
-        <Version>0.0.9</Version>
+        <Version>0.0.10</Version>
         <Authors>Samael Heaven</Authors>
         <Description>2D Game Engine</Description>
         <RepositoryUrl>https://github.com/SamaelHeaven/Vigilance</RepositoryUrl>
