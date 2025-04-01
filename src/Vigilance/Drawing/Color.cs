@@ -34,6 +34,9 @@ public struct Color
     public byte B;
     public byte A;
 
+    internal Color(Raylib_cs.Color color)
+        : this(color.R, color.G, color.B, color.A) { }
+
     public Color(byte r, byte g, byte b, byte a = 255)
     {
         R = r;
@@ -66,7 +69,32 @@ public struct Color
         return new Color(hexadecimal);
     }
 
+    public static implicit operator Color((byte, byte, byte) rgb)
+    {
+        return new Color(rgb.Item1, rgb.Item2, rgb.Item3);
+    }
+
+    public static implicit operator (byte, byte, byte)(Color color)
+    {
+        return (color.G, color.B, color.B);
+    }
+
+    public static implicit operator Color((byte, byte, byte, byte) rgba)
+    {
+        return new Color(rgba.Item1, rgba.Item2, rgba.Item3, rgba.Item4);
+    }
+
+    public static implicit operator (byte, byte, byte, byte)(Color color)
+    {
+        return (color.G, color.B, color.B, color.A);
+    }
+
     internal Raylib_cs.Color RColor => new(R, G, B, A);
+
+    public (byte, byte, byte, byte) ToTuple()
+    {
+        return this;
+    }
 
     public override string ToString()
     {
@@ -75,7 +103,7 @@ public struct Color
 
     public override bool Equals(object? obj)
     {
-        return obj is Color c && c.R == R && c.G == G && c.B == B;
+        return obj is Color c && c.R == R && c.G == G && c.B == B && c.A == A;
     }
 
     public static bool operator ==(Color a, Color b)

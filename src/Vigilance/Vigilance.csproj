@@ -1,24 +1,35 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <PackageId>Vigilance</PackageId>
         <Version>0.0.1</Version>
         <Authors>Samael Heaven</Authors>
         <Description>2D Game Engine</Description>
         <RepositoryUrl>https://github.com/SamaelHeaven/Vigilance</RepositoryUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <IsAotCompatible>true</IsAotCompatible>
+        <LibsPath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..\..\libs\'))</LibsPath>
+        <Box2dPath>$(LibsPath)box2d.a</Box2dPath>
+        <FlecsPath>$(LibsPath)flecs.a</FlecsPath>
+        <FreetypePath>$(LibsPath)freetype.a</FreetypePath>
+        <RaylibPath>$(LibsPath)raylib.a</RaylibPath>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Box2D.NET.Debug" Version="3.0.0" Condition="'$(Configuration)' == 'Debug'"/>
-        <PackageReference Include="Box2D.NET.Release" Version="3.0.0" Condition="'$(Configuration)' == 'Release'"/>
-        <PackageReference Include="Flecs.NET.Debug" Version="4.0.3" Condition="'$(Configuration)' == 'Debug'"/>
-        <PackageReference Include="Flecs.NET.Release" Version="4.0.3" Condition="'$(Configuration)' == 'Release'"/>
+        <PackageReference Include="Box2D.NET.Release" Version="3.0.0"/>
+        <PackageReference Include="Flecs.NET.Release" Version="4.0.3"/>
+        <PackageReference Include="FreeTypeSharp" Version="3.0.0"/>
         <PackageReference Include="Raylib-cs" Version="7.0.1"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="$(LibsPath)\**\*" Pack="true" PackagePath="libs\"/>
+        <EmbeddedResource Include="Resources\**\*"/>
     </ItemGroup>
 
 </Project>

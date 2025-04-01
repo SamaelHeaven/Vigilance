@@ -2,13 +2,15 @@ using Raylib_cs;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
-using Raylib = Raylib_cs.Raylib;
+using Vigilance.Systems;
+using Font = Vigilance.Drawing.Font;
+using Image = Vigilance.Drawing.Image;
 
 namespace Vigilance.Core;
 
 public sealed class Game
 {
-    internal static readonly List<GameSystem> Systems = [];
+    internal static readonly List<ISystem> Systems = [];
     private static Game? _game;
     private readonly List<Action> _actions = [];
     private GameConfig _config;
@@ -18,8 +20,8 @@ public sealed class Game
 
     static Game()
     {
-        System(Camera.System);
-        System(Graphics.System);
+        System(new CameraSystem());
+        System(new GraphicsSystem());
     }
 
     private Game()
@@ -58,6 +60,8 @@ public sealed class Game
         }
         set
         {
+            if (!Platform.Desktop.IsCurrent())
+                return;
             if (Fullscreen && value != Width)
                 return;
             if (ScreenWidth == value)
@@ -75,6 +79,8 @@ public sealed class Game
         }
         set
         {
+            if (!Platform.Desktop.IsCurrent())
+                return;
             if (Fullscreen && value != Height)
                 return;
             if (ScreenHeight == value)
@@ -88,6 +94,8 @@ public sealed class Game
         get => new(ScreenWidth, ScreenHeight);
         set
         {
+            if (!Platform.Desktop.IsCurrent())
+                return;
             var size = value.Round();
             if (Fullscreen && size != Size)
                 return;
@@ -140,11 +148,17 @@ public sealed class Game
         }
     }
 
-    public static Interpolation DefaultInterpolation
-    {
-        get => GetGame()._config.DefaultInterpolation;
-        set => GetGame()._config.DefaultInterpolation = value;
-    }
+    public static Interpolation DefaultInterpolation => GetGame()._config.DefaultInterpolation;
+
+    public static Vector2 DefaultTextSpacing => GetGame()._config.DefaultTextSpacing;
+
+    public static int DefaultFontQuality => GetGame()._config.DefaultFontQuality;
+
+    public static float DefaultFontSize => GetGame()._config.DefaultFontSize;
+
+    public static Font DefaultFont => GetGame()._config.DefaultFont();
+
+    public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
 
     public static bool Focused
     {
@@ -155,7 +169,12 @@ public sealed class Game
         }
     }
 
-    public static void System(GameSystem system)
+    public static Image Screenshot()
+    {
+        return new Image(Raylib.LoadImageFromScreen());
+    }
+
+    public static void System(ISystem system)
     {
         EnsureNotRunning();
         Systems.Add(system);
@@ -182,38 +201,36 @@ public sealed class Game
         }
     }
 
-    public static void Launch(GameConfig gameConfig, Scene scene)
+    public static void Launch(GameConfig config, Scene scene)
     {
         Running = true;
         var game = GetGame();
-        game._config = gameConfig;
+        game._config = config;
         game._scene = scene;
-        FileSystem.ChangeDirectory(gameConfig.WorkingDirectory);
-        Raylib.SetTraceLogLevel(gameConfig.Debug ? TraceLogLevel.All : TraceLogLevel.Error);
+        FileSystem.WorkingModule = config.WorkingModule;
+        FileSystem.ChangeDirectory(config.WorkingDirectory);
+        Raylib.SetTraceLogLevel(config.Debug ? TraceLogLevel.All : TraceLogLevel.Error);
         Raylib.SetConfigFlags(game.GetConfigFlags());
-        Raylib.InitWindow(gameConfig.Width, gameConfig.Height, gameConfig.Title);
-        Raylib.SetTargetFPS(gameConfig.FpsTarget);
-        Raylib.SetExitKey(gameConfig.ExitKey.HasValue ? (KeyboardKey)gameConfig.ExitKey.Value : KeyboardKey.Null);
-        Raylib.SetWindowSize(
-            gameConfig.ScreenWidth <= 0 ? gameConfig.Width : gameConfig.ScreenWidth,
-            gameConfig.ScreenHeight <= 0 ? gameConfig.Height : gameConfig.ScreenHeight
-        );
-        if (gameConfig.Fullscreen)
+        Raylib.InitWindow(config.Width, config.Height, config.Title);
+        Raylib.SetTargetFPS(config.FpsTarget);
+        Raylib.SetExitKey(config.ExitKey.HasValue ? (KeyboardKey)config.ExitKey.Value : KeyboardKey.Null);
+        if (Platform.Desktop.IsCurrent())
+            Raylib.SetWindowSize(
+                config.ScreenWidth <= 0 ? config.Width : config.ScreenWidth,
+                config.ScreenHeight <= 0 ? config.Height : config.ScreenHeight
+            );
+        if (config.Fullscreen)
             ToggleFullscreen();
-        if (FileSystem.FileExists(gameConfig.Icon))
-        {
-            var icon = Raylib.LoadImage(FileSystem.FormatPath(gameConfig.Icon));
-            Raylib.SetWindowIcon(icon);
-            Raylib.UnloadImage(icon);
-        }
-
+        if (Platform.Desktop.IsCurrent() && config.Icon != null)
+            Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
         game.Loop();
     }
 
     public static void ToggleFullscreen()
     {
-        EnsureRunning();
         var game = GetGame();
+        if (Platform.Web.IsCurrent())
+            return;
         if (Fullscreen)
         {
             game._resetSize = true;

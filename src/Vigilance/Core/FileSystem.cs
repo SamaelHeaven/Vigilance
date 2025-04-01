@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using Raylib_cs;
 
@@ -6,6 +8,9 @@ namespace Vigilance.Core;
 
 public static unsafe partial class FileSystem
 {
+    private static readonly Dictionary<Assembly, string[]> ResourceNames = new();
+    public static readonly Assembly GameAssembly = Assembly.GetEntryAssembly()!;
+    public static readonly Assembly EngineAssembly = Assembly.GetExecutingAssembly();
     public static readonly string ApplicationDirectory = FormatPath(new string(Raylib.GetApplicationDirectory()));
 
     static FileSystem()
@@ -14,11 +19,18 @@ public static unsafe partial class FileSystem
             Raylib.SetTraceLogLevel(TraceLogLevel.Error);
     }
 
+    public static string WorkingModule { get; set; } = "";
+
     public static string WorkingDirectory => FormatPath(new string(Raylib.GetWorkingDirectory()));
 
     public static string FormatPath(string path)
     {
         return DuplicatedSlashRegex().Replace(path.Replace('\\', '/'), "/").Trim('/');
+    }
+
+    public static string FormatResource(string resource, string module = "")
+    {
+        return module == "" ? resource : module + "." + resource;
     }
 
     public static bool ChangeDirectory(string path)
@@ -46,6 +58,16 @@ public static unsafe partial class FileSystem
             return false;
         using var buffer = path.ToUtf8Buffer();
         return Raylib.DirectoryExists(buffer.AsPointer());
+    }
+
+    public static bool ResourceExists(string resource, string? module = null, Assembly? assembly = null)
+    {
+        assembly ??= GameAssembly;
+        if (ResourceNames.TryGetValue(assembly, out var names))
+            return names.Contains(FormatResource(resource, module ?? WorkingModule));
+        names = assembly.GetManifestResourceNames();
+        ResourceNames[assembly] = names;
+        return names.Contains(FormatResource(resource, module ?? WorkingModule));
     }
 
     public static DateTime FileModTime(string path)
@@ -77,6 +99,11 @@ public static unsafe partial class FileSystem
         return result;
     }
 
+    public static string ReadResourceText(string resource, string? module = null, Assembly? assembly = null)
+    {
+        return Encoding.UTF8.GetString(ReadResourceBytes(resource, module, assembly));
+    }
+
     public static bool WriteText(string path, string text)
     {
         path = FormatPath(path);
@@ -96,6 +123,18 @@ public static unsafe partial class FileSystem
         Marshal.Copy((IntPtr)data, bytes, 0, bytesRead);
         Raylib.UnloadFileData(data);
         return bytes;
+    }
+
+    public static byte[] ReadResourceBytes(string resource, string? module = null, Assembly? assembly = null)
+    {
+        using var stream = (assembly ?? GameAssembly).GetManifestResourceStream(
+            FormatResource(resource, module ?? WorkingModule)
+        );
+        if (stream == null)
+            return Array.Empty<byte>();
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
     }
 
     public static bool WriteBytes(string path, byte[] bytes)
