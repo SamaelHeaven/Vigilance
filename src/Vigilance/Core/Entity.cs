@@ -20,7 +20,8 @@ public unsafe struct Entity
 
     public string Name => _entity.Name();
 
-    public bool IsValid => _entity.IsValid();
+    public bool IsValid =>
+        this != Null && _entity.IsValid() && _entity.IsAlive() && _entity.Has<int>() && _entity.Has<Transform>();
 
     public bool IsSingleton => _entity.CsWorld().Has(_entity);
 
@@ -91,6 +92,26 @@ public unsafe struct Entity
                 pivotPoint += entity.PivotPoint;
             return pivotPoint;
         }
+    }
+
+    public static bool operator ==(Entity a, Entity b)
+    {
+        return a.Equals(b);
+    }
+
+    public static bool operator !=(Entity a, Entity b)
+    {
+        return !(a == b);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is Entity entity && _entity == entity._entity;
+    }
+
+    public override int GetHashCode()
+    {
+        return _entity.GetHashCode();
     }
 
     public ref Entity SetTransform(Transform transform)

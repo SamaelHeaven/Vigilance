@@ -26,7 +26,7 @@ public struct GameConfig
     public Interpolation DefaultInterpolation = Interpolation.None;
     public Vector2 DefaultTextSpacing = new(0, 4);
     public int DefaultFontQuality = 128;
-    public float DefaultFontSize = 32;
+    public float DefaultFontSize = 24;
 
     public Func<Font> DefaultFont = static () =>
         Asset.FontResource(
