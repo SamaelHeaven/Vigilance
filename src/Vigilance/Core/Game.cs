@@ -20,7 +20,7 @@ public sealed class Game
 
     static Game()
     {
-        Systems([new FpsCounterSystem(), new CameraSystem(), new GraphicsSystem()]);
+        Systems([new GraphicsSystem()]);
     }
 
     private Game()

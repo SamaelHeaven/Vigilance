@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
@@ -6,6 +7,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
+[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public sealed unsafe class Scene
 {
     private readonly List<Action> _fixedUpdateActions = [];
@@ -15,10 +17,8 @@ public sealed unsafe class Scene
     private readonly List<Action> _updateActions = [];
     private float _time;
     private World _world = World.Create();
-
+    public Camera Camera = new();
     public bool Initialized { get; private set; }
-
-    public ref Camera Camera => ref Get<Camera>();
 
     // ReSharper disable once UseCollectionExpression
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
@@ -67,59 +67,10 @@ public sealed unsafe class Scene
         _renderActions.Add(action);
     }
 
-    public ref T Get<T>()
-    {
-        EnsureInitialized();
-        return ref _world.GetMut<T>();
-    }
-
-    public bool Has<T>()
-    {
-        EnsureInitialized();
-        return _world.Has<T>();
-    }
-
-    public Entity Singleton<T>()
-    {
-        EnsureInitialized();
-        return new Entity(_world.Singleton<T>());
-    }
-
-    public void Set<T>(ref T data)
-    {
-        EnsureInitialized();
-        var hadT = _world.Has<T>();
-        _world.Set(ref data);
-        var entity = _world.Singleton<T>();
-        if (hadT)
-        {
-            _world.Event<SetEvent>().Id<T>().Entity(entity).Emit();
-            return;
-        }
-
-        if (typeof(T) != typeof(Transform))
-            entity.Set(new Transform());
-        if (typeof(T) != typeof(int))
-            entity.Set(0);
-        _world.Event<AddEvent>().Id<T>().Entity(entity).Emit();
-    }
-
-    public void Set<T>(T data)
-    {
-        EnsureInitialized();
-        Set(ref data);
-    }
-
     public int Count<T>()
     {
         EnsureInitialized();
         return _world.Count<T>();
-    }
-
-    public void Remove<T>()
-    {
-        EnsureInitialized();
-        _world.Remove<T>();
     }
 
     public void EnsureInitialized()

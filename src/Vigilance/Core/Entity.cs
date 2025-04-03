@@ -23,8 +23,6 @@ public unsafe struct Entity
     public bool IsValid =>
         this != Null && _entity.IsValid() && _entity.IsAlive() && _entity.Has<int>() && _entity.Has<Transform>();
 
-    public bool IsSingleton => _entity.CsWorld().Has(_entity);
-
     public Entity Parent => new(_entity.Parent());
 
     public ref Transform Transform => ref _entity.GetMut<Transform>();

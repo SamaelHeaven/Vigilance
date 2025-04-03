@@ -38,6 +38,11 @@ public struct Vector2
         return new Vector2(v.Item1, v.Item2);
     }
 
+    public static implicit operator Vector2(float v)
+    {
+        return new Vector2(v);
+    }
+
     public (float, float) ToTuple()
     {
         return this;

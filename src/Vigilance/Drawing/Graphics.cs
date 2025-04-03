@@ -356,7 +356,7 @@ public readonly struct Graphics
         Color color,
         Font? font = null,
         float? fontSize = null,
-        float strokeWidth = 2,
+        float strokeWidth = 4,
         Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -371,7 +371,7 @@ public readonly struct Graphics
         Color color,
         Font? font = null,
         float? fontSize = null,
-        float strokeWidth = 2,
+        float strokeWidth = 4,
         Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -390,7 +390,7 @@ public readonly struct Graphics
                 Raylib.DrawTexturePro(
                     atlas,
                     new Raylib_cs.Rectangle(sourcePosition, sourceSize),
-                    new Raylib_cs.Rectangle(destPosition + position - strokeWidth * 0.5f, destSize),
+                    new Raylib_cs.Rectangle(destPosition + position, destSize),
                     new Vector2(),
                     0,
                     rColor
