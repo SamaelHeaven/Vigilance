@@ -16,6 +16,12 @@ public readonly struct Graphics
         Buffer = buffer;
     }
 
+    public int Width => Buffer.Width;
+
+    public int Height => Buffer.Height;
+
+    public Vector2 Size => new(Width, Height);
+
     public static void PushState()
     {
         Game.EnsureRunning();
