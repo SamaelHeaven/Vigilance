@@ -30,9 +30,22 @@ public sealed class Texture
 
     public Vector2 Size => new(Width, Height);
 
-    public Image ToImage()
+    public bool Writable => _owner is WritableTexture;
+
+    public Image ToImage(Interpolation? interpolation = null)
     {
-        return new Image(Raylib.LoadImageFromTexture(Texture2D));
+        var buffer = Graphics.CurrentBuffer;
+        if (_owner != null && buffer == _owner)
+        {
+            Raylib.EndTextureMode();
+            Raylib.BeginTextureMode(buffer.RenderTexture2D);
+        }
+
+        Raylib.SetTextureFilter(Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
+        var image = Raylib.LoadImageFromTexture(Texture2D);
+        if (Writable)
+            Raylib.ImageFlipVertical(ref image);
+        return new Image(image);
     }
 
     ~Texture()

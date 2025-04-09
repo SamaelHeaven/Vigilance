@@ -9,7 +9,7 @@ public sealed class Renderer
     private static Renderer? _renderer;
     private readonly WritableTexture _buffer;
     private readonly Graphics _graphics;
-    private Interpolation _interpolation;
+    private readonly Interpolation _interpolation;
 
     private Renderer()
     {
@@ -25,19 +25,17 @@ public sealed class Renderer
     public static Interpolation Interpolation
     {
         get => GetRenderer()._interpolation;
-        set
-        {
-            var renderer = GetRenderer();
-            if (renderer._interpolation == value)
-                return;
-            renderer._interpolation = value;
-            Raylib.SetTextureFilter(renderer._buffer.RenderTexture2D.Texture, (TextureFilter)value);
-        }
+        set => Raylib.SetTextureFilter(GetRenderer()._buffer.RenderTexture2D.Texture, (TextureFilter)value);
     }
 
     public static Graphics Graphics => GetRenderer()._graphics;
 
     public static WritableTexture Buffer => GetRenderer()._buffer;
+
+    internal static void Initialize()
+    {
+        GetRenderer();
+    }
 
     internal static void Update()
     {

@@ -72,6 +72,18 @@ public sealed class Image
         Raylib.ImageFlipVertical(ref RImage);
     }
 
+    public void KernelConvolution(float[] kernel)
+    {
+        Raylib.ImageKernelConvolution(ref RImage, kernel);
+    }
+
+    public void Blur(int blur)
+    {
+        if (blur <= 0)
+            return;
+        Raylib.ImageBlurGaussian(ref RImage, blur);
+    }
+
     ~Image()
     {
         Game.RunLater(() => Raylib.UnloadImage(RImage));

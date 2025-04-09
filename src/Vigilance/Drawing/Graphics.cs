@@ -443,6 +443,53 @@ public readonly struct Graphics
 
     #endregion
 
+    #region Texture
+
+    public void DrawTexture(
+        Texture texture,
+        float x,
+        float y,
+        Color? tint = null,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        DrawTexture(texture, new Vector2(x, y), null, tint, interpolation, camera);
+    }
+
+    public void DrawTexture(
+        Texture texture,
+        float x,
+        float y,
+        float width,
+        float height,
+        Color? tint = null,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        DrawTexture(texture, new Vector2(x, y), new Vector2(width, height), tint, interpolation, camera);
+    }
+
+    public void DrawTexture(
+        Texture texture,
+        Vector2 position,
+        Vector2? size = null,
+        Color? tint = null,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
+        BeginDrawing(camera);
+        var source = new Raylib_cs.Rectangle(0, 0, texture.Width, texture.Writable ? -texture.Height : texture.Height);
+        var dest = new Raylib_cs.Rectangle(position, size ?? texture.Size);
+        Raylib.DrawTexturePro(texture.Texture2D, source, dest, Vector2.Zero, 0, (tint ?? Color.White).RColor);
+        EndDrawing(camera);
+    }
+
+    #endregion
+
     private void BeginDrawing(Camera? camera = null)
     {
         if (camera.HasValue)
