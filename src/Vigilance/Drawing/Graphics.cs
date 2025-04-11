@@ -73,11 +73,6 @@ public readonly struct Graphics
 
     public static void Transform(Transform transform)
     {
-        Transform(ref transform);
-    }
-
-    public static void Transform(ref Transform transform)
-    {
         Game.EnsureRunning();
         Transform(ref transform, out _, out var scale);
         Scale(scale);
