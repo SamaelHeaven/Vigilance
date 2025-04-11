@@ -66,86 +66,101 @@ public sealed class Image
         return new Color(Raylib.GetImageColor(RImage, x, y));
     }
 
-    public void SetPixel(Vector2 position, Color color)
+    public Image SetPixel(Vector2 position, Color color)
     {
         SetPixel((int)position.X, (int)position.Y, color);
+        return this;
     }
 
-    public void SetPixel(int x, int y, Color color)
+    public Image SetPixel(int x, int y, Color color)
     {
         Raylib.ImageDrawPixel(ref RImage, x, y, color.RColor);
+        return this;
     }
 
-    public void ReplaceColor(Color from, Color to)
+    public Image ReplaceColor(Color from, Color to)
     {
         Raylib.ImageColorReplace(ref RImage, from.RColor, to.RColor);
+        return this;
     }
 
-    public void Crop(float x, float y, float width, float height)
+    public Image Crop(float x, float y, float width, float height)
     {
         Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(x, y, width, height));
+        return this;
     }
 
-    public void Crop(Vector2 position, Vector2 size)
+    public Image Crop(Vector2 position, Vector2 size)
     {
         Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(position, size));
+        return this;
     }
 
-    public void Crop(Box box)
+    public Image Crop(Box box)
     {
         Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(box.X, box.Y, box.Width, box.Height));
+        return this;
     }
 
-    public void FlipHorizontally()
+    public Image FlipHorizontally()
     {
         Raylib.ImageFlipHorizontal(ref RImage);
+        return this;
     }
 
-    public void FlipVertically()
+    public Image FlipVertically()
     {
         Raylib.ImageFlipVertical(ref RImage);
+        return this;
     }
 
-    public void KernelConvolution(float[] kernel)
+    public Image KernelConvolution(float[] kernel)
     {
         Raylib.ImageKernelConvolution(ref RImage, kernel);
+        return this;
     }
 
-    public void Blur(int blur)
+    public Image Blur(int blur)
     {
-        if (blur <= 0)
-            return;
-        Raylib.ImageBlurGaussian(ref RImage, blur);
+        if (blur > 0)
+            Raylib.ImageBlurGaussian(ref RImage, blur);
+        return this;
     }
 
-    public void Tint(Color color)
+    public Image Tint(Color color)
     {
         Raylib.ImageColorTint(ref RImage, color.RColor);
+        return this;
     }
 
-    public void Invert()
+    public Image Invert()
     {
         Raylib.ImageColorInvert(ref RImage);
+        return this;
     }
 
-    public void Grayscale()
+    public Image Grayscale()
     {
         Raylib.ImageColorGrayscale(ref RImage);
+        return this;
     }
 
-    public void Contrast(float contrast)
+    public Image Contrast(float contrast)
     {
         Raylib.ImageColorContrast(ref RImage, contrast);
+        return this;
     }
 
-    public void Brightness(int brightness)
+    public Image Brightness(int brightness)
     {
         Raylib.ImageColorBrightness(ref RImage, brightness);
+        return this;
     }
 
-    public void Rotate(int angle)
+    public Image Rotate(int angle)
     {
         Raylib.ImageRotate(ref RImage, angle);
+        return this;
     }
 
     public void Export(string path)

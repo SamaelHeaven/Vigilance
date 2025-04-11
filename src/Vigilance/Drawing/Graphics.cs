@@ -537,12 +537,27 @@ public readonly struct Graphics
     public void DrawSprite(Transform transform, ref Sprite sprite)
     {
         var camera = sprite.Camera?.Invoke();
-        var texture = sprite.CurrentTexture;
+        var texture = sprite.Texture;
         var interpolation = sprite.Interpolation;
         var tint = sprite.Tint;
+        var flippedHorizontally = sprite.FlippedHorizontally;
+        var flippedVertically = sprite.FlippedVertically;
         PushState();
         Transform(ref transform, out var position, out var scale);
-        DrawTexture(texture, position, scale, tint, interpolation, camera);
+        DrawTexture(
+            texture,
+            new Box(
+                Vector2.Zero,
+                new Vector2(
+                    flippedHorizontally ? -texture.Width : texture.Width,
+                    flippedVertically ? -texture.Height : texture.Height
+                )
+            ),
+            new Box(position, scale),
+            tint,
+            interpolation,
+            camera
+        );
         PopState();
     }
 
