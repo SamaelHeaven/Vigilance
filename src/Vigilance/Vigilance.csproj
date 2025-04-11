@@ -13,6 +13,7 @@
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <IsAotCompatible>true</IsAotCompatible>
+        <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
         <LibsPath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..\..\libs\'))</LibsPath>
     </PropertyGroup>
 
