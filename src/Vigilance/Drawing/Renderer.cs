@@ -16,7 +16,7 @@ public sealed class Renderer
         Game.EnsureRunning();
         _buffer = new WritableTexture(Game.Size);
         _interpolation = Game.DefaultInterpolation;
-        _graphics = new Graphics(_buffer);
+        _graphics = _buffer.Graphics;
         Raylib.BeginTextureMode(_buffer.RenderTexture2D);
         Graphics.CurrentBuffer = _buffer;
     }

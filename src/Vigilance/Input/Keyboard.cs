@@ -17,7 +17,7 @@ public sealed class Keyboard
     static Keyboard()
     {
         Game.EnsureRunning();
-        KeyValues = Enum.GetValues<Key>().ToArray();
+        KeyValues = Enum.GetValues<Key>().Where(key => key != Key.Null).ToArray();
     }
 
     private Keyboard() { }

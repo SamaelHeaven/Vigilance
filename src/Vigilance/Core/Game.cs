@@ -120,17 +120,17 @@ public sealed class Game
         }
     }
 
-    public static Key? ExitKey
+    public static Key ExitKey
     {
         get => GetGame()._config.ExitKey;
         set
         {
             GetGame()._config.ExitKey = value;
-            Raylib.SetExitKey(value.HasValue ? (KeyboardKey)value.Value : KeyboardKey.Null);
+            Raylib.SetExitKey((KeyboardKey)value);
         }
     }
 
-    public static Key? FullscreenKey
+    public static Key FullscreenKey
     {
         get => GetGame()._config.FullscreenKey;
         set => GetGame()._config.FullscreenKey = value;
@@ -147,6 +147,10 @@ public sealed class Game
         }
     }
 
+    public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis.Invoke();
+
+    public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis.Invoke();
+
     public static Interpolation DefaultInterpolation => GetGame()._config.DefaultInterpolation;
 
     public static Vector2 DefaultTextSpacing => GetGame()._config.DefaultTextSpacing;
@@ -155,7 +159,7 @@ public sealed class Game
 
     public static float DefaultFontSize => GetGame()._config.DefaultFontSize;
 
-    public static Font DefaultFont => GetGame()._config.DefaultFont();
+    public static Font DefaultFont => GetGame()._config.DefaultFont.Invoke();
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
 
@@ -273,7 +277,7 @@ public sealed class Game
         Raylib.SetConfigFlags(game.GetConfigFlags());
         Raylib.InitWindow(config.Width, config.Height, config.Title);
         Raylib.SetTargetFPS(config.FpsTarget);
-        Raylib.SetExitKey(config.ExitKey.HasValue ? (KeyboardKey)config.ExitKey.Value : KeyboardKey.Null);
+        Raylib.SetExitKey((KeyboardKey)config.ExitKey);
         if (Platform.Desktop.IsCurrent())
             Raylib.SetWindowSize(
                 config.ScreenWidth <= 0 ? config.Width : config.ScreenWidth,
@@ -350,7 +354,7 @@ public sealed class Game
 
     private void UpdateFullscreen()
     {
-        if (_config.FullscreenKey.HasValue && Keyboard.IsKeyPressed(_config.FullscreenKey.Value))
+        if (Keyboard.IsKeyPressed(_config.FullscreenKey))
             ToggleFullscreen();
     }
 

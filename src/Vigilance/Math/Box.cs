@@ -66,21 +66,21 @@ public struct Box(float x, float y, float width, float height)
         return new Box(minX, minY, maxX - minX, maxY - minY);
     }
 
-    public bool Intersects(Box box)
+    public readonly bool Intersects(Box box)
     {
         return X < box.X + box.Width && X + Width > box.X && Y < box.Y + box.Height && Y + Height > box.Y;
     }
 
-    public bool Contains(Vector2 position)
+    public readonly bool Contains(Vector2 position)
     {
         return X < position.X && X + Width > position.X && Y < position.Y && Y + Height > position.Y;
     }
 
-    public Vector2 Position => new(X, Y);
+    public readonly Vector2 Position => new(X, Y);
 
-    public Vector2 Size => new(Width, Height);
+    public readonly Vector2 Size => new(Width, Height);
 
-    public Vector2 Center => new(X + Width * 0.5f, Y + Height * 0.5f);
+    public readonly Vector2 Center => new(X + Width * 0.5f, Y + Height * 0.5f);
 
     public override bool Equals(object? obj)
     {

@@ -113,59 +113,59 @@ public struct Vector2
         return f == 0 ? Zero : new Vector2(v.X / f, v.Y / f);
     }
 
-    public float DistanceTo(Vector2 v)
+    public readonly float DistanceTo(Vector2 v)
     {
         var d = this - v;
         return MathF.Sqrt(d.X * d.X + d.Y * d.Y);
     }
 
-    public float Dot(Vector2 v)
+    public readonly float Dot(Vector2 v)
     {
         return X * v.X + Y * v.Y;
     }
 
-    public float Cross(Vector2 v)
+    public readonly float Cross(Vector2 v)
     {
         return X * v.X - Y * v.Y;
     }
 
-    public Vector2 Clamp(Vector2 min, Vector2 max)
+    public readonly Vector2 Clamp(Vector2 min, Vector2 max)
     {
         return ClampX(min.X, max.X).ClampY(min.Y, max.Y);
     }
 
-    public Vector2 Clamp(float min, float max)
+    public readonly Vector2 Clamp(float min, float max)
     {
         return ClampX(min, max).ClampY(min, max);
     }
 
-    public Vector2 ClampX(float min, float max)
+    public readonly Vector2 ClampX(float min, float max)
     {
         return new Vector2(System.Math.Clamp(X, min, max), Y);
     }
 
-    public Vector2 ClampY(float min, float max)
+    public readonly Vector2 ClampY(float min, float max)
     {
         return new Vector2(X, System.Math.Clamp(Y, min, max));
     }
 
-    public float Length()
+    public readonly float Length()
     {
         return MathF.Sqrt(X * X + Y * Y);
     }
 
-    public float AngleBetween(Vector2 v)
+    public readonly float AngleBetween(Vector2 v)
     {
         return Length() * v.Length() == 0 ? 0 : MathF.Acos(Dot(v) / (Length() * v.Length()));
     }
 
-    public Vector2 Reflect(Vector2 normal)
+    public readonly Vector2 Reflect(Vector2 normal)
     {
         var dot = Dot(normal);
         return new Vector2(X - 2 * dot * normal.X, Y - 2 * dot * normal.Y);
     }
 
-    public Vector2 Rotate(float degrees, Vector2 origin)
+    public readonly Vector2 Rotate(float degrees, Vector2 origin)
     {
         var rad = degrees * (MathF.PI / 180);
         var cos = MathF.Cos(rad);
@@ -174,48 +174,48 @@ public struct Vector2
         return new Vector2(translated.X * cos - translated.Y * sin, translated.X * sin + translated.Y * cos) + origin;
     }
 
-    public Vector2 Lerp(Vector2 end, float t)
+    public readonly Vector2 Lerp(Vector2 end, float t)
     {
         t = System.Math.Clamp(t, 0f, 1f);
         return new Vector2(X + (end.X - X) * t, Y + (end.Y - Y) * t);
     }
 
-    public Vector2 Slerp(Vector2 end, float t)
+    public readonly Vector2 Slerp(Vector2 end, float t)
     {
         var angle = AngleBetween(end);
         return this * MathF.Cos(angle * t) + end * MathF.Sin(angle * t);
     }
 
-    public Vector2 Round()
+    public readonly Vector2 Round()
     {
         return new Vector2(MathF.Round(X), MathF.Round(Y));
     }
 
-    public Vector2 Abs()
+    public readonly Vector2 Abs()
     {
         return new Vector2(MathF.Abs(X), MathF.Abs(Y));
     }
 
-    public Vector2 Normalize()
+    public readonly Vector2 Normalize()
     {
         return Length() == 0 ? Zero : this / Length();
     }
 
-    public float ModifierX()
+    public readonly float ModifierX()
     {
         return X == 0 ? 0
             : X > 0 ? 1
             : -1;
     }
 
-    public float ModifierY()
+    public readonly float ModifierY()
     {
         return Y == 0 ? 0
             : Y > 0 ? 1
             : -1;
     }
 
-    public Vector2 Modifiers()
+    public readonly Vector2 Modifiers()
     {
         return new Vector2(ModifierX(), ModifierY());
     }

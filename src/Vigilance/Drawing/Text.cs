@@ -15,7 +15,7 @@ public struct Text
     public Interpolation? Interpolation = null;
     public Func<Camera>? Camera = () => Game.Scene.Camera;
 
-    public Vector2 Size => Font.MeasureText(Value, FontSize, Spacing);
+    public readonly Vector2 Size => Font.MeasureText(Value, FontSize, Spacing);
 
     public Text() { }
 }
