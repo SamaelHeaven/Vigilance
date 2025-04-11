@@ -224,7 +224,7 @@ public readonly struct Graphics
         DrawRectangle(transform, ref rectangle);
     }
 
-    public void DrawRectangle(Transform transform, ref Rectangle rectangle)
+    public void DrawRectangle(Transform transform, ref readonly Rectangle rectangle)
     {
         var camera = rectangle.Camera?.Invoke();
         var fill = rectangle.Fill;
@@ -286,7 +286,7 @@ public readonly struct Graphics
         DrawCircle(transform, ref circle);
     }
 
-    public void DrawCircle(Transform transform, ref Circle circle)
+    public void DrawCircle(Transform transform, ref readonly Circle circle)
     {
         var camera = circle.Camera?.Invoke();
         var fill = circle.Fill;
@@ -417,7 +417,7 @@ public readonly struct Graphics
         DrawText(transform, ref text);
     }
 
-    public void DrawText(Transform transform, ref Text text)
+    public void DrawText(Transform transform, ref readonly Text text)
     {
         var camera = text.Camera?.Invoke();
         var value = text.Value;
@@ -526,7 +526,7 @@ public readonly struct Graphics
         DrawSprite(transform, ref sprite);
     }
 
-    public void DrawSprite(Transform transform, ref Sprite sprite)
+    public void DrawSprite(Transform transform, ref readonly Sprite sprite)
     {
         var camera = sprite.Camera?.Invoke();
         var texture = sprite.Texture;
