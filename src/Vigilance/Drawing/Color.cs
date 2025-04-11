@@ -1,7 +1,9 @@
+using System.Runtime.InteropServices;
 using Exception = System.Exception;
 
 namespace Vigilance.Drawing;
 
+[StructLayout(LayoutKind.Sequential)]
 public struct Color
 {
     public static readonly Color White = new(255, 255, 255);

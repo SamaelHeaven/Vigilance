@@ -27,13 +27,7 @@ public sealed class WritableTexture
 
     public void UpdatePixels(Color[] colors)
     {
-        if (Graphics.CurrentBuffer == this)
-        {
-            Raylib.EndTextureMode();
-            Raylib.BeginTextureMode(RenderTexture2D);
-        }
-
-        Raylib.UpdateTexture(RenderTexture2D.Texture, colors);
+        UpdatePixels((ReadOnlySpan<Color>)colors);
     }
 
     public void UpdatePixels(ReadOnlySpan<Color> colors)
