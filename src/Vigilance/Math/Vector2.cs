@@ -43,11 +43,6 @@ public struct Vector2
         return new Vector2(v);
     }
 
-    public (float, float) ToTuple()
-    {
-        return this;
-    }
-
     public override string ToString()
     {
         return $"{{ X: {X}, Y: {Y} }}";

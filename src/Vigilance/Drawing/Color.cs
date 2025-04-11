@@ -93,11 +93,6 @@ public struct Color
 
     internal Raylib_cs.Color RColor => new(R, G, B, A);
 
-    public (byte, byte, byte, byte) ToTuple()
-    {
-        return this;
-    }
-
     public override string ToString()
     {
         return $"{{ R: {R}, G: {G}, B: {B}, A: {A} }}";

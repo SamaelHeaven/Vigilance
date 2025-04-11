@@ -10,6 +10,26 @@ public struct Box(float x, float y, float width, float height)
     public Box(Vector2 position, Vector2 size)
         : this(position.X, position.Y, size.X, size.Y) { }
 
+    public static implicit operator (float, float, float, float)(Box box)
+    {
+        return (box.X, box.Y, box.Width, box.Height);
+    }
+
+    public static implicit operator Box((float, float, float, float) box)
+    {
+        return new Box(box.Item1, box.Item2, box.Item3, box.Item4);
+    }
+
+    public static implicit operator (Vector2, Vector2)(Box box)
+    {
+        return (box.Position, box.Size);
+    }
+
+    public static implicit operator Box((Vector2, Vector2) box)
+    {
+        return new Box(box.Item1, box.Item2);
+    }
+
     public static Box From(Transform transform)
     {
         var position = transform.Position;
@@ -46,12 +66,9 @@ public struct Box(float x, float y, float width, float height)
         return new Box(minX, minY, maxX - minX, maxY - minY);
     }
 
-    public bool Intersects(Box bounds)
+    public bool Intersects(Box box)
     {
-        return X < bounds.X + bounds.Width
-            && X + Width > bounds.X
-            && Y < bounds.Y + bounds.Height
-            && Y + Height > bounds.Y;
+        return X < box.X + box.Width && X + Width > box.X && Y < box.Y + box.Height && Y + Height > box.Y;
     }
 
     public bool Contains(Vector2 position)

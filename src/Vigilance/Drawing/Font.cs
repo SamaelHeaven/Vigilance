@@ -31,7 +31,7 @@ public sealed unsafe class Font
 
     public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)
     {
-        var (spacingX, spacingY) = (spacing ?? Game.DefaultTextSpacing).ToTuple();
+        var (spacingX, spacingY) = ((float, float))(spacing ?? Game.DefaultTextSpacing);
         var size = new Vector2(0, fontSize + text.Count(c => c == '\n') * (fontSize + spacingY));
         HandleText(
             (_, _, destPosition, destSize) =>
@@ -205,8 +205,8 @@ public sealed unsafe class Font
             FT.FT_Done_Face(_face);
             Marshal.FreeHGlobal(_buffer);
             Raylib.UnloadTexture(Atlas);
-            foreach (var stroke in _strokes)
-                Raylib.UnloadTexture(stroke.Value.Item1);
+            foreach (var (_, (atlas, _)) in _strokes)
+                Raylib.UnloadTexture(atlas);
         });
     }
 
