@@ -71,11 +71,21 @@ public readonly struct Graphics
         Rlgl.Scalef(scale.X, scale.Y, 1);
     }
 
-    public static void Transform(Transform transform)
+    public static void Transform(Transform transform, bool translate = true, bool rotate = true, bool scale = true)
     {
         Game.EnsureRunning();
-        Transform(ref transform, out _, out var scale);
-        Scale(scale);
+        var position = transform.Position;
+        var scaling = transform.Scale.Abs();
+        var pivotPoint = transform.PivotPoint;
+        var rotation = transform.Rotation;
+        var positionOffset = -(scaling * 0.5f);
+        var rotationOffset = position + pivotPoint;
+        if (rotate)
+            Rotate(rotation, rotationOffset);
+        if (translate)
+            Translate(positionOffset);
+        if (scale)
+            Scale(scaling);
     }
 
     public void ClearBackground(Color color)
@@ -233,8 +243,10 @@ public readonly struct Graphics
         var stroke = rectangle.Stroke;
         var roundness = rectangle.Roundness;
         var strokeWidth = rectangle.StrokeWidth;
+        var position = transform.Position;
+        var scale = transform.Scale;
         PushState();
-        Transform(ref transform, out var position, out var scale);
+        Transform(transform, scale: false);
         if (roundness > 0)
         {
             FillRoundedRectangle(position, scale, fill, roundness, camera);
@@ -292,10 +304,11 @@ public readonly struct Graphics
         var fill = circle.Fill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
+        var position = transform.Position;
+        var scale = transform.Scale;
         PushState();
-        Transform(ref transform, out var position, out var scale);
-        var radius = (scale.X + scale.Y) * 0.25f;
-        position += radius;
+        Transform(transform, false, scale: false);
+        var radius = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.25f;
         FillCircle(position, radius, fill, camera);
         StrokeCircle(position, radius, stroke, strokeWidth, camera);
         PopState();
@@ -427,12 +440,12 @@ public readonly struct Graphics
         var strokeWidth = text.StrokeWidth;
         var spacing = text.Spacing;
         var interpolation = text.Interpolation;
+        var position = transform.Position;
         var scale = transform.Scale;
         PushState();
-        fontSize *= (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) / 2;
+        fontSize *= (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.5f;
         transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
-        Transform(ref transform, out var position, out _);
-        transform.Scale = scale;
+        Transform(transform, scale: false);
         FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
         StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
         PopState();
@@ -537,8 +550,10 @@ public readonly struct Graphics
         var tint = sprite.Tint;
         var flippedHorizontally = sprite.FlippedHorizontally;
         var flippedVertically = sprite.FlippedVertically;
+        var position = transform.Position;
+        var scale = transform.Scale;
         PushState();
-        Transform(ref transform, out var position, out var scale);
+        Transform(transform, scale: false);
         DrawTexture(
             texture,
             new Box(
@@ -579,17 +594,5 @@ public readonly struct Graphics
     {
         if (camera.HasValue)
             PopState();
-    }
-
-    private static void Transform(ref Transform transform, out Vector2 position, out Vector2 scale)
-    {
-        position = transform.Position;
-        scale = transform.Scale.Abs();
-        var pivotPoint = transform.PivotPoint;
-        var rotation = transform.Rotation;
-        var positionOffset = -(scale * 0.5f);
-        var rotationOffset = position + pivotPoint;
-        Rotate(rotation, rotationOffset);
-        Translate(positionOffset);
     }
 }
