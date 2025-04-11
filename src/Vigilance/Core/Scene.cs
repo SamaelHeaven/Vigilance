@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
@@ -7,13 +6,13 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
 public sealed unsafe class Scene
 {
     private readonly List<Action> _fixedUpdateActions = [];
     private readonly List<Action> _initializeActions = [];
     private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
-    private readonly List<Action<Entity>> _renderActions = [];
+    private readonly List<Action> _renderActions = [];
+    private readonly List<Action<Entity>> _renderEntityActions = [];
     private readonly List<Action> _updateActions = [];
     private float _time;
     private World _world = World.Create();
@@ -61,10 +60,16 @@ public sealed unsafe class Scene
         _fixedUpdateActions.Add(action);
     }
 
-    public void OnRender(Action<Entity> action)
+    public void OnRender(Action action)
     {
         EnsureNotInitialized();
         _renderActions.Add(action);
+    }
+
+    public void OnRender(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        _renderEntityActions.Add(action);
     }
 
     public int Count<T>()
@@ -122,10 +127,13 @@ public sealed unsafe class Scene
             (Flecs.NET.Core.Entity entity, ref int _) =>
             {
                 var e = new Entity(entity);
-                foreach (var action in _renderActions)
+                foreach (var action in _renderEntityActions)
                     action.Invoke(e);
             }
         );
+
+        foreach (var action in _renderActions)
+            action.Invoke();
     }
 
     ~Scene()

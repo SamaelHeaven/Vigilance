@@ -92,6 +92,8 @@ public unsafe struct Entity
         }
     }
 
+    public Box BoundingBox => Box.From(WorldTransform);
+
     public static bool operator ==(Entity a, Entity b)
     {
         return a.Equals(b);

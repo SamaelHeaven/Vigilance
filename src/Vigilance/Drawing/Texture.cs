@@ -6,6 +6,7 @@ namespace Vigilance.Drawing;
 
 public sealed class Texture
 {
+    private static Texture? _empty;
     private readonly object? _owner;
     internal readonly Texture2D Texture2D;
 
@@ -23,6 +24,8 @@ public sealed class Texture
         Texture2D = Raylib.LoadTextureFromImage(image);
         Raylib.UnloadImage(image);
     }
+
+    public static Texture Empty => _empty ??= new Image(0, 0).ToTexture();
 
     public int Width => Texture2D.Width;
 
@@ -46,6 +49,12 @@ public sealed class Texture
         if (Writable)
             Raylib.ImageFlipVertical(ref image);
         return new Image(image);
+    }
+
+    public Texture Copy()
+    {
+        var image = ToImage(Interpolation.None);
+        return image.ToTexture();
     }
 
     ~Texture()

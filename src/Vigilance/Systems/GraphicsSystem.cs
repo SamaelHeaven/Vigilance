@@ -18,6 +18,10 @@ public struct GraphicsSystem : ISystem
                 graphics.DrawCircle(entity.WorldTransform, ref entity.Get<Circle>());
             if (entity.Has<Text>())
                 graphics.DrawText(entity.WorldTransform, ref entity.Get<Text>());
+            if (entity.Has<Texture>())
+                graphics.DrawSprite(entity.WorldTransform, new Sprite { Texture = entity.Get<Texture>() });
+            if (entity.Has<Sprite>())
+                graphics.DrawSprite(entity.WorldTransform, ref entity.Get<Sprite>());
         });
     }
 }

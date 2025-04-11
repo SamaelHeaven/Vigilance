@@ -91,6 +91,11 @@ public sealed class Image
         Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(position, size));
     }
 
+    public void Crop(Box box)
+    {
+        Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(box.X, box.Y, box.Width, box.Height));
+    }
+
     public void FlipHorizontally()
     {
         Raylib.ImageFlipHorizontal(ref RImage);
@@ -136,6 +141,11 @@ public sealed class Image
     public void Brightness(int brightness)
     {
         Raylib.ImageColorBrightness(ref RImage, brightness);
+    }
+
+    public void Rotate(int angle)
+    {
+        Raylib.ImageRotate(ref RImage, angle);
     }
 
     public void Export(string path)

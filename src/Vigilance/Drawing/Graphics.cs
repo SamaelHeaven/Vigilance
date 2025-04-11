@@ -99,6 +99,11 @@ public readonly struct Graphics
         FillRectangle(new Vector2(x, y), new Vector2(width, height), color, camera);
     }
 
+    public void FillRectangle(Box box, Color color, Camera? camera = null)
+    {
+        FillRectangle(box.Position, box.Size, color, camera);
+    }
+
     public void FillRectangle(Vector2 position, Vector2 size, Color color, Camera? camera = null)
     {
         if (color == Color.Transparent)
@@ -119,6 +124,11 @@ public readonly struct Graphics
     )
     {
         StrokeRectangle(new Vector2(x, y), new Vector2(width, height), color, strokeWidth, camera);
+    }
+
+    public void StrokeRectangle(Box box, Color color, float strokeWidth = 1, Camera? camera = null)
+    {
+        StrokeRectangle(box.Position, box.Size, color, strokeWidth, camera);
     }
 
     public void StrokeRectangle(
@@ -147,6 +157,11 @@ public readonly struct Graphics
     )
     {
         FillRoundedRectangle(new Vector2(x, y), new Vector2(width, height), color, roundness, camera);
+    }
+
+    public void FillRoundedRectangle(Box box, Color color, float roundness, Camera? camera = null)
+    {
+        FillRoundedRectangle(box.Position, box.Size, color, roundness, camera);
     }
 
     public void FillRoundedRectangle(
@@ -179,6 +194,17 @@ public readonly struct Graphics
     }
 
     public void StrokeRoundedRectangle(
+        Box box,
+        Color color,
+        float roundness,
+        float strokeWidth = 1,
+        Camera? camera = null
+    )
+    {
+        StrokeRoundedRectangle(box.Position, box.Size, color, roundness, strokeWidth, camera);
+    }
+
+    public void StrokeRoundedRectangle(
         Vector2 position,
         Vector2 size,
         Color color,
@@ -202,20 +228,10 @@ public readonly struct Graphics
 
     public void DrawRectangle(Transform transform, Rectangle rectangle)
     {
-        DrawRectangle(ref transform, ref rectangle);
-    }
-
-    public void DrawRectangle(ref Transform transform, Rectangle rectangle)
-    {
-        DrawRectangle(ref transform, ref rectangle);
+        DrawRectangle(transform, ref rectangle);
     }
 
     public void DrawRectangle(Transform transform, ref Rectangle rectangle)
-    {
-        DrawRectangle(ref transform, ref rectangle);
-    }
-
-    public void DrawRectangle(ref Transform transform, ref Rectangle rectangle)
     {
         var camera = rectangle.Camera?.Invoke();
         var fill = rectangle.Fill;
@@ -272,20 +288,10 @@ public readonly struct Graphics
 
     public void DrawCircle(Transform transform, Circle circle)
     {
-        DrawCircle(ref transform, ref circle);
-    }
-
-    public void DrawCircle(ref Transform transform, Circle circle)
-    {
-        DrawCircle(ref transform, ref circle);
+        DrawCircle(transform, ref circle);
     }
 
     public void DrawCircle(Transform transform, ref Circle circle)
-    {
-        DrawCircle(ref transform, ref circle);
-    }
-
-    public void DrawCircle(ref Transform transform, ref Circle circle)
     {
         var camera = circle.Camera?.Invoke();
         var fill = circle.Fill;
@@ -412,20 +418,10 @@ public readonly struct Graphics
 
     public void DrawText(Transform transform, Text text)
     {
-        DrawText(ref transform, ref text);
-    }
-
-    public void DrawText(ref Transform transform, Text text)
-    {
-        DrawText(ref transform, ref text);
+        DrawText(transform, ref text);
     }
 
     public void DrawText(Transform transform, ref Text text)
-    {
-        DrawText(ref transform, ref text);
-    }
-
-    public void DrawText(ref Transform transform, ref Text text)
     {
         var camera = text.Camera?.Invoke();
         var value = text.Value;
@@ -479,6 +475,17 @@ public readonly struct Graphics
 
     public void DrawTexture(
         Texture texture,
+        Box box,
+        Color? tint = null,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        DrawTexture(texture, box.Position, box.Size, tint, interpolation, camera);
+    }
+
+    public void DrawTexture(
+        Texture texture,
         Vector2 position,
         Vector2? size = null,
         Color? tint = null,
@@ -486,12 +493,57 @@ public readonly struct Graphics
         Camera? camera = null
     )
     {
+        DrawTexture(
+            texture,
+            new Box(Vector2.Zero, texture.Size),
+            new Box(position, size ?? texture.Size),
+            tint,
+            interpolation,
+            camera
+        );
+    }
+
+    public void DrawTexture(
+        Texture texture,
+        Box source,
+        Box dest,
+        Color? tint = null,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
         Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDrawing(camera);
-        var source = new Raylib_cs.Rectangle(0, 0, texture.Width, texture.Writable ? -texture.Height : texture.Height);
-        var dest = new Raylib_cs.Rectangle(position, size ?? texture.Size);
-        Raylib.DrawTexturePro(texture.Texture2D, source, dest, Vector2.Zero, 0, (tint ?? Color.White).RColor);
+        var rSource = new Raylib_cs.Rectangle(
+            source.X,
+            source.Y,
+            source.Width,
+            texture.Writable ? -source.Height : source.Height
+        );
+        var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
+        Raylib.DrawTexturePro(texture.Texture2D, rSource, rDest, Vector2.Zero, 0, (tint ?? Color.White).RColor);
         EndDrawing(camera);
+    }
+
+    #endregion
+
+    #region Sprite
+
+    public void DrawSprite(Transform transform, Sprite sprite)
+    {
+        DrawSprite(transform, ref sprite);
+    }
+
+    public void DrawSprite(Transform transform, ref Sprite sprite)
+    {
+        var camera = sprite.Camera?.Invoke();
+        var texture = sprite.CurrentTexture;
+        var interpolation = sprite.Interpolation;
+        var tint = sprite.Tint;
+        PushState();
+        Transform(ref transform, out var position, out var scale);
+        DrawTexture(texture, position, scale, tint, interpolation, camera);
+        PopState();
     }
 
     #endregion
