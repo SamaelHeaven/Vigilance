@@ -222,6 +222,12 @@ public sealed class Game
         return new Image(Raylib.LoadImageFromScreen());
     }
 
+    public static void OpenUrl(string url)
+    {
+        EnsureRunning();
+        Raylib.OpenURL(url);
+    }
+
     public static void System(ISystem system)
     {
         EnsureNotRunning();

@@ -22,6 +22,8 @@ public readonly struct Graphics
 
     public Vector2 Size => new(Width, Height);
 
+    #region Transform
+
     public static void PushState()
     {
         Game.EnsureRunning();
@@ -88,14 +90,7 @@ public readonly struct Graphics
             Scale(scaling);
     }
 
-    public void ClearBackground(Color color)
-    {
-        if (color == Color.Transparent)
-            return;
-        BeginDrawing();
-        Raylib.ClearBackground(color.RColor);
-        EndDrawing();
-    }
+    #endregion
 
     #region Rectangle
 
@@ -533,10 +528,6 @@ public readonly struct Graphics
         EndDrawing(camera);
     }
 
-    #endregion
-
-    #region Sprite
-
     public void DrawSprite(Transform transform, Sprite sprite)
     {
         DrawSprite(transform, ref sprite);
@@ -569,6 +560,31 @@ public readonly struct Graphics
             camera
         );
         PopState();
+    }
+
+    #endregion
+
+    #region Misc
+
+    public void ClearBackground(Color color)
+    {
+        if (color == Color.Transparent)
+            return;
+        BeginDrawing();
+        Raylib.ClearBackground(color.RColor);
+        EndDrawing();
+    }
+
+    public void DrawPixel(float x, float y, Color color)
+    {
+        DrawPixel(new Vector2(x, y), color);
+    }
+
+    public void DrawPixel(Vector2 position, Color color)
+    {
+        BeginDrawing();
+        Raylib.DrawPixelV(position, color.RColor);
+        EndDrawing();
     }
 
     #endregion
