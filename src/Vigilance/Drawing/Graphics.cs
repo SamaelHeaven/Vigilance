@@ -8,19 +8,12 @@ namespace Vigilance.Drawing;
 public readonly struct Graphics
 {
     internal static WritableTexture? CurrentBuffer;
-    public readonly WritableTexture Buffer;
+    private readonly WritableTexture _buffer;
 
-    public Graphics(WritableTexture buffer)
+    internal Graphics(WritableTexture buffer)
     {
-        Game.EnsureRunning();
-        Buffer = buffer;
+        _buffer = buffer;
     }
-
-    public int Width => Buffer.Width;
-
-    public int Height => Buffer.Height;
-
-    public Vector2 Size => new(Width, Height);
 
     #region Transform
 
@@ -599,11 +592,11 @@ public readonly struct Graphics
             Rlgl.MultMatrixf(Raylib.GetCameraMatrix2D(camera2D));
         }
 
-        if (CurrentBuffer == Buffer)
+        if (CurrentBuffer == _buffer)
             return;
-        CurrentBuffer = Buffer;
+        CurrentBuffer = _buffer;
         Raylib.EndTextureMode();
-        Raylib.BeginTextureMode(Buffer.RenderTexture2D);
+        Raylib.BeginTextureMode(_buffer.RenderTexture2D);
     }
 
     private static void EndDrawing(Camera? camera = null)

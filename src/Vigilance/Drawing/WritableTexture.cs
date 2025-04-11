@@ -25,12 +25,14 @@ public sealed class WritableTexture
 
     public Vector2 Size => new(Width, Height);
 
-    public void UpdatePixels(Color[] colors)
+    public Graphics Graphics => new(this);
+
+    public void Update(Color[] pixels)
     {
-        UpdatePixels((ReadOnlySpan<Color>)colors);
+        Update((ReadOnlySpan<Color>)pixels);
     }
 
-    public void UpdatePixels(ReadOnlySpan<Color> colors)
+    public void Update(ReadOnlySpan<Color> pixels)
     {
         if (Graphics.CurrentBuffer == this)
         {
@@ -38,7 +40,7 @@ public sealed class WritableTexture
             Raylib.BeginTextureMode(RenderTexture2D);
         }
 
-        Raylib.UpdateTexture(RenderTexture2D.Texture, colors);
+        Raylib.UpdateTexture(RenderTexture2D.Texture, pixels);
     }
 
     public static implicit operator Texture(WritableTexture writableTexture)
