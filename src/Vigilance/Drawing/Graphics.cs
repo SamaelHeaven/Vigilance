@@ -304,6 +304,67 @@ public readonly struct Graphics
 
     #endregion
 
+    #region Ring
+
+    public void FillRing(
+        Vector2 center,
+        float innerRadius,
+        float outerRadius,
+        float startAngle,
+        float endAngle,
+        Color color,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawRing(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
+        EndDrawing(camera);
+    }
+
+    public void StrokeRing(
+        Vector2 center,
+        float innerRadius,
+        float outerRadius,
+        float startAngle,
+        float endAngle,
+        Color color,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawRingLines(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
+        EndDrawing(camera);
+    }
+
+    public void DrawRing(Transform transform, Ring ring)
+    {
+        DrawRing(transform, ref ring);
+    }
+
+    public void DrawRing(Transform transform, ref readonly Ring ring)
+    {
+        var camera = ring.Camera?.Invoke();
+        var startAngle = ring.StartAngle;
+        var endAngle = ring.EndAngle;
+        var fill = ring.Fill;
+        var stroke = ring.Stroke;
+        var position = transform.Position;
+        var scale = (MathF.Abs(transform.Scale.X) + MathF.Abs(transform.Scale.Y)) * 0.5f;
+        var innerRadius = ring.InnerRadius * scale;
+        var outerRadius = ring.OuterRadius * scale;
+        PushState();
+        Transform(transform, false, scale: false);
+        FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
+        StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, camera);
+        PopState();
+    }
+
+    #endregion
+
     #region Text
 
     public void FillText(
