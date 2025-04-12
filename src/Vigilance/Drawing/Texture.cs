@@ -39,11 +39,7 @@ public sealed class Texture
     {
         var buffer = Graphics.CurrentBuffer;
         if (_owner != null && buffer == _owner)
-        {
-            Raylib.EndTextureMode();
-            Raylib.BeginTextureMode(buffer.RenderTexture2D);
-        }
-
+            Rlgl.DrawRenderBatchActive();
         Raylib.SetTextureFilter(Texture2D, (TextureFilter)(filtering ?? Game.DefaultFiltering));
         var image = Raylib.LoadImageFromTexture(Texture2D);
         if (Writable)
