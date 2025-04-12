@@ -345,10 +345,11 @@ public readonly struct Graphics
         float startAngle,
         float endAngle,
         Color color,
+        float strokeWidth = 1,
         Camera? camera = null
     )
     {
-        StrokeRing(new Vector2(x, y), innerRadius, outerRadius, startAngle, endAngle, color, camera);
+        StrokeRing(new Vector2(x, y), innerRadius, outerRadius, startAngle, endAngle, color, strokeWidth, camera);
     }
 
     public void StrokeRing(
@@ -358,14 +359,27 @@ public readonly struct Graphics
         float startAngle,
         float endAngle,
         Color color,
+        float strokeWidth = 1,
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || strokeWidth <= 0)
             return;
+        var isNotDefaultWidth = !Precision.AreEqual(strokeWidth, 1);
+        if (isNotDefaultWidth)
+        {
+            Rlgl.DrawRenderBatchActive();
+            Rlgl.SetLineWidth(strokeWidth);
+        }
+
         BeginDrawing(camera);
+        var lineWidth = Rlgl.GetLineWidth();
         Raylib.DrawRingLines(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
         EndDrawing(camera);
+        if (!isNotDefaultWidth)
+            return;
+        Rlgl.SetLineWidth(lineWidth);
+        Rlgl.DrawRenderBatchActive();
     }
 
     public void DrawRing(Transform transform, Ring ring)
@@ -380,6 +394,7 @@ public readonly struct Graphics
         var endAngle = ring.EndAngle;
         var fill = ring.Fill;
         var stroke = ring.Stroke;
+        var strokeWidth = ring.StrokeWidth;
         var position = transform.Position;
         var scale = (MathF.Abs(transform.Scale.X) + MathF.Abs(transform.Scale.Y)) * 0.5f;
         var innerRadius = ring.InnerRadius * scale;
@@ -387,7 +402,7 @@ public readonly struct Graphics
         PushState();
         Transform(transform, false, scale: false);
         FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
-        StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, camera);
+        StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, camera);
         PopState();
     }
 
@@ -735,5 +750,6 @@ public readonly struct Graphics
     {
         if (camera.HasValue)
             PopState();
+        Rlgl.DrawRenderBatchActive();
     }
 }
