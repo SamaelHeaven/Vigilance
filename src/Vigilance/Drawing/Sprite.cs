@@ -8,7 +8,7 @@ public struct Sprite
     public bool FlippedHorizontally = false;
     public bool FlippedVertically = false;
     public Color Tint = Color.White;
-    public Interpolation Interpolation = Game.DefaultInterpolation;
+    public Filtering Filtering = Game.DefaultFiltering;
     public Func<Camera>? Camera = () => Game.Scene.Camera;
 
     public Sprite() { }

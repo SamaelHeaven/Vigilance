@@ -35,7 +35,7 @@ public sealed class Texture
 
     public bool Writable => _owner is WritableTexture;
 
-    public Image ToImage(Interpolation? interpolation = null)
+    public Image ToImage(Filtering? filtering = null)
     {
         var buffer = Graphics.CurrentBuffer;
         if (_owner != null && buffer == _owner)
@@ -44,7 +44,7 @@ public sealed class Texture
             Raylib.BeginTextureMode(buffer.RenderTexture2D);
         }
 
-        Raylib.SetTextureFilter(Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
+        Raylib.SetTextureFilter(Texture2D, (TextureFilter)(filtering ?? Game.DefaultFiltering));
         var image = Raylib.LoadImageFromTexture(Texture2D);
         if (Writable)
             Raylib.ImageFlipVertical(ref image);
@@ -53,7 +53,7 @@ public sealed class Texture
 
     public Texture Copy()
     {
-        var image = ToImage(Interpolation.None);
+        var image = ToImage(Filtering.Point);
         return image.ToTexture();
     }
 

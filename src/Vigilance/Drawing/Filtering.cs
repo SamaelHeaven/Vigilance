@@ -2,9 +2,9 @@ using Raylib_cs;
 
 namespace Vigilance.Drawing;
 
-public enum Interpolation
+public enum Filtering
 {
-    None = TextureFilter.Point,
+    Point = TextureFilter.Point,
     Bilinear = TextureFilter.Bilinear,
     Trilinear = TextureFilter.Trilinear,
     Anisotropic4X = TextureFilter.Anisotropic4X,

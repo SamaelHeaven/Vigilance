@@ -151,7 +151,7 @@ public sealed class Game
 
     public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis.Invoke();
 
-    public static Interpolation DefaultInterpolation => GetGame()._config.DefaultInterpolation;
+    public static Filtering DefaultFiltering => GetGame()._config.DefaultFiltering;
 
     public static Vector2 DefaultTextSpacing => GetGame()._config.DefaultTextSpacing;
 

@@ -9,22 +9,22 @@ public sealed class Renderer
     private static Renderer? _renderer;
     private readonly WritableTexture _buffer;
     private readonly Graphics _graphics;
-    private Interpolation _interpolation;
+    private Filtering _filtering;
 
     private Renderer()
     {
         Game.EnsureRunning();
         _buffer = new WritableTexture(Game.Size);
-        _interpolation = Game.DefaultInterpolation;
+        _filtering = Game.DefaultFiltering;
         _graphics = _buffer.Graphics;
         Raylib.BeginTextureMode(_buffer.RenderTexture2D);
         Graphics.CurrentBuffer = _buffer;
     }
 
-    public static Interpolation Interpolation
+    public static Filtering Filtering
     {
-        get => GetRenderer()._interpolation;
-        set => GetRenderer()._interpolation = value;
+        get => GetRenderer()._filtering;
+        set => GetRenderer()._filtering = value;
     }
 
     public static Graphics Graphics => GetRenderer()._graphics;
@@ -52,7 +52,7 @@ public sealed class Renderer
             width * scale,
             height * scale
         );
-        Raylib.SetTextureFilter(renderer._buffer.RenderTexture2D.Texture, (TextureFilter)renderer._interpolation);
+        Raylib.SetTextureFilter(renderer._buffer.RenderTexture2D.Texture, (TextureFilter)renderer._filtering);
         Raylib.EndTextureMode();
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Raylib_cs.Color.Black);

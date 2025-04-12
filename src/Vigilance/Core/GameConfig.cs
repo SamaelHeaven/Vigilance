@@ -23,7 +23,7 @@ public struct GameConfig
     public bool Vsync = true;
     public bool Resizable = true;
     public bool Debug = false;
-    public Interpolation DefaultInterpolation = Interpolation.None;
+    public Filtering DefaultFiltering = Filtering.Point;
     public Vector2 DefaultTextSpacing = new(0, 4);
     public int DefaultFontQuality = 128;
     public float DefaultFontSize = 16;
