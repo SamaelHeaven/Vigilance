@@ -18,6 +18,8 @@ public struct GraphicsSystem : ISystem
                 graphics.DrawCircle(entity.WorldTransform, ref entity.Get<Circle>());
             if (entity.Has<Ring>())
                 graphics.DrawRing(entity.WorldTransform, ref entity.Get<Ring>());
+            if (entity.Has<Line>())
+                graphics.DrawLine(entity.WorldTransform, ref entity.Get<Line>());
             if (entity.Has<Text>())
                 graphics.DrawText(entity.WorldTransform, ref entity.Get<Text>());
             if (entity.Has<Texture>())

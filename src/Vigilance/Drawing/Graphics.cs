@@ -75,12 +75,12 @@ public readonly struct Graphics
         var rotation = transform.Rotation;
         var positionOffset = -(scaling * 0.5f);
         var rotationOffset = position + pivotPoint;
+        if (scale)
+            Scale(scaling);
         if (rotate)
             Rotate(rotation, rotationOffset);
         if (translate)
             Translate(positionOffset);
-        if (scale)
-            Scale(scaling);
     }
 
     #endregion
@@ -307,6 +307,20 @@ public readonly struct Graphics
     #region Ring
 
     public void FillRing(
+        float x,
+        float y,
+        float innerRadius,
+        float outerRadius,
+        float startAngle,
+        float endAngle,
+        Color color,
+        Camera? camera = null
+    )
+    {
+        FillRing(new Vector2(x, y), innerRadius, outerRadius, startAngle, endAngle, color, camera);
+    }
+
+    public void FillRing(
         Vector2 center,
         float innerRadius,
         float outerRadius,
@@ -321,6 +335,20 @@ public readonly struct Graphics
         BeginDrawing(camera);
         Raylib.DrawRing(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
         EndDrawing(camera);
+    }
+
+    public void StrokeRing(
+        float x,
+        float y,
+        float innerRadius,
+        float outerRadius,
+        float startAngle,
+        float endAngle,
+        Color color,
+        Camera? camera = null
+    )
+    {
+        StrokeRing(new Vector2(x, y), innerRadius, outerRadius, startAngle, endAngle, color, camera);
     }
 
     public void StrokeRing(
@@ -360,6 +388,52 @@ public readonly struct Graphics
         Transform(transform, false, scale: false);
         FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
         StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, camera);
+        PopState();
+    }
+
+    #endregion
+
+    #region Line
+
+    public void DrawLine(
+        float startX,
+        float startY,
+        float endX,
+        float endY,
+        Color color,
+        float thickness = 1,
+        Camera? camera = null
+    )
+    {
+        DrawLine(new Vector2(startX, startY), new Vector2(endX, endY), color, thickness, camera);
+    }
+
+    public void DrawLine(Vector2 start, Vector2 end, Color color, float thickness = 1, Camera? camera = null)
+    {
+        if (color == Color.Transparent)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawLineEx(start, end, thickness, color.RColor);
+        EndDrawing(camera);
+    }
+
+    public void DrawLine(Transform transform, Line line)
+    {
+        DrawLine(transform, ref line);
+    }
+
+    public void DrawLine(Transform transform, ref readonly Line line)
+    {
+        var camera = line.Camera?.Invoke();
+        var position = transform.Position;
+        var start = line.Start + position;
+        var end = line.End + position;
+        var color = line.Color;
+        var thickness = line.Thickness;
+        var scale = (MathF.Abs(transform.Scale.X) + MathF.Abs(transform.Scale.Y)) * 0.5f;
+        PushState();
+        Transform(transform, false, scale: false);
+        DrawLine(start, end, color, thickness * scale, camera);
         PopState();
     }
 
