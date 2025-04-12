@@ -365,18 +365,18 @@ public readonly struct Graphics
     {
         if (color == Color.Transparent || strokeWidth <= 0)
             return;
-        var isNotDefaultWidth = !Precision.AreEqual(strokeWidth, 1);
-        if (isNotDefaultWidth)
+        var lineWidth = Rlgl.GetLineWidth();
+        var lineWidthChanged = !Precision.AreEqual(strokeWidth, lineWidth);
+        if (lineWidthChanged)
         {
             Rlgl.DrawRenderBatchActive();
             Rlgl.SetLineWidth(strokeWidth);
         }
 
         BeginDrawing(camera);
-        var lineWidth = Rlgl.GetLineWidth();
         Raylib.DrawRingLines(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
         EndDrawing(camera);
-        if (!isNotDefaultWidth)
+        if (!lineWidthChanged)
             return;
         Rlgl.SetLineWidth(lineWidth);
         Rlgl.DrawRenderBatchActive();
