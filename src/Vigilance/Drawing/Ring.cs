@@ -1,11 +1,9 @@
 using Vigilance.Core;
-using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
 public struct Ring
 {
-    public Vector2 Center = Vector2.Zero;
     public float InnerRadius = 0;
     public float OuterRadius = 0;
     public float StartAngle = 0;
