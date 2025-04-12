@@ -378,8 +378,8 @@ public readonly struct Graphics
         EndDrawing(camera);
         if (!changeLineWidth)
             return;
-        Rlgl.SetLineWidth(lineWidth);
         Rlgl.DrawRenderBatchActive();
+        Rlgl.SetLineWidth(lineWidth);
     }
 
     public void DrawRing(Transform transform, Ring ring)
@@ -750,6 +750,5 @@ public readonly struct Graphics
     {
         if (camera.HasValue)
             PopState();
-        Rlgl.DrawRenderBatchActive();
     }
 }
