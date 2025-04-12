@@ -667,8 +667,8 @@ public readonly struct Graphics
         var texture = sprite.Texture;
         var filtering = sprite.Filtering;
         var tint = sprite.Tint;
-        var flippedHorizontally = sprite.FlippedHorizontally;
-        var flippedVertically = sprite.FlippedVertically;
+        var flipX = sprite.FlipX;
+        var flipY = sprite.FlipY;
         var position = transform.Position;
         var scale = transform.Scale;
         PushState();
@@ -677,10 +677,7 @@ public readonly struct Graphics
             texture,
             new Box(
                 Vector2.Zero,
-                new Vector2(
-                    flippedHorizontally ? -texture.Width : texture.Width,
-                    flippedVertically ? -texture.Height : texture.Height
-                )
+                new Vector2(flipX ? -texture.Width : texture.Width, flipY ? -texture.Height : texture.Height)
             ),
             new Box(position, scale),
             tint,
