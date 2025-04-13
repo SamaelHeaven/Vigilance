@@ -12,7 +12,7 @@ public struct Text
     public float FontSize = Game.DefaultFontSize;
     public float StrokeWidth = 0;
     public Vector2 Spacing = Game.DefaultTextSpacing;
-    public Filtering? Filtering = null;
+    public Interpolation? Interpolation = null;
     public Func<Camera>? Camera = () => Game.Scene.Camera;
 
     public readonly Vector2 Size => Font.MeasureText(Value, FontSize, Spacing);

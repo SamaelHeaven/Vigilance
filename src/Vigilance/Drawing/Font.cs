@@ -156,7 +156,7 @@ public sealed unsafe class Font
                 Width = width,
                 Height = height,
                 Format = PixelFormat.UncompressedGrayAlpha,
-                Mipmaps = 1
+                Mipmaps = 1,
             };
             result.Id = Rlgl.LoadTexture(data, result.Width, result.Height, result.Format, result.Mipmaps);
             return result;

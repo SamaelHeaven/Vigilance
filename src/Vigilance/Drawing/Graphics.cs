@@ -464,11 +464,11 @@ public readonly struct Graphics
         Font? font = null,
         float? fontSize = null,
         Vector2? spacing = null,
-        Filtering? filtering = null,
+        Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
-        FillText(text, new Vector2(x, y), color, font, fontSize, spacing, filtering, camera);
+        FillText(text, new Vector2(x, y), color, font, fontSize, spacing, interpolation, camera);
     }
 
     public void FillText(
@@ -478,14 +478,14 @@ public readonly struct Graphics
         Font? font = null,
         float? fontSize = null,
         Vector2? spacing = null,
-        Filtering? filtering = null,
+        Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
         if (text == "" || color == Color.Transparent)
             return;
         font ??= Game.DefaultFont;
-        Raylib.SetTextureFilter(font.Atlas, (TextureFilter)(filtering ?? Game.DefaultFiltering));
+        Raylib.SetTextureFilter(font.Atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDrawing(camera);
         var rColor = color.RColor;
         font.HandleText(
@@ -516,11 +516,11 @@ public readonly struct Graphics
         float? fontSize = null,
         float strokeWidth = 4,
         Vector2? spacing = null,
-        Filtering? filtering = null,
+        Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
-        StrokeText(text, new Vector2(x, y), color, font, fontSize, strokeWidth, spacing, filtering, camera);
+        StrokeText(text, new Vector2(x, y), color, font, fontSize, strokeWidth, spacing, interpolation, camera);
     }
 
     public void StrokeText(
@@ -531,7 +531,7 @@ public readonly struct Graphics
         float? fontSize = null,
         float strokeWidth = 4,
         Vector2? spacing = null,
-        Filtering? filtering = null,
+        Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
@@ -539,7 +539,7 @@ public readonly struct Graphics
             return;
         font ??= Game.DefaultFont;
         var (atlas, glyphInfos) = font.GetStroke((int)MathF.Round(strokeWidth));
-        Raylib.SetTextureFilter(atlas, (TextureFilter)(filtering ?? Game.DefaultFiltering));
+        Raylib.SetTextureFilter(atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDrawing(camera);
         var rColor = color.RColor;
         font.HandleText(
@@ -577,15 +577,15 @@ public readonly struct Graphics
         var fontSize = text.FontSize;
         var strokeWidth = text.StrokeWidth;
         var spacing = text.Spacing;
-        var filtering = text.Filtering;
+        var interpolation = text.Interpolation;
         var position = transform.Position;
         var scale = transform.Scale;
         PushState();
         fontSize *= (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.5f;
         transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
         Transform(transform, scale: false);
-        FillText(value, position, fill, font, fontSize, spacing, filtering, camera);
-        StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, filtering, camera);
+        FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
+        StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
         PopState();
     }
 
@@ -598,11 +598,11 @@ public readonly struct Graphics
         float x,
         float y,
         Color? tint = null,
-        Filtering? filtering = null,
+        Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
-        DrawTexture(texture, new Vector2(x, y), null, tint, filtering, camera);
+        DrawTexture(texture, new Vector2(x, y), null, tint, interpolation, camera);
     }
 
     public void DrawTexture(
@@ -612,22 +612,22 @@ public readonly struct Graphics
         float width,
         float height,
         Color? tint = null,
-        Filtering? filtering = null,
+        Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
-        DrawTexture(texture, new Vector2(x, y), new Vector2(width, height), tint, filtering, camera);
+        DrawTexture(texture, new Vector2(x, y), new Vector2(width, height), tint, interpolation, camera);
     }
 
     public void DrawTexture(
         Texture texture,
         Box box,
         Color? tint = null,
-        Filtering? filtering = null,
+        Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
-        DrawTexture(texture, box.Position, box.Size, tint, filtering, camera);
+        DrawTexture(texture, box.Position, box.Size, tint, interpolation, camera);
     }
 
     public void DrawTexture(
@@ -635,7 +635,7 @@ public readonly struct Graphics
         Vector2 position,
         Vector2? size = null,
         Color? tint = null,
-        Filtering? filtering = null,
+        Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
@@ -644,7 +644,7 @@ public readonly struct Graphics
             new Box(Vector2.Zero, texture.Size),
             new Box(position, size ?? texture.Size),
             tint,
-            filtering,
+            interpolation,
             camera
         );
     }
@@ -654,11 +654,11 @@ public readonly struct Graphics
         Box source,
         Box dest,
         Color? tint = null,
-        Filtering? filtering = null,
+        Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
-        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(filtering ?? Game.DefaultFiltering));
+        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDrawing(camera);
         var rSource = new Raylib_cs.Rectangle(
             source.X,
@@ -680,7 +680,7 @@ public readonly struct Graphics
     {
         var camera = sprite.Camera?.Invoke();
         var texture = sprite.Texture;
-        var filtering = sprite.Filtering;
+        var interpolation = sprite.Interpolation;
         var tint = sprite.Tint;
         var flipX = sprite.FlipX;
         var flipY = sprite.FlipY;
@@ -696,7 +696,7 @@ public readonly struct Graphics
             ),
             new Box(position, scale),
             tint,
-            filtering,
+            interpolation,
             camera
         );
         PopState();
