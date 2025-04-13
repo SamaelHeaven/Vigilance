@@ -14,10 +14,14 @@ public sealed class Image
         RImage = image;
     }
 
-    public Image(string fileType, byte[] bytes)
+    public unsafe Image(string fileType, ReadOnlySpan<byte> bytes)
     {
         Game.EnsureRunning();
-        RImage = Raylib.LoadImageFromMemory(fileType, bytes);
+        using var fileTypeBuffer = fileType.ToUtf8Buffer();
+        fixed (byte* bytesBuffer = bytes)
+        {
+            RImage = Raylib.LoadImageFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, bytes.Length);
+        }
     }
 
     public Image(int width, int height, Color? color = null)

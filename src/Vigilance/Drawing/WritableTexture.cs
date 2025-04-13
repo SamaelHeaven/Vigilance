@@ -27,11 +27,6 @@ public sealed class WritableTexture
 
     public Graphics Graphics => new(this);
 
-    public void Update(Color[] pixels)
-    {
-        Update((ReadOnlySpan<Color>)pixels);
-    }
-
     public void Update(ReadOnlySpan<Color> pixels)
     {
         if (Graphics.CurrentBuffer == this)

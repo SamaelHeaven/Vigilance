@@ -137,7 +137,7 @@ public static unsafe partial class FileSystem
         return ms.ToArray();
     }
 
-    public static bool WriteBytes(string path, byte[] bytes)
+    public static bool WriteBytes(string path, ReadOnlySpan<byte> bytes)
     {
         path = FormatPath(path);
         using var pathBuffer = path.ToUtf8Buffer();

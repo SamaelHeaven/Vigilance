@@ -18,7 +18,7 @@ public sealed unsafe class Font
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
 
-    public Font(byte[] bytes, int? quality = null, string? charset = null)
+    public Font(ReadOnlySpan<byte> bytes, int? quality = null, string? charset = null)
     {
         Game.EnsureRunning();
         _quality = quality ?? Game.DefaultFontQuality;
@@ -79,10 +79,14 @@ public sealed unsafe class Font
         }
     }
 
-    private List<Glyph> LoadGlyphs(byte[] bytes)
+    private List<Glyph> LoadGlyphs(ReadOnlySpan<byte> bytes)
     {
         _buffer = Marshal.AllocHGlobal(bytes.Length);
-        Marshal.Copy(bytes, 0, _buffer, bytes.Length);
+        fixed (byte* bytesBuffer = bytes)
+        {
+            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, bytes.Length, bytes.Length);
+        }
+
         fixed (FT_FaceRec_** face = &_face)
         {
             FtEnsureOk(FT.FT_New_Memory_Face(FtLibrary.Native, (byte*)_buffer, bytes.Length, 0, face));
@@ -149,7 +153,7 @@ public sealed unsafe class Font
             offset = 0;
         }
 
-        fixed (byte* data = pixels)
+        fixed (byte* pixelsBuffer = pixels)
         {
             var result = new Texture2D
             {
@@ -158,7 +162,7 @@ public sealed unsafe class Font
                 Format = PixelFormat.UncompressedGrayAlpha,
                 Mipmaps = 1,
             };
-            result.Id = Rlgl.LoadTexture(data, result.Width, result.Height, result.Format, result.Mipmaps);
+            result.Id = Rlgl.LoadTexture(pixelsBuffer, result.Width, result.Height, result.Format, result.Mipmaps);
             return result;
         }
     }
