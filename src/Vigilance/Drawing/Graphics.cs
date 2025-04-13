@@ -304,6 +304,60 @@ public readonly struct Graphics
 
     #endregion
 
+    #region Triangle
+
+    public void FillTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color, Camera? camera = null)
+    {
+        if (color == Color.Transparent)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawTriangle(v1, v2, v3, color.RColor);
+        EndDrawing(camera);
+    }
+
+    public void StrokeTriangle(
+        Vector2 v1,
+        Vector2 v2,
+        Vector2 v3,
+        Color color,
+        float strokeWidth = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || strokeWidth <= 0)
+            return;
+        BeginStroke(strokeWidth);
+        BeginDrawing(camera);
+        Raylib.DrawTriangleLines(v1, v2, v3, color.RColor);
+        EndDrawing(camera);
+        EndStroke();
+    }
+
+    public void DrawTriangle(Transform transform, Triangle triangle)
+    {
+        DrawTriangle(transform, ref triangle);
+    }
+
+    public void DrawTriangle(Transform transform, ref readonly Triangle triangle)
+    {
+        var camera = triangle.Camera?.Invoke();
+        var fill = triangle.Fill;
+        var stroke = triangle.Stroke;
+        var strokeWidth = triangle.StrokeWidth;
+        var position = transform.Position;
+        var scale = transform.Scale.Abs();
+        var v1 = triangle.V1 * scale + position;
+        var v2 = triangle.V2 * scale + position;
+        var v3 = triangle.V3 * scale + position;
+        PushState();
+        Transform(transform, false, scale: false);
+        FillTriangle(v1, v2, v3, fill, camera);
+        StrokeTriangle(v1, v2, v3, stroke, strokeWidth, camera);
+        PopState();
+    }
+
+    #endregion
+
     #region Ring
 
     public void FillRing(
@@ -365,21 +419,11 @@ public readonly struct Graphics
     {
         if (color == Color.Transparent || strokeWidth <= 0)
             return;
-        var lineWidth = Rlgl.GetLineWidth();
-        var changeLineWidth = !Precision.AreEqual(strokeWidth, lineWidth);
-        if (changeLineWidth)
-        {
-            Rlgl.DrawRenderBatchActive();
-            Rlgl.SetLineWidth(strokeWidth);
-        }
-
+        BeginStroke(strokeWidth);
         BeginDrawing(camera);
         Raylib.DrawRingLines(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
         EndDrawing(camera);
-        if (!changeLineWidth)
-            return;
-        Rlgl.DrawRenderBatchActive();
-        Rlgl.SetLineWidth(lineWidth);
+        EndStroke();
     }
 
     public void DrawRing(Transform transform, Ring ring)
@@ -750,5 +794,21 @@ public readonly struct Graphics
     {
         if (camera.HasValue)
             PopState();
+    }
+
+    private static void BeginStroke(float strokeWidth)
+    {
+        if (Precision.AreEqual(strokeWidth, 1))
+            return;
+        Rlgl.DrawRenderBatchActive();
+        Rlgl.SetLineWidth(strokeWidth);
+    }
+
+    private static void EndStroke()
+    {
+        if (Precision.AreEqual(Rlgl.GetLineWidth(), 1))
+            return;
+        Rlgl.DrawRenderBatchActive();
+        Rlgl.SetLineWidth(1);
     }
 }
