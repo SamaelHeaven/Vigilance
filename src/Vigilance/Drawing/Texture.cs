@@ -25,7 +25,7 @@ public sealed class Texture
         Raylib.UnloadImage(image);
     }
 
-    public static Texture Empty => _empty ??= new Image(0, 0).ToTexture();
+    public static Texture Empty => _empty ??= new Image(1, 1).ToTexture();
 
     public int Width => Texture2D.Width;
 
