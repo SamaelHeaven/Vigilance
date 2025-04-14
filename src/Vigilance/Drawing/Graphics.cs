@@ -403,33 +403,33 @@ public readonly struct Graphics
         PopState();
     }
 
-    public unsafe void FillCustomPolygon(ReadOnlySpan<Vector2> points, Color color, Camera? camera = null)
+    public unsafe void FillCustomPolygon(IReadOnlyList<Vector2> points, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent || points.Length < 3)
+        if (color == Color.Transparent || points.Count < 3)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = points)
+        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
         {
-            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, points.Length, color.RColor);
+            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, points.Count, color.RColor);
         }
 
         EndDrawing(camera);
     }
 
     public void StrokeCustomPolygon(
-        ReadOnlySpan<Vector2> points,
+        IReadOnlyList<Vector2> points,
         Color color,
         float strokeWidth = 1,
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0 || points.Length < 3)
+        if (color == Color.Transparent || strokeWidth <= 0 || points.Count < 3)
             return;
         BeginDrawing(camera);
-        for (var i = 0; i < points.Length; i++)
+        for (var i = 0; i < points.Count; i++)
         {
             var start = points[i];
-            var end = points[(i + 1) % points.Length];
+            var end = points[(i + 1) % points.Count];
             Raylib.DrawLineEx(start, end, strokeWidth, color.RColor);
             Raylib.DrawCircleV(start, strokeWidth * 0.5f, color.RColor);
         }

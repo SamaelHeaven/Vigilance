@@ -5,11 +5,11 @@ namespace Vigilance.Input;
 
 public struct InputAxis
 {
-    public ICollection<Key> NegativeKeys = [];
-    public ICollection<Key> PositiveKeys = [];
-    public ICollection<GamepadButton> NegativeGamepadButtons = [];
-    public ICollection<GamepadButton> PositiveGamepadButtons = [];
-    public ICollection<GamepadAxis> GamepadAxes = [];
+    public IReadOnlyList<Key> NegativeKeys = Array.Empty<Key>();
+    public IReadOnlyList<Key> PositiveKeys = Array.Empty<Key>();
+    public IReadOnlyList<GamepadButton> NegativeGamepadButtons = Array.Empty<GamepadButton>();
+    public IReadOnlyList<GamepadButton> PositiveGamepadButtons = Array.Empty<GamepadButton>();
+    public IReadOnlyList<GamepadAxis> GamepadAxes = Array.Empty<GamepadAxis>();
     public Gamepad Gamepad = Gamepad.First;
 
     public static InputAxis Horizontal => Game.HorizontalInputAxis;
