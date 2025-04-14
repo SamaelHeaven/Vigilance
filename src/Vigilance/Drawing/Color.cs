@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Raylib_cs;
 using Exception = System.Exception;
 
 namespace Vigilance.Drawing;
@@ -47,6 +48,15 @@ public struct Color
         A = a;
     }
 
+    public Color(uint hexadecimal)
+    {
+        var color = Raylib.GetColor(hexadecimal);
+        R = color.R;
+        G = color.G;
+        B = color.B;
+        A = color.A;
+    }
+
     public Color(string hexadecimal)
     {
         try
@@ -56,9 +66,9 @@ public struct Color
             if (hexadecimal.Length != 6 && hexadecimal.Length != 8)
                 throw new Exception();
             R = Convert.ToByte(hexadecimal[..2], 16);
-            G = Convert.ToByte(hexadecimal.Substring(2, 2), 16);
-            B = Convert.ToByte(hexadecimal.Substring(4, 2), 16);
-            A = hexadecimal.Length == 8 ? Convert.ToByte(hexadecimal.Substring(6, 2), 16) : (byte)255;
+            G = Convert.ToByte(hexadecimal[2..4], 16);
+            B = Convert.ToByte(hexadecimal[4..6], 16);
+            A = hexadecimal.Length == 8 ? Convert.ToByte(hexadecimal[6..8], 16) : (byte)255;
         }
         catch (Exception)
         {
@@ -91,6 +101,11 @@ public struct Color
         return (color.G, color.B, color.B, color.A);
     }
 
+    public static implicit operator int(Color color)
+    {
+        return Raylib.ColorToInt(color.RColor);
+    }
+
     internal Raylib_cs.Color RColor => new(R, G, B, A);
 
     public override string ToString()
@@ -116,5 +131,40 @@ public struct Color
     public override int GetHashCode()
     {
         return HashCode.Combine(R, G, B, A);
+    }
+
+    public Color Fade(float alpha)
+    {
+        return new Color(Raylib.ColorAlpha(RColor, alpha));
+    }
+
+    public Color Tint(Color color)
+    {
+        return new Color(Raylib.ColorTint(RColor, color.RColor));
+    }
+
+    public Color Brightness(float factor)
+    {
+        return new Color(Raylib.ColorBrightness(RColor, factor));
+    }
+
+    public Color Contrast(float factor)
+    {
+        return new Color(Raylib.ColorContrast(RColor, factor));
+    }
+
+    public Color Alpha(float alpha)
+    {
+        return new Color(Raylib.ColorAlpha(RColor, alpha));
+    }
+
+    public Color AlphaBlend(Color src, Color tint)
+    {
+        return new Color(Raylib.ColorAlphaBlend(RColor, src.RColor, tint.RColor));
+    }
+
+    public Color Lerp(Color color, float factor)
+    {
+        return new Color(Raylib.ColorLerp(RColor, color.RColor, factor));
     }
 }
