@@ -14,10 +14,14 @@ public sealed class Image
         RImage = image;
     }
 
-    public Image(string fileType, byte[] bytes)
+    public unsafe Image(string fileType, ReadOnlySpan<byte> bytes)
     {
         Game.EnsureRunning();
-        RImage = Raylib.LoadImageFromMemory(fileType, bytes);
+        using var fileTypeBuffer = fileType.ToUtf8Buffer();
+        fixed (byte* bytesBuffer = bytes)
+        {
+            RImage = Raylib.LoadImageFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, bytes.Length);
+        }
     }
 
     public Image(int width, int height, Color? color = null)
@@ -42,6 +46,20 @@ public sealed class Image
         return new Image(Raylib.ImageCopy(RImage));
     }
 
+    public unsafe Color[] GetPixels()
+    {
+        var colors = Raylib.LoadImageColors(RImage);
+        var pixels = new Color[Width * Height];
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            var color = colors[i];
+            pixels[i] = new Color(color.R, color.G, color.B, color.A);
+        }
+
+        Raylib.UnloadImageColors(colors);
+        return pixels;
+    }
+
     public Color GetPixel(Vector2 position)
     {
         return GetPixel((int)position.X, (int)position.Y);
@@ -52,24 +70,106 @@ public sealed class Image
         return new Color(Raylib.GetImageColor(RImage, x, y));
     }
 
-    public void SetPixel(Vector2 position, Color color)
+    public Image SetPixel(Vector2 position, Color color)
     {
         SetPixel((int)position.X, (int)position.Y, color);
+        return this;
     }
 
-    public void SetPixel(int x, int y, Color color)
+    public Image SetPixel(int x, int y, Color color)
     {
         Raylib.ImageDrawPixel(ref RImage, x, y, color.RColor);
+        return this;
     }
 
-    public void FlipHorizontally()
+    public Image ReplaceColor(Color from, Color to)
+    {
+        Raylib.ImageColorReplace(ref RImage, from.RColor, to.RColor);
+        return this;
+    }
+
+    public Image Crop(float x, float y, float width, float height)
+    {
+        Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(x, y, width, height));
+        return this;
+    }
+
+    public Image Crop(Vector2 position, Vector2 size)
+    {
+        Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(position, size));
+        return this;
+    }
+
+    public Image Crop(Box box)
+    {
+        Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(box.X, box.Y, box.Width, box.Height));
+        return this;
+    }
+
+    public Image FlipHorizontally()
     {
         Raylib.ImageFlipHorizontal(ref RImage);
+        return this;
     }
 
-    public void FlipVertically()
+    public Image FlipVertically()
     {
         Raylib.ImageFlipVertical(ref RImage);
+        return this;
+    }
+
+    public Image KernelConvolution(float[] kernel)
+    {
+        Raylib.ImageKernelConvolution(ref RImage, kernel);
+        return this;
+    }
+
+    public Image Blur(int blur)
+    {
+        if (blur > 0)
+            Raylib.ImageBlurGaussian(ref RImage, blur);
+        return this;
+    }
+
+    public Image Tint(Color color)
+    {
+        Raylib.ImageColorTint(ref RImage, color.RColor);
+        return this;
+    }
+
+    public Image Invert()
+    {
+        Raylib.ImageColorInvert(ref RImage);
+        return this;
+    }
+
+    public Image Grayscale()
+    {
+        Raylib.ImageColorGrayscale(ref RImage);
+        return this;
+    }
+
+    public Image Contrast(float contrast)
+    {
+        Raylib.ImageColorContrast(ref RImage, contrast);
+        return this;
+    }
+
+    public Image Brightness(int brightness)
+    {
+        Raylib.ImageColorBrightness(ref RImage, brightness);
+        return this;
+    }
+
+    public Image Rotate(int angle)
+    {
+        Raylib.ImageRotate(ref RImage, angle);
+        return this;
+    }
+
+    public void Export(string path)
+    {
+        Raylib.ExportImage(RImage, FileSystem.FormatPath(path));
     }
 
     ~Image()

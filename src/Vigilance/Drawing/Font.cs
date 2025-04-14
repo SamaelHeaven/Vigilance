@@ -18,7 +18,7 @@ public sealed unsafe class Font
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
 
-    public Font(byte[] bytes, int? quality = null, string? charset = null)
+    public Font(ReadOnlySpan<byte> bytes, int? quality = null, string? charset = null)
     {
         Game.EnsureRunning();
         _quality = quality ?? Game.DefaultFontQuality;
@@ -31,7 +31,7 @@ public sealed unsafe class Font
 
     public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)
     {
-        var (spacingX, spacingY) = (spacing ?? Game.DefaultTextSpacing).ToTuple();
+        var (spacingX, spacingY) = ((float, float))(spacing ?? Game.DefaultTextSpacing);
         var size = new Vector2(0, fontSize + text.Count(c => c == '\n') * (fontSize + spacingY));
         HandleText(
             (_, _, destPosition, destSize) =>
@@ -79,10 +79,14 @@ public sealed unsafe class Font
         }
     }
 
-    private List<Glyph> LoadGlyphs(byte[] bytes)
+    private List<Glyph> LoadGlyphs(ReadOnlySpan<byte> bytes)
     {
         _buffer = Marshal.AllocHGlobal(bytes.Length);
-        Marshal.Copy(bytes, 0, _buffer, bytes.Length);
+        fixed (byte* bytesBuffer = bytes)
+        {
+            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, bytes.Length, bytes.Length);
+        }
+
         fixed (FT_FaceRec_** face = &_face)
         {
             FtEnsureOk(FT.FT_New_Memory_Face(FtLibrary.Native, (byte*)_buffer, bytes.Length, 0, face));
@@ -102,36 +106,65 @@ public sealed unsafe class Font
     private Texture2D DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
     {
         const int spacing = 2;
-        var width = glyphs.Sum(glyph => glyph.Width) + (glyphs.Count - 1) * spacing + spacing * 2;
-        var height = glyphs.Select(glyph => glyph.Height).Prepend(0).Max() + spacing * 2;
-        var image = Raylib.GenImageColor(width, height, Raylib_cs.Color.Blank);
+        const int nbCols = 10;
+        var colSize = glyphs.Select(glyph => glyph.Width).Prepend(0).Max();
+        var rowSize = glyphs.Select(glyph => glyph.Height).Prepend(0).Max();
+        var nbRows = (int)MathF.Ceiling(glyphs.Count / (float)nbCols);
+        var width = nbCols * (colSize + spacing) + spacing;
+        var height = nbRows * (rowSize + spacing) + spacing;
+        var pixels = new byte[width * height * 2];
         var maxAscent = glyphs.Select(glyph => glyph.BearerY).Prepend(0).Max();
         var x = spacing;
+        var y = spacing;
+        var offset = 0;
         foreach (var glyph in glyphs)
         {
-            for (var row = 0; row < glyph.Height; row++)
-            for (var col = 0; col < glyph.Width; col++)
+            var glyphWidth = glyph.Width;
+            var glyphHeight = glyph.Height;
+            for (var i = 0; i < glyphWidth * glyphHeight; i++)
             {
-                var alpha = glyph.Bitmap[row * glyph.Width + col];
-                if (alpha == 255)
-                    Raylib.ImageDrawPixel(ref image, x + col, row + spacing, Raylib_cs.Color.White);
+                var row = i / glyphWidth;
+                var col = i % glyphWidth;
+                var alpha = glyph.Bitmap[i];
+                if (alpha != 255)
+                    continue;
+                var px = x + col;
+                var py = y + row;
+                var index = (py * width + px) * 2;
+                pixels[index] = 255;
+                pixels[index + 1] = 255;
             }
 
             (glyphInfos ?? _glyphInfos)[glyph.Character] = new GlyphInfo(
                 x,
-                spacing,
+                y,
                 glyph.Width,
                 glyph.Height,
                 glyph.Advance,
                 glyph.BearerX,
                 maxAscent - glyph.BearerY
             );
-            x += glyph.Width + spacing;
+            x += colSize + spacing;
+            offset++;
+            if (offset != nbCols)
+                continue;
+            x = spacing;
+            y += rowSize + spacing;
+            offset = 0;
         }
 
-        var result = Raylib.LoadTextureFromImage(image);
-        Raylib.UnloadImage(image);
-        return result;
+        fixed (byte* pixelsBuffer = pixels)
+        {
+            var result = new Texture2D
+            {
+                Width = width,
+                Height = height,
+                Format = PixelFormat.UncompressedGrayAlpha,
+                Mipmaps = 1,
+            };
+            result.Id = Rlgl.LoadTexture(pixelsBuffer, result.Width, result.Height, result.Format, result.Mipmaps);
+            return result;
+        }
     }
 
     private Glyph? LoadGlyph(char c, bool stroke)
@@ -173,6 +206,7 @@ public sealed unsafe class Font
 
     internal (Texture2D, Dictionary<char, GlyphInfo>) GetStroke(int strokeWidth)
     {
+        strokeWidth = System.Math.Clamp(strokeWidth, 0, 50);
         if (_strokes.TryGetValue(strokeWidth, out var stroke))
             return stroke;
         FT.FT_Stroker_Set(
@@ -204,8 +238,8 @@ public sealed unsafe class Font
             FT.FT_Done_Face(_face);
             Marshal.FreeHGlobal(_buffer);
             Raylib.UnloadTexture(Atlas);
-            foreach (var stroke in _strokes)
-                Raylib.UnloadTexture(stroke.Value.Item1);
+            foreach (var (_, (atlas, _)) in _strokes)
+                Raylib.UnloadTexture(atlas);
         });
     }
 

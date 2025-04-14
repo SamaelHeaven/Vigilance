@@ -1,7 +1,9 @@
+using System.Runtime.InteropServices;
 using Exception = System.Exception;
 
 namespace Vigilance.Drawing;
 
+[StructLayout(LayoutKind.Sequential)]
 public struct Color
 {
     public static readonly Color White = new(255, 255, 255);
@@ -90,11 +92,6 @@ public struct Color
     }
 
     internal Raylib_cs.Color RColor => new(R, G, B, A);
-
-    public (byte, byte, byte, byte) ToTuple()
-    {
-        return this;
-    }
 
     public override string ToString()
     {

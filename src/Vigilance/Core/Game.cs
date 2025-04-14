@@ -10,7 +10,7 @@ namespace Vigilance.Core;
 
 public sealed class Game
 {
-    internal static readonly List<ISystem> Systems = [];
+    internal static readonly List<ISystem> SystemList = [];
     private static Game? _game;
     private readonly List<Action> _actions = [];
     private GameConfig _config;
@@ -20,8 +20,7 @@ public sealed class Game
 
     static Game()
     {
-        System(new CameraSystem());
-        System(new GraphicsSystem());
+        Systems([new GraphicsSystem()]);
     }
 
     private Game()
@@ -121,17 +120,17 @@ public sealed class Game
         }
     }
 
-    public static Key? ExitKey
+    public static Key ExitKey
     {
         get => GetGame()._config.ExitKey;
         set
         {
             GetGame()._config.ExitKey = value;
-            Raylib.SetExitKey(value.HasValue ? (KeyboardKey)value.Value : KeyboardKey.Null);
+            Raylib.SetExitKey((KeyboardKey)value);
         }
     }
 
-    public static Key? FullscreenKey
+    public static Key FullscreenKey
     {
         get => GetGame()._config.FullscreenKey;
         set => GetGame()._config.FullscreenKey = value;
@@ -148,6 +147,10 @@ public sealed class Game
         }
     }
 
+    public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis.Invoke();
+
+    public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis.Invoke();
+
     public static Interpolation DefaultInterpolation => GetGame()._config.DefaultInterpolation;
 
     public static Vector2 DefaultTextSpacing => GetGame()._config.DefaultTextSpacing;
@@ -156,9 +159,58 @@ public sealed class Game
 
     public static float DefaultFontSize => GetGame()._config.DefaultFontSize;
 
-    public static Font DefaultFont => GetGame()._config.DefaultFont();
+    public static Font DefaultFont => GetGame()._config.DefaultFont.Invoke();
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
+
+    public static bool Debug
+    {
+        get => GetGame()._config.Debug;
+        set
+        {
+            GetGame()._config.Debug = value;
+            Raylib.SetTraceLogLevel(value ? TraceLogLevel.All : TraceLogLevel.Error);
+        }
+    }
+
+    public static bool Hidden
+    {
+        get
+        {
+            EnsureRunning();
+            return Raylib.IsWindowHidden();
+        }
+    }
+
+    public static bool Maximized
+    {
+        get
+        {
+            EnsureRunning();
+            return Raylib.IsWindowMaximized();
+        }
+        set
+        {
+            EnsureRunning();
+            if (!Maximized && value)
+                Raylib.MaximizeWindow();
+        }
+    }
+
+    public static bool Minimized
+    {
+        get
+        {
+            EnsureRunning();
+            return Raylib.IsWindowMinimized();
+        }
+        set
+        {
+            EnsureRunning();
+            if (!Minimized && value)
+                Raylib.MinimizeWindow();
+        }
+    }
 
     public static bool Focused
     {
@@ -174,10 +226,22 @@ public sealed class Game
         return new Image(Raylib.LoadImageFromScreen());
     }
 
+    public static void OpenUrl(string url)
+    {
+        EnsureRunning();
+        Raylib.OpenURL(url);
+    }
+
     public static void System(ISystem system)
     {
         EnsureNotRunning();
-        Systems.Add(system);
+        SystemList.Add(system);
+    }
+
+    public static void Systems(IEnumerable<ISystem> systems)
+    {
+        EnsureNotRunning();
+        SystemList.AddRange(systems);
     }
 
     public static void EnsureRunning()
@@ -213,12 +277,14 @@ public sealed class Game
         Raylib.SetConfigFlags(game.GetConfigFlags());
         Raylib.InitWindow(config.Width, config.Height, config.Title);
         Raylib.SetTargetFPS(config.FpsTarget);
-        Raylib.SetExitKey(config.ExitKey.HasValue ? (KeyboardKey)config.ExitKey.Value : KeyboardKey.Null);
+        Raylib.SetExitKey((KeyboardKey)config.ExitKey);
         if (Platform.Desktop.IsCurrent())
             Raylib.SetWindowSize(
                 config.ScreenWidth <= 0 ? config.Width : config.ScreenWidth,
                 config.ScreenHeight <= 0 ? config.Height : config.ScreenHeight
             );
+        if (config.Maximized)
+            Maximized = true;
         if (config.Fullscreen)
             ToggleFullscreen();
         if (Platform.Desktop.IsCurrent() && config.Icon != null)
@@ -251,6 +317,7 @@ public sealed class Game
 
     private void Loop()
     {
+        Renderer.Initialize();
         while (!Raylib.WindowShouldClose())
         {
             GC.Collect();
@@ -287,13 +354,15 @@ public sealed class Game
 
     private void UpdateFullscreen()
     {
-        if (_config.FullscreenKey.HasValue && Keyboard.IsKeyPressed(_config.FullscreenKey.Value))
+        if (Keyboard.IsKeyPressed(_config.FullscreenKey))
             ToggleFullscreen();
     }
 
     private ConfigFlags GetConfigFlags()
     {
         ConfigFlags flags = 0;
+        if (_config.Msaa4x)
+            flags |= ConfigFlags.Msaa4xHint;
         if (_config.Resizable)
             flags |= ConfigFlags.ResizableWindow;
         if (!_config.Decorated)

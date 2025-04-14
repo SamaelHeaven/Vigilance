@@ -19,6 +19,21 @@ public sealed class WritableTexture
         Texture = new Texture(RenderTexture2D.Texture, this);
     }
 
+    public int Width => RenderTexture2D.Texture.Width;
+
+    public int Height => RenderTexture2D.Texture.Height;
+
+    public Vector2 Size => new(Width, Height);
+
+    public Graphics Graphics => new(this);
+
+    public void Update(ReadOnlySpan<Color> pixels)
+    {
+        if (Graphics.CurrentBuffer == this)
+            Rlgl.DrawRenderBatchActive();
+        Raylib.UpdateTexture(RenderTexture2D.Texture, pixels);
+    }
+
     public static implicit operator Texture(WritableTexture writableTexture)
     {
         return writableTexture.Texture;

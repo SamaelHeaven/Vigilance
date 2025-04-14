@@ -13,6 +13,7 @@
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <IsAotCompatible>true</IsAotCompatible>
+        <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
         <LibsPath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..\..\libs\'))</LibsPath>
     </PropertyGroup>
 
@@ -25,7 +26,7 @@
 
     <ItemGroup>
         <None Include="Vigilance.props" Pack="true" PackagePath="build\Vigilance.props"/>
-        <None Include="$(MSBuildThisFileDirectory)..\../README.MD" Pack="true" PackagePath="README.MD"/>
+        <None Include="$(MSBuildThisFileDirectory)..\..\README.MD" Pack="true" PackagePath="README.MD"/>
         <None Include="$(LibsPath)\**\*" Pack="true" PackagePath="build\libs\"/>
         <EmbeddedResource Include="Resources\**\*"/>
     </ItemGroup>

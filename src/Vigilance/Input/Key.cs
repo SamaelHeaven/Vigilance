@@ -4,6 +4,7 @@ namespace Vigilance.Input;
 
 public enum Key
 {
+    Null = KeyboardKey.Null,
     Apostrophe = KeyboardKey.Apostrophe,
     Comma = KeyboardKey.Comma,
     Minus = KeyboardKey.Minus,

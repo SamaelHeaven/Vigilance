@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Flecs.NET.Bindings;
 using Flecs.NET.Core;
 using Vigilance.Math;
 
@@ -9,29 +10,21 @@ public sealed unsafe class Scene
 {
     private readonly List<Action> _fixedUpdateActions = [];
     private readonly List<Action> _initializeActions = [];
-    private readonly List<Action<Entity>> _renderActions = [];
+    private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
+    private readonly List<Action> _renderActions = [];
+    private readonly List<Action<Entity>> _renderEntityActions = [];
     private readonly List<Action> _updateActions = [];
-    private Query<int> _orderedQuery;
     private float _time;
     private World _world = World.Create();
-
-    public Scene()
-    {
-        delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> orderByCallback = &CompareEntities;
-        var queryBuilder = _world.QueryBuilder<int>();
-        queryBuilder.Desc.order_by = Type<int>.Id(_world);
-        queryBuilder.Desc.order_by_callback = (nint)orderByCallback;
-        _orderedQuery = queryBuilder.Build();
-    }
-
+    public Camera Camera = new();
     public bool Initialized { get; private set; }
 
-    public ref Camera Camera => ref Get<Camera>();
-
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    // ReSharper disable once UseCollectionExpression
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static int CompareEntities(ulong e1, void* zIndex1, ulong e2, void* zIndex2)
     {
-        return (*(int*)zIndex1).CompareTo(*(int*)zIndex2);
+        var result = (*(int*)zIndex1).CompareTo(*(int*)zIndex2);
+        return result == 0 ? e1.CompareTo(e2) : result;
     }
 
     public Entity Entity(string name = "")
@@ -67,52 +60,22 @@ public sealed unsafe class Scene
         _fixedUpdateActions.Add(action);
     }
 
-    public void OnRender(Action<Entity> action)
+    public void OnRender(Action action)
     {
         EnsureNotInitialized();
         _renderActions.Add(action);
     }
 
-    public ref T Get<T>()
+    public void OnRender(Action<Entity> action)
     {
-        EnsureInitialized();
-        return ref _world.GetMut<T>();
-    }
-
-    public void Set<T>(ref T data)
-    {
-        EnsureInitialized();
-        var hadT = _world.Has<T>();
-        _world.Set(ref data);
-        var entity = _world.Singleton<T>();
-        if (hadT)
-        {
-            _world.Event<SetEvent>().Id<T>().Entity(entity).Emit();
-            return;
-        }
-
-        if (typeof(T) != typeof(Transform))
-            entity.Set(new Transform());
-        if (typeof(T) != typeof(int))
-            entity.Set(0);
-        _world.Event<AddEvent>().Id<T>().Entity(entity).Emit();
-    }
-
-    public void Set<T>(T data)
-    {
-        Set(ref data);
+        EnsureNotInitialized();
+        _renderEntityActions.Add(action);
     }
 
     public int Count<T>()
     {
         EnsureInitialized();
         return _world.Count<T>();
-    }
-
-    public void Remove<T>()
-    {
-        EnsureInitialized();
-        _world.Remove<T>();
     }
 
     public void EnsureInitialized()
@@ -129,7 +92,7 @@ public sealed unsafe class Scene
 
     private void Initialize()
     {
-        foreach (var system in Game.Systems)
+        foreach (var system in Game.SystemList)
             system.Configure(this);
         Initialized = true;
         foreach (var action in _initializeActions)
@@ -156,21 +119,27 @@ public sealed unsafe class Scene
 
     private void Render()
     {
-        _orderedQuery.Each(
+        var queryBuilder = _world.QueryBuilder<int>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
             (Flecs.NET.Core.Entity entity, ref int _) =>
             {
                 var e = new Entity(entity);
-                foreach (var action in _renderActions)
+                foreach (var action in _renderEntityActions)
                     action.Invoke(e);
             }
         );
+
+        foreach (var action in _renderActions)
+            action.Invoke();
     }
 
     ~Scene()
     {
         Game.RunLater(() =>
         {
-            _orderedQuery.Dispose();
             _world.Dispose();
         });
     }
@@ -947,13 +916,824 @@ public sealed unsafe class Scene
         );
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> action
+    #endregion
+
+    #region OrderedEach
+
+    public void OrderedEach(EachEntityAction action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int>();
+        queryBuilder.CacheKind(flecs.ecs_query_cache_kind_t.EcsQueryCacheNone);
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each((Flecs.NET.Core.Entity entity, ref int _) => action.Invoke(new Entity(entity)));
+    }
+
+    public void OrderedEach<T0>(EachAction<T0> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity _, ref int _, ref T0 t0) =>
+            {
+                action.Invoke(ref t0);
+            }
+        );
+    }
+
+    public void OrderedEach<T0>(EachEntityAction<T0> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity entity, ref int _, ref T0 t0) =>
+            {
+                action.Invoke(new Entity(entity), ref t0);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1>(EachAction<T0, T1> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity _, ref int _, ref T0 t0, ref T1 t1) =>
+            {
+                action.Invoke(ref t0, ref t1);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1>(EachEntityAction<T0, T1> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity entity, ref int _, ref T0 t0, ref T1 t1) =>
+            {
+                action.Invoke(new Entity(entity), ref t0, ref t1);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2>(EachAction<T0, T1, T2> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity _, ref int _, ref T0 t0, ref T1 t1, ref T2 t2) =>
+            {
+                action.Invoke(ref t0, ref t1, ref t2);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2>(EachEntityAction<T0, T1, T2> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity entity, ref int _, ref T0 t0, ref T1 t1, ref T2 t2) =>
+            {
+                action.Invoke(new Entity(entity), ref t0, ref t1, ref t2);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3>(EachAction<T0, T1, T2, T3> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity _, ref int _, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3) =>
+            {
+                action.Invoke(ref t0, ref t1, ref t2, ref t3);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3>(EachEntityAction<T0, T1, T2, T3> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity entity, ref int _, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3) =>
+            {
+                action.Invoke(new Entity(entity), ref t0, ref t1, ref t2, ref t3);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4>(EachAction<T0, T1, T2, T3, T4> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity _, ref int _, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4) =>
+            {
+                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4>(EachEntityAction<T0, T1, T2, T3, T4> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity entity, ref int _, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4) =>
+            {
+                action.Invoke(new Entity(entity), ref t0, ref t1, ref t2, ref t3, ref t4);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5>(EachAction<T0, T1, T2, T3, T4, T5> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (Flecs.NET.Core.Entity _, ref int _, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5) =>
+            {
+                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5>(EachEntityAction<T0, T1, T2, T3, T4, T5> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity entity,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5
+            ) =>
+            {
+                action.Invoke(new Entity(entity), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EachAction<T0, T1, T2, T3, T4, T5, T6> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity _,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6
+            ) =>
+            {
+                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity entity,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6
+            ) =>
+            {
+                action.Invoke(new Entity(entity), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity _,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7
+            ) =>
+            {
+                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity entity,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7
+            ) =>
+            {
+                action.Invoke(new Entity(entity), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity _,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8
+            ) =>
+            {
+                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7, ref t8);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
+        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action
     )
     {
         EnsureInitialized();
-        _world.Each(
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
             (
+                Flecs.NET.Core.Entity entity,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8
+            ) =>
+            {
+                action.Invoke(
+                    new Entity(entity),
+                    ref t0,
+                    ref t1,
+                    ref t2,
+                    ref t3,
+                    ref t4,
+                    ref t5,
+                    ref t6,
+                    ref t7,
+                    ref t8
+                );
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity _,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8,
+                ref T9 t9
+            ) =>
+            {
+                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7, ref t8, ref t9);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity entity,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8,
+                ref T9 t9
+            ) =>
+            {
+                action.Invoke(
+                    new Entity(entity),
+                    ref t0,
+                    ref t1,
+                    ref t2,
+                    ref t3,
+                    ref t4,
+                    ref t5,
+                    ref t6,
+                    ref t7,
+                    ref t8,
+                    ref t9
+                );
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity _,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8,
+                ref T9 t9,
+                ref T10 t10
+            ) =>
+            {
+                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7, ref t8, ref t9, ref t10);
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity entity,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8,
+                ref T9 t9,
+                ref T10 t10
+            ) =>
+            {
+                action.Invoke(
+                    new Entity(entity),
+                    ref t0,
+                    ref t1,
+                    ref t2,
+                    ref t3,
+                    ref t4,
+                    ref t5,
+                    ref t6,
+                    ref t7,
+                    ref t8,
+                    ref t9,
+                    ref t10
+                );
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
+        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity _,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8,
+                ref T9 t9,
+                ref T10 t10,
+                ref T11 t11
+            ) =>
+            {
+                action.Invoke(
+                    ref t0,
+                    ref t1,
+                    ref t2,
+                    ref t3,
+                    ref t4,
+                    ref t5,
+                    ref t6,
+                    ref t7,
+                    ref t8,
+                    ref t9,
+                    ref t10,
+                    ref t11
+                );
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
+        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity entity,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8,
+                ref T9 t9,
+                ref T10 t10,
+                ref T11 t11
+            ) =>
+            {
+                action.Invoke(
+                    new Entity(entity),
+                    ref t0,
+                    ref t1,
+                    ref t2,
+                    ref t3,
+                    ref t4,
+                    ref t5,
+                    ref t6,
+                    ref t7,
+                    ref t8,
+                    ref t9,
+                    ref t10,
+                    ref t11
+                );
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
+        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity _,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8,
+                ref T9 t9,
+                ref T10 t10,
+                ref T11 t11,
+                ref T12 t12
+            ) =>
+            {
+                action.Invoke(
+                    ref t0,
+                    ref t1,
+                    ref t2,
+                    ref t3,
+                    ref t4,
+                    ref t5,
+                    ref t6,
+                    ref t7,
+                    ref t8,
+                    ref t9,
+                    ref t10,
+                    ref t11,
+                    ref t12
+                );
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
+        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity entity,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8,
+                ref T9 t9,
+                ref T10 t10,
+                ref T11 t11,
+                ref T12 t12
+            ) =>
+            {
+                action.Invoke(
+                    new Entity(entity),
+                    ref t0,
+                    ref t1,
+                    ref t2,
+                    ref t3,
+                    ref t4,
+                    ref t5,
+                    ref t6,
+                    ref t7,
+                    ref t8,
+                    ref t9,
+                    ref t10,
+                    ref t11,
+                    ref t12
+                );
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
+        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity _,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8,
+                ref T9 t9,
+                ref T10 t10,
+                ref T11 t11,
+                ref T12 t12,
+                ref T13 t13
+            ) =>
+            {
+                action.Invoke(
+                    ref t0,
+                    ref t1,
+                    ref t2,
+                    ref t3,
+                    ref t4,
+                    ref t5,
+                    ref t6,
+                    ref t7,
+                    ref t8,
+                    ref t9,
+                    ref t10,
+                    ref t11,
+                    ref t12,
+                    ref t13
+                );
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
+        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity entity,
+                ref int _,
+                ref T0 t0,
+                ref T1 t1,
+                ref T2 t2,
+                ref T3 t3,
+                ref T4 t4,
+                ref T5 t5,
+                ref T6 t6,
+                ref T7 t7,
+                ref T8 t8,
+                ref T9 t9,
+                ref T10 t10,
+                ref T11 t11,
+                ref T12 t12,
+                ref T13 t13
+            ) =>
+            {
+                action.Invoke(
+                    new Entity(entity),
+                    ref t0,
+                    ref t1,
+                    ref t2,
+                    ref t3,
+                    ref t4,
+                    ref t5,
+                    ref t6,
+                    ref t7,
+                    ref t8,
+                    ref t9,
+                    ref t10,
+                    ref t11,
+                    ref t12,
+                    ref t13
+                );
+            }
+        );
+    }
+
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
+        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
+    )
+    {
+        EnsureInitialized();
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
+            (
+                Flecs.NET.Core.Entity _,
+                ref int _,
                 ref T0 t0,
                 ref T1 t1,
                 ref T2 t2,
@@ -968,9 +1748,9 @@ public sealed unsafe class Scene
                 ref T11 t11,
                 ref T12 t12,
                 ref T13 t13,
-                ref T14 t14,
-                ref T15 t15
+                ref T14 t14
             ) =>
+            {
                 action.Invoke(
                     ref t0,
                     ref t1,
@@ -986,20 +1766,25 @@ public sealed unsafe class Scene
                     ref t11,
                     ref t12,
                     ref t13,
-                    ref t14,
-                    ref t15
-                )
+                    ref t14
+                );
+            }
         );
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> action
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
+        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
     )
     {
         EnsureInitialized();
-        _world.Each(
+        var queryBuilder = _world.QueryBuilder<int, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>();
+        queryBuilder.Desc.order_by = Type<int>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        using var query = queryBuilder.Build();
+        query.Each(
             (
                 Flecs.NET.Core.Entity entity,
+                ref int _,
                 ref T0 t0,
                 ref T1 t1,
                 ref T2 t2,
@@ -1014,9 +1799,9 @@ public sealed unsafe class Scene
                 ref T11 t11,
                 ref T12 t12,
                 ref T13 t13,
-                ref T14 t14,
-                ref T15 t15
+                ref T14 t14
             ) =>
+            {
                 action.Invoke(
                     new Entity(entity),
                     ref t0,
@@ -1033,903 +1818,8 @@ public sealed unsafe class Scene
                     ref t11,
                     ref t12,
                     ref t13,
-                    ref t14,
-                    ref t15
-                )
-        );
-    }
-
-    #endregion
-
-    #region OrderedEach
-
-    public void OrderedEach(EachEntityAction action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each((Flecs.NET.Core.Entity entity, ref int _) => action.Invoke(new Entity(entity)));
-    }
-
-    public void OrderedEach<T0>(EachAction<T0> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (entity.Has<T0>())
-                    action.Invoke(ref entity.GetMut<T0>());
-            }
-        );
-    }
-
-    public void OrderedEach<T0>(EachEntityAction<T0> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (entity.Has<T0>())
-                    action.Invoke(new Entity(entity), ref entity.GetMut<T0>());
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1>(EachAction<T0, T1> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (entity.Has<T0>() && entity.Has<T1>())
-                    action.Invoke(ref entity.GetMut<T0>(), ref entity.GetMut<T1>());
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1>(EachEntityAction<T0, T1> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (entity.Has<T0>() && entity.Has<T1>())
-                    action.Invoke(new Entity(entity), ref entity.GetMut<T0>(), ref entity.GetMut<T1>());
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2>(EachAction<T0, T1, T2> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>())
-                    action.Invoke(ref entity.GetMut<T0>(), ref entity.GetMut<T1>(), ref entity.GetMut<T2>());
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2>(EachEntityAction<T0, T1, T2> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>())
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3>(EachAction<T0, T1, T2, T3> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>())
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3>(EachEntityAction<T0, T1, T2, T3> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>())
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4>(EachAction<T0, T1, T2, T3, T4> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>() && entity.Has<T4>())
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4>(EachEntityAction<T0, T1, T2, T3, T4> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>() && entity.Has<T4>())
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5>(EachAction<T0, T1, T2, T3, T4, T5> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                )
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5>(EachEntityAction<T0, T1, T2, T3, T4, T5> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                )
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EachAction<T0, T1, T2, T3, T4, T5, T6> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                )
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                )
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                )
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                )
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                )
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                )
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                )
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                )
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                    && entity.Has<T10>()
-                )
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                    && entity.Has<T10>()
-                )
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                    && entity.Has<T10>()
-                    && entity.Has<T11>()
-                )
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                    && entity.Has<T10>()
-                    && entity.Has<T11>()
-                )
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                    && entity.Has<T10>()
-                    && entity.Has<T11>()
-                    && entity.Has<T12>()
-                )
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                    && entity.Has<T10>()
-                    && entity.Has<T11>()
-                    && entity.Has<T12>()
-                )
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                    && entity.Has<T10>()
-                    && entity.Has<T11>()
-                    && entity.Has<T12>()
-                    && entity.Has<T13>()
-                )
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>(),
-                        ref entity.GetMut<T13>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                    && entity.Has<T10>()
-                    && entity.Has<T11>()
-                    && entity.Has<T12>()
-                    && entity.Has<T13>()
-                )
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>(),
-                        ref entity.GetMut<T13>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                    && entity.Has<T10>()
-                    && entity.Has<T11>()
-                    && entity.Has<T12>()
-                    && entity.Has<T13>()
-                    && entity.Has<T14>()
-                )
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>(),
-                        ref entity.GetMut<T13>(),
-                        ref entity.GetMut<T14>()
-                    );
-            }
-        );
-    }
-
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
-    )
-    {
-        EnsureInitialized();
-        _orderedQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
-            {
-                if (
-                    entity.Has<T0>()
-                    && entity.Has<T1>()
-                    && entity.Has<T2>()
-                    && entity.Has<T3>()
-                    && entity.Has<T4>()
-                    && entity.Has<T5>()
-                    && entity.Has<T6>()
-                    && entity.Has<T7>()
-                    && entity.Has<T8>()
-                    && entity.Has<T9>()
-                    && entity.Has<T10>()
-                    && entity.Has<T11>()
-                    && entity.Has<T12>()
-                    && entity.Has<T13>()
-                    && entity.Has<T14>()
-                )
-                    action.Invoke(
-                        new Entity(entity),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>(),
-                        ref entity.GetMut<T13>(),
-                        ref entity.GetMut<T14>()
-                    );
+                    ref t14
+                );
             }
         );
     }

@@ -16,8 +16,7 @@ public sealed class Renderer
         Game.EnsureRunning();
         _buffer = new WritableTexture(Game.Size);
         _interpolation = Game.DefaultInterpolation;
-        _graphics = new Graphics(_buffer);
-        Raylib.SetTextureFilter(_buffer.RenderTexture2D.Texture, (TextureFilter)_interpolation);
+        _graphics = _buffer.Graphics;
         Raylib.BeginTextureMode(_buffer.RenderTexture2D);
         Graphics.CurrentBuffer = _buffer;
     }
@@ -25,19 +24,17 @@ public sealed class Renderer
     public static Interpolation Interpolation
     {
         get => GetRenderer()._interpolation;
-        set
-        {
-            var renderer = GetRenderer();
-            if (renderer._interpolation == value)
-                return;
-            renderer._interpolation = value;
-            Raylib.SetTextureFilter(renderer._buffer.RenderTexture2D.Texture, (TextureFilter)value);
-        }
+        set => GetRenderer()._interpolation = value;
     }
 
     public static Graphics Graphics => GetRenderer()._graphics;
 
     public static WritableTexture Buffer => GetRenderer()._buffer;
+
+    internal static void Initialize()
+    {
+        GetRenderer();
+    }
 
     internal static void Update()
     {
@@ -55,6 +52,7 @@ public sealed class Renderer
             width * scale,
             height * scale
         );
+        Raylib.SetTextureFilter(renderer._buffer.RenderTexture2D.Texture, (TextureFilter)renderer._interpolation);
         Raylib.EndTextureMode();
         Raylib.BeginDrawing();
         Raylib.ClearBackground(Raylib_cs.Color.Black);

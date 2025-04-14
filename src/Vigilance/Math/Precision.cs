@@ -20,6 +20,11 @@ public static class Precision
         return AreEqual(a.X, b.X, epsilon) && AreEqual(a.Y, b.Y, epsilon);
     }
 
+    public static bool AreEqual(Box a, Box b, float epsilon = DefaultFloatEpsilon)
+    {
+        return AreEqual(a.Position, b.Position, epsilon) && AreEqual(a.Size, b.Size, epsilon);
+    }
+
     public static bool AreEqual(Transform a, Transform b, float epsilon = DefaultFloatEpsilon)
     {
         return AreEqual(a.Position, b.Position, epsilon)
