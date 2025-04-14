@@ -320,7 +320,6 @@ public sealed class Game
         Renderer.Initialize();
         while (!Raylib.WindowShouldClose())
         {
-            GC.Collect();
             Time.Update();
             Keyboard.Update();
             Mouse.Update();

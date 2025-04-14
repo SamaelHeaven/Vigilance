@@ -20,8 +20,7 @@ public unsafe struct Entity
 
     public string Name => _entity.Name();
 
-    public bool IsValid =>
-        this != Null && _entity.IsValid() && _entity.IsAlive() && _entity.Has<int>() && _entity.Has<Transform>();
+    public bool IsValid => _entity.IsValid();
 
     public Entity Parent => new(_entity.Parent());
 
