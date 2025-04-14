@@ -15,8 +15,6 @@ public readonly struct Graphics
         _buffer = buffer;
     }
 
-    #region Transform
-
     public static void PushState()
     {
         Game.EnsureRunning();
@@ -66,24 +64,17 @@ public readonly struct Graphics
         Rlgl.Scalef(scale.X, scale.Y, 1);
     }
 
-    public static void Transform(Transform transform, bool translate = true, bool rotate = true, bool scale = true)
+    public static void Transform(Transform transform)
     {
         Game.EnsureRunning();
         var position = transform.Position;
-        var scaling = transform.Scale.Abs();
+        var scale = transform.Scale.Abs();
         var pivotPoint = transform.PivotPoint;
         var rotation = transform.Rotation;
-        var positionOffset = -(scaling * 0.5f);
-        var rotationOffset = position + pivotPoint;
-        if (scale)
-            Scale(scaling);
-        if (rotate)
-            Rotate(rotation, rotationOffset);
-        if (translate)
-            Translate(positionOffset);
+        Scale(scale);
+        Translate(position);
+        Rotate(rotation, pivotPoint);
     }
-
-    #endregion
 
     #region Rectangle
 
@@ -234,7 +225,7 @@ public readonly struct Graphics
         var position = transform.Position;
         var scale = transform.Scale;
         PushState();
-        Transform(transform, scale: false);
+        Transform(transform, true);
         if (roundness > 0)
         {
             FillRoundedRectangle(position, scale, fill, roundness, camera);
@@ -295,7 +286,7 @@ public readonly struct Graphics
         var position = transform.Position;
         var scale = transform.Scale;
         PushState();
-        Transform(transform, false, scale: false);
+        Transform(transform, false);
         var radius = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.25f;
         FillCircle(position, radius, fill, camera);
         StrokeCircle(position, radius, stroke, strokeWidth, camera);
@@ -308,11 +299,7 @@ public readonly struct Graphics
 
     public void FillTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent)
-            return;
-        BeginDrawing(camera);
-        Raylib.DrawTriangle(v1, v2, v3, color.RColor);
-        EndDrawing(camera);
+        FillCustomPolygon([v1, v2, v3], color, camera);
     }
 
     public void StrokeTriangle(
@@ -324,13 +311,7 @@ public readonly struct Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
-            return;
-        BeginStroke(strokeWidth);
-        BeginDrawing(camera);
-        Raylib.DrawTriangleLines(v1, v2, v3, color.RColor);
-        EndDrawing(camera);
-        EndStroke();
+        StrokeCustomPolygon([v1, v2, v3], color, strokeWidth, camera);
     }
 
     public void DrawTriangle(Transform transform, Triangle triangle)
@@ -340,19 +321,141 @@ public readonly struct Graphics
 
     public void DrawTriangle(Transform transform, ref readonly Triangle triangle)
     {
-        var camera = triangle.Camera?.Invoke();
-        var fill = triangle.Fill;
-        var stroke = triangle.Stroke;
-        var strokeWidth = triangle.StrokeWidth;
+        DrawCustomPolygon(
+            transform,
+            new CustomPolygon
+            {
+                Points = [triangle.V1, triangle.V2, triangle.V3],
+                Fill = triangle.Fill,
+                Stroke = triangle.Stroke,
+                StrokeWidth = triangle.StrokeWidth,
+                Camera = triangle.Camera,
+            }
+        );
+    }
+
+    #endregion
+
+    #region Polygon
+
+    public void FillRegularPolygon(float x, float y, int sides, float radius, Color color, Camera? camera = null)
+    {
+        FillRegularPolygon(new Vector2(x, y), sides, radius, color, camera);
+    }
+
+    public void FillRegularPolygon(Vector2 center, int sides, float radius, Color color, Camera? camera = null)
+    {
+        if (color == Color.Transparent)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawPoly(center, sides, radius, 0, color.RColor);
+        EndDrawing(camera);
+    }
+
+    public void StrokeRegularPolygon(
+        float x,
+        float y,
+        int sides,
+        float radius,
+        Color color,
+        float strokeWidth = 1,
+        Camera? camera = null
+    )
+    {
+        StrokeRegularPolygon(new Vector2(x, y), sides, radius, color, strokeWidth, camera);
+    }
+
+    public void StrokeRegularPolygon(
+        Vector2 center,
+        int sides,
+        float radius,
+        Color color,
+        float strokeWidth = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || strokeWidth <= 0)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawPolyLinesEx(center, sides, radius, 0, strokeWidth, color.RColor);
+        EndDrawing(camera);
+    }
+
+    public void DrawRegularPolygon(Transform transform, RegularPolygon polygon)
+    {
+        DrawRegularPolygon(transform, ref polygon);
+    }
+
+    public void DrawRegularPolygon(Transform transform, ref readonly RegularPolygon polygon)
+    {
+        var camera = polygon.Camera?.Invoke();
+        var sides = polygon.Sides;
+        var fill = polygon.Fill;
+        var stroke = polygon.Stroke;
+        var strokeWidth = polygon.StrokeWidth;
+        var position = transform.Position;
+        var scale = transform.Scale;
+        PushState();
+        Transform(transform, false);
+        var radius = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.25f;
+        FillRegularPolygon(position, sides, radius, fill, camera);
+        StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
+        PopState();
+    }
+
+    public unsafe void FillCustomPolygon(ReadOnlySpan<Vector2> points, Color color, Camera? camera = null)
+    {
+        if (color == Color.Transparent || points.Length < 3)
+            return;
+        BeginDrawing(camera);
+        fixed (Vector2* pointsBuffer = points)
+        {
+            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, points.Length, color.RColor);
+        }
+
+        EndDrawing(camera);
+    }
+
+    public void StrokeCustomPolygon(
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float strokeWidth = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || strokeWidth <= 0 || points.Length < 3)
+            return;
+        BeginDrawing(camera);
+        for (var i = 0; i < points.Length; i++)
+        {
+            var start = points[i];
+            var end = points[(i + 1) % points.Length];
+            Raylib.DrawLineEx(start, end, strokeWidth, color.RColor);
+            Raylib.DrawCircleV(start, strokeWidth * 0.5f, color.RColor);
+        }
+
+        EndDrawing(camera);
+    }
+
+    public void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
+    {
+        DrawCustomPolygon(transform, ref polygon);
+    }
+
+    public void DrawCustomPolygon(Transform transform, ref readonly CustomPolygon polygon)
+    {
+        var camera = polygon.Camera?.Invoke();
         var position = transform.Position;
         var scale = transform.Scale.Abs();
-        var v1 = triangle.V1 * scale + position;
-        var v2 = triangle.V2 * scale + position;
-        var v3 = triangle.V3 * scale + position;
+        var center = polygon.Points.Aggregate(Vector2.Zero, (a, b) => a + b) / polygon.Points.Count();
+        var points = polygon.Points.Select(point => position + (center + (point - center) * scale)).ToArray();
+        var fill = polygon.Fill;
+        var stroke = polygon.Stroke;
+        var strokeWidth = polygon.StrokeWidth;
         PushState();
-        Transform(transform, false, scale: false);
-        FillTriangle(v1, v2, v3, fill, camera);
-        StrokeTriangle(v1, v2, v3, stroke, strokeWidth, camera);
+        Transform(transform, false);
+        FillCustomPolygon(points, fill, camera);
+        StrokeCustomPolygon(points, stroke, strokeWidth, camera);
         PopState();
     }
 
@@ -419,11 +522,21 @@ public readonly struct Graphics
     {
         if (color == Color.Transparent || strokeWidth <= 0)
             return;
-        BeginStroke(strokeWidth);
+        var lineWidth = Rlgl.GetLineWidth();
+        var changeLineWidth = !Precision.AreEqual(lineWidth, strokeWidth);
+        if (changeLineWidth)
+        {
+            Rlgl.DrawRenderBatchActive();
+            Rlgl.SetLineWidth(strokeWidth);
+        }
+
         BeginDrawing(camera);
         Raylib.DrawRingLines(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
         EndDrawing(camera);
-        EndStroke();
+        if (!changeLineWidth)
+            return;
+        Rlgl.DrawRenderBatchActive();
+        Rlgl.SetLineWidth(lineWidth);
     }
 
     public void DrawRing(Transform transform, Ring ring)
@@ -444,7 +557,7 @@ public readonly struct Graphics
         var innerRadius = ring.InnerRadius * scale;
         var outerRadius = ring.OuterRadius * scale;
         PushState();
-        Transform(transform, false, scale: false);
+        Transform(transform, false);
         FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
         StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, camera);
         PopState();
@@ -491,7 +604,7 @@ public readonly struct Graphics
         var thickness = line.Thickness;
         var scale = (MathF.Abs(transform.Scale.X) + MathF.Abs(transform.Scale.Y)) * 0.5f;
         PushState();
-        Transform(transform, false, scale: false);
+        Transform(transform, false);
         DrawLine(start, end, color, thickness * scale, camera);
         PopState();
     }
@@ -627,7 +740,7 @@ public readonly struct Graphics
         PushState();
         fontSize *= (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.5f;
         transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
-        Transform(transform, scale: false);
+        Transform(transform, true);
         FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
         StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
         PopState();
@@ -731,7 +844,7 @@ public readonly struct Graphics
         var position = transform.Position;
         var scale = transform.Scale;
         PushState();
-        Transform(transform, scale: false);
+        Transform(transform, true);
         DrawTexture(
             texture,
             new Box(
@@ -796,19 +909,16 @@ public readonly struct Graphics
             PopState();
     }
 
-    private static void BeginStroke(float strokeWidth)
+    private static void Transform(Transform transform, bool translate)
     {
-        if (Precision.AreEqual(strokeWidth, 1))
-            return;
-        Rlgl.DrawRenderBatchActive();
-        Rlgl.SetLineWidth(strokeWidth);
-    }
-
-    private static void EndStroke()
-    {
-        if (Precision.AreEqual(Rlgl.GetLineWidth(), 1))
-            return;
-        Rlgl.DrawRenderBatchActive();
-        Rlgl.SetLineWidth(1);
+        var position = transform.Position;
+        var scale = transform.Scale.Abs();
+        var pivotPoint = transform.PivotPoint;
+        var rotation = transform.Rotation;
+        var positionOffset = -(scale * 0.5f);
+        var rotationOffset = position + pivotPoint;
+        Rotate(rotation, rotationOffset);
+        if (translate)
+            Translate(positionOffset);
     }
 }

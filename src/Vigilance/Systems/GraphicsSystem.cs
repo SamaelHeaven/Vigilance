@@ -18,6 +18,10 @@ public struct GraphicsSystem : ISystem
                 graphics.DrawCircle(entity.WorldTransform, ref entity.Get<Circle>());
             if (entity.Has<Triangle>())
                 graphics.DrawTriangle(entity.WorldTransform, ref entity.Get<Triangle>());
+            if (entity.Has<RegularPolygon>())
+                graphics.DrawRegularPolygon(entity.WorldTransform, ref entity.Get<RegularPolygon>());
+            if (entity.Has<CustomPolygon>())
+                graphics.DrawCustomPolygon(entity.WorldTransform, ref entity.Get<CustomPolygon>());
             if (entity.Has<Ring>())
                 graphics.DrawRing(entity.WorldTransform, ref entity.Get<Ring>());
             if (entity.Has<Line>())

@@ -9,7 +9,7 @@ public struct Line
     public Vector2 End = Vector2.Zero;
     public Color Color = Color.Transparent;
     public float Thickness = 1;
-    public Func<Camera>? Camera = () => Game.Scene.Camera;
+    public CameraProvider? Camera = Core.Camera.DefaultProvider;
 
     public Line() { }
 }

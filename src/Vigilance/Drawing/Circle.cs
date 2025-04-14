@@ -7,7 +7,7 @@ public struct Circle
     public Color Fill = Color.Transparent;
     public Color Stroke = Color.Transparent;
     public float StrokeWidth = 0;
-    public Func<Camera>? Camera = () => Game.Scene.Camera;
+    public CameraProvider? Camera = Core.Camera.DefaultProvider;
 
     public Circle() { }
 }

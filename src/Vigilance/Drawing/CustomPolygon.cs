@@ -1,17 +1,15 @@
 using Vigilance.Core;
+using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public struct Ring
+public struct CustomPolygon
 {
-    public float InnerRadius = 0;
-    public float OuterRadius = 0;
-    public float StartAngle = 0;
-    public float EndAngle = 360;
+    public IEnumerable<Vector2> Points = [];
     public Color Fill = Color.Transparent;
     public Color Stroke = Color.Transparent;
     public float StrokeWidth = 0;
     public CameraProvider? Camera = Core.Camera.DefaultProvider;
 
-    public Ring() { }
+    public CustomPolygon() { }
 }

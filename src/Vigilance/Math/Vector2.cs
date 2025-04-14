@@ -1,5 +1,8 @@
+using System.Runtime.InteropServices;
+
 namespace Vigilance.Math;
 
+[StructLayout(LayoutKind.Sequential)]
 public struct Vector2
 {
     public float X;

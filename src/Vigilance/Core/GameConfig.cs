@@ -22,6 +22,7 @@ public struct GameConfig
     public bool Decorated = true;
     public bool Vsync = true;
     public bool Resizable = true;
+    public bool Msaa4x = true;
     public bool Debug = false;
     public Interpolation DefaultInterpolation = Interpolation.Nearest;
     public Vector2 DefaultTextSpacing = new(0, 4);

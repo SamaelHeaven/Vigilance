@@ -8,7 +8,7 @@ public struct Rectangle
     public Color Stroke = Color.Transparent;
     public float StrokeWidth = 0;
     public float Roundness = 0;
-    public Func<Camera>? Camera = () => Game.Scene.Camera;
+    public CameraProvider? Camera = Core.Camera.DefaultProvider;
 
     public Rectangle() { }
 }

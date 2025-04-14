@@ -11,7 +11,7 @@ public struct Triangle
     public Color Fill = Color.Transparent;
     public Color Stroke = Color.Transparent;
     public float StrokeWidth = 1;
-    public Func<Camera>? Camera = () => Game.Scene.Camera;
+    public CameraProvider? Camera = Core.Camera.DefaultProvider;
 
     public Triangle() { }
 }

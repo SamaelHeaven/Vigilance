@@ -2,8 +2,11 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
+public delegate Camera CameraProvider();
+
 public struct Camera
 {
+    public static readonly CameraProvider DefaultProvider = () => Game.Scene.Camera;
     public Vector2 Target = Vector2.Zero;
     public Vector2 Offset = Vector2.Zero;
     public float Rotation = 0;

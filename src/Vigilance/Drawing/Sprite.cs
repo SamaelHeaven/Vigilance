@@ -9,7 +9,7 @@ public struct Sprite
     public bool FlipY = false;
     public Color Tint = Color.White;
     public Interpolation Interpolation = Game.DefaultInterpolation;
-    public Func<Camera>? Camera = () => Game.Scene.Camera;
+    public CameraProvider? Camera = Core.Camera.DefaultProvider;
 
     public Sprite() { }
 }
