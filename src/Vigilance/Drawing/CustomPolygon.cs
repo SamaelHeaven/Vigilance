@@ -5,7 +5,7 @@ namespace Vigilance.Drawing;
 
 public struct CustomPolygon
 {
-    public IEnumerable<Vector2> Points = [];
+    public ICollection<Vector2> Points = [];
     public Color Fill = Color.Transparent;
     public Color Stroke = Color.Transparent;
     public float StrokeWidth = 0;

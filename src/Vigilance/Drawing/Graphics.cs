@@ -446,9 +446,8 @@ public readonly struct Graphics
     {
         var camera = polygon.Camera?.Invoke();
         var position = transform.Position;
-        var scale = transform.Scale.Abs();
-        var center = polygon.Points.Aggregate(Vector2.Zero, (a, b) => a + b) / polygon.Points.Count();
-        var points = polygon.Points.Select(point => position + (center + (point - center) * scale)).ToArray();
+        var scale = transform.Scale;
+        var points = Coordinates.Scale(polygon.Points, scale, position);
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
