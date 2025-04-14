@@ -11,7 +11,10 @@ public static unsafe partial class FileSystem
     private static readonly Dictionary<Assembly, string[]> ResourceNames = new();
     public static readonly Assembly GameAssembly = Assembly.GetEntryAssembly()!;
     public static readonly Assembly EngineAssembly = Assembly.GetExecutingAssembly();
-    public static readonly string ApplicationDirectory = FormatPath(new string(Raylib.GetApplicationDirectory()));
+
+    public static readonly string ApplicationDirectory = FormatPath(
+        Utf8StringUtils.GetUTF8String(Raylib.GetApplicationDirectory())
+    );
 
     static FileSystem()
     {
@@ -21,7 +24,7 @@ public static unsafe partial class FileSystem
 
     public static string WorkingModule { get; set; } = "";
 
-    public static string WorkingDirectory => FormatPath(new string(Raylib.GetWorkingDirectory()));
+    public static string WorkingDirectory => FormatPath(Utf8StringUtils.GetUTF8String(Raylib.GetWorkingDirectory()));
 
     public static string FormatPath(string path)
     {
@@ -94,7 +97,7 @@ public static unsafe partial class FileSystem
             return "";
         using var buffer = path.ToUtf8Buffer();
         var bytes = Raylib.LoadFileText(buffer.AsPointer());
-        var result = new string(bytes);
+        var result = Utf8StringUtils.GetUTF8String(bytes);
         Raylib.UnloadFileText(bytes);
         return result;
     }
@@ -155,7 +158,7 @@ public static unsafe partial class FileSystem
         var count = filePathList.Count;
         var result = new string[count];
         for (var i = 0; i < count; i++)
-            result[i] = FormatPath(new string((sbyte*)filePathList.Paths[i]));
+            result[i] = FormatPath(Utf8StringUtils.GetUTF8String((sbyte*)filePathList.Paths[i]));
         Raylib.UnloadDirectoryFiles(filePathList);
         return result;
     }

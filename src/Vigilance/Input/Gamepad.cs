@@ -47,16 +47,7 @@ public sealed class Gamepad
     public IReadOnlyDictionary<GamepadAxis, float> Axes => _axes.AsReadOnly();
     public bool Connected { get; private set; }
 
-    public string Name
-    {
-        get
-        {
-            unsafe
-            {
-                return !Connected ? DefaultName : new string(Raylib.GetGamepadName(Id));
-            }
-        }
-    }
+    public string Name => !Connected ? DefaultName : Raylib.GetGamepadName_(Id);
 
     internal static void UpdateAll()
     {
