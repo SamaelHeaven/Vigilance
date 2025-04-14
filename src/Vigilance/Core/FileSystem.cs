@@ -22,7 +22,7 @@ public static unsafe partial class FileSystem
             Raylib.SetTraceLogLevel(TraceLogLevel.Error);
     }
 
-    public static string WorkingModule { get; set; } = "";
+    public static string WorkingNamespace { get; set; } = "";
 
     public static string WorkingDirectory => FormatPath(Utf8StringUtils.GetUTF8String(Raylib.GetWorkingDirectory()));
 
@@ -31,9 +31,9 @@ public static unsafe partial class FileSystem
         return DuplicatedSlashRegex().Replace(path.Replace('\\', '/'), "/").Trim('/');
     }
 
-    public static string FormatResource(string resource, string module = "")
+    public static string FormatResource(string resource, string @namespace = "")
     {
-        return module == "" ? resource : module + "." + resource;
+        return @namespace == "" ? resource : @namespace + "." + resource;
     }
 
     public static bool ChangeDirectory(string path)
@@ -63,14 +63,14 @@ public static unsafe partial class FileSystem
         return Raylib.DirectoryExists(buffer.AsPointer());
     }
 
-    public static bool ResourceExists(string resource, string? module = null, Assembly? assembly = null)
+    public static bool ResourceExists(string resource, string? @namespace = null, Assembly? assembly = null)
     {
         assembly ??= GameAssembly;
         if (ResourceNames.TryGetValue(assembly, out var names))
-            return names.Contains(FormatResource(resource, module ?? WorkingModule));
+            return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
         names = assembly.GetManifestResourceNames();
         ResourceNames[assembly] = names;
-        return names.Contains(FormatResource(resource, module ?? WorkingModule));
+        return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
     }
 
     public static DateTime FileModTime(string path)
@@ -102,9 +102,9 @@ public static unsafe partial class FileSystem
         return result;
     }
 
-    public static string ReadResourceText(string resource, string? module = null, Assembly? assembly = null)
+    public static string ReadResourceText(string resource, string? @namespace = null, Assembly? assembly = null)
     {
-        return Encoding.UTF8.GetString(ReadResourceBytes(resource, module, assembly));
+        return Encoding.UTF8.GetString(ReadResourceBytes(resource, @namespace, assembly));
     }
 
     public static bool WriteText(string path, string text)
@@ -128,10 +128,10 @@ public static unsafe partial class FileSystem
         return bytes;
     }
 
-    public static byte[] ReadResourceBytes(string resource, string? module = null, Assembly? assembly = null)
+    public static byte[] ReadResourceBytes(string resource, string? @namespace = null, Assembly? assembly = null)
     {
         using var stream = (assembly ?? GameAssembly).GetManifestResourceStream(
-            FormatResource(resource, module ?? WorkingModule)
+            FormatResource(resource, @namespace ?? WorkingNamespace)
         );
         if (stream == null)
             return Array.Empty<byte>();

@@ -8,7 +8,7 @@ public struct GameConfig
 {
     public string Title = "";
     public string WorkingDirectory = "";
-    public string WorkingModule = "";
+    public string WorkingNamespace = "";
     public Func<Image>? Icon = null;
     public Key ExitKey = Key.Null;
     public Key FullscreenKey = Key.Null;
@@ -48,7 +48,7 @@ public struct GameConfig
     public Func<Font> DefaultFont = static () =>
         Asset.FontResource(
             "DefaultFont.ttf",
-            module: FileSystem.EngineAssembly.GetName().Name! + ".Resources",
+            @namespace: FileSystem.EngineAssembly.GetName().Name! + ".Resources",
             assembly: FileSystem.EngineAssembly
         );
 
