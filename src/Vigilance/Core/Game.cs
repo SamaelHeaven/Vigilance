@@ -14,6 +14,7 @@ public sealed class Game
     private static Game? _game;
     private readonly List<Action> _actions = [];
     private GameConfig _config;
+    private Font _defaultFont = null!;
     private Vector2 _previousScreenSize = Vector2.Zero;
     private bool _resetSize;
     private Scene _scene = null!;
@@ -147,9 +148,9 @@ public sealed class Game
         }
     }
 
-    public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis.Invoke();
+    public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis;
 
-    public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis.Invoke();
+    public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis;
 
     public static Interpolation DefaultInterpolation => GetGame()._config.DefaultInterpolation;
 
@@ -159,7 +160,7 @@ public sealed class Game
 
     public static float DefaultFontSize => GetGame()._config.DefaultFontSize;
 
-    public static Font DefaultFont => GetGame()._config.DefaultFont.Invoke();
+    public static Font DefaultFont => GetGame()._defaultFont;
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
 
@@ -289,6 +290,7 @@ public sealed class Game
             ToggleFullscreen();
         if (Platform.Desktop.IsCurrent() && config.Icon != null)
             Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
+        game._defaultFont = config.DefaultFont.Invoke();
         game.Loop();
     }
 
@@ -360,7 +362,7 @@ public sealed class Game
     private ConfigFlags GetConfigFlags()
     {
         ConfigFlags flags = 0;
-        if (_config.Msaa4x)
+        if (_config.Msaa4X)
             flags |= ConfigFlags.Msaa4xHint;
         if (_config.Resizable)
             flags |= ConfigFlags.ResizableWindow;

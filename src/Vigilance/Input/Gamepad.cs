@@ -17,15 +17,10 @@ public sealed class Gamepad
     private readonly List<GamepadButton> _upButtons = [];
     public readonly int Id;
 
-    static Gamepad()
-    {
-        Game.EnsureRunning();
-    }
-
     private Gamepad(int id)
     {
         Id = id;
-        Connected = Raylib.IsGamepadAvailable(Id);
+        Connected = Game.Running ? Raylib.IsGamepadAvailable(Id) : false;
         _axes = new Dictionary<GamepadAxis, float>();
         foreach (var axis in Enum.GetValues<GamepadAxis>())
             _axes.Add(axis, 0);

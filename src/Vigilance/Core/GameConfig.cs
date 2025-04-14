@@ -22,28 +22,26 @@ public struct GameConfig
     public bool Decorated = true;
     public bool Vsync = true;
     public bool Resizable = true;
-    public bool Msaa4x = true;
+    public bool Msaa4X = true;
     public bool Debug = false;
     public Interpolation DefaultInterpolation = Interpolation.Nearest;
     public Vector2 DefaultTextSpacing = new(0, 4);
     public int DefaultFontQuality = 128;
     public float DefaultFontSize = 16;
 
-    public Func<InputAxis> HorizontalInputAxis = () =>
-        new InputAxis
-        {
-            NegativeKeys = [Key.Left, Key.A],
-            PositiveKeys = [Key.Right, Key.D],
-            GamepadAxes = [GamepadAxis.LeftX],
-        };
+    public InputAxis HorizontalInputAxis = new()
+    {
+        NegativeKeys = [Key.Left, Key.A],
+        PositiveKeys = [Key.Right, Key.D],
+        GamepadAxes = [GamepadAxis.LeftX],
+    };
 
-    public Func<InputAxis> VerticalInputAxis = () =>
-        new InputAxis
-        {
-            NegativeKeys = [Key.Up, Key.W],
-            PositiveKeys = [Key.Down, Key.S],
-            GamepadAxes = [GamepadAxis.LeftY],
-        };
+    public InputAxis VerticalInputAxis = new()
+    {
+        NegativeKeys = [Key.Up, Key.W],
+        PositiveKeys = [Key.Down, Key.S],
+        GamepadAxes = [GamepadAxis.LeftY],
+    };
 
     public Func<Font> DefaultFont = static () =>
         Asset.FontResource(

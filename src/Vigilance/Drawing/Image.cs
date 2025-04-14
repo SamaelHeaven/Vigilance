@@ -35,7 +35,7 @@ public sealed class Image
     public int Height => RImage.Height;
 
     public Vector2 Size => new(Width, Height);
-    
+
     public unsafe bool IsValid => RImage.Data != null;
 
     public Texture ToTexture()
