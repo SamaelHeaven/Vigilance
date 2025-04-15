@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Flecs.NET.Core;
+using Vigilance.Events;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
@@ -9,6 +10,7 @@ namespace Vigilance.Core;
 public sealed unsafe class Scene
 {
     private static Scene _current = null!;
+    private readonly Dictionary<Type, List<object>> _events = new();
     private readonly List<Action> _fixedUpdateActions = [];
     private readonly List<Action> _initializeActions = [];
     private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
@@ -70,6 +72,20 @@ public sealed unsafe class Scene
         return new Entity(_world.Lookup(name), this);
     }
 
+    public void On<T>(Action action)
+    {
+        On<T>(_ => action.Invoke());
+    }
+
+    public void On<T>(Action<T> action)
+    {
+        EnsureNotInitialized();
+        var type = typeof(T);
+        if (!_events.ContainsKey(type))
+            _events.Add(type, []);
+        _events[type].Add(action);
+    }
+
     public void OnInitialize(Action action)
     {
         EnsureNotInitialized();
@@ -104,6 +120,16 @@ public sealed unsafe class Scene
     {
         EnsureNotInitialized();
         _renderActions.Add(action);
+    }
+
+    public void Emit<T>(T @event)
+    {
+        EnsureInitialized();
+        var type = typeof(T);
+        if (!_events.TryGetValue(type, out var actions))
+            return;
+        foreach (var action in actions)
+            ((Action<T>)action).Invoke(@event);
     }
 
     public int Count()
