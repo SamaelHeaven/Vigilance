@@ -93,6 +93,12 @@ public sealed unsafe class Scene
         _renderActions.Add(action);
     }
 
+    public int Count()
+    {
+        EnsureInitialized();
+        return _world.Count<ZIndex>();
+    }
+
     public int Count<T>()
     {
         EnsureInitialized();
