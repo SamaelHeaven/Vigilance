@@ -150,6 +150,17 @@ public unsafe struct Entity
         }
     }
 
+    public int WorldZIndex
+    {
+        get
+        {
+            var zIndex = ZIndex;
+            for (var entity = Parent; entity.IsValid; entity = entity.Parent)
+                zIndex += entity.ZIndex;
+            return zIndex;
+        }
+    }
+
     public static bool operator ==(Entity a, Entity b)
     {
         return a.Equals(b);

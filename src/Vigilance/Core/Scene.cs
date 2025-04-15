@@ -8,6 +8,7 @@ namespace Vigilance.Core;
 
 public sealed unsafe class Scene
 {
+    private static Scene _current = null!;
     private readonly List<Action> _fixedUpdateActions = [];
     private readonly List<Action> _initializeActions = [];
     private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
@@ -15,17 +16,17 @@ public sealed unsafe class Scene
     private readonly List<Action> _renderEndActions = [];
     private readonly List<Action> _renderStartActions = [];
     private readonly List<Action> _updateActions = [];
-    private Query<ZIndex> _renderQuery;
+    private Query<ZIndex> _orderedQuery;
     private float _time;
     private World _world = World.Create();
 
     public Scene(IImmutableList<ISystem>? systems = null)
     {
         Systems = systems ?? ImmutableList<ISystem>.Empty;
-        var renderQueryBuilder = _world.QueryBuilder<ZIndex>();
-        renderQueryBuilder.Desc.order_by = Type<ZIndex>.Id(_world);
-        renderQueryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
-        _renderQuery = renderQueryBuilder.Build();
+        var orderedQueryBuilder = _world.QueryBuilder<ZIndex>();
+        orderedQueryBuilder.Desc.order_by = Type<ZIndex>.Id(_world);
+        orderedQueryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        _orderedQuery = orderedQueryBuilder.Build();
     }
 
     public IImmutableList<ISystem> Systems { get; }
@@ -38,25 +39,28 @@ public sealed unsafe class Scene
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
     {
-        var result = (*(ZIndex*)zIndex1).Value.CompareTo((*(ZIndex*)zIndex2).Value);
+        var scene = _current;
+        var e1 = new Entity(scene._world.Entity(id1), scene);
+        var e2 = new Entity(scene._world.Entity(id2), scene);
+        var result = e1.WorldZIndex.CompareTo(e2.WorldZIndex);
         return result == 0 ? id1.CompareTo(id2) : result;
     }
 
     public Entity Entity(string name = "")
     {
         EnsureInitialized();
-        var result = new Entity(_world.Entity(name), this);
-        if (!result.Has<ZIndex>())
-            result.Set(new ZIndex());
-        if (!result.Has<Position>())
-            result.Set(new Position());
-        if (!result.Has<Scale>())
-            result.Set(new Scale());
-        if (!result.Has<Rotation>())
-            result.Set(new Rotation());
-        if (!result.Has<PivotPoint>())
-            result.Set(new PivotPoint());
-        return result;
+        var entity = _world.Entity(name);
+        if (!entity.Has<ZIndex>())
+            entity.Set(new ZIndex());
+        if (!entity.Has<Position>())
+            entity.Set(new Position());
+        if (!entity.Has<Scale>())
+            entity.Set(new Scale());
+        if (!entity.Has<Rotation>())
+            entity.Set(new Rotation());
+        if (!entity.Has<PivotPoint>())
+            entity.Set(new PivotPoint());
+        return new Entity(entity, this);
     }
 
     public Entity Lookup(string name)
@@ -158,15 +162,11 @@ public sealed unsafe class Scene
     {
         foreach (var action in _renderStartActions)
             action.Invoke();
-        _renderQuery.Each(
-            (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
-            {
-                var e = new Entity(entity, this);
-                foreach (var action in _renderActions)
-                    action.Invoke(e);
-            }
-        );
-
+        OrderedEach(entity =>
+        {
+            foreach (var action in _renderActions)
+                action.Invoke(entity);
+        });
         foreach (var action in _renderEndActions)
             action.Invoke();
     }
@@ -175,7 +175,7 @@ public sealed unsafe class Scene
     {
         Game.RunLater(() =>
         {
-            _renderQuery.Dispose();
+            _orderedQuery.Dispose();
             _world.Dispose();
         });
     }
@@ -339,37 +339,6 @@ public sealed unsafe class Scene
 
     #endregion
 
-    #region OnSetZIndex
-
-    public void OnSetZIndex(Action<Entity> action, bool traverse = false)
-    {
-        OnSet<ZIndex>(action.Invoke, traverse);
-    }
-
-    public void OnSetZIndex(Action<int> action, bool traverse = false)
-    {
-        OnSet(
-            (ref ZIndex zIndex) =>
-            {
-                action.Invoke(zIndex.Value);
-            },
-            traverse
-        );
-    }
-
-    public void OnSetZIndex(Action<Entity, int> action, bool traverse = false)
-    {
-        OnSet(
-            (Entity entity, ref ZIndex zIndex) =>
-            {
-                action.Invoke(entity, zIndex.Value);
-            },
-            traverse
-        );
-    }
-
-    #endregion
-
     #region OnSetPosition
 
     public void OnSetPosition(Action<Entity> action, bool traverse = true)
@@ -487,6 +456,37 @@ public sealed unsafe class Scene
             (Entity entity, ref PivotPoint pivotPoint) =>
             {
                 action.Invoke(entity, pivotPoint.Value);
+            },
+            traverse
+        );
+    }
+
+    #endregion
+
+    #region OnSetZIndex
+
+    public void OnSetZIndex(Action<Entity> action, bool traverse = true)
+    {
+        OnSet<ZIndex>(action.Invoke, traverse);
+    }
+
+    public void OnSetZIndex(Action<int> action, bool traverse = true)
+    {
+        OnSet(
+            (ref ZIndex zIndex) =>
+            {
+                action.Invoke(zIndex.Value);
+            },
+            traverse
+        );
+    }
+
+    public void OnSetZIndex(Action<Entity, int> action, bool traverse = true)
+    {
+        OnSet(
+            (Entity entity, ref ZIndex zIndex) =>
+            {
+                action.Invoke(entity, zIndex.Value);
             },
             traverse
         );
@@ -1136,73 +1136,86 @@ public sealed unsafe class Scene
     public void OrderedEach(EachEntityAction action)
     {
         EnsureInitialized();
-        _renderQuery.Each((Flecs.NET.Core.Entity entity, ref ZIndex _) => action.Invoke(new Entity(entity, this)));
+        _current = this;
+        _orderedQuery.Each((Flecs.NET.Core.Entity entity, ref ZIndex _) => action.Invoke(new Entity(entity, this)));
+        _current = null!;
     }
 
     public void OrderedEach<T0>(EachAction<T0> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>())
                     action.Invoke(ref entity.GetMut<T0>());
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0>(EachEntityAction<T0> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>())
                     action.Invoke(new Entity(entity, this), ref entity.GetMut<T0>());
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1>(EachAction<T0, T1> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>())
                     action.Invoke(ref entity.GetMut<T0>(), ref entity.GetMut<T1>());
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1>(EachEntityAction<T0, T1> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>())
                     action.Invoke(new Entity(entity, this), ref entity.GetMut<T0>(), ref entity.GetMut<T1>());
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2>(EachAction<T0, T1, T2> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>())
                     action.Invoke(ref entity.GetMut<T0>(), ref entity.GetMut<T1>(), ref entity.GetMut<T2>());
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2>(EachEntityAction<T0, T1, T2> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>())
@@ -1214,12 +1227,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3>(EachAction<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>())
@@ -1231,12 +1246,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3>(EachEntityAction<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>())
@@ -1249,12 +1266,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4>(EachAction<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>() && entity.Has<T4>())
@@ -1267,12 +1286,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4>(EachEntityAction<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>() && entity.Has<T4>())
@@ -1286,12 +1307,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5>(EachAction<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1312,12 +1335,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5>(EachEntityAction<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1339,12 +1364,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EachAction<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1367,12 +1394,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1396,12 +1425,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1426,12 +1457,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1457,12 +1490,14 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1489,6 +1524,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
@@ -1496,7 +1532,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1524,6 +1561,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
@@ -1531,7 +1569,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1560,6 +1599,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
@@ -1567,7 +1607,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1597,6 +1638,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
@@ -1604,7 +1646,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1635,6 +1678,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
@@ -1642,7 +1686,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1674,6 +1719,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
@@ -1681,7 +1727,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1714,6 +1761,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
@@ -1721,7 +1769,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1755,6 +1804,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
@@ -1762,7 +1812,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1797,6 +1848,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
@@ -1804,7 +1856,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1840,6 +1893,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
@@ -1847,7 +1901,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1884,6 +1939,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
@@ -1891,7 +1947,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1929,6 +1986,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
@@ -1936,7 +1994,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -1975,6 +2034,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
@@ -1982,7 +2042,8 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _renderQuery.Each(
+        _current = this;
+        _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (
@@ -2022,6 +2083,7 @@ public sealed unsafe class Scene
                     );
             }
         );
+        _current = null!;
     }
 
     #endregion
