@@ -19,7 +19,6 @@ public sealed unsafe class Scene
     private Query<ZIndex> _renderQuery;
     private float _time;
     private World _world = World.Create();
-    public Camera Camera = new();
 
     public Scene(IImmutableList<ISystem>? systems = null)
     {
@@ -29,6 +28,8 @@ public sealed unsafe class Scene
         renderQueryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
         _renderQuery = renderQueryBuilder.Build();
     }
+
+    public Camera Camera { get; set; } = new();
 
     public bool Initialized { get; private set; }
 

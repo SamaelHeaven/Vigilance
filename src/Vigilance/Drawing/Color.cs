@@ -32,10 +32,10 @@ public struct Color
     public static readonly Color Brown = new(127, 106, 79);
     public static readonly Color DarkBrown = new(76, 63, 47);
 
-    public byte R;
-    public byte G;
-    public byte B;
-    public byte A;
+    public byte R { get; set; }
+    public byte G { get; set; }
+    public byte B { get; set; }
+    public byte A { get; set; }
 
     internal Color(Raylib_cs.Color color)
         : this(color.R, color.G, color.B, color.A) { }

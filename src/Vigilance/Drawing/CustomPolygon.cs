@@ -5,11 +5,11 @@ namespace Vigilance.Drawing;
 
 public struct CustomPolygon
 {
-    public IReadOnlyList<Vector2> Points = Array.Empty<Vector2>();
-    public Color Fill = Color.Transparent;
-    public Color Stroke = Color.Transparent;
-    public float StrokeWidth = 0;
-    public CameraProvider? Camera = Core.Camera.DefaultProvider;
+    public IReadOnlyList<Vector2> Points { get; set; } = Array.Empty<Vector2>();
+    public Color Fill { get; set; } = Color.Transparent;
+    public Color Stroke { get; set; } = Color.Transparent;
+    public float StrokeWidth { get; set; } = 0;
+    public CameraProvider? Camera { get; set; } = Core.Camera.DefaultProvider;
 
     public CustomPolygon() { }
 }

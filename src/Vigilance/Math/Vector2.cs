@@ -5,8 +5,8 @@ namespace Vigilance.Math;
 [StructLayout(LayoutKind.Sequential)]
 public struct Vector2
 {
-    public float X;
-    public float Y;
+    public float X { get; set; }
+    public float Y { get; set; }
 
     public static readonly Vector2 Zero = new(0);
     public static readonly Vector2 One = new(1);

@@ -2,10 +2,10 @@ namespace Vigilance.Math;
 
 public struct Box(float x, float y, float width, float height)
 {
-    public float X = x;
-    public float Y = y;
-    public float Width = width;
-    public float Height = height;
+    public float X { get; set; } = x;
+    public float Y { get; set; } = y;
+    public float Width { get; set; } = width;
+    public float Height { get; set; } = height;
 
     public Box(Vector2 position, Vector2 size)
         : this(position.X, position.Y, size.X, size.Y) { }

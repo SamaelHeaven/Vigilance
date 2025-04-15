@@ -28,13 +28,29 @@ public unsafe struct Entity
 
     public ref Transform Transform => ref _entity.GetMut<Transform>();
 
-    public ref Vector2 Position => ref Transform.Position;
+    public Vector2 Position
+    {
+        get => Transform.Position;
+        set => Transform.Position = value;
+    }
 
-    public ref Vector2 Scale => ref Transform.Scale;
+    public Vector2 Scale
+    {
+        get => Transform.Scale;
+        set => Transform.Scale = value;
+    }
 
-    public ref float Rotation => ref Transform.Rotation;
+    public float Rotation
+    {
+        get => Transform.Rotation;
+        set => Transform.Rotation = value;
+    }
 
-    public ref Vector2 PivotPoint => ref Transform.PivotPoint;
+    public Vector2 PivotPoint
+    {
+        get => Transform.PivotPoint;
+        set => Transform.PivotPoint = value;
+    }
 
     public int ZIndex
     {

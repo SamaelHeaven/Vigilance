@@ -2,10 +2,10 @@ namespace Vigilance.Math;
 
 public struct Transform
 {
-    public Vector2 Position = Vector2.Zero;
-    public Vector2 Scale = Vector2.One;
-    public float Rotation = 0;
-    public Vector2 PivotPoint = Vector2.Zero;
+    public Vector2 Position { get; set; } = Vector2.Zero;
+    public Vector2 Scale { get; set; } = Vector2.One;
+    public float Rotation { get; set; } = 0;
+    public Vector2 PivotPoint { get; set; } = Vector2.Zero;
 
     public Transform() { }
 
