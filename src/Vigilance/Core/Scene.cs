@@ -15,7 +15,6 @@ public sealed unsafe class Scene
     private readonly List<Action> _renderEndActions = [];
     private readonly List<Action> _renderStartActions = [];
     private readonly List<Action> _updateActions = [];
-    public readonly IImmutableList<ISystem> Systems;
     private Query<ZIndex> _renderQuery;
     private float _time;
     private World _world = World.Create();
@@ -28,6 +27,8 @@ public sealed unsafe class Scene
         renderQueryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
         _renderQuery = renderQueryBuilder.Build();
     }
+
+    public IImmutableList<ISystem> Systems { get; }
 
     public Camera Camera { get; set; } = new();
 

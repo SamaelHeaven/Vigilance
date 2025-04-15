@@ -9,18 +9,18 @@ namespace Vigilance.Core;
 public static unsafe partial class FileSystem
 {
     private static readonly Dictionary<Assembly, string[]> ResourceNames = new();
-    public static readonly Assembly GameAssembly = Assembly.GetEntryAssembly()!;
-    public static readonly Assembly EngineAssembly = Assembly.GetExecutingAssembly();
-
-    public static readonly string ApplicationDirectory = FormatPath(
-        Utf8StringUtils.GetUTF8String(Raylib.GetApplicationDirectory())
-    );
 
     static FileSystem()
     {
         if (!Game.Running)
             Raylib.SetTraceLogLevel(TraceLogLevel.Error);
     }
+
+    public static Assembly GameAssembly { get; } = Assembly.GetEntryAssembly()!;
+    public static Assembly EngineAssembly { get; } = Assembly.GetExecutingAssembly();
+
+    public static string ApplicationDirectory { get; } =
+        FormatPath(Utf8StringUtils.GetUTF8String(Raylib.GetApplicationDirectory()));
 
     public static string WorkingNamespace { get; set; } = "";
 

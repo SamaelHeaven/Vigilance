@@ -48,7 +48,7 @@ public struct GameConfig
         };
 
     public Func<Font> DefaultFont { get; set; } =
-        static () =>
+        () =>
             Asset.FontResource(
                 "DefaultFont.ttf",
                 @namespace: FileSystem.EngineAssembly.GetName().Name! + ".Resources",

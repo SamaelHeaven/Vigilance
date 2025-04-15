@@ -7,8 +7,8 @@ namespace Vigilance.Core;
 
 public unsafe struct Entity
 {
-    public static readonly Entity Null = new(Flecs.NET.Core.Entity.Null(), null!);
-    public readonly Scene Scene;
+    public static Entity Null { get; } = new(Flecs.NET.Core.Entity.Null(), null!);
+    public Scene Scene { get; }
 
     private Flecs.NET.Core.Entity _entity;
 

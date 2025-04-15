@@ -11,8 +11,6 @@ public sealed unsafe class Font
     private static readonly FreeTypeLibrary FtLibrary = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
     private readonly Dictionary<int, (Texture2D, Dictionary<char, GlyphInfo>)> _strokes = new();
-    public readonly string Charset;
-    public readonly int Quality;
     private IntPtr _buffer;
     private FT_FaceRec_* _face;
     private int _spaceSize;
@@ -27,6 +25,8 @@ public sealed unsafe class Font
         Atlas = DrawAtlas(glyphs);
     }
 
+    public string Charset { get; }
+    public int Quality { get; }
     internal Texture2D Atlas { get; }
 
     public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)

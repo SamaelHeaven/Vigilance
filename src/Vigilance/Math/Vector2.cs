@@ -8,12 +8,12 @@ public struct Vector2
     public float X { get; set; }
     public float Y { get; set; }
 
-    public static readonly Vector2 Zero = new(0);
-    public static readonly Vector2 One = new(1);
-    public static readonly Vector2 Up = new(0, -1);
-    public static readonly Vector2 Down = new(0, 1);
-    public static readonly Vector2 Left = new(-1, 0);
-    public static readonly Vector2 Right = new(1, 0);
+    public static Vector2 Zero { get; } = new(0);
+    public static Vector2 One { get; } = new(1);
+    public static Vector2 Up { get; } = new(0, -1);
+    public static Vector2 Down { get; } = new(0, 1);
+    public static Vector2 Left { get; } = new(-1, 0);
+    public static Vector2 Right { get; } = new(1, 0);
 
     public Vector2(float? v1 = null, float? v2 = null)
     {
