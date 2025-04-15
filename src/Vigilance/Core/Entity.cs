@@ -7,13 +7,15 @@ namespace Vigilance.Core;
 
 public unsafe struct Entity
 {
-    public static Entity Null => new(Flecs.NET.Core.Entity.Null());
+    public static readonly Entity Null = new(Flecs.NET.Core.Entity.Null(), null!);
+    public readonly Scene Scene;
 
     private Flecs.NET.Core.Entity _entity;
 
-    internal Entity(Flecs.NET.Core.Entity entity)
+    internal Entity(Flecs.NET.Core.Entity entity, Scene scene)
     {
         _entity = entity;
+        Scene = scene;
     }
 
     public ulong Id => _entity.Id.Value;
@@ -22,7 +24,7 @@ public unsafe struct Entity
 
     public bool IsValid => _entity.IsValid();
 
-    public Entity Parent => new(_entity.Parent());
+    public Entity Parent => new(_entity.Parent(), null!);
 
     public ref Transform Transform => ref _entity.GetMut<Transform>();
 

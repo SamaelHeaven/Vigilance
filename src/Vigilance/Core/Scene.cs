@@ -33,16 +33,18 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
     public Entity Entity(string name = "")
     {
         EnsureInitialized();
-        var result = new Entity(_world.Entity(name));
-        result.Set(new Transform());
-        result.Set(0);
+        var result = new Entity(_world.Entity(name), this);
+        if (!result.Has<int>())
+            result.Set(0);
+        if (!result.Has<Transform>())
+            result.Set(new Transform());
         return result;
     }
 
     public Entity Lookup(string name)
     {
         EnsureInitialized();
-        return new Entity(_world.Lookup(name));
+        return new Entity(_world.Lookup(name), this);
     }
 
     public void OnInitialize(Action action)
@@ -139,7 +141,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
         query.Each(
             (Flecs.NET.Core.Entity entity, ref int _) =>
             {
-                var e = new Entity(entity);
+                var e = new Entity(entity, this);
                 foreach (var action in _renderActions)
                     action.Invoke(e);
             }
@@ -168,7 +170,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
             .Each(
                 (Iter it, int i, ref T _) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i)));
+                    action.Invoke(new Entity(it.Entity(i), this));
                 }
             );
     }
@@ -196,7 +198,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
             .Each(
                 (Iter it, int i, ref T t) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i)), t);
+                    action.Invoke(new Entity(it.Entity(i), this), t);
                 }
             );
     }
@@ -214,7 +216,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
             .Each(
                 (Iter it, int i, ref T _) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i)));
+                    action.Invoke(new Entity(it.Entity(i), this));
                 }
             );
     }
@@ -242,7 +244,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
             .Each(
                 (Iter it, int i, ref T t) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i)), t);
+                    action.Invoke(new Entity(it.Entity(i), this), t);
                 }
             );
     }
@@ -260,7 +262,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
             .Each(
                 (Iter it, int i, ref T _) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i)));
+                    action.Invoke(new Entity(it.Entity(i), this));
                 }
             );
     }
@@ -288,7 +290,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
             .Each(
                 (Iter it, int i, ref T t) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i)), t);
+                    action.Invoke(new Entity(it.Entity(i), this), t);
                 }
             );
     }
@@ -300,7 +302,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
     public void Each(EachEntityAction action)
     {
         EnsureInitialized();
-        _world.Each((Flecs.NET.Core.Entity entity, ref int _) => action.Invoke(new Entity(entity)));
+        _world.Each((Flecs.NET.Core.Entity entity, ref int _) => action.Invoke(new Entity(entity, this)));
     }
 
     public void Each<T0>(EachAction<T0> action)
@@ -312,7 +314,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
     public void Each<T0>(EachEntityAction<T0> action)
     {
         EnsureInitialized();
-        _world.Each((Flecs.NET.Core.Entity entity, ref T0 t0) => action.Invoke(new Entity(entity), ref t0));
+        _world.Each((Flecs.NET.Core.Entity entity, ref T0 t0) => action.Invoke(new Entity(entity, this), ref t0));
     }
 
     public void Each<T0, T1>(EachAction<T0, T1> action)
@@ -325,7 +327,8 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
     {
         EnsureInitialized();
         _world.Each(
-            (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1) => action.Invoke(new Entity(entity), ref t0, ref t1)
+            (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1) =>
+                action.Invoke(new Entity(entity, this), ref t0, ref t1)
         );
     }
 
@@ -340,7 +343,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
         EnsureInitialized();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2) =>
-                action.Invoke(new Entity(entity), ref t0, ref t1, ref t2)
+                action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2)
         );
     }
 
@@ -355,7 +358,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
         EnsureInitialized();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3) =>
-                action.Invoke(new Entity(entity), ref t0, ref t1, ref t2, ref t3)
+                action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3)
         );
     }
 
@@ -373,7 +376,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
         EnsureInitialized();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4) =>
-                action.Invoke(new Entity(entity), ref t0, ref t1, ref t2, ref t3, ref t4)
+                action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4)
         );
     }
 
@@ -391,7 +394,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
         EnsureInitialized();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5) =>
-                action.Invoke(new Entity(entity), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5)
+                action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5)
         );
     }
 
@@ -417,7 +420,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
                 ref T4 t4,
                 ref T5 t5,
                 ref T6 t6
-            ) => action.Invoke(new Entity(entity), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6)
+            ) => action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6)
         );
     }
 
@@ -444,7 +447,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
                 ref T5 t5,
                 ref T6 t6,
                 ref T7 t7
-            ) => action.Invoke(new Entity(entity), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7)
+            ) => action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7)
         );
     }
 
@@ -474,7 +477,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
                 ref T8 t8
             ) =>
                 action.Invoke(
-                    new Entity(entity),
+                    new Entity(entity, this),
                     ref t0,
                     ref t1,
                     ref t2,
@@ -527,7 +530,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
                 ref T9 t9
             ) =>
                 action.Invoke(
-                    new Entity(entity),
+                    new Entity(entity, this),
                     ref t0,
                     ref t1,
                     ref t2,
@@ -585,7 +588,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
                 ref T10 t10
             ) =>
                 action.Invoke(
-                    new Entity(entity),
+                    new Entity(entity, this),
                     ref t0,
                     ref t1,
                     ref t2,
@@ -660,7 +663,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
                 ref T11 t11
             ) =>
                 action.Invoke(
-                    new Entity(entity),
+                    new Entity(entity, this),
                     ref t0,
                     ref t1,
                     ref t2,
@@ -739,7 +742,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
                 ref T12 t12
             ) =>
                 action.Invoke(
-                    new Entity(entity),
+                    new Entity(entity, this),
                     ref t0,
                     ref t1,
                     ref t2,
@@ -822,7 +825,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
                 ref T13 t13
             ) =>
                 action.Invoke(
-                    new Entity(entity),
+                    new Entity(entity, this),
                     ref t0,
                     ref t1,
                     ref t2,
@@ -909,7 +912,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
                 ref T14 t14
             ) =>
                 action.Invoke(
-                    new Entity(entity),
+                    new Entity(entity, this),
                     ref t0,
                     ref t1,
                     ref t2,
