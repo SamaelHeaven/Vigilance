@@ -260,14 +260,13 @@ public sealed class Game
         FileSystem.ChangeDirectory(config.WorkingDirectory);
         Raylib.SetTraceLogLevel(config.Debug ? TraceLogLevel.All : TraceLogLevel.Error);
         Raylib.SetConfigFlags(game.GetConfigFlags());
-        Raylib.InitWindow(config.Width, config.Height, config.Title);
+        Raylib.InitWindow(
+            config.ScreenWidth <= 0 || !Platform.Desktop.IsCurrent() ? config.Width : config.ScreenWidth,
+            config.ScreenHeight <= 0 || !Platform.Desktop.IsCurrent() ? config.Height : config.ScreenHeight,
+            config.Title
+        );
         Raylib.SetTargetFPS(config.FpsTarget);
         Raylib.SetExitKey((KeyboardKey)config.ExitKey);
-        if (Platform.Desktop.IsCurrent())
-            Raylib.SetWindowSize(
-                config.ScreenWidth <= 0 ? config.Width : config.ScreenWidth,
-                config.ScreenHeight <= 0 ? config.Height : config.ScreenHeight
-            );
         if (config.Maximized)
             Maximized = true;
         if (config.Fullscreen)
@@ -290,7 +289,8 @@ public sealed class Game
         else
         {
             game._previousScreenSize = ScreenSize;
-            ScreenSize = Size;
+            var monitor = Raylib.GetCurrentMonitor();
+            ScreenSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
         }
 
         Raylib.ToggleFullscreen();
