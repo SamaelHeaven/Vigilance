@@ -48,8 +48,14 @@ public sealed unsafe class Scene
         var result = new Entity(_world.Entity(name), this);
         if (!result.Has<ZIndex>())
             result.Set(new ZIndex());
-        if (!result.Has<Transform>())
-            result.Set(new Transform());
+        if (!result.Has<Position>())
+            result.Set(new Position());
+        if (!result.Has<Scale>())
+            result.Set(new Scale());
+        if (!result.Has<Rotation>())
+            result.Set(new Rotation());
+        if (!result.Has<PivotPoint>())
+            result.Set(new PivotPoint());
         return result;
     }
 
@@ -176,7 +182,7 @@ public sealed unsafe class Scene
 
     #region OnAdd
 
-    public void OnAdd<T>(Action<Entity> action)
+    public void OnAdd<T>(EachEntityAction action)
     {
         EnsureNotInitialized();
         _world
@@ -190,7 +196,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnAdd<T>(Action<T> action)
+    public void OnAdd<T>(EachAction<T> action)
     {
         EnsureNotInitialized();
         _world
@@ -199,12 +205,12 @@ public sealed unsafe class Scene
             .Each(
                 (Iter _, int _, ref T t) =>
                 {
-                    action.Invoke(t);
+                    action.Invoke(ref t);
                 }
             );
     }
 
-    public void OnAdd<T>(Action<Entity, T> action)
+    public void OnAdd<T>(EachEntityAction<T> action)
     {
         EnsureNotInitialized();
         _world
@@ -213,7 +219,7 @@ public sealed unsafe class Scene
             .Each(
                 (Iter it, int i, ref T t) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i), this), t);
+                    action.Invoke(new Entity(it.Entity(i), this), ref t);
                 }
             );
     }
@@ -222,7 +228,7 @@ public sealed unsafe class Scene
 
     #region OnSet
 
-    public void OnSet<T>(Action<Entity> action)
+    public void OnSet<T>(EachEntityAction action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
@@ -231,26 +237,19 @@ public sealed unsafe class Scene
             .Each(
                 (Iter it, int i, ref T _) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i), this));
+                    var entity = new Entity(it.Entity(i), this);
+                    if (!traverse)
+                    {
+                        action.Invoke(entity);
+                        return;
+                    }
+
+                    entity.Traverse<T>(action);
                 }
             );
     }
 
-    public void OnSet<T>(Action<T> action)
-    {
-        EnsureNotInitialized();
-        _world
-            .Observer<T>()
-            .Event<SetEvent>()
-            .Each(
-                (Iter _, int _, ref T t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
-
-    public void OnSet<T>(Action<Entity, T> action)
+    public void OnSet<T>(EachAction<T> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
@@ -259,7 +258,35 @@ public sealed unsafe class Scene
             .Each(
                 (Iter it, int i, ref T t) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i), this), t);
+                    if (!traverse)
+                    {
+                        action.Invoke(ref t);
+                        return;
+                    }
+
+                    var entity = new Entity(it.Entity(i), this);
+                    entity.Traverse(action);
+                }
+            );
+    }
+
+    public void OnSet<T>(EachEntityAction<T> action, bool traverse = false)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event<SetEvent>()
+            .Each(
+                (Iter it, int i, ref T t) =>
+                {
+                    var entity = new Entity(it.Entity(i), this);
+                    if (!traverse)
+                    {
+                        action.Invoke(entity, ref t);
+                        return;
+                    }
+
+                    entity.Traverse(action);
                 }
             );
     }
@@ -268,7 +295,7 @@ public sealed unsafe class Scene
 
     #region OnRemove
 
-    public void OnRemove<T>(Action<Entity> action)
+    public void OnRemove<T>(EachEntityAction action)
     {
         EnsureNotInitialized();
         _world
@@ -282,7 +309,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnRemove<T>(Action<T> action)
+    public void OnRemove<T>(EachAction<T> action)
     {
         EnsureNotInitialized();
         _world
@@ -291,12 +318,12 @@ public sealed unsafe class Scene
             .Each(
                 (Iter _, int _, ref T t) =>
                 {
-                    action.Invoke(t);
+                    action.Invoke(ref t);
                 }
             );
     }
 
-    public void OnRemove<T>(Action<Entity, T> action)
+    public void OnRemove<T>(EachEntityAction<T> action)
     {
         EnsureNotInitialized();
         _world
@@ -305,9 +332,164 @@ public sealed unsafe class Scene
             .Each(
                 (Iter it, int i, ref T t) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i), this), t);
+                    action.Invoke(new Entity(it.Entity(i), this), ref t);
                 }
             );
+    }
+
+    #endregion
+
+    #region OnSetZIndex
+
+    public void OnSetZIndex(Action<Entity> action, bool traverse = false)
+    {
+        OnSet<ZIndex>(action.Invoke, traverse);
+    }
+
+    public void OnSetZIndex(Action<int> action, bool traverse = false)
+    {
+        OnSet(
+            (ref ZIndex zIndex) =>
+            {
+                action.Invoke(zIndex.Value);
+            },
+            traverse
+        );
+    }
+
+    public void OnSetZIndex(Action<Entity, int> action, bool traverse = false)
+    {
+        OnSet(
+            (Entity entity, ref ZIndex zIndex) =>
+            {
+                action.Invoke(entity, zIndex.Value);
+            },
+            traverse
+        );
+    }
+
+    #endregion
+
+    #region OnSetPosition
+
+    public void OnSetPosition(Action<Entity> action, bool traverse = true)
+    {
+        OnSet<Position>(action.Invoke, traverse);
+    }
+
+    public void OnSetPosition(Action<Vector2> action, bool traverse = true)
+    {
+        OnSet(
+            (ref Position position) =>
+            {
+                action.Invoke(position.Value);
+            },
+            traverse
+        );
+    }
+
+    public void OnSetPosition(Action<Entity, Vector2> action, bool traverse = true)
+    {
+        OnSet(
+            (Entity entity, ref Position position) =>
+            {
+                action.Invoke(entity, position.Value);
+            },
+            traverse
+        );
+    }
+
+    #endregion
+
+    #region OnSetScale
+
+    public void OnSetScale(Action<Entity> action, bool traverse = true)
+    {
+        OnSet<Scale>(action.Invoke, traverse);
+    }
+
+    public void OnSetScale(Action<Vector2> action, bool traverse = true)
+    {
+        OnSet(
+            (ref Scale scale) =>
+            {
+                action.Invoke(scale.Value);
+            },
+            traverse
+        );
+    }
+
+    public void OnSetScale(Action<Entity, Vector2> action, bool traverse = true)
+    {
+        OnSet(
+            (Entity entity, ref Scale scale) =>
+            {
+                action.Invoke(entity, scale.Value);
+            },
+            traverse
+        );
+    }
+
+    #endregion
+
+    #region OnSetRotation
+
+    public void OnSetRotation(Action<Entity> action, bool traverse = true)
+    {
+        OnSet<Rotation>(action.Invoke, traverse);
+    }
+
+    public void OnSetRotation(Action<float> action, bool traverse = true)
+    {
+        OnSet(
+            (ref Rotation rotation) =>
+            {
+                action.Invoke(rotation.Value);
+            },
+            traverse
+        );
+    }
+
+    public void OnSetRotation(Action<Entity, float> action, bool traverse = true)
+    {
+        OnSet(
+            (Entity entity, ref Rotation rotation) =>
+            {
+                action.Invoke(entity, rotation.Value);
+            },
+            traverse
+        );
+    }
+
+    #endregion
+
+    #region OnSetPivotPoint
+
+    public void OnSetPivotPoint(Action<Entity> action, bool traverse = true)
+    {
+        OnSet<PivotPoint>(action.Invoke, traverse);
+    }
+
+    public void OnSetPivotPoint(Action<Vector2> action, bool traverse = true)
+    {
+        OnSet(
+            (ref PivotPoint pivotPoint) =>
+            {
+                action.Invoke(pivotPoint.Value);
+            },
+            traverse
+        );
+    }
+
+    public void OnSetPivotPoint(Action<Entity, Vector2> action, bool traverse = true)
+    {
+        OnSet(
+            (Entity entity, ref PivotPoint pivotPoint) =>
+            {
+                action.Invoke(entity, pivotPoint.Value);
+            },
+            traverse
+        );
     }
 
     #endregion

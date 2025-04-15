@@ -26,36 +26,73 @@ public unsafe struct Entity
 
     public Entity Parent => new(_entity.Parent(), null!);
 
-    public ref Transform Transform => ref _entity.GetMut<Transform>();
+    public Transform Transform
+    {
+        get =>
+            new()
+            {
+                Position = Position,
+                Scale = Scale,
+                Rotation = Rotation,
+                PivotPoint = PivotPoint,
+            };
+        set
+        {
+            Position = value.Position;
+            Scale = value.Scale;
+            Rotation = value.Rotation;
+            PivotPoint = value.PivotPoint;
+        }
+    }
 
     public Vector2 Position
     {
-        get => Transform.Position;
-        set => Transform.Position = value;
+        get => Get<Position>().Value;
+        set
+        {
+            if (!Precision.AreEqual(Position, value))
+                Set(new Position { Value = value });
+        }
     }
 
     public Vector2 Scale
     {
-        get => Transform.Scale;
-        set => Transform.Scale = value;
+        get => Get<Scale>().Value;
+        set
+        {
+            if (!Precision.AreEqual(Scale, value))
+                Set(new Scale { Value = value });
+        }
     }
 
     public float Rotation
     {
-        get => Transform.Rotation;
-        set => Transform.Rotation = value;
+        get => Get<Rotation>().Value;
+        set
+        {
+            if (!Precision.AreEqual(Rotation, value))
+                Set(new Rotation { Value = value });
+        }
     }
 
     public Vector2 PivotPoint
     {
-        get => Transform.PivotPoint;
-        set => Transform.PivotPoint = value;
+        get => Get<PivotPoint>().Value;
+        set
+        {
+            if (!Precision.AreEqual(PivotPoint, value))
+                Set(new PivotPoint { Value = value });
+        }
     }
 
     public int ZIndex
     {
-        get => _entity.Get<ZIndex>().Value;
-        set => _entity.Set(new ZIndex(value));
+        get => Get<ZIndex>().Value;
+        set
+        {
+            if (ZIndex != value)
+                Set(new ZIndex { Value = value });
+        }
     }
 
     public Transform WorldTransform
@@ -211,8 +248,6 @@ public unsafe struct Entity
 
     public ref Entity Remove<T>()
     {
-        if (typeof(T) == typeof(Transform))
-            throw new InvalidOperationException("Cannot remove transform component.");
         _entity.Remove<T>();
         return ref this;
     }
@@ -239,7 +274,7 @@ public unsafe struct Entity
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
-    public void Children(Action<Entity> action)
+    public void Children(EachEntityAction action)
     {
         var scene = Scene;
         _entity.Children(entity =>
@@ -247,6 +282,37 @@ public unsafe struct Entity
             action.Invoke(new Entity(entity, scene));
         });
     }
+
+    #region Traverse
+
+    public void Traverse(EachEntityAction action)
+    {
+        action(this);
+        Children(child => child.Traverse(action));
+    }
+
+    public void Traverse<T>(EachEntityAction action)
+    {
+        if (Has<T>())
+            action(this);
+        Children(child => child.Traverse<T>(action));
+    }
+
+    public void Traverse<T>(EachAction<T> action)
+    {
+        if (Has<T>())
+            action(ref Get<T>());
+        Children(child => child.Traverse(action));
+    }
+
+    public void Traverse<T>(EachEntityAction<T> action)
+    {
+        if (Has<T>())
+            action(this, ref Get<T>());
+        Children(child => child.Traverse(action));
+    }
+
+    #endregion
 
     #region Has
 

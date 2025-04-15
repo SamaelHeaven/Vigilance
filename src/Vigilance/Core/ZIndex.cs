@@ -1,6 +1,6 @@
 namespace Vigilance.Core;
 
-internal readonly struct ZIndex(int value = 0)
+internal readonly struct ZIndex
 {
-    public int Value { get; } = value;
+    public int Value { get; init; }
 }
