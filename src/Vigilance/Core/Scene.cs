@@ -179,6 +179,20 @@ public sealed unsafe class Scene
         Render();
     }
 
+    private void DeferBegin()
+    {
+        _current = this;
+        if (!_world.IsDeferred())
+            _world.DeferBegin();
+    }
+
+    private void DeferEnd()
+    {
+        if (_world.IsDeferred())
+            _world.DeferEnd();
+        _current = null!;
+    }
+
     private void FixedUpdate()
     {
         foreach (var action in _fixedUpdateActions)
@@ -526,114 +540,143 @@ public sealed unsafe class Scene
     public void Each(EachEntityAction action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each((Flecs.NET.Core.Entity entity, ref ZIndex _) => action.Invoke(new Entity(entity, this)));
+        DeferEnd();
     }
 
     public void Each<T0>(EachAction<T0> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each((ref T0 t0) => action.Invoke(ref t0));
+        DeferEnd();
     }
 
     public void Each<T0>(EachEntityAction<T0> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each((Flecs.NET.Core.Entity entity, ref T0 t0) => action.Invoke(new Entity(entity, this), ref t0));
+        DeferEnd();
     }
 
     public void Each<T0, T1>(EachAction<T0, T1> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each((ref T0 t0, ref T1 t1) => action.Invoke(ref t0, ref t1));
+        DeferEnd();
     }
 
     public void Each<T0, T1>(EachEntityAction<T0, T1> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1) =>
                 action.Invoke(new Entity(entity, this), ref t0, ref t1)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2>(EachAction<T0, T1, T2> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each((ref T0 t0, ref T1 t1, ref T2 t2) => action.Invoke(ref t0, ref t1, ref t2));
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2>(EachEntityAction<T0, T1, T2> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2) =>
                 action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3>(EachAction<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each((ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3) => action.Invoke(ref t0, ref t1, ref t2, ref t3));
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3>(EachEntityAction<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3) =>
                 action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4>(EachAction<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4) =>
                 action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4>(EachEntityAction<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4) =>
                 action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5>(EachAction<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5) =>
                 action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5>(EachEntityAction<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5) =>
                 action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6>(EachAction<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5, ref T6 t6) =>
                 action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 Flecs.NET.Core.Entity entity,
@@ -646,20 +689,24 @@ public sealed unsafe class Scene
                 ref T6 t6
             ) => action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5, ref T6 t6, ref T7 t7) =>
                 action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 Flecs.NET.Core.Entity entity,
@@ -673,20 +720,24 @@ public sealed unsafe class Scene
                 ref T7 t7
             ) => action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5, ref T6 t6, ref T7 t7, ref T8 t8) =>
                 action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7, ref t8)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 Flecs.NET.Core.Entity entity,
@@ -713,11 +764,13 @@ public sealed unsafe class Scene
                     ref t8
                 )
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action)
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 ref T0 t0,
@@ -732,6 +785,7 @@ public sealed unsafe class Scene
                 ref T9 t9
             ) => action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7, ref t8, ref t9)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
@@ -739,6 +793,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 Flecs.NET.Core.Entity entity,
@@ -767,6 +822,7 @@ public sealed unsafe class Scene
                     ref t9
                 )
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
@@ -774,6 +830,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 ref T0 t0,
@@ -789,6 +846,7 @@ public sealed unsafe class Scene
                 ref T10 t10
             ) => action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7, ref t8, ref t9, ref t10)
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
@@ -796,6 +854,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 Flecs.NET.Core.Entity entity,
@@ -826,6 +885,7 @@ public sealed unsafe class Scene
                     ref t10
                 )
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
@@ -833,6 +893,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 ref T0 t0,
@@ -863,6 +924,7 @@ public sealed unsafe class Scene
                     ref t11
                 )
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
@@ -870,6 +932,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 Flecs.NET.Core.Entity entity,
@@ -902,6 +965,7 @@ public sealed unsafe class Scene
                     ref t11
                 )
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
@@ -909,6 +973,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 ref T0 t0,
@@ -941,6 +1006,7 @@ public sealed unsafe class Scene
                     ref t12
                 )
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
@@ -948,6 +1014,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 Flecs.NET.Core.Entity entity,
@@ -982,6 +1049,7 @@ public sealed unsafe class Scene
                     ref t12
                 )
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
@@ -989,6 +1057,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 ref T0 t0,
@@ -1023,6 +1092,7 @@ public sealed unsafe class Scene
                     ref t13
                 )
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
@@ -1030,6 +1100,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 Flecs.NET.Core.Entity entity,
@@ -1066,6 +1137,7 @@ public sealed unsafe class Scene
                     ref t13
                 )
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
@@ -1073,6 +1145,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 ref T0 t0,
@@ -1109,6 +1182,7 @@ public sealed unsafe class Scene
                     ref t14
                 )
         );
+        DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
@@ -1116,6 +1190,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
+        DeferBegin();
         _world.Each(
             (
                 Flecs.NET.Core.Entity entity,
@@ -1154,6 +1229,7 @@ public sealed unsafe class Scene
                     ref t14
                 )
         );
+        DeferEnd();
     }
 
     #endregion
@@ -1163,15 +1239,15 @@ public sealed unsafe class Scene
     public void OrderedEach(EachEntityAction action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each((Flecs.NET.Core.Entity entity, ref ZIndex _) => action.Invoke(new Entity(entity, this)));
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0>(EachAction<T0> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1179,13 +1255,13 @@ public sealed unsafe class Scene
                     action.Invoke(ref entity.GetMut<T0>());
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0>(EachEntityAction<T0> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1193,13 +1269,13 @@ public sealed unsafe class Scene
                     action.Invoke(new Entity(entity, this), ref entity.GetMut<T0>());
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1>(EachAction<T0, T1> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1207,13 +1283,13 @@ public sealed unsafe class Scene
                     action.Invoke(ref entity.GetMut<T0>(), ref entity.GetMut<T1>());
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1>(EachEntityAction<T0, T1> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1221,13 +1297,13 @@ public sealed unsafe class Scene
                     action.Invoke(new Entity(entity, this), ref entity.GetMut<T0>(), ref entity.GetMut<T1>());
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2>(EachAction<T0, T1, T2> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1235,13 +1311,13 @@ public sealed unsafe class Scene
                     action.Invoke(ref entity.GetMut<T0>(), ref entity.GetMut<T1>(), ref entity.GetMut<T2>());
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2>(EachEntityAction<T0, T1, T2> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1254,13 +1330,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3>(EachAction<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1273,13 +1349,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3>(EachEntityAction<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1293,13 +1369,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4>(EachAction<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1313,13 +1389,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4>(EachEntityAction<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1334,13 +1410,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5>(EachAction<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1362,13 +1438,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5>(EachEntityAction<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1391,13 +1467,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EachAction<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1421,13 +1497,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1452,13 +1528,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1484,13 +1560,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1517,13 +1593,13 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1551,7 +1627,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
@@ -1559,7 +1635,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1588,7 +1664,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
@@ -1596,7 +1672,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1626,7 +1702,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
@@ -1634,7 +1710,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1665,7 +1741,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
@@ -1673,7 +1749,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1705,7 +1781,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
@@ -1713,7 +1789,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1746,7 +1822,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
@@ -1754,7 +1830,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1788,7 +1864,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
@@ -1796,7 +1872,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1831,7 +1907,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
@@ -1839,7 +1915,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1875,7 +1951,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
@@ -1883,7 +1959,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1920,7 +1996,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
@@ -1928,7 +2004,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -1966,7 +2042,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
@@ -1974,7 +2050,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -2013,7 +2089,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
@@ -2021,7 +2097,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -2061,7 +2137,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
@@ -2069,7 +2145,7 @@ public sealed unsafe class Scene
     )
     {
         EnsureInitialized();
-        _current = this;
+        DeferBegin();
         _orderedQuery.Each(
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
@@ -2110,7 +2186,7 @@ public sealed unsafe class Scene
                     );
             }
         );
-        _current = null!;
+        DeferEnd();
     }
 
     #endregion

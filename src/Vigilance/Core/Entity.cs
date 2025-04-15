@@ -48,7 +48,7 @@ public unsafe struct Entity
 
     public Vector2 Position
     {
-        get => Get<Position>().Value;
+        get => Has<Position>() ? Get<Position>().Value : Vector2.Zero;
         set
         {
             if (!Precision.AreEqual(Position, value))
@@ -58,7 +58,7 @@ public unsafe struct Entity
 
     public Vector2 Scale
     {
-        get => Get<Scale>().Value;
+        get => Has<Scale>() ? Get<Scale>().Value : Vector2.One;
         set
         {
             if (!Precision.AreEqual(Scale, value))
@@ -68,7 +68,7 @@ public unsafe struct Entity
 
     public float Rotation
     {
-        get => Get<Rotation>().Value;
+        get => Has<Rotation>() ? Get<Rotation>().Value : 0;
         set
         {
             if (!Precision.AreEqual(Rotation, value))
@@ -78,7 +78,7 @@ public unsafe struct Entity
 
     public Vector2 PivotPoint
     {
-        get => Get<PivotPoint>().Value;
+        get => Has<PivotPoint>() ? Get<PivotPoint>().Value : Vector2.Zero;
         set
         {
             if (!Precision.AreEqual(PivotPoint, value))
@@ -88,7 +88,7 @@ public unsafe struct Entity
 
     public int ZIndex
     {
-        get => Get<ZIndex>().Value;
+        get => Has<ZIndex>() ? Get<ZIndex>().Value : 0;
         set
         {
             if (ZIndex != value)
