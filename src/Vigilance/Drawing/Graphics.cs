@@ -223,7 +223,7 @@ public readonly struct Graphics
         var roundness = rectangle.Roundness;
         var strokeWidth = rectangle.StrokeWidth;
         var position = transform.Position;
-        var scale = transform.Scale;
+        var scale = transform.Scale.Abs();
         PushState();
         Transform(transform, true);
         if (roundness > 0)
@@ -841,7 +841,7 @@ public readonly struct Graphics
         var flipX = sprite.FlipX;
         var flipY = sprite.FlipY;
         var position = transform.Position;
-        var scale = transform.Scale;
+        var scale = transform.Scale.Abs();
         PushState();
         Transform(transform, true);
         DrawTexture(
