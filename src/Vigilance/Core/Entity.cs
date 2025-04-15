@@ -36,7 +36,11 @@ public unsafe struct Entity
 
     public ref Vector2 PivotPoint => ref Transform.PivotPoint;
 
-    public ref int ZIndex => ref _entity.GetMut<int>();
+    public int ZIndex
+    {
+        get => _entity.Get<ZIndex>().Value;
+        set => _entity.Set(new ZIndex(value));
+    }
 
     public Transform WorldTransform
     {
@@ -193,8 +197,6 @@ public unsafe struct Entity
     {
         if (typeof(T) == typeof(Transform))
             throw new InvalidOperationException("Cannot remove transform component.");
-        if (typeof(T) == typeof(int))
-            throw new InvalidOperationException("Cannot remove zindex component.");
         _entity.Remove<T>();
         return ref this;
     }

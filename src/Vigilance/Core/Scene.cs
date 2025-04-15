@@ -6,7 +6,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
+public sealed unsafe class Scene
 {
     private readonly List<Action> _fixedUpdateActions = [];
     private readonly List<Action> _initializeActions = [];
@@ -15,10 +15,20 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
     private readonly List<Action> _renderEndActions = [];
     private readonly List<Action> _renderStartActions = [];
     private readonly List<Action> _updateActions = [];
-    public readonly IImmutableList<ISystem> Systems = systems ?? ImmutableList<ISystem>.Empty;
+    public readonly IImmutableList<ISystem> Systems;
+    private Query<ZIndex> _renderQuery;
     private float _time;
     private World _world = World.Create();
     public Camera Camera = new();
+
+    public Scene(IImmutableList<ISystem>? systems = null)
+    {
+        Systems = systems ?? ImmutableList<ISystem>.Empty;
+        var renderQueryBuilder = _world.QueryBuilder<ZIndex>();
+        renderQueryBuilder.Desc.order_by = Type<ZIndex>.Id(_world);
+        renderQueryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
+        _renderQuery = renderQueryBuilder.Build();
+    }
 
     public bool Initialized { get; private set; }
 
@@ -26,7 +36,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
     {
-        var result = (*(int*)zIndex1).CompareTo(*(int*)zIndex2);
+        var result = (*(ZIndex*)zIndex1).Value.CompareTo((*(ZIndex*)zIndex2).Value);
         return result == 0 ? id1.CompareTo(id2) : result;
     }
 
@@ -34,8 +44,8 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
     {
         EnsureInitialized();
         var result = new Entity(_world.Entity(name), this);
-        if (!result.Has<int>())
-            result.Set(0);
+        if (!result.Has<ZIndex>())
+            result.Set(new ZIndex());
         if (!result.Has<Transform>())
             result.Set(new Transform());
         return result;
@@ -134,12 +144,8 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
     {
         foreach (var action in _renderStartActions)
             action.Invoke();
-        var queryBuilder = _world.QueryBuilder<int>();
-        queryBuilder.Desc.order_by = Type<int>.Id(_world);
-        queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
-        using var query = queryBuilder.Build();
-        query.Each(
-            (Flecs.NET.Core.Entity entity, ref int _) =>
+        _renderQuery.Each(
+            (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 var e = new Entity(entity, this);
                 foreach (var action in _renderActions)
@@ -155,6 +161,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
     {
         Game.RunLater(() =>
         {
+            _renderQuery.Dispose();
             _world.Dispose();
         });
     }
@@ -302,7 +309,7 @@ public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
     public void Each(EachEntityAction action)
     {
         EnsureInitialized();
-        _world.Each((Flecs.NET.Core.Entity entity, ref int _) => action.Invoke(new Entity(entity, this)));
+        _world.Each((Flecs.NET.Core.Entity entity, ref ZIndex _) => action.Invoke(new Entity(entity, this)));
     }
 
     public void Each<T0>(EachAction<T0> action)
