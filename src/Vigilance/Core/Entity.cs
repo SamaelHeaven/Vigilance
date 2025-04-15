@@ -239,7 +239,7 @@ public unsafe struct Entity
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
-    public void Children(EachEntityAction action)
+    public void Children(Action<Entity> action)
     {
         var scene = Scene;
         _entity.Children(entity =>
