@@ -322,9 +322,8 @@ public sealed class Game
     {
         if (!_resetSize)
             return;
+        _resetSize = false;
         ScreenSize = _previousScreenSize;
-        if (ScreenSize == _previousScreenSize)
-            _resetSize = false;
     }
 
     private void UpdateActions()
