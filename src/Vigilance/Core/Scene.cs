@@ -16,6 +16,7 @@ public sealed unsafe class Scene
     private readonly List<Action> _renderEndActions = [];
     private readonly List<Action> _renderStartActions = [];
     private readonly List<Action> _updateActions = [];
+    private Camera _camera = new();
     private Query<ZIndex> _orderedQuery;
     private float _time;
     private World _world = World.Create();
@@ -31,7 +32,7 @@ public sealed unsafe class Scene
 
     public IImmutableList<ISystem> Systems { get; }
 
-    public Camera Camera { get; set; } = new();
+    public ref Camera Camera => ref _camera;
 
     public bool Initialized { get; private set; }
 
