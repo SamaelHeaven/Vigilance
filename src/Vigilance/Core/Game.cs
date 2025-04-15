@@ -1,8 +1,8 @@
+using System.Collections.Immutable;
 using Raylib_cs;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
-using Vigilance.Systems;
 using Font = Vigilance.Drawing.Font;
 using Image = Vigilance.Drawing.Image;
 
@@ -10,7 +10,6 @@ namespace Vigilance.Core;
 
 public sealed class Game
 {
-    internal static readonly List<ISystem> SystemList = [];
     private static Game? _game;
     private readonly List<Action> _actions = [];
     private GameConfig _config;
@@ -18,11 +17,6 @@ public sealed class Game
     private Vector2 _previousScreenSize = Vector2.Zero;
     private bool _resetSize;
     private Scene _scene = null!;
-
-    static Game()
-    {
-        Systems([new GraphicsSystem()]);
-    }
 
     private Game()
     {
@@ -164,6 +158,8 @@ public sealed class Game
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
 
+    public static IImmutableList<ISystem> Systems => GetGame()._config.Systems;
+
     public static bool Debug
     {
         get => GetGame()._config.Debug;
@@ -231,18 +227,6 @@ public sealed class Game
     {
         EnsureRunning();
         Raylib.OpenURL(url);
-    }
-
-    public static void System(ISystem system)
-    {
-        EnsureNotRunning();
-        SystemList.Add(system);
-    }
-
-    public static void Systems(IEnumerable<ISystem> systems)
-    {
-        EnsureNotRunning();
-        SystemList.AddRange(systems);
     }
 
     public static void EnsureRunning()

@@ -30,7 +30,7 @@ public struct Box(float x, float y, float width, float height)
         return new Box(box.Item1, box.Item2);
     }
 
-    public static Box From(Transform transform)
+    public static Box Bounding(Transform transform)
     {
         var position = transform.Position;
         var size = transform.Scale.Abs();
@@ -64,16 +64,6 @@ public struct Box(float x, float y, float width, float height)
             rotatedBottomRight.Y
         );
         return new Box(minX, minY, maxX - minX, maxY - minY);
-    }
-
-    public readonly bool Intersects(Box box)
-    {
-        return X < box.X + box.Width && X + Width > box.X && Y < box.Y + box.Height && Y + Height > box.Y;
-    }
-
-    public readonly bool Contains(Vector2 position)
-    {
-        return X < position.X && X + Width > position.X && Y < position.Y && Y + Height > position.Y;
     }
 
     public readonly Vector2 Position => new(X, Y);

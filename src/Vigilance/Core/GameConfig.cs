@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
@@ -28,6 +29,7 @@ public struct GameConfig
     public Vector2 DefaultTextSpacing = new(0, 4);
     public int DefaultFontQuality = 128;
     public float DefaultFontSize = 16;
+    public IImmutableList<ISystem> Systems = ImmutableList<ISystem>.Empty;
 
     public InputAxis HorizontalInputAxis = new()
     {

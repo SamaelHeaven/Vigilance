@@ -1,21 +1,25 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Flecs.NET.Core;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public sealed unsafe class Scene
+public sealed unsafe class Scene(IImmutableList<ISystem>? systems = null)
 {
     private readonly List<Action> _fixedUpdateActions = [];
     private readonly List<Action> _initializeActions = [];
     private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
-    private readonly List<Action> _renderActions = [];
-    private readonly List<Action<Entity>> _renderEntityActions = [];
+    private readonly List<Action<Entity>> _renderActions = [];
+    private readonly List<Action> _renderEndActions = [];
+    private readonly List<Action> _renderStartActions = [];
     private readonly List<Action> _updateActions = [];
+    public readonly IImmutableList<ISystem> Systems = systems ?? ImmutableList<ISystem>.Empty;
     private float _time;
     private World _world = World.Create();
     public Camera Camera = new();
+
     public bool Initialized { get; private set; }
 
     // ReSharper disable once UseCollectionExpression
@@ -23,16 +27,6 @@ public sealed unsafe class Scene
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
     {
         var result = (*(int*)zIndex1).CompareTo(*(int*)zIndex2);
-        if (result != 0)
-            return result;
-        var scene = Game.Scene;
-        var entity1 = new Entity(scene._world.Entity(id1));
-        var entity2 = new Entity(scene._world.Entity(id2));
-        var hasComparer1 = entity1.Has<EntityComparer>();
-        var hasComparer2 = entity2.Has<EntityComparer>();
-        var value1 = hasComparer1 ? entity1.Get<EntityComparer>().Compare(entity1, entity2) : 0;
-        var value2 = hasComparer2 ? entity2.Get<EntityComparer>().Compare(entity2, entity1) : 0;
-        result = value1 + value2;
         return result == 0 ? id1.CompareTo(id2) : result;
     }
 
@@ -69,16 +63,22 @@ public sealed unsafe class Scene
         _fixedUpdateActions.Add(action);
     }
 
-    public void OnRender(Action action)
+    public void OnRenderStart(Action action)
     {
         EnsureNotInitialized();
-        _renderActions.Add(action);
+        _renderStartActions.Add(action);
+    }
+
+    public void OnRenderEnd(Action action)
+    {
+        EnsureNotInitialized();
+        _renderEndActions.Add(action);
     }
 
     public void OnRender(Action<Entity> action)
     {
         EnsureNotInitialized();
-        _renderEntityActions.Add(action);
+        _renderActions.Add(action);
     }
 
     public int Count<T>()
@@ -101,7 +101,9 @@ public sealed unsafe class Scene
 
     private void Initialize()
     {
-        foreach (var system in Game.SystemList)
+        foreach (var system in Game.Systems)
+            system.Configure(this);
+        foreach (var system in Systems)
             system.Configure(this);
         Initialized = true;
         foreach (var action in _initializeActions)
@@ -128,6 +130,8 @@ public sealed unsafe class Scene
 
     private void Render()
     {
+        foreach (var action in _renderStartActions)
+            action.Invoke();
         var queryBuilder = _world.QueryBuilder<int>();
         queryBuilder.Desc.order_by = Type<int>.Id(_world);
         queryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
@@ -136,12 +140,12 @@ public sealed unsafe class Scene
             (Flecs.NET.Core.Entity entity, ref int _) =>
             {
                 var e = new Entity(entity);
-                foreach (var action in _renderEntityActions)
+                foreach (var action in _renderActions)
                     action.Invoke(e);
             }
         );
 
-        foreach (var action in _renderActions)
+        foreach (var action in _renderEndActions)
             action.Invoke();
     }
 
