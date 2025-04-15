@@ -206,6 +206,11 @@ public unsafe struct Entity
         _entity.Destruct();
     }
 
+    public void Scope(Action action)
+    {
+        _entity.Scope(action);
+    }
+
     public ref Entity ChildOf(Entity parent)
     {
         _entity.ChildOf(parent._entity);
@@ -215,6 +220,15 @@ public unsafe struct Entity
     public bool IsChildOf(Entity parent)
     {
         return _entity.Has(Ecs.ChildOf, parent._entity);
+    }
+
+    public void Children(EachEntityAction action)
+    {
+        var scene = Scene;
+        _entity.Children(entity =>
+        {
+            action.Invoke(new Entity(entity, scene));
+        });
     }
 
     #region Has

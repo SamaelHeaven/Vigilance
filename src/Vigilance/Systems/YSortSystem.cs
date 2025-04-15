@@ -10,7 +10,8 @@ public class YSortSystem(float offset = 0) : ISystem
     {
         scene.OnRenderStart(() =>
         {
-            scene.Each((Entity entity, ref YSort ySort) =>
+            scene.Each(
+                (Entity entity, ref YSort ySort) =>
                 {
                     entity.ZIndex = (int)MathF.Round(entity.WorldPosition.Y + Offset + ySort.Offset);
                 }
