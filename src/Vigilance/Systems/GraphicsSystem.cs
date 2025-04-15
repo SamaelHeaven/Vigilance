@@ -3,7 +3,7 @@ using Vigilance.Drawing;
 
 namespace Vigilance.Systems;
 
-public struct GraphicsSystem : ISystem
+public class GraphicsSystem : ISystem
 {
     public void Configure(Scene scene)
     {
