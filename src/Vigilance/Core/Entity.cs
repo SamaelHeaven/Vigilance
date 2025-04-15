@@ -206,9 +206,10 @@ public unsafe struct Entity
         _entity.Destruct();
     }
 
-    public void Scope(Action action)
+    public ref Entity Scope(Action action)
     {
         _entity.Scope(action);
+        return ref this;
     }
 
     public ref Entity ChildOf(Entity parent)
