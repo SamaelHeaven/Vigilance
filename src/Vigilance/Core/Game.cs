@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Raylib_cs;
 using Vigilance.Drawing;
@@ -12,7 +13,7 @@ namespace Vigilance.Core;
 public sealed class Game
 {
     private static Game? _game;
-    private readonly List<Action> _actions = [];
+    private readonly ConcurrentStack<Action> _actions = [];
     private GameConfig _config;
     private Font _defaultFont = null!;
     private Vector2 _previousScreenSize = Vector2.Zero;
@@ -243,10 +244,7 @@ public sealed class Game
     public static void RunLater(Action action)
     {
         var game = GetGame();
-        lock (game._actions)
-        {
-            game._actions.Add(action);
-        }
+        game._actions.Push(action);
     }
 
     public static void Launch(GameConfig config, Scene scene)
@@ -349,12 +347,13 @@ public sealed class Game
 
     private void UpdateActions()
     {
-        lock (_actions)
-        {
-            foreach (var action in _actions)
-                action.Invoke();
-            _actions.Clear();
-        }
+        var length = _actions.Count;
+        if (length == 0)
+            return;
+        var actions = new Action[length];
+        var amount = _actions.TryPopRange(actions, 0, length);
+        for (var i = amount - 1; i >= 0; i--)
+            actions[i].Invoke();
     }
 
     private void UpdateFullscreen()
