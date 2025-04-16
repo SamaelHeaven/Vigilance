@@ -286,7 +286,7 @@ public unsafe struct Entity
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
-    public void Children(EachEntityAction action)
+    public void Children(EntityAction action)
     {
         var scene = Scene;
         _entity.Children(entity =>
@@ -297,27 +297,27 @@ public unsafe struct Entity
 
     #region Traverse
 
-    public void Traverse(EachEntityAction action)
+    public void Traverse(EntityAction action)
     {
         action(this);
         Children(child => child.Traverse(action));
     }
 
-    public void Traverse<T>(EachEntityAction action)
+    public void Traverse<T>(EntityAction action)
     {
         if (Has<T>())
             action(this);
         Children(child => child.Traverse<T>(action));
     }
 
-    public void Traverse<T>(EachAction<T> action)
+    public void Traverse<T>(RefAction<T> action)
     {
         if (Has<T>())
             action(ref Get<T>());
         Children(child => child.Traverse(action));
     }
 
-    public void Traverse<T>(EachEntityAction<T> action)
+    public void Traverse<T>(EntityAction<T> action)
     {
         if (Has<T>())
             action(this, ref Get<T>());
