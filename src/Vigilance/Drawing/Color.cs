@@ -48,37 +48,37 @@ public struct Color
         A = a;
     }
 
-    public Color(uint hexadecimal)
+    public Color(uint hex)
     {
-        var color = Raylib.GetColor(hexadecimal);
+        var color = Raylib.GetColor(hex);
         R = color.R;
         G = color.G;
         B = color.B;
         A = color.A;
     }
 
-    public Color(string hexadecimal)
+    public Color(string hex)
     {
         try
         {
-            if (hexadecimal.StartsWith('#'))
-                hexadecimal = hexadecimal[1..];
-            if (hexadecimal.Length != 6 && hexadecimal.Length != 8)
+            if (hex.StartsWith('#'))
+                hex = hex[1..];
+            if (hex.Length != 6 && hex.Length != 8)
                 throw new Exception();
-            R = Convert.ToByte(hexadecimal[..2], 16);
-            G = Convert.ToByte(hexadecimal[2..4], 16);
-            B = Convert.ToByte(hexadecimal[4..6], 16);
-            A = hexadecimal.Length == 8 ? Convert.ToByte(hexadecimal[6..8], 16) : (byte)255;
+            R = Convert.ToByte(hex[..2], 16);
+            G = Convert.ToByte(hex[2..4], 16);
+            B = Convert.ToByte(hex[4..6], 16);
+            A = hex.Length == 8 ? Convert.ToByte(hex[6..8], 16) : (byte)255;
         }
         catch (Exception)
         {
-            throw new ArgumentException($"Invalid hexadecimal color code: '{hexadecimal}'.");
+            throw new ArgumentException($"Invalid hexadecimal color code: '{hex}'.");
         }
     }
 
-    public static implicit operator Color(string hexadecimal)
+    public static implicit operator Color(string hex)
     {
-        return new Color(hexadecimal);
+        return new Color(hex);
     }
 
     public static implicit operator Color((byte, byte, byte) rgb)
@@ -106,6 +106,11 @@ public struct Color
     public override string ToString()
     {
         return $"{{ R: {R}, G: {G}, B: {B}, A: {A} }}";
+    }
+
+    public string ToHex()
+    {
+        return $"#{R:X2}{G:X2}{B:X2}{A:X2}";
     }
 
     public int ToInt()
