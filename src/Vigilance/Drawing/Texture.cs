@@ -49,7 +49,7 @@ public sealed class Texture
         Texture2D = result;
     }
 
-    public static Texture Empty => _empty ??= new Texture([Color.Transparent], 1, 1);
+    public static Texture Empty => _empty ??= new Texture(stackalloc Color[1] { Color.Transparent }, 1, 1);
 
     public int Width => Texture2D.Width;
 
