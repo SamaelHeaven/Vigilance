@@ -5,6 +5,7 @@ using Vigilance.Input;
 using Vigilance.Math;
 using Font = Vigilance.Drawing.Font;
 using Image = Vigilance.Drawing.Image;
+using Music = Vigilance.Audio.Music;
 
 namespace Vigilance.Core;
 
@@ -269,6 +270,7 @@ public sealed class Game
             config.ScreenHeight <= 0 || !Platform.Desktop.IsCurrent() ? config.Height : config.ScreenHeight,
             config.Title
         );
+        Raylib.InitAudioDevice();
         Raylib.SetTargetFPS(config.FpsTarget);
         Raylib.SetExitKey((KeyboardKey)config.ExitKey);
         if (config.Maximized)
@@ -314,12 +316,16 @@ public sealed class Game
             Keyboard.Update();
             Mouse.Update();
             Gamepad.UpdateAll();
+            Music.UpdateAll();
             UpdateSize();
             UpdateActions();
             UpdateFullscreen();
             _scene.Update();
             Renderer.Update();
         }
+
+        Raylib.CloseAudioDevice();
+        Raylib.CloseWindow();
     }
 
     private void UpdateSize()

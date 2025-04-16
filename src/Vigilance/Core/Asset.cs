@@ -1,4 +1,5 @@
 using System.Reflection;
+using Vigilance.Audio;
 using Vigilance.Drawing;
 
 namespace Vigilance.Core;
@@ -8,45 +9,59 @@ public static class Asset
     private static readonly Container<string, Texture> TextureContainer = new();
     private static readonly Container<string, Image> ImageContainer = new();
     private static readonly Container<(string, int, string), Font> FontContainer = new();
+    private static readonly Container<string, Music> MusicContainer = new();
 
-    public static Texture TextureFile(string path)
+    public static Texture TextureFile(string path, bool cache = true)
     {
-        return TextureContainer.File(ref path, () => path, bytes => new Texture(Path.GetExtension(path), bytes));
+        return TextureContainer.File(ref path, () => path, bytes => new Texture(Path.GetExtension(path), bytes), cache);
     }
 
-    public static Texture TextureResource(string resource, string? @namespace = null, Assembly? assembly = null)
+    public static Texture TextureResource(
+        string resource,
+        string? @namespace = null,
+        Assembly? assembly = null,
+        bool cache = true
+    )
     {
         return TextureContainer.Resource(
             ref resource,
             @namespace,
             assembly,
             () => resource,
-            bytes => new Texture(Path.GetExtension(resource), bytes)
+            bytes => new Texture(Path.GetExtension(resource), bytes),
+            cache
         );
     }
 
-    public static Image ImageFile(string path)
+    public static Image ImageFile(string path, bool cache = true)
     {
-        return ImageContainer.File(ref path, () => path, bytes => new Image(Path.GetExtension(path), bytes));
+        return ImageContainer.File(ref path, () => path, bytes => new Image(Path.GetExtension(path), bytes), cache);
     }
 
-    public static Image ImageResource(string resource, string? @namespace = null, Assembly? assembly = null)
+    public static Image ImageResource(
+        string resource,
+        string? @namespace = null,
+        Assembly? assembly = null,
+        bool cache = true
+    )
     {
         return ImageContainer.Resource(
             ref resource,
             @namespace,
             assembly,
             () => resource,
-            bytes => new Image(Path.GetExtension(resource), bytes)
+            bytes => new Image(Path.GetExtension(resource), bytes),
+            cache
         );
     }
 
-    public static Font FontFile(string path, int? quality = null, string? charset = null)
+    public static Font FontFile(string path, int? quality = null, string? charset = null, bool cache = true)
     {
         return FontContainer.File(
             ref path,
             () => (path, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
-            bytes => new Font(bytes, quality, charset)
+            bytes => new Font(bytes, quality, charset),
+            cache
         );
     }
 
@@ -55,7 +70,8 @@ public static class Asset
         int? quality = null,
         string? charset = null,
         string? @namespace = null,
-        Assembly? assembly = null
+        Assembly? assembly = null,
+        bool cache = true
     )
     {
         return FontContainer.Resource(
@@ -63,7 +79,30 @@ public static class Asset
             @namespace,
             assembly,
             () => (resource, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
-            bytes => new Font(bytes, quality, charset)
+            bytes => new Font(bytes, quality, charset),
+            cache
+        );
+    }
+
+    public static Music MusicFile(string path, bool cache = true)
+    {
+        return MusicContainer.File(ref path, () => path, bytes => new Music(Path.GetExtension(path), bytes), cache);
+    }
+
+    public static Music MusicResource(
+        string resource,
+        string? @namespace = null,
+        Assembly? assembly = null,
+        bool cache = true
+    )
+    {
+        return MusicContainer.Resource(
+            ref resource,
+            @namespace,
+            assembly,
+            () => resource,
+            bytes => new Music(Path.GetExtension(resource), bytes),
+            cache
         );
     }
 
@@ -76,17 +115,18 @@ public static class Asset
 
         public Container() { }
 
-        public TValue File(ref string path, Func<TKey> keyFunc, Func<byte[], TValue> valueFunc)
+        public TValue File(ref string path, Func<TKey> keyFunc, Func<byte[], TValue> valueFunc, bool cache)
         {
             var filePath = FileSystem.FormatPath(path);
             path = FileSystem.FormatPath(FileSystem.WorkingDirectory + "/" + path);
             var key = keyFunc.Invoke();
-            if (_files.TryGetValue(key, out var reference) && reference.TryGetTarget(out var value))
+            if (cache && _files.TryGetValue(key, out var reference) && reference.TryGetTarget(out var value))
                 return value;
             if (!FileSystem.FileExists(filePath))
                 throw new ArgumentException($"Could not find file '{path}'.");
             value = valueFunc.Invoke(FileSystem.ReadBytes(filePath));
-            _files[key] = new WeakReference<TValue>(value);
+            if (cache)
+                _files[key] = new WeakReference<TValue>(value);
             return value;
         }
 
@@ -95,17 +135,19 @@ public static class Asset
             string? @namespace,
             Assembly? assembly,
             Func<TKey> keyFunc,
-            Func<byte[], TValue> valueFunc
+            Func<byte[], TValue> valueFunc,
+            bool cache
         )
         {
             resource = FileSystem.FormatResource(resource, @namespace ?? FileSystem.WorkingNamespace);
             var key = keyFunc.Invoke();
-            if (_resources.TryGetValue(key, out var reference) && reference.TryGetTarget(out var value))
+            if (cache && _resources.TryGetValue(key, out var reference) && reference.TryGetTarget(out var value))
                 return value;
             if (!FileSystem.ResourceExists(resource, "", assembly))
                 throw new ArgumentException($"Could not find resource '{resource}'.");
             value = valueFunc.Invoke(FileSystem.ReadResourceBytes(resource, "", assembly));
-            _resources[key] = new WeakReference<TValue>(value);
+            if (cache)
+                _resources[key] = new WeakReference<TValue>(value);
             return value;
         }
     }
