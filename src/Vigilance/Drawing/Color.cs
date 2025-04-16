@@ -101,16 +101,16 @@ public struct Color
         return (color.G, color.B, color.B, color.A);
     }
 
-    public static implicit operator int(Color color)
-    {
-        return Raylib.ColorToInt(color.RColor);
-    }
-
     internal Raylib_cs.Color RColor => new(R, G, B, A);
 
     public override string ToString()
     {
         return $"{{ R: {R}, G: {G}, B: {B}, A: {A} }}";
+    }
+
+    public int ToInt()
+    {
+        return Raylib.ColorToInt(RColor);
     }
 
     public override bool Equals(object? obj)
