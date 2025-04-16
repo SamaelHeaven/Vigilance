@@ -168,10 +168,16 @@ public sealed class Game
     public static bool Debug
     {
         get => GetGame()._config.Debug;
+        set => GetGame()._config.Debug = value;
+    }
+
+    public static LogLevel LogLevel
+    {
+        get => GetGame()._config.LogLevel;
         set
         {
-            GetGame()._config.Debug = value;
-            Raylib.SetTraceLogLevel(value ? TraceLogLevel.All : TraceLogLevel.Error);
+            GetGame()._config.LogLevel = value;
+            Raylib.SetTraceLogLevel((TraceLogLevel)value);
         }
     }
 
@@ -191,12 +197,6 @@ public sealed class Game
             EnsureRunning();
             return Raylib.IsWindowMaximized();
         }
-        set
-        {
-            EnsureRunning();
-            if (!Maximized && value)
-                Raylib.MaximizeWindow();
-        }
     }
 
     public static bool Minimized
@@ -205,12 +205,6 @@ public sealed class Game
         {
             EnsureRunning();
             return Raylib.IsWindowMinimized();
-        }
-        set
-        {
-            EnsureRunning();
-            if (!Minimized && value)
-                Raylib.MinimizeWindow();
         }
     }
 
@@ -263,7 +257,7 @@ public sealed class Game
         game._scene = scene;
         FileSystem.WorkingNamespace = config.WorkingNamespace;
         FileSystem.ChangeDirectory(config.WorkingDirectory);
-        Raylib.SetTraceLogLevel(config.Debug ? TraceLogLevel.All : TraceLogLevel.Error);
+        Raylib.SetTraceLogLevel((TraceLogLevel)config.LogLevel);
         Raylib.SetConfigFlags(game.GetConfigFlags());
         Raylib.InitWindow(
             config.ScreenWidth <= 0 || !Platform.Desktop.IsCurrent() ? config.Width : config.ScreenWidth,
@@ -274,13 +268,30 @@ public sealed class Game
         Raylib.SetTargetFPS(config.FpsTarget);
         Raylib.SetExitKey((KeyboardKey)config.ExitKey);
         if (config.Maximized)
-            Maximized = true;
+            Maximize();
         if (config.Fullscreen)
             ToggleFullscreen();
         if (Platform.Desktop.IsCurrent() && config.Icon != null)
             Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
         game._defaultFont = config.DefaultFont.Invoke();
         game.Loop();
+    }
+
+    public static void Log(string message, LogLevel level = LogLevel.Info)
+    {
+        Raylib.TraceLog((TraceLogLevel)level, message);
+    }
+
+    public static void Maximize()
+    {
+        if (!Maximized && Platform.Desktop.IsCurrent())
+            Raylib.MaximizeWindow();
+    }
+
+    public static void Minimize()
+    {
+        if (!Minimized && Platform.Desktop.IsCurrent())
+            Raylib.MinimizeWindow();
     }
 
     public static void ToggleFullscreen()

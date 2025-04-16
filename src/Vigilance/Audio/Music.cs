@@ -75,7 +75,7 @@ public sealed class Music
 
     public bool Playing => Raylib.IsMusicStreamPlaying(_music);
 
-    public bool Stopped => !Raylib.IsMusicStreamPlaying(_music);
+    public bool Stopped => !Paused && !Raylib.IsMusicStreamPlaying(_music);
 
     public TimeSpan TimeLength => TimeSpan.FromSeconds(Raylib.GetMusicTimeLength(_music));
 

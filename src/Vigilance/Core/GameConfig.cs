@@ -25,6 +25,7 @@ public struct GameConfig
     public bool Resizable { get; set; } = true;
     public bool Msaa4X { get; set; } = true;
     public bool Debug { get; set; } = false;
+    public LogLevel LogLevel { get; set; } = LogLevel.All;
     public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
     public Vector2 DefaultTextSpacing { get; set; } = new(0, 4);
     public int DefaultFontQuality { get; set; } = 128;
