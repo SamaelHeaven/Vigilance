@@ -184,14 +184,14 @@ public sealed unsafe class Scene
         Render();
     }
 
-    private void DeferBegin()
+    internal void DeferBegin()
     {
         _current = this;
         if (!_world.IsDeferred())
             _world.DeferBegin();
     }
 
-    private void DeferEnd()
+    internal void DeferEnd()
     {
         if (_world.IsDeferred())
             _world.DeferEnd();

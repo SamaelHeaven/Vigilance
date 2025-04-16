@@ -289,10 +289,12 @@ public unsafe struct Entity
     public void Children(EntityAction action)
     {
         var scene = Scene;
+        scene.DeferBegin();
         _entity.Children(entity =>
         {
             action.Invoke(new Entity(entity, scene));
         });
+        scene.DeferEnd();
     }
 
     #region Traverse
