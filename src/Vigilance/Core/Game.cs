@@ -50,13 +50,15 @@ public sealed class Game
         get
         {
             EnsureRunning();
+            if (Platform.Desktop.IsCurrent() && Fullscreen)
+                return Raylib.GetMonitorWidth(Raylib.GetCurrentMonitor());
             return Raylib.GetScreenWidth();
         }
         set
         {
             if (!Platform.Desktop.IsCurrent())
                 return;
-            if (Fullscreen && value != Width)
+            if (Fullscreen)
                 return;
             if (ScreenWidth == value)
                 return;
@@ -69,13 +71,15 @@ public sealed class Game
         get
         {
             EnsureRunning();
+            if (Platform.Desktop.IsCurrent() && Fullscreen)
+                return Raylib.GetMonitorHeight(Raylib.GetCurrentMonitor());
             return Raylib.GetScreenHeight();
         }
         set
         {
             if (!Platform.Desktop.IsCurrent())
                 return;
-            if (Fullscreen && value != Height)
+            if (Fullscreen)
                 return;
             if (ScreenHeight == value)
                 return;
@@ -90,9 +94,9 @@ public sealed class Game
         {
             if (!Platform.Desktop.IsCurrent())
                 return;
-            var size = value.Round();
-            if (Fullscreen && size != Size)
+            if (Fullscreen)
                 return;
+            var size = value.Round();
             if (ScreenSize == size)
                 return;
             Raylib.SetWindowSize((int)size.X, (int)size.Y);
