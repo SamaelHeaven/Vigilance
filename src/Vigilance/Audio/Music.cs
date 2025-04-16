@@ -8,7 +8,7 @@ namespace Vigilance.Audio;
 public sealed class Music
 {
     private static readonly List<Music> Musics = [];
-    private readonly IntPtr _buffer;
+    private readonly nint _buffer;
     private Raylib_cs.Music _music;
     private float _pan = 0.5f;
     private float _pitch = 1;

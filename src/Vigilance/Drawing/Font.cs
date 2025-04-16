@@ -11,7 +11,7 @@ public sealed unsafe class Font
     private static readonly FreeTypeLibrary FtLibrary = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
     private readonly Dictionary<int, (Texture2D, Dictionary<char, GlyphInfo>)> _strokes = new();
-    private IntPtr _buffer;
+    private nint _buffer;
     private FT_FaceRec_* _face;
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
@@ -192,7 +192,7 @@ public sealed unsafe class Font
         if (bitmap.buffer == null)
             return null;
         var bytes = new byte[bitmap.width * bitmap.rows];
-        Marshal.Copy((IntPtr)bitmap.buffer, bytes, 0, (int)bitmap.width * (int)bitmap.rows);
+        Marshal.Copy((nint)bitmap.buffer, bytes, 0, (int)bitmap.width * (int)bitmap.rows);
         return new Glyph(
             bytes,
             c,
