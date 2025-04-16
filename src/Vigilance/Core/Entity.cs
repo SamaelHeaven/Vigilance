@@ -252,9 +252,9 @@ public unsafe struct Entity
         var hadT = _entity.Has<T>();
         _entity.Set(ref data);
         if (hadT)
-            _entity.CsWorld().Event<SetEvent>().Id<T>().Entity(_entity).Emit();
+            _entity.CsWorld().Event<SetEvent>().Id<T>().Entity(_entity).Enqueue();
         else
-            _entity.CsWorld().Event<AddEvent>().Id<T>().Entity(_entity).Emit();
+            _entity.CsWorld().Event<AddEvent>().Id<T>().Entity(_entity).Enqueue();
         return ref this;
     }
 
