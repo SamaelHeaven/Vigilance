@@ -1,8 +1,8 @@
+using System.Collections.Immutable;
 using Raylib_cs;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
-using Vigilance.Systems;
 using Font = Vigilance.Drawing.Font;
 using Image = Vigilance.Drawing.Image;
 
@@ -10,18 +10,13 @@ namespace Vigilance.Core;
 
 public sealed class Game
 {
-    internal static readonly List<ISystem> SystemList = [];
     private static Game? _game;
     private readonly List<Action> _actions = [];
     private GameConfig _config;
+    private Font _defaultFont = null!;
     private Vector2 _previousScreenSize = Vector2.Zero;
     private bool _resetSize;
     private Scene _scene = null!;
-
-    static Game()
-    {
-        Systems([new GraphicsSystem()]);
-    }
 
     private Game()
     {
@@ -147,9 +142,9 @@ public sealed class Game
         }
     }
 
-    public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis.Invoke();
+    public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis;
 
-    public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis.Invoke();
+    public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis;
 
     public static Interpolation DefaultInterpolation => GetGame()._config.DefaultInterpolation;
 
@@ -159,9 +154,11 @@ public sealed class Game
 
     public static float DefaultFontSize => GetGame()._config.DefaultFontSize;
 
-    public static Font DefaultFont => GetGame()._config.DefaultFont.Invoke();
+    public static Font DefaultFont => GetGame()._defaultFont;
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
+
+    public static IImmutableList<ISystem> Systems => GetGame()._config.Systems;
 
     public static bool Debug
     {
@@ -232,18 +229,6 @@ public sealed class Game
         Raylib.OpenURL(url);
     }
 
-    public static void System(ISystem system)
-    {
-        EnsureNotRunning();
-        SystemList.Add(system);
-    }
-
-    public static void Systems(IEnumerable<ISystem> systems)
-    {
-        EnsureNotRunning();
-        SystemList.AddRange(systems);
-    }
-
     public static void EnsureRunning()
     {
         if (!Running)
@@ -271,24 +256,24 @@ public sealed class Game
         var game = GetGame();
         game._config = config;
         game._scene = scene;
-        FileSystem.WorkingModule = config.WorkingModule;
+        FileSystem.WorkingNamespace = config.WorkingNamespace;
         FileSystem.ChangeDirectory(config.WorkingDirectory);
         Raylib.SetTraceLogLevel(config.Debug ? TraceLogLevel.All : TraceLogLevel.Error);
         Raylib.SetConfigFlags(game.GetConfigFlags());
-        Raylib.InitWindow(config.Width, config.Height, config.Title);
+        Raylib.InitWindow(
+            config.ScreenWidth <= 0 || !Platform.Desktop.IsCurrent() ? config.Width : config.ScreenWidth,
+            config.ScreenHeight <= 0 || !Platform.Desktop.IsCurrent() ? config.Height : config.ScreenHeight,
+            config.Title
+        );
         Raylib.SetTargetFPS(config.FpsTarget);
         Raylib.SetExitKey((KeyboardKey)config.ExitKey);
-        if (Platform.Desktop.IsCurrent())
-            Raylib.SetWindowSize(
-                config.ScreenWidth <= 0 ? config.Width : config.ScreenWidth,
-                config.ScreenHeight <= 0 ? config.Height : config.ScreenHeight
-            );
         if (config.Maximized)
             Maximized = true;
         if (config.Fullscreen)
             ToggleFullscreen();
         if (Platform.Desktop.IsCurrent() && config.Icon != null)
             Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
+        game._defaultFont = config.DefaultFont.Invoke();
         game.Loop();
     }
 
@@ -304,7 +289,8 @@ public sealed class Game
         else
         {
             game._previousScreenSize = ScreenSize;
-            ScreenSize = Size;
+            var monitor = Raylib.GetCurrentMonitor();
+            ScreenSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
         }
 
         Raylib.ToggleFullscreen();
@@ -320,7 +306,6 @@ public sealed class Game
         Renderer.Initialize();
         while (!Raylib.WindowShouldClose())
         {
-            GC.Collect();
             Time.Update();
             Keyboard.Update();
             Mouse.Update();
@@ -337,9 +322,8 @@ public sealed class Game
     {
         if (!_resetSize)
             return;
+        _resetSize = false;
         ScreenSize = _previousScreenSize;
-        if (ScreenSize == _previousScreenSize)
-            _resetSize = false;
     }
 
     private void UpdateActions()
@@ -361,7 +345,7 @@ public sealed class Game
     private ConfigFlags GetConfigFlags()
     {
         ConfigFlags flags = 0;
-        if (_config.Msaa4x)
+        if (_config.Msaa4X)
             flags |= ConfigFlags.Msaa4xHint;
         if (_config.Resizable)
             flags |= ConfigFlags.ResizableWindow;

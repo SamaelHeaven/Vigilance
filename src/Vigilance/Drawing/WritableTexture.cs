@@ -7,7 +7,6 @@ namespace Vigilance.Drawing;
 public sealed class WritableTexture
 {
     internal readonly RenderTexture2D RenderTexture2D;
-    public readonly Texture Texture;
 
     public WritableTexture(Vector2 size)
         : this((int)size.X, (int)size.Y) { }
@@ -18,6 +17,8 @@ public sealed class WritableTexture
         RenderTexture2D = Raylib.LoadRenderTexture(width, height);
         Texture = new Texture(RenderTexture2D.Texture, this);
     }
+
+    public Texture Texture { get; }
 
     public int Width => RenderTexture2D.Texture.Width;
 

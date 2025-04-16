@@ -9,9 +9,7 @@ namespace Vigilance.Drawing;
 public sealed unsafe class Font
 {
     private static readonly FreeTypeLibrary FtLibrary = new();
-    private readonly string _charset;
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
-    private readonly int _quality;
     private readonly Dictionary<int, (Texture2D, Dictionary<char, GlyphInfo>)> _strokes = new();
     private IntPtr _buffer;
     private FT_FaceRec_* _face;
@@ -21,12 +19,14 @@ public sealed unsafe class Font
     public Font(ReadOnlySpan<byte> bytes, int? quality = null, string? charset = null)
     {
         Game.EnsureRunning();
-        _quality = quality ?? Game.DefaultFontQuality;
-        _charset = string.Concat((charset ?? Game.DefaultFontCharset).Distinct());
+        Quality = quality ?? Game.DefaultFontQuality;
+        Charset = string.Concat((charset ?? Game.DefaultFontCharset).Distinct());
         var glyphs = LoadGlyphs(bytes);
         Atlas = DrawAtlas(glyphs);
     }
 
+    public string Charset { get; }
+    public int Quality { get; }
     internal Texture2D Atlas { get; }
 
     public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)
@@ -53,7 +53,7 @@ public sealed unsafe class Font
         Dictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
-        var aspectRatio = _quality / fontSize;
+        var aspectRatio = Quality / fontSize;
         var position = Vector2.Zero;
         foreach (var c in text)
         {
@@ -92,7 +92,7 @@ public sealed unsafe class Font
             FtEnsureOk(FT.FT_New_Memory_Face(FtLibrary.Native, (byte*)_buffer, bytes.Length, 0, face));
         }
 
-        FtEnsureOk(FT.FT_Set_Char_Size(_face, 0, _quality * 64, 0, 0));
+        FtEnsureOk(FT.FT_Set_Char_Size(_face, 0, Quality * 64, 0, 0));
         FtEnsureOk(FT.FT_Load_Char(_face, ' ', FT_LOAD.FT_LOAD_DEFAULT));
         _spaceSize = _face->glyph->metrics.horiAdvance.ToInt32() / 64;
         fixed (FT_StrokerRec_** stroke = &_stroker)
@@ -100,7 +100,7 @@ public sealed unsafe class Font
             FtEnsureOk(FT.FT_Stroker_New(FtLibrary.Native, stroke));
         }
 
-        return _charset.Select(c => LoadGlyph(c, false)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
+        return Charset.Select(c => LoadGlyph(c, false)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
     }
 
     private Texture2D DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
@@ -216,7 +216,7 @@ public sealed unsafe class Font
             FT_Stroker_LineJoin_.FT_STROKER_LINEJOIN_ROUND,
             0
         );
-        var glyphs = _charset.Select(c => LoadGlyph(c, true)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
+        var glyphs = Charset.Select(c => LoadGlyph(c, true)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
         var glyphInfos = new Dictionary<char, GlyphInfo>();
         var atlas = DrawAtlas(glyphs, glyphInfos);
         var result = (atlas, glyphInfos);

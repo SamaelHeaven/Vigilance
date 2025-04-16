@@ -5,15 +5,15 @@ namespace Vigilance.Drawing;
 
 public struct Text
 {
-    public string Value = "";
-    public Color Fill = Color.Transparent;
-    public Color Stroke = Color.Transparent;
-    public Font Font = Game.DefaultFont;
-    public float FontSize = Game.DefaultFontSize;
-    public float StrokeWidth = 0;
-    public Vector2 Spacing = Game.DefaultTextSpacing;
-    public Interpolation? Interpolation = null;
-    public CameraProvider? Camera = Core.Camera.DefaultProvider;
+    public string Value { get; set; } = "";
+    public Color Fill { get; set; } = Color.Transparent;
+    public Color Stroke { get; set; } = Color.Transparent;
+    public Font Font { get; set; } = Game.DefaultFont;
+    public float FontSize { get; set; } = Game.DefaultFontSize;
+    public float StrokeWidth { get; set; } = 0;
+    public Vector2 Spacing { get; set; } = Game.DefaultTextSpacing;
+    public Interpolation? Interpolation { get; set; } = null;
+    public CameraProvider? Camera { get; set; } = Core.Camera.DefaultProvider;
 
     public readonly Vector2 Size => Font.MeasureText(Value, FontSize, Spacing);
 

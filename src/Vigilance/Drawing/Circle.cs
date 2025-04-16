@@ -4,10 +4,10 @@ namespace Vigilance.Drawing;
 
 public struct Circle
 {
-    public Color Fill = Color.Transparent;
-    public Color Stroke = Color.Transparent;
-    public float StrokeWidth = 0;
-    public CameraProvider? Camera = Core.Camera.DefaultProvider;
+    public Color Fill { get; set; } = Color.Transparent;
+    public Color Stroke { get; set; } = Color.Transparent;
+    public float StrokeWidth { get; set; } = 0;
+    public CameraProvider? Camera { get; set; } = Core.Camera.DefaultProvider;
 
     public Circle() { }
 }

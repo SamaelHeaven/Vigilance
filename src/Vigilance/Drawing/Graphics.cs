@@ -223,7 +223,7 @@ public readonly struct Graphics
         var roundness = rectangle.Roundness;
         var strokeWidth = rectangle.StrokeWidth;
         var position = transform.Position;
-        var scale = transform.Scale;
+        var scale = transform.Scale.Abs();
         PushState();
         Transform(transform, true);
         if (roundness > 0)
@@ -403,33 +403,33 @@ public readonly struct Graphics
         PopState();
     }
 
-    public unsafe void FillCustomPolygon(ReadOnlySpan<Vector2> points, Color color, Camera? camera = null)
+    public unsafe void FillCustomPolygon(IReadOnlyList<Vector2> points, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent || points.Length < 3)
+        if (color == Color.Transparent || points.Count < 3)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = points)
+        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
         {
-            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, points.Length, color.RColor);
+            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, points.Count, color.RColor);
         }
 
         EndDrawing(camera);
     }
 
     public void StrokeCustomPolygon(
-        ReadOnlySpan<Vector2> points,
+        IReadOnlyList<Vector2> points,
         Color color,
         float strokeWidth = 1,
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0 || points.Length < 3)
+        if (color == Color.Transparent || strokeWidth <= 0 || points.Count < 3)
             return;
         BeginDrawing(camera);
-        for (var i = 0; i < points.Length; i++)
+        for (var i = 0; i < points.Count; i++)
         {
             var start = points[i];
-            var end = points[(i + 1) % points.Length];
+            var end = points[(i + 1) % points.Count];
             Raylib.DrawLineEx(start, end, strokeWidth, color.RColor);
             Raylib.DrawCircleV(start, strokeWidth * 0.5f, color.RColor);
         }
@@ -446,9 +446,8 @@ public readonly struct Graphics
     {
         var camera = polygon.Camera?.Invoke();
         var position = transform.Position;
-        var scale = transform.Scale.Abs();
-        var center = polygon.Points.Aggregate(Vector2.Zero, (a, b) => a + b) / polygon.Points.Count();
-        var points = polygon.Points.Select(point => position + (center + (point - center) * scale)).ToArray();
+        var scale = transform.Scale;
+        var points = Coordinates.Scale(polygon.Points, scale, position);
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
@@ -842,7 +841,7 @@ public readonly struct Graphics
         var flipX = sprite.FlipX;
         var flipY = sprite.FlipY;
         var position = transform.Position;
-        var scale = transform.Scale;
+        var scale = transform.Scale.Abs();
         PushState();
         Transform(transform, true);
         DrawTexture(

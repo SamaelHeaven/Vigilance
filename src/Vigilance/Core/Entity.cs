@@ -1,41 +1,100 @@
 #pragma warning disable CS9084
 
 using Flecs.NET.Core;
+using Vigilance.Events;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
 
 public unsafe struct Entity
 {
-    public static Entity Null => new(Flecs.NET.Core.Entity.Null());
+    public static Entity Null { get; } = new(Flecs.NET.Core.Entity.Null(), null!);
+    public Scene Scene { get; }
 
     private Flecs.NET.Core.Entity _entity;
 
-    internal Entity(Flecs.NET.Core.Entity entity)
+    internal Entity(Flecs.NET.Core.Entity entity, Scene scene)
     {
         _entity = entity;
+        Scene = scene;
     }
 
     public ulong Id => _entity.Id.Value;
 
     public string Name => _entity.Name();
 
-    public bool IsValid =>
-        this != Null && _entity.IsValid() && _entity.IsAlive() && _entity.Has<int>() && _entity.Has<Transform>();
+    public bool IsValid => _entity.IsValid();
 
-    public Entity Parent => new(_entity.Parent());
+    public Entity Parent => new(_entity.Parent(), null!);
 
-    public ref Transform Transform => ref _entity.GetMut<Transform>();
+    public Transform Transform
+    {
+        get =>
+            new()
+            {
+                Position = Position,
+                Scale = Scale,
+                Rotation = Rotation,
+                PivotPoint = PivotPoint,
+            };
+        set
+        {
+            Position = value.Position;
+            Scale = value.Scale;
+            Rotation = value.Rotation;
+            PivotPoint = value.PivotPoint;
+        }
+    }
 
-    public ref Vector2 Position => ref Transform.Position;
+    public Vector2 Position
+    {
+        get => Has<Position>() ? Get<Position>().Value : Vector2.Zero;
+        set
+        {
+            if (!Precision.AreEqual(Position, value))
+                Set(new Position { Value = value });
+        }
+    }
 
-    public ref Vector2 Scale => ref Transform.Scale;
+    public Vector2 Scale
+    {
+        get => Has<Scale>() ? Get<Scale>().Value : Vector2.One;
+        set
+        {
+            if (!Precision.AreEqual(Scale, value))
+                Set(new Scale { Value = value });
+        }
+    }
 
-    public ref float Rotation => ref Transform.Rotation;
+    public float Rotation
+    {
+        get => Has<Rotation>() ? Get<Rotation>().Value : 0;
+        set
+        {
+            if (!Precision.AreEqual(Rotation, value))
+                Set(new Rotation { Value = value });
+        }
+    }
 
-    public ref Vector2 PivotPoint => ref Transform.PivotPoint;
+    public Vector2 PivotPoint
+    {
+        get => Has<PivotPoint>() ? Get<PivotPoint>().Value : Vector2.Zero;
+        set
+        {
+            if (!Precision.AreEqual(PivotPoint, value))
+                Set(new PivotPoint { Value = value });
+        }
+    }
 
-    public ref int ZIndex => ref _entity.GetMut<int>();
+    public int ZIndex
+    {
+        get => Has<ZIndex>() ? Get<ZIndex>().Value : 0;
+        set
+        {
+            if (ZIndex != value)
+                Set(new ZIndex { Value = value });
+        }
+    }
 
     public Transform WorldTransform
     {
@@ -92,7 +151,16 @@ public unsafe struct Entity
         }
     }
 
-    public Box BoundingBox => Box.From(WorldTransform);
+    public int WorldZIndex
+    {
+        get
+        {
+            var zIndex = ZIndex;
+            for (var entity = Parent; entity.IsValid; entity = entity.Parent)
+                zIndex += entity.ZIndex;
+            return zIndex;
+        }
+    }
 
     public static bool operator ==(Entity a, Entity b)
     {
@@ -192,10 +260,6 @@ public unsafe struct Entity
 
     public ref Entity Remove<T>()
     {
-        if (typeof(T) == typeof(Transform))
-            throw new InvalidOperationException("Cannot remove transform component.");
-        if (typeof(T) == typeof(int))
-            throw new InvalidOperationException("Cannot remove zindex component.");
         _entity.Remove<T>();
         return ref this;
     }
@@ -203,6 +267,12 @@ public unsafe struct Entity
     public void Destroy()
     {
         _entity.Destruct();
+    }
+
+    public ref Entity Scope(Action action)
+    {
+        _entity.Scope(action);
+        return ref this;
     }
 
     public ref Entity ChildOf(Entity parent)
@@ -215,6 +285,46 @@ public unsafe struct Entity
     {
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
+
+    public void Children(EachEntityAction action)
+    {
+        var scene = Scene;
+        _entity.Children(entity =>
+        {
+            action.Invoke(new Entity(entity, scene));
+        });
+    }
+
+    #region Traverse
+
+    public void Traverse(EachEntityAction action)
+    {
+        action(this);
+        Children(child => child.Traverse(action));
+    }
+
+    public void Traverse<T>(EachEntityAction action)
+    {
+        if (Has<T>())
+            action(this);
+        Children(child => child.Traverse<T>(action));
+    }
+
+    public void Traverse<T>(EachAction<T> action)
+    {
+        if (Has<T>())
+            action(ref Get<T>());
+        Children(child => child.Traverse(action));
+    }
+
+    public void Traverse<T>(EachEntityAction<T> action)
+    {
+        if (Has<T>())
+            action(this, ref Get<T>());
+        Children(child => child.Traverse(action));
+    }
+
+    #endregion
 
     #region Has
 

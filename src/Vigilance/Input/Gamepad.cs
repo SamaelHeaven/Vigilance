@@ -9,27 +9,23 @@ public sealed class Gamepad
     private const string DefaultName = "Unknown gamepad";
     private static readonly GamepadButton[] ButtonValues = Enum.GetValues<GamepadButton>().ToArray();
     private static readonly GamepadAxis[] AxisValues = Enum.GetValues<GamepadAxis>().ToArray();
-    public static readonly IReadOnlyList<Gamepad> Gamepads = GetGamepads();
     private readonly Dictionary<GamepadAxis, float> _axes;
     private readonly List<GamepadButton> _downButtons = [];
     private readonly List<GamepadButton> _pressedButtons = [];
     private readonly List<GamepadButton> _releasedButtons = [];
     private readonly List<GamepadButton> _upButtons = [];
-    public readonly int Id;
-
-    static Gamepad()
-    {
-        Game.EnsureRunning();
-    }
 
     private Gamepad(int id)
     {
         Id = id;
-        Connected = Raylib.IsGamepadAvailable(Id);
+        Connected = Game.Running ? Raylib.IsGamepadAvailable(Id) : false;
         _axes = new Dictionary<GamepadAxis, float>();
         foreach (var axis in Enum.GetValues<GamepadAxis>())
             _axes.Add(axis, 0);
     }
+
+    public static IReadOnlyList<Gamepad> Gamepads { get; } = GetGamepads();
+    public int Id { get; }
 
     public static Gamepad First => Gamepads[0];
     public static Gamepad Second => Gamepads[1];
@@ -47,16 +43,7 @@ public sealed class Gamepad
     public IReadOnlyDictionary<GamepadAxis, float> Axes => _axes.AsReadOnly();
     public bool Connected { get; private set; }
 
-    public string Name
-    {
-        get
-        {
-            unsafe
-            {
-                return !Connected ? DefaultName : new string(Raylib.GetGamepadName(Id));
-            }
-        }
-    }
+    public string Name => !Connected ? DefaultName : Raylib.GetGamepadName_(Id);
 
     internal static void UpdateAll()
     {

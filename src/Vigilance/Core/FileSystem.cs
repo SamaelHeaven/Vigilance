@@ -9,9 +9,6 @@ namespace Vigilance.Core;
 public static unsafe partial class FileSystem
 {
     private static readonly Dictionary<Assembly, string[]> ResourceNames = new();
-    public static readonly Assembly GameAssembly = Assembly.GetEntryAssembly()!;
-    public static readonly Assembly EngineAssembly = Assembly.GetExecutingAssembly();
-    public static readonly string ApplicationDirectory = FormatPath(new string(Raylib.GetApplicationDirectory()));
 
     static FileSystem()
     {
@@ -19,18 +16,24 @@ public static unsafe partial class FileSystem
             Raylib.SetTraceLogLevel(TraceLogLevel.Error);
     }
 
-    public static string WorkingModule { get; set; } = "";
+    public static Assembly GameAssembly { get; } = Assembly.GetEntryAssembly()!;
+    public static Assembly EngineAssembly { get; } = Assembly.GetExecutingAssembly();
 
-    public static string WorkingDirectory => FormatPath(new string(Raylib.GetWorkingDirectory()));
+    public static string ApplicationDirectory { get; } =
+        FormatPath(Utf8StringUtils.GetUTF8String(Raylib.GetApplicationDirectory()));
+
+    public static string WorkingNamespace { get; set; } = "";
+
+    public static string WorkingDirectory => FormatPath(Utf8StringUtils.GetUTF8String(Raylib.GetWorkingDirectory()));
 
     public static string FormatPath(string path)
     {
         return DuplicatedSlashRegex().Replace(path.Replace('\\', '/'), "/").Trim('/');
     }
 
-    public static string FormatResource(string resource, string module = "")
+    public static string FormatResource(string resource, string @namespace = "")
     {
-        return module == "" ? resource : module + "." + resource;
+        return @namespace == "" ? resource : @namespace + "." + resource;
     }
 
     public static bool ChangeDirectory(string path)
@@ -60,14 +63,14 @@ public static unsafe partial class FileSystem
         return Raylib.DirectoryExists(buffer.AsPointer());
     }
 
-    public static bool ResourceExists(string resource, string? module = null, Assembly? assembly = null)
+    public static bool ResourceExists(string resource, string? @namespace = null, Assembly? assembly = null)
     {
         assembly ??= GameAssembly;
         if (ResourceNames.TryGetValue(assembly, out var names))
-            return names.Contains(FormatResource(resource, module ?? WorkingModule));
+            return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
         names = assembly.GetManifestResourceNames();
         ResourceNames[assembly] = names;
-        return names.Contains(FormatResource(resource, module ?? WorkingModule));
+        return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
     }
 
     public static DateTime FileModTime(string path)
@@ -94,14 +97,14 @@ public static unsafe partial class FileSystem
             return "";
         using var buffer = path.ToUtf8Buffer();
         var bytes = Raylib.LoadFileText(buffer.AsPointer());
-        var result = new string(bytes);
+        var result = Utf8StringUtils.GetUTF8String(bytes);
         Raylib.UnloadFileText(bytes);
         return result;
     }
 
-    public static string ReadResourceText(string resource, string? module = null, Assembly? assembly = null)
+    public static string ReadResourceText(string resource, string? @namespace = null, Assembly? assembly = null)
     {
-        return Encoding.UTF8.GetString(ReadResourceBytes(resource, module, assembly));
+        return Encoding.UTF8.GetString(ReadResourceBytes(resource, @namespace, assembly));
     }
 
     public static bool WriteText(string path, string text)
@@ -125,10 +128,10 @@ public static unsafe partial class FileSystem
         return bytes;
     }
 
-    public static byte[] ReadResourceBytes(string resource, string? module = null, Assembly? assembly = null)
+    public static byte[] ReadResourceBytes(string resource, string? @namespace = null, Assembly? assembly = null)
     {
         using var stream = (assembly ?? GameAssembly).GetManifestResourceStream(
-            FormatResource(resource, module ?? WorkingModule)
+            FormatResource(resource, @namespace ?? WorkingNamespace)
         );
         if (stream == null)
             return Array.Empty<byte>();
@@ -155,7 +158,7 @@ public static unsafe partial class FileSystem
         var count = filePathList.Count;
         var result = new string[count];
         for (var i = 0; i < count; i++)
-            result[i] = FormatPath(new string((sbyte*)filePathList.Paths[i]));
+            result[i] = FormatPath(Utf8StringUtils.GetUTF8String((sbyte*)filePathList.Paths[i]));
         Raylib.UnloadDirectoryFiles(filePathList);
         return result;
     }

@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
@@ -6,53 +7,55 @@ namespace Vigilance.Core;
 
 public struct GameConfig
 {
-    public string Title = "";
-    public string WorkingDirectory = "";
-    public string WorkingModule = "";
-    public Func<Image>? Icon = null;
-    public Key ExitKey = Key.Null;
-    public Key FullscreenKey = Key.Null;
-    public int Width = 800;
-    public int Height = 600;
-    public int ScreenWidth = 0;
-    public int ScreenHeight = 0;
-    public int FpsTarget = 60;
-    public bool Fullscreen = false;
-    public bool Maximized = false;
-    public bool Decorated = true;
-    public bool Vsync = true;
-    public bool Resizable = true;
-    public bool Msaa4x = true;
-    public bool Debug = false;
-    public Interpolation DefaultInterpolation = Interpolation.Nearest;
-    public Vector2 DefaultTextSpacing = new(0, 4);
-    public int DefaultFontQuality = 128;
-    public float DefaultFontSize = 16;
+    public string Title { get; set; } = "";
+    public string WorkingDirectory { get; set; } = "";
+    public string WorkingNamespace { get; set; } = "";
+    public Func<Image>? Icon { get; set; } = null;
+    public Key ExitKey { get; set; } = Key.Null;
+    public Key FullscreenKey { get; set; } = Key.Null;
+    public int Width { get; set; } = 800;
+    public int Height { get; set; } = 600;
+    public int ScreenWidth { get; set; } = 0;
+    public int ScreenHeight { get; set; } = 0;
+    public int FpsTarget { get; set; } = 60;
+    public bool Fullscreen { get; set; } = false;
+    public bool Maximized { get; set; } = false;
+    public bool Decorated { get; set; } = true;
+    public bool Vsync { get; set; } = true;
+    public bool Resizable { get; set; } = true;
+    public bool Msaa4X { get; set; } = true;
+    public bool Debug { get; set; } = false;
+    public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
+    public Vector2 DefaultTextSpacing { get; set; } = new(0, 4);
+    public int DefaultFontQuality { get; set; } = 128;
+    public float DefaultFontSize { get; set; } = 16;
+    public IImmutableList<ISystem> Systems { get; set; } = ImmutableList<ISystem>.Empty;
 
-    public Func<InputAxis> HorizontalInputAxis = () =>
-        new InputAxis
+    public InputAxis HorizontalInputAxis { get; set; } =
+        new()
         {
             NegativeKeys = [Key.Left, Key.A],
             PositiveKeys = [Key.Right, Key.D],
             GamepadAxes = [GamepadAxis.LeftX],
         };
 
-    public Func<InputAxis> VerticalInputAxis = () =>
-        new InputAxis
+    public InputAxis VerticalInputAxis { get; set; } =
+        new()
         {
             NegativeKeys = [Key.Up, Key.W],
             PositiveKeys = [Key.Down, Key.S],
             GamepadAxes = [GamepadAxis.LeftY],
         };
 
-    public Func<Font> DefaultFont = static () =>
-        Asset.FontResource(
-            "DefaultFont.ttf",
-            module: FileSystem.EngineAssembly.GetName().Name! + ".Resources",
-            assembly: FileSystem.EngineAssembly
-        );
+    public Func<Font> DefaultFont { get; set; } =
+        () =>
+            Asset.FontResource(
+                "DefaultFont.ttf",
+                @namespace: FileSystem.EngineAssembly.GetName().Name! + ".Resources",
+                assembly: FileSystem.EngineAssembly
+            );
 
-    public string DefaultFontCharset =
+    public string DefaultFontCharset { get; set; } =
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
     public GameConfig() { }

@@ -14,11 +14,11 @@ public static class Asset
         return TextureContainer.File(ref path, () => path, bytes => new Texture(Path.GetExtension(path), bytes));
     }
 
-    public static Texture TextureResource(string resource, string? module = null, Assembly? assembly = null)
+    public static Texture TextureResource(string resource, string? @namespace = null, Assembly? assembly = null)
     {
         return TextureContainer.Resource(
             ref resource,
-            module,
+            @namespace,
             assembly,
             () => resource,
             bytes => new Texture(Path.GetExtension(resource), bytes)
@@ -30,11 +30,11 @@ public static class Asset
         return ImageContainer.File(ref path, () => path, bytes => new Image(Path.GetExtension(path), bytes));
     }
 
-    public static Image ImageResource(string resource, string? module = null, Assembly? assembly = null)
+    public static Image ImageResource(string resource, string? @namespace = null, Assembly? assembly = null)
     {
         return ImageContainer.Resource(
             ref resource,
-            module,
+            @namespace,
             assembly,
             () => resource,
             bytes => new Image(Path.GetExtension(resource), bytes)
@@ -54,13 +54,13 @@ public static class Asset
         string resource,
         int? quality = null,
         string? charset = null,
-        string? module = null,
+        string? @namespace = null,
         Assembly? assembly = null
     )
     {
         return FontContainer.Resource(
             ref resource,
-            module,
+            @namespace,
             assembly,
             () => (resource, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
             bytes => new Font(bytes, quality, charset)
@@ -76,35 +76,35 @@ public static class Asset
 
         public Container() { }
 
-        public TValue File(ref string path, Func<TKey> getKey, Func<byte[], TValue> getValue)
+        public TValue File(ref string path, Func<TKey> keyFunc, Func<byte[], TValue> valueFunc)
         {
             var filePath = FileSystem.FormatPath(path);
             path = FileSystem.FormatPath(FileSystem.WorkingDirectory + "/" + path);
-            var key = getKey.Invoke();
+            var key = keyFunc.Invoke();
             if (_files.TryGetValue(key, out var reference) && reference.TryGetTarget(out var value))
                 return value;
             if (!FileSystem.FileExists(filePath))
                 throw new ArgumentException($"Could not find file '{path}'.");
-            value = getValue.Invoke(FileSystem.ReadBytes(filePath));
+            value = valueFunc.Invoke(FileSystem.ReadBytes(filePath));
             _files[key] = new WeakReference<TValue>(value);
             return value;
         }
 
         public TValue Resource(
             ref string resource,
-            string? module,
+            string? @namespace,
             Assembly? assembly,
-            Func<TKey> getKey,
-            Func<byte[], TValue> getValue
+            Func<TKey> keyFunc,
+            Func<byte[], TValue> valueFunc
         )
         {
-            resource = FileSystem.FormatResource(resource, module ?? FileSystem.WorkingModule);
-            var key = getKey.Invoke();
+            resource = FileSystem.FormatResource(resource, @namespace ?? FileSystem.WorkingNamespace);
+            var key = keyFunc.Invoke();
             if (_resources.TryGetValue(key, out var reference) && reference.TryGetTarget(out var value))
                 return value;
             if (!FileSystem.ResourceExists(resource, "", assembly))
                 throw new ArgumentException($"Could not find resource '{resource}'.");
-            value = getValue.Invoke(FileSystem.ReadResourceBytes(resource, "", assembly));
+            value = valueFunc.Invoke(FileSystem.ReadResourceBytes(resource, "", assembly));
             _resources[key] = new WeakReference<TValue>(value);
             return value;
         }
