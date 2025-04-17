@@ -8,8 +8,9 @@ public static class Asset
 {
     private static readonly Container<string, Texture> TextureContainer = new();
     private static readonly Container<string, Image> ImageContainer = new();
-    private static readonly Container<(string, int, string), Font> FontContainer = new();
+    private static readonly Container<(string Key, int Quality, string Charset), Font> FontContainer = new();
     private static readonly Container<string, Music> MusicContainer = new();
+    private static readonly Container<(string Key, int MaxAliases), Sound> SoundContainer = new();
 
     public static Texture TextureFile(string path, bool cache = true)
     {
@@ -102,6 +103,34 @@ public static class Asset
             assembly,
             () => resource,
             bytes => new Music(Path.GetExtension(resource), bytes),
+            cache
+        );
+    }
+
+    public static Sound SoundFile(string path, int? maxAliases = null, bool cache = true)
+    {
+        return SoundContainer.File(
+            ref path,
+            () => (path, maxAliases ?? Game.DefaultSoundMaxAliases),
+            bytes => new Sound(Path.GetExtension(path), bytes),
+            cache
+        );
+    }
+
+    public static Sound SoundResource(
+        string resource,
+        int? maxAliases = null,
+        string? @namespace = null,
+        Assembly? assembly = null,
+        bool cache = true
+    )
+    {
+        return SoundContainer.Resource(
+            ref resource,
+            @namespace,
+            assembly,
+            () => (resource, maxAliases ?? Game.DefaultSoundMaxAliases),
+            bytes => new Sound(Path.GetExtension(resource), bytes),
             cache
         );
     }

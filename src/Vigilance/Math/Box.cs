@@ -10,24 +10,24 @@ public struct Box(float x, float y, float width, float height)
     public Box(Vector2 position, Vector2 size)
         : this(position.X, position.Y, size.X, size.Y) { }
 
-    public static implicit operator (float, float, float, float)(Box box)
+    public static implicit operator (float X, float Y, float Width, float Height)(Box box)
     {
         return (box.X, box.Y, box.Width, box.Height);
     }
 
-    public static implicit operator Box((float, float, float, float) box)
+    public static implicit operator Box((float X, float Y, float Width, float Height) box)
     {
-        return new Box(box.Item1, box.Item2, box.Item3, box.Item4);
+        return new Box(box.X, box.Y, box.Width, box.Height);
     }
 
-    public static implicit operator (Vector2, Vector2)(Box box)
+    public static implicit operator (Vector2 Position, Vector2 Size)(Box box)
     {
         return (box.Position, box.Size);
     }
 
-    public static implicit operator Box((Vector2, Vector2) box)
+    public static implicit operator Box((Vector2 Position, Vector2 Size) box)
     {
-        return new Box(box.Item1, box.Item2);
+        return new Box(box.Position, box.Size);
     }
 
     public static Box Bounding(Transform transform)

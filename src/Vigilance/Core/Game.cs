@@ -7,6 +7,7 @@ using Vigilance.Math;
 using Font = Vigilance.Drawing.Font;
 using Image = Vigilance.Drawing.Image;
 using Music = Vigilance.Audio.Music;
+using Sound = Vigilance.Audio.Sound;
 
 namespace Vigilance.Core;
 
@@ -163,6 +164,8 @@ public sealed class Game
     public static Font DefaultFont => GetGame()._defaultFont;
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
+
+    public static int DefaultSoundMaxAliases => System.Math.Max(GetGame()._config.DefaultSoundMaxAliases, 1);
 
     public static IImmutableList<ISystem> Systems => GetGame()._config.Systems;
 
@@ -327,6 +330,7 @@ public sealed class Game
             Mouse.Update();
             Gamepad.UpdateAll();
             Music.UpdateAll();
+            Sound.UpdateAll();
             UpdateSize();
             UpdateActions();
             UpdateFullscreen();

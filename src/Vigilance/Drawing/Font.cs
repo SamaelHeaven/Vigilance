@@ -10,7 +10,7 @@ public sealed unsafe class Font
 {
     private static readonly FreeTypeLibrary FtLibrary = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
-    private readonly Dictionary<int, (Texture2D, Dictionary<char, GlyphInfo>)> _strokes = new();
+    private readonly Dictionary<int, (Texture2D Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
     private nint _buffer;
     private FT_FaceRec_* _face;
     private int _spaceSize;
@@ -204,7 +204,7 @@ public sealed unsafe class Font
         );
     }
 
-    internal (Texture2D, Dictionary<char, GlyphInfo>) GetStroke(int strokeWidth)
+    internal (Texture2D Atlas, Dictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
     {
         strokeWidth = System.Math.Clamp(strokeWidth, 0, 50);
         if (_strokes.TryGetValue(strokeWidth, out var stroke))

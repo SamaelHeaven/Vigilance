@@ -81,24 +81,24 @@ public struct Color
         return new Color(hex);
     }
 
-    public static implicit operator Color((byte, byte, byte) rgb)
-    {
-        return new Color(rgb.Item1, rgb.Item2, rgb.Item3);
-    }
-
-    public static implicit operator (byte, byte, byte)(Color color)
+    public static implicit operator (byte R, byte G, byte B)(Color color)
     {
         return (color.G, color.B, color.B);
     }
 
-    public static implicit operator Color((byte, byte, byte, byte) rgba)
+    public static implicit operator Color((byte R, byte G, byte B) rgb)
     {
-        return new Color(rgba.Item1, rgba.Item2, rgba.Item3, rgba.Item4);
+        return new Color(rgb.R, rgb.G, rgb.B);
     }
 
-    public static implicit operator (byte, byte, byte, byte)(Color color)
+    public static implicit operator (byte R, byte G, byte B, byte A)(Color color)
     {
         return (color.G, color.B, color.B, color.A);
+    }
+
+    public static implicit operator Color((byte R, byte G, byte B, byte A) rgba)
+    {
+        return new Color(rgba.R, rgba.G, rgba.B, rgba.A);
     }
 
     internal Raylib_cs.Color RColor => new(R, G, B, A);
