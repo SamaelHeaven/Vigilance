@@ -262,6 +262,7 @@ public sealed class Game
             config.ScreenHeight <= 0 || !Platform.Desktop.IsCurrent() ? config.Height : config.ScreenHeight,
             config.Title
         );
+        Raylib.SetAudioStreamBufferSizeDefault(4096);
         Raylib.InitAudioDevice();
         Raylib.SetTargetFPS(config.FpsTarget);
         Raylib.SetExitKey((KeyboardKey)config.ExitKey);
