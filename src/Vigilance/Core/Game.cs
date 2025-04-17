@@ -165,6 +165,8 @@ public sealed class Game
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
 
+    public static CacheType DefaultAssetCacheType => GetGame()._config.DefaultAssetCacheType;
+
     public static int DefaultSoundMaxAliases => System.Math.Max(GetGame()._config.DefaultSoundMaxAliases, 1);
 
     public static IImmutableList<ISystem> Systems => GetGame()._config.Systems;
