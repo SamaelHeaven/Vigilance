@@ -76,7 +76,7 @@ public static class Asset
         return FontContainer.File(
             ref path,
             () => (path, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
-            bytes => new Font(bytes, quality, charset),
+            bytes => new Font(bytes, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
             cacheType
         );
     }
@@ -95,7 +95,7 @@ public static class Asset
             @namespace,
             assembly,
             () => (resource, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
-            bytes => new Font(bytes, quality, charset),
+            bytes => new Font(bytes, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
             cacheType
         );
     }
@@ -137,7 +137,7 @@ public static class Asset
         return SoundContainer.File(
             ref path,
             () => (path, maxAliases ?? Game.DefaultSoundMaxAliases),
-            bytes => new Sound(Path.GetExtension(path), bytes),
+            bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Game.DefaultSoundMaxAliases),
             cacheType
         );
     }
@@ -155,7 +155,7 @@ public static class Asset
             @namespace,
             assembly,
             () => (resource, maxAliases ?? Game.DefaultSoundMaxAliases),
-            bytes => new Sound(Path.GetExtension(resource), bytes),
+            bytes => new Sound(Path.GetExtension(resource), bytes, maxAliases ?? Game.DefaultSoundMaxAliases),
             cacheType
         );
     }
