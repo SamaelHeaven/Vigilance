@@ -171,6 +171,20 @@ public sealed class Game
 
     public static IImmutableList<ISystem> Systems => GetGame()._config.Systems;
 
+    public static float MasterVolume
+    {
+        get
+        {
+            EnsureRunning();
+            return Raylib.GetMasterVolume();
+        }
+        set
+        {
+            EnsureRunning();
+            Raylib.SetMasterVolume(System.Math.Clamp(value, 0, 1));
+        }
+    }
+
     public static bool Debug
     {
         get => GetGame()._config.Debug;
@@ -225,6 +239,7 @@ public sealed class Game
 
     public static Image Screenshot()
     {
+        EnsureRunning();
         return new Image(Raylib.LoadImageFromScreen());
     }
 
@@ -277,6 +292,7 @@ public sealed class Game
             ToggleFullscreen();
         if (Platform.Desktop.IsCurrent() && config.Icon != null)
             Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
+        MasterVolume = config.MasterVolume;
         game._defaultFont = config.DefaultFont.Invoke();
         game.Loop();
     }
@@ -288,12 +304,14 @@ public sealed class Game
 
     public static void Maximize()
     {
+        EnsureRunning();
         if (!Maximized && Platform.Desktop.IsCurrent())
             Raylib.MaximizeWindow();
     }
 
     public static void Minimize()
     {
+        EnsureRunning();
         if (!Minimized && Platform.Desktop.IsCurrent())
             Raylib.MinimizeWindow();
     }

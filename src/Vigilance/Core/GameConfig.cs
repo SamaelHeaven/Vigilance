@@ -25,6 +25,7 @@ public struct GameConfig
     public bool Resizable { get; set; } = true;
     public bool Msaa4X { get; set; } = true;
     public bool Debug { get; set; } = false;
+    public float MasterVolume { get; set; } = 1;
     public CacheType DefaultAssetCacheType { get; set; } = CacheType.Weak;
     public LogLevel LogLevel { get; set; } = LogLevel.All;
     public int DefaultSoundMaxAliases { get; set; } = 16;
