@@ -16,7 +16,7 @@ public sealed class Sound
     public unsafe Sound(string fileType, ReadOnlySpan<byte> bytes, int? maxAliases = null)
     {
         Game.EnsureRunning();
-        MaxAliases = maxAliases ?? Game.DefaultSoundMaxAliases;
+        MaxAliases = System.Math.Max(maxAliases ?? Game.DefaultSoundMaxAliases, 1);
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
         fixed (byte* bytesBuffer = bytes)
         {
