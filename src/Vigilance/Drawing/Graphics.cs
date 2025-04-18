@@ -1,7 +1,9 @@
+using System.Numerics;
 using Raylib_cs;
 using Vigilance.Core;
 using Vigilance.Math;
 using Transform = Vigilance.Math.Transform;
+using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Drawing;
 
@@ -74,6 +76,12 @@ public readonly struct Graphics
         Scale(scale);
         Translate(position);
         Rotate(rotation, pivotPoint);
+    }
+
+    public static void Multiply(Matrix4x4 matrix)
+    {
+        Game.EnsureRunning();
+        Rlgl.MultMatrixf(matrix);
     }
 
     #region Rectangle
@@ -842,19 +850,14 @@ public readonly struct Graphics
         var flipY = sprite.FlipY;
         var position = transform.Position;
         var scale = transform.Scale.Abs();
+        var source = sprite.Source ?? new Box(Vector2.Zero, new Vector2(texture.Width, texture.Height));
+        if (flipX)
+            source.Width = -source.Width;
+        if (flipY)
+            source.Height = -source.Height;
         PushState();
         Transform(transform, true);
-        DrawTexture(
-            texture,
-            new Box(
-                Vector2.Zero,
-                new Vector2(flipX ? -texture.Width : texture.Width, flipY ? -texture.Height : texture.Height)
-            ),
-            new Box(position, scale),
-            tint,
-            interpolation,
-            camera
-        );
+        DrawTexture(texture, source, new Box(position, scale), tint, interpolation, camera);
         PopState();
     }
 
@@ -890,9 +893,7 @@ public readonly struct Graphics
         if (camera.HasValue)
         {
             PushState();
-            var cam = camera.Value;
-            var camera2D = new Camera2D(cam.Offset, cam.Target, cam.Rotation, cam.Zoom);
-            Rlgl.MultMatrixf(Raylib.GetCameraMatrix2D(camera2D));
+            Multiply(camera.Value.Matrix);
         }
 
         if (CurrentBuffer == _buffer)
