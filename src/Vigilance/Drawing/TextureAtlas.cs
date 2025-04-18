@@ -20,6 +20,14 @@ public readonly struct TextureAtlas : IEnumerable<Box>
 
     public float RegionHeight => RegionSize.Y;
 
+    public Box this[int index] => GetRegion(index);
+
+    public Box this[int col, int row] => GetRegion(col, row);
+
+    public Box this[Vector2 position] => GetRegion(position);
+
+    public int Count => _boxes.Count;
+
     public TextureAtlas(Texture texture, Vector2 nbRegion, float spacing = 0)
         : this(texture, (int)nbRegion.X, (int)nbRegion.Y, spacing) { }
 
@@ -49,26 +57,30 @@ public readonly struct TextureAtlas : IEnumerable<Box>
         }
     }
 
-    public Box this[int index] => GetRegion(index);
-
-    public Box this[int col, int row] => GetRegion(new Vector2(col, row));
-
-    public Box this[Vector2 position] => GetRegion(position);
-
-    public int Count => _boxes.Count;
-
     public Box GetRegion(int index)
     {
         return _boxes[index];
     }
 
+    public Box GetRegion(int col, int row)
+    {
+        return _boxes[GetIndex(col, row)];
+    }
+
     public Box GetRegion(Vector2 position)
     {
-        var col = (int)position.X;
-        var row = (int)position.Y;
+        return _boxes[GetIndex(position)];
+    }
+
+    public int GetIndex(Vector2 position)
+    {
+        return GetIndex((int)position.X, (int)position.Y);
+    }
+
+    public int GetIndex(int col, int row)
+    {
         var cols = (int)(Width / (RegionWidth + Spacing));
-        var index = row * cols + col;
-        return _boxes[index];
+        return row * cols + col;
     }
 
     public IEnumerator<Box> GetEnumerator()
