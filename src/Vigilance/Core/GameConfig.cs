@@ -17,7 +17,7 @@ public struct GameConfig
     public int Height { get; set; } = 600;
     public int ScreenWidth { get; set; } = 0;
     public int ScreenHeight { get; set; } = 0;
-    public int FpsTarget { get; set; } = 60;
+    public int FpsTarget { get; set; } = 0;
     public bool Fullscreen { get; set; } = false;
     public bool Maximized { get; set; } = false;
     public bool Decorated { get; set; } = true;
