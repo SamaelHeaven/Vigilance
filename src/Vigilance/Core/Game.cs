@@ -145,7 +145,6 @@ public sealed class Game
         {
             GetGame()._config.FpsTarget = value;
             Raylib.SetTargetFPS(value);
-            Time.Restart();
         }
     }
 
@@ -267,36 +266,6 @@ public sealed class Game
         game._actions.Push(action);
     }
 
-    public static void Launch(GameConfig config, Scene scene)
-    {
-        Running = true;
-        var game = GetGame();
-        game._config = config;
-        game._scene = scene;
-        FileSystem.WorkingNamespace = config.WorkingNamespace;
-        FileSystem.ChangeDirectory(config.WorkingDirectory);
-        Raylib.SetTraceLogLevel((TraceLogLevel)config.LogLevel);
-        Raylib.SetConfigFlags(game.GetConfigFlags());
-        Raylib.InitWindow(
-            config.ScreenWidth <= 0 || !Platform.Desktop.IsCurrent() ? config.Width : config.ScreenWidth,
-            config.ScreenHeight <= 0 || !Platform.Desktop.IsCurrent() ? config.Height : config.ScreenHeight,
-            config.Title
-        );
-        Raylib.SetAudioStreamBufferSizeDefault(4096);
-        Raylib.InitAudioDevice();
-        Raylib.SetTargetFPS(config.FpsTarget);
-        Raylib.SetExitKey((KeyboardKey)config.ExitKey);
-        if (config.Maximized)
-            Maximize();
-        if (config.Fullscreen)
-            ToggleFullscreen();
-        if (Platform.Desktop.IsCurrent() && config.Icon != null)
-            Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
-        MasterVolume = config.MasterVolume;
-        game._defaultFont = config.DefaultFont.Invoke();
-        game.Loop();
-    }
-
     public static void Log(string message, LogLevel level = LogLevel.Info)
     {
         Raylib.TraceLog((TraceLogLevel)level, message);
@@ -333,6 +302,36 @@ public sealed class Game
         }
 
         Raylib.ToggleFullscreen();
+    }
+
+    public static void Launch(GameConfig config, Scene scene)
+    {
+        Running = true;
+        var game = GetGame();
+        game._config = config;
+        game._scene = scene;
+        LogLevel = config.LogLevel;
+        FileSystem.WorkingNamespace = config.WorkingNamespace;
+        FileSystem.ChangeDirectory(config.WorkingDirectory);
+        Raylib.SetConfigFlags(game.GetConfigFlags());
+        Raylib.InitWindow(
+            config.ScreenWidth <= 0 || !Platform.Desktop.IsCurrent() ? config.Width : config.ScreenWidth,
+            config.ScreenHeight <= 0 || !Platform.Desktop.IsCurrent() ? config.Height : config.ScreenHeight,
+            config.Title
+        );
+        Raylib.SetAudioStreamBufferSizeDefault(4096);
+        Raylib.InitAudioDevice();
+        if (config.Maximized)
+            Maximize();
+        if (config.Fullscreen)
+            ToggleFullscreen();
+        if (Platform.Desktop.IsCurrent() && config.Icon != null)
+            Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
+        ExitKey = config.ExitKey;
+        FpsTarget = config.FpsTarget;
+        MasterVolume = config.MasterVolume;
+        game._defaultFont = config.DefaultFont.Invoke();
+        game.Loop();
     }
 
     private static Game GetGame()

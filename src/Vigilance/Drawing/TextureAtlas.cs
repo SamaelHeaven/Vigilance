@@ -51,8 +51,7 @@ public readonly struct TextureAtlas : IEnumerable<Box>
         var offsetY = 0.0f;
         for (var i = 0; i < count; i++)
         {
-            var box = new Box(offsetX, offsetY, regionWidth, regionHeight);
-            _boxes[i] = box;
+            _boxes[i] = new Box(offsetX, offsetY, regionWidth, regionHeight);
             offsetX += regionWidth + spacing;
             if (!(offsetX + regionWidth > texture.Width))
                 continue;
