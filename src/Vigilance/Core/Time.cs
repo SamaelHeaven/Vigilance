@@ -5,7 +5,7 @@ namespace Vigilance.Core;
 
 public sealed class Time
 {
-    public const float FixedDelta = 1 / 60f;
+    public const float FixedDeltaSeconds = 1 / 60f;
     private static Time? _time;
     private readonly TimeSpan _launchTime;
     private readonly Stopwatch _stopwatch;
@@ -22,7 +22,11 @@ public sealed class Time
         _startTime = _launchTime;
     }
 
-    public static float Delta => GetTime()._delta;
+    public static TimeSpan FixedDelta { get; } = TimeSpan.FromSeconds(FixedDeltaSeconds);
+
+    public static float DeltaSeconds => GetTime()._delta;
+
+    public static TimeSpan Delta => TimeSpan.FromSeconds(GetTime()._delta);
 
     public static float AverageFps
     {

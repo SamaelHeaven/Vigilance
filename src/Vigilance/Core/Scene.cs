@@ -179,7 +179,7 @@ public sealed unsafe class Scene
             Initialize();
         foreach (var action in _updateActions)
             action.Invoke();
-        for (_time += Time.Delta; _time >= Time.FixedDelta; _time -= Time.FixedDelta)
+        for (_time += Time.DeltaSeconds; _time >= Time.FixedDeltaSeconds; _time -= Time.FixedDeltaSeconds)
             FixedUpdate();
         Render();
     }

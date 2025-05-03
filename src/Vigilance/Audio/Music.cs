@@ -32,11 +32,11 @@ public sealed class Music
         get => _volume;
         set
         {
-            var volume = System.Math.Clamp(value, 0, 1);
-            if (Precision.AreEqual(volume, Volume))
+            value = System.Math.Clamp(value, 0, 1);
+            if (Precision.AreEqual(value, Volume))
                 return;
-            _volume = volume;
-            Raylib.SetMusicVolume(_music, volume);
+            _volume = value;
+            Raylib.SetMusicVolume(_music, value);
         }
     }
 
@@ -57,11 +57,11 @@ public sealed class Music
         get => _pan;
         set
         {
-            var pan = System.Math.Clamp(value, 0, 1);
-            if (Precision.AreEqual(pan, Pan))
+            value = System.Math.Clamp(value, 0, 1);
+            if (Precision.AreEqual(value, Pan))
                 return;
-            _pan = pan;
-            Raylib.SetMusicPan(_music, pan);
+            _pan = value;
+            Raylib.SetMusicPan(_music, value);
         }
     }
 

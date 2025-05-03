@@ -33,13 +33,13 @@ public sealed class Sound
         get => _volume;
         set
         {
-            var volume = System.Math.Clamp(value, 0, 1);
-            if (Precision.AreEqual(volume, Volume))
+            value = System.Math.Clamp(value, 0, 1);
+            if (Precision.AreEqual(value, Volume))
                 return;
-            _volume = volume;
-            Raylib.SetSoundVolume(_sound, volume);
+            _volume = value;
+            Raylib.SetSoundVolume(_sound, value);
             foreach (var (sound, _) in _aliases)
-                Raylib.SetSoundVolume(sound, volume);
+                Raylib.SetSoundVolume(sound, value);
         }
     }
 
@@ -62,13 +62,13 @@ public sealed class Sound
         get => _pan;
         set
         {
-            var pan = System.Math.Clamp(value, 0, 1);
-            if (Precision.AreEqual(pan, Pan))
+            value = System.Math.Clamp(value, 0, 1);
+            if (Precision.AreEqual(value, Pan))
                 return;
-            _pan = pan;
-            Raylib.SetSoundPan(_sound, pan);
+            _pan = value;
+            Raylib.SetSoundPan(_sound, value);
             foreach (var (sound, _) in _aliases)
-                Raylib.SetSoundPan(sound, pan);
+                Raylib.SetSoundPan(sound, value);
         }
     }
 

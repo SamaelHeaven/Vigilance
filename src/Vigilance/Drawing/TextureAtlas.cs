@@ -85,6 +85,27 @@ public readonly struct TextureAtlas : IEnumerable<Box>
         return row * Cols + col;
     }
 
+    public AnimationFrame[] GetAnimationFrames(int startCol, int startRow, int endCol, int? endRow = null)
+    {
+        return GetAnimationFrames(GetIndex(startCol, startRow), GetIndex(endCol, endRow ?? startRow));
+    }
+
+    public AnimationFrame[] GetAnimationFrames(Vector2 startPosition, Vector2 endPosition)
+    {
+        return GetAnimationFrames(GetIndex(startPosition), GetIndex(endPosition));
+    }
+
+    public AnimationFrame[] GetAnimationFrames(int startIndex, int endIndex)
+    {
+        if (startIndex < 0 || endIndex >= Count || startIndex > endIndex)
+            throw new ArgumentException("Invalid animation index range.");
+        var frameCount = endIndex - startIndex + 1;
+        var frames = new AnimationFrame[frameCount];
+        for (var i = 0; i < frameCount; i++)
+            frames[i] = new AnimationFrame { Texture = Texture, Source = _boxes[startIndex + i] };
+        return frames;
+    }
+
     public IEnumerator<Box> GetEnumerator()
     {
         return _boxes.Cast<Box>().GetEnumerator();

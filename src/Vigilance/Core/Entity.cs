@@ -23,7 +23,7 @@ public unsafe struct Entity
 
     public string Name => _entity.Name();
 
-    public bool IsValid => _entity.IsValid();
+    public bool Valid => _entity.IsValid();
 
     public Entity Parent => new(_entity.Parent(), null!);
 
@@ -101,7 +101,7 @@ public unsafe struct Entity
         get
         {
             var transform = Transform;
-            for (var entity = Parent; entity.IsValid; entity = entity.Parent)
+            for (var entity = Parent; entity.Valid; entity = entity.Parent)
                 transform += entity.Transform;
             return transform;
         }
@@ -112,7 +112,7 @@ public unsafe struct Entity
         get
         {
             var position = Position;
-            for (var entity = Parent; entity.IsValid; entity = entity.Parent)
+            for (var entity = Parent; entity.Valid; entity = entity.Parent)
                 position += entity.Position;
             return position;
         }
@@ -123,7 +123,7 @@ public unsafe struct Entity
         get
         {
             var scale = Scale;
-            for (var entity = Parent; entity.IsValid; entity = entity.Parent)
+            for (var entity = Parent; entity.Valid; entity = entity.Parent)
                 scale *= entity.Scale;
             return scale;
         }
@@ -134,7 +134,7 @@ public unsafe struct Entity
         get
         {
             var rotation = Rotation;
-            for (var entity = Parent; entity.IsValid; entity = entity.Parent)
+            for (var entity = Parent; entity.Valid; entity = entity.Parent)
                 rotation += entity.Rotation;
             return rotation;
         }
@@ -145,7 +145,7 @@ public unsafe struct Entity
         get
         {
             var pivotPoint = PivotPoint;
-            for (var entity = Parent; entity.IsValid; entity = entity.Parent)
+            for (var entity = Parent; entity.Valid; entity = entity.Parent)
                 pivotPoint += entity.PivotPoint;
             return pivotPoint;
         }
@@ -156,7 +156,7 @@ public unsafe struct Entity
         get
         {
             var zIndex = ZIndex;
-            for (var entity = Parent; entity.IsValid; entity = entity.Parent)
+            for (var entity = Parent; entity.Valid; entity = entity.Parent)
                 zIndex += entity.ZIndex;
             return zIndex;
         }
@@ -286,7 +286,7 @@ public unsafe struct Entity
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
-    public void Children(EntityAction action)
+    public ref Entity Children(EntityAction action)
     {
         var scene = Scene;
         scene.DeferBegin();
@@ -295,35 +295,40 @@ public unsafe struct Entity
             action.Invoke(new Entity(entity, scene));
         });
         scene.DeferEnd();
+        return ref this;
     }
 
     #region Traverse
 
-    public void Traverse(EntityAction action)
+    public ref Entity Traverse(EntityAction action)
     {
         action(this);
         Children(child => child.Traverse(action));
+        return ref this;
     }
 
-    public void Traverse<T>(EntityAction action)
+    public ref Entity Traverse<T>(EntityAction action)
     {
         if (Has<T>())
             action(this);
         Children(child => child.Traverse<T>(action));
+        return ref this;
     }
 
-    public void Traverse<T>(RefAction<T> action)
+    public ref Entity Traverse<T>(RefAction<T> action)
     {
         if (Has<T>())
             action(ref Get<T>());
         Children(child => child.Traverse(action));
+        return ref this;
     }
 
-    public void Traverse<T>(EntityAction<T> action)
+    public ref Entity Traverse<T>(EntityAction<T> action)
     {
         if (Has<T>())
             action(this, ref Get<T>());
         Children(child => child.Traverse(action));
+        return ref this;
     }
 
     #endregion
