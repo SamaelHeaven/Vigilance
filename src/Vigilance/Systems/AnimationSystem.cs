@@ -42,7 +42,7 @@ public sealed class AnimationSystem : ISystem
 
     private static void UpdateAnimationSprite(ref Animation animation, ref Sprite sprite)
     {
-        ref var frame = ref animation.Frame;
+        ref readonly var frame = ref animation.Frame;
         if (frame.Texture != null)
             sprite.Texture = frame.Texture;
         if (frame.FlipX.HasValue)

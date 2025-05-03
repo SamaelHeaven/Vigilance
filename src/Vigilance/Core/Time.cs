@@ -12,21 +12,45 @@ public sealed class Time
     private float _averageFps;
     private float _delta;
     private ulong _frameCount;
-    private TimeSpan _startTime;
+    private float _scale;
 
     private Time()
     {
         Game.EnsureRunning();
         _stopwatch = Stopwatch.StartNew();
         _launchTime = GetTicks(_stopwatch);
-        _startTime = _launchTime;
+        _scale = 1;
     }
 
     public static TimeSpan FixedDelta { get; } = TimeSpan.FromSeconds(FixedDeltaSeconds);
 
-    public static float DeltaSeconds => GetTime()._delta;
+    public static float DeltaSeconds
+    {
+        get
+        {
+            var time = GetTime();
+            return time._delta * time._scale;
+        }
+    }
 
-    public static TimeSpan Delta => TimeSpan.FromSeconds(GetTime()._delta);
+    public static TimeSpan Delta
+    {
+        get
+        {
+            var time = GetTime();
+            return TimeSpan.FromSeconds(time._delta * time._scale);
+        }
+    }
+
+    public static float Scale
+    {
+        get => GetTime()._scale;
+        set => GetTime()._scale = MathF.Max(0, value);
+    }
+
+    public static float UnscaledDeltaSeconds => GetTime()._delta;
+
+    public static TimeSpan UnscaledDelta => TimeSpan.FromSeconds(GetTime()._delta);
 
     public static float AverageFps
     {
@@ -47,8 +71,7 @@ public sealed class Time
         }
     }
 
-    public static TimeSpan SinceStart => Ticks - GetTime()._startTime;
-    public static TimeSpan SinceLaunch => Ticks - GetTime()._launchTime;
+    public static TimeSpan Elapsed => Ticks - GetTime()._launchTime;
     private static TimeSpan Ticks => GetTicks(GetTime()._stopwatch);
 
     private static TimeSpan GetTicks(Stopwatch stopwatch)
@@ -70,7 +93,6 @@ public sealed class Time
     internal static void Restart()
     {
         var time = GetTime();
-        time._startTime = Ticks;
         time._delta = 0;
         time._frameCount = 0;
         time._averageFps = 0;

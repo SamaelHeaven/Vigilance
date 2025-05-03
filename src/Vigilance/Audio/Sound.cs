@@ -97,7 +97,7 @@ public sealed class Sound
     public Sound Play()
     {
         Raylib_cs.Sound alias;
-        var now = Time.SinceLaunch.Seconds;
+        var now = Time.Elapsed.Seconds;
         var index = _aliases.FindIndex(a => !Raylib.IsSoundPlaying(a.Sound));
         if (index != -1)
         {

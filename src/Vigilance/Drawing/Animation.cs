@@ -13,7 +13,7 @@ public struct Animation
     public int RepeatCount { get; set; }
     public Action? OnComplete { get; set; }
     public Action? OnRepeat { get; set; }
-    public readonly ref AnimationFrame Frame => ref _frames[_index];
+    public readonly ref readonly AnimationFrame Frame => ref _frames[_index];
 
     public int Index
     {
