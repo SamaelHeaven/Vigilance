@@ -10,17 +10,17 @@ namespace Vigilance.Core;
 public sealed unsafe class Scene
 {
     private static Scene _current = null!;
-    private readonly Dictionary<Type, List<object>> _events = new();
-    private readonly List<Action> _fixedUpdateActions = [];
-    private readonly List<Action> _initializeActions = [];
+    private readonly Dictionary<Type, object> _events = new();
     private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
-    private readonly List<Action<Entity>> _renderActions = [];
-    private readonly List<Action> _renderEndActions = [];
-    private readonly List<Action> _renderStartActions = [];
-    private readonly List<Action> _updateActions = [];
     private Camera _camera = new();
+    private Action? _fixedUpdateAction;
+    private Action? _initializeAction;
     private Query<ZIndex> _orderedQuery;
+    private Action<Entity>? _renderAction;
+    private Action? _renderEndAction;
+    private Action? _renderStartAction;
     private float _time;
+    private Action? _updateAction;
     private World _world = World.Create();
 
     public Scene(IImmutableList<ISystem>? systems = null)
@@ -81,45 +81,52 @@ public sealed unsafe class Scene
     {
         EnsureNotInitialized();
         var type = typeof(T);
-        if (!_events.ContainsKey(type))
-            _events.Add(type, []);
-        _events[type].Add(action);
+        if (!_events.TryGetValue(type, out var value))
+        {
+            value = action;
+            _events.Add(type, value);
+            return;
+        }
+
+        var existing = value as RefAction<T>;
+        existing += action;
+        _events[type] = existing;
     }
 
     public void OnInitialize(Action action)
     {
         EnsureNotInitialized();
-        _initializeActions.Add(action);
+        _initializeAction += action;
     }
 
     public void OnUpdate(Action action)
     {
         EnsureNotInitialized();
-        _updateActions.Add(action);
+        _updateAction += action;
     }
 
     public void OnFixedUpdate(Action action)
     {
         EnsureNotInitialized();
-        _fixedUpdateActions.Add(action);
+        _fixedUpdateAction += action;
     }
 
     public void OnRenderStart(Action action)
     {
         EnsureNotInitialized();
-        _renderStartActions.Add(action);
+        _renderStartAction += action;
     }
 
     public void OnRenderEnd(Action action)
     {
         EnsureNotInitialized();
-        _renderEndActions.Add(action);
+        _renderEndAction += action;
     }
 
     public void OnRender(Action<Entity> action)
     {
         EnsureNotInitialized();
-        _renderActions.Add(action);
+        _renderAction += action;
     }
 
     public void Emit<T>(T @event)
@@ -131,10 +138,9 @@ public sealed unsafe class Scene
     {
         EnsureInitialized();
         var type = typeof(T);
-        if (!_events.TryGetValue(type, out var actions))
+        if (!_events.TryGetValue(type, out var action))
             return;
-        foreach (var action in actions)
-            ((RefAction<T>)action).Invoke(ref @event);
+        ((RefAction<T>)action).Invoke(ref @event);
     }
 
     public int Count()
@@ -168,8 +174,7 @@ public sealed unsafe class Scene
         foreach (var system in Systems)
             system.Configure(this);
         Initialized = true;
-        foreach (var action in _initializeActions)
-            action.Invoke();
+        _initializeAction?.Invoke();
         Time.Restart();
     }
 
@@ -177,8 +182,7 @@ public sealed unsafe class Scene
     {
         if (!Initialized)
             Initialize();
-        foreach (var action in _updateActions)
-            action.Invoke();
+        _updateAction?.Invoke();
         for (_time += Time.DeltaSeconds; _time >= Time.FixedDeltaSeconds; _time -= Time.FixedDeltaSeconds)
             FixedUpdate();
         Render();
@@ -200,21 +204,17 @@ public sealed unsafe class Scene
 
     private void FixedUpdate()
     {
-        foreach (var action in _fixedUpdateActions)
-            action.Invoke();
+        _fixedUpdateAction?.Invoke();
     }
 
     private void Render()
     {
-        foreach (var action in _renderStartActions)
-            action.Invoke();
+        _renderStartAction?.Invoke();
         OrderedEach(entity =>
         {
-            foreach (var action in _renderActions)
-                action.Invoke(entity);
+            _renderAction?.Invoke(entity);
         });
-        foreach (var action in _renderEndActions)
-            action.Invoke();
+        _renderEndAction?.Invoke();
     }
 
     ~Scene()

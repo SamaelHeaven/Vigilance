@@ -8,11 +8,11 @@ public struct Animation
     private int? _nextIndex;
     private TimeSpan _timer;
     private int _repeatCount;
+    private Action? _completeAction;
+    private Action? _repeatAction;
     public TimeSpan Delay { get; set; }
     public bool Paused { get; set; }
     public int RepeatCount { get; set; }
-    public Action? OnComplete { get; set; }
-    public Action? OnRepeat { get; set; }
     public readonly ref readonly AnimationFrame Frame => ref _frames[_index];
 
     public int Index
@@ -46,20 +46,20 @@ public struct Animation
         TimeSpan delay,
         int repeatCount = InfiniteRepeatCount,
         int startIndex = 0,
-        Action? onComplete = null,
-        Action? onRepeat = null
+        Action? repeatAction = null,
+        Action? completeAction = null
     )
     {
         if (frames.Length == 0)
             throw new ArgumentException("Animation must have at least one frame.");
         _frames = frames;
         _nextIndex = null;
+        _completeAction = completeAction;
+        _repeatAction = repeatAction;
         Delay = delay;
         RepeatCount = repeatCount;
         Index = startIndex;
         StartIndex = startIndex;
-        OnComplete = onComplete;
-        OnRepeat = onRepeat;
     }
 
     public void Update(TimeSpan deltaTime)
@@ -77,10 +77,10 @@ public struct Animation
         if (_index != _startIndex)
             return;
         _repeatCount++;
-        OnRepeat?.Invoke();
+        _repeatAction?.Invoke();
         if (RepeatCount <= InfiniteRepeatCount)
             return;
-        OnComplete?.Invoke();
+        _completeAction?.Invoke();
     }
 
     public void Reset()
@@ -88,5 +88,15 @@ public struct Animation
         _index = 0;
         _timer = TimeSpan.Zero;
         _repeatCount = 0;
+    }
+
+    public void OnComplete(Action action)
+    {
+        _completeAction += action;
+    }
+
+    public void OnRepeat(Action action)
+    {
+        _repeatAction += action;
     }
 }
