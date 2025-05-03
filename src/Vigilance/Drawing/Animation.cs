@@ -83,6 +83,28 @@ public struct Animation
         _completeAction?.Invoke();
     }
 
+    public void UpdateSprite(Sprite sprite)
+    {
+        UpdateSprite(ref sprite);
+    }
+
+    public void UpdateSprite(ref Sprite sprite)
+    {
+        ref readonly var frame = ref Frame;
+        if (frame.Texture != null)
+            sprite.Texture = frame.Texture;
+        if (frame.FlipX.HasValue)
+            sprite.FlipX = frame.FlipX.Value;
+        if (frame.FlipY.HasValue)
+            sprite.FlipY = frame.FlipY.Value;
+        if (frame.Source.HasValue)
+            sprite.Source = frame.Source.Value;
+        if (frame.Tint.HasValue)
+            sprite.Tint = frame.Tint.Value;
+        if (frame.Interpolation.HasValue)
+            sprite.Interpolation = frame.Interpolation.Value;
+    }
+
     public void Reset()
     {
         _index = 0;
