@@ -23,7 +23,10 @@ public sealed class AnimationSystem : ISystem
                     controller.Animation.Update(deltaTime);
                 }
             );
+        });
 
+        scene.OnRenderStart(() =>
+        {
             scene.Each(
                 static (ref Animation animation, ref Sprite sprite) =>
                 {

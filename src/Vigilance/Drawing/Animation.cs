@@ -83,11 +83,6 @@ public struct Animation
         _completeAction?.Invoke();
     }
 
-    public void UpdateSprite(Sprite sprite)
-    {
-        UpdateSprite(ref sprite);
-    }
-
     public void UpdateSprite(ref Sprite sprite)
     {
         ref readonly var frame = ref Frame;
