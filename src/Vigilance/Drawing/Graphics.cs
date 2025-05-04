@@ -118,7 +118,7 @@ public sealed class Graphics
     public void Transform(Transform transform)
     {
         var position = transform.Position;
-        var scale = transform.Scale.Abs();
+        var scale = transform.Scale;
         var pivotPoint = transform.PivotPoint;
         var rotation = transform.Rotation;
         Scale(scale);
