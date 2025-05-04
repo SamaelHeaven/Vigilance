@@ -268,6 +268,7 @@ public sealed class Game
 
     public static void Log(string message, LogLevel level = LogLevel.Info)
     {
+        EnsureRunning();
         Raylib.TraceLog((TraceLogLevel)level, message);
     }
 
