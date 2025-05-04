@@ -3,34 +3,9 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public readonly struct TextureAtlas : IEnumerable<Box>
+public sealed class TextureAtlas : IEnumerable<Box>
 {
     private readonly Box[] _boxes;
-    public Texture Texture { get; }
-    public Vector2 RegionSize { get; }
-    public float Spacing { get; }
-
-    public int Cols => (int)(TextureWidth / (RegionWidth + Spacing));
-
-    public int Rows => (int)MathF.Ceiling(Count / (float)Cols);
-
-    public Vector2 TextureSize => Texture.Size;
-
-    public float TextureWidth => TextureSize.X;
-
-    public float TextureHeight => TextureSize.Y;
-
-    public float RegionWidth => RegionSize.X;
-
-    public float RegionHeight => RegionSize.Y;
-
-    public Box this[int index] => GetRegion(index);
-
-    public Box this[int x, int y] => GetRegion(x, y);
-
-    public Box this[Vector2 position] => GetRegion(position);
-
-    public int Count => _boxes.Length;
 
     public TextureAtlas(Texture texture, Vector2 count, float spacing = 0)
         : this(texture, (int)count.X, (int)count.Y, spacing) { }
@@ -58,6 +33,42 @@ public readonly struct TextureAtlas : IEnumerable<Box>
             offsetX = 0;
             offsetY += regionHeight + spacing;
         }
+    }
+
+    public Texture Texture { get; }
+    public Vector2 RegionSize { get; }
+    public float Spacing { get; }
+
+    public int Cols => (int)(TextureWidth / (RegionWidth + Spacing));
+
+    public int Rows => (int)MathF.Ceiling(Count / (float)Cols);
+
+    public Vector2 TextureSize => Texture.Size;
+
+    public float TextureWidth => TextureSize.X;
+
+    public float TextureHeight => TextureSize.Y;
+
+    public float RegionWidth => RegionSize.X;
+
+    public float RegionHeight => RegionSize.Y;
+
+    public Box this[int index] => GetRegion(index);
+
+    public Box this[int x, int y] => GetRegion(x, y);
+
+    public Box this[Vector2 position] => GetRegion(position);
+
+    public int Count => _boxes.Length;
+
+    public IEnumerator<Box> GetEnumerator()
+    {
+        return _boxes.Cast<Box>().GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
 
     public Box GetRegion(int index)
@@ -104,15 +115,5 @@ public readonly struct TextureAtlas : IEnumerable<Box>
         for (var i = 0; i < frameCount; i++)
             frames[i] = new AnimationFrame { Texture = Texture, Source = _boxes[startIndex + i] };
         return frames;
-    }
-
-    public IEnumerator<Box> GetEnumerator()
-    {
-        return _boxes.Cast<Box>().GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
     }
 }

@@ -1,45 +1,16 @@
 namespace Vigilance.Drawing;
 
-public struct Animation
+public sealed class Animation
 {
-    private readonly AnimationFrame[] _frames;
-    private int _index;
-    private int _startIndex;
-    private int? _nextIndex;
-    private TimeSpan _timer;
-    private int _repeatCount;
-    private Action? _completeAction;
-    private Action? _repeatAction;
-    public TimeSpan Delay { get; set; }
-    public bool Paused { get; set; }
-    public int RepeatCount { get; set; }
-    public readonly ref readonly AnimationFrame Frame => ref _frames[_index];
-
-    public int Index
-    {
-        readonly get => _index;
-        set
-        {
-            _index = System.Math.Clamp(value, 0, _frames.Length - 1);
-            _timer = TimeSpan.Zero;
-        }
-    }
-
-    public int StartIndex
-    {
-        readonly get => _startIndex;
-        set => _startIndex = System.Math.Clamp(value, 0, _frames.Length - 1);
-    }
-
-    public int? NextIndex
-    {
-        readonly get => _nextIndex;
-        set => _nextIndex = value.HasValue ? System.Math.Clamp(value.Value, 0, _frames.Length - 1) : null;
-    }
-
-    public int FrameCount => _frames.Length;
-
     public const int InfiniteRepeatCount = -1;
+    private readonly AnimationFrame[] _frames;
+    private Action? _completeAction;
+    private int _index;
+    private int? _nextIndex;
+    private Action? _repeatAction;
+    private int _repeatCount;
+    private int _startIndex;
+    private TimeSpan _timer;
 
     public Animation(
         AnimationFrame[] frames,
@@ -61,6 +32,36 @@ public struct Animation
         Index = startIndex;
         StartIndex = startIndex;
     }
+
+    public TimeSpan Delay { get; set; }
+    public bool Paused { get; set; }
+    public int RepeatCount { get; set; }
+
+    public ref readonly AnimationFrame Frame => ref _frames[_index];
+
+    public int Index
+    {
+        get => _index;
+        set
+        {
+            _index = System.Math.Clamp(value, 0, _frames.Length - 1);
+            _timer = TimeSpan.Zero;
+        }
+    }
+
+    public int StartIndex
+    {
+        get => _startIndex;
+        set => _startIndex = System.Math.Clamp(value, 0, _frames.Length - 1);
+    }
+
+    public int? NextIndex
+    {
+        get => _nextIndex;
+        set => _nextIndex = value.HasValue ? System.Math.Clamp(value.Value, 0, _frames.Length - 1) : null;
+    }
+
+    public int FrameCount => _frames.Length;
 
     public void Update(TimeSpan deltaTime)
     {

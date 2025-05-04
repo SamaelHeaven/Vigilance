@@ -1,16 +1,13 @@
-#pragma warning disable CS9084
+using System.Collections;
 
-using System.Runtime.InteropServices;
-using Vigilance.Core;
+#pragma warning disable CS9084
 
 namespace Vigilance.Drawing;
 
-public unsafe struct AnimationController
+public sealed class AnimationController : IEnumerable<KeyValuePair<string, Animation>>
 {
     private readonly Dictionary<string, Animation> _animations;
-    private string? _currentAnimation = null;
-
-    public ref Animation Animation => ref CollectionsMarshal.GetValueRefOrNullRef(_animations, _currentAnimation!);
+    private string _currentAnimation;
 
     public AnimationController(IReadOnlyDictionary<string, Animation> animations)
     {
@@ -20,36 +17,39 @@ public unsafe struct AnimationController
         _currentAnimation = animations.First().Key;
     }
 
+    public Animation Animation => _animations[_currentAnimation];
+
+    public IEnumerator<KeyValuePair<string, Animation>> GetEnumerator()
+    {
+        return _animations.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
     public bool Has(string animation)
     {
         return _animations.ContainsKey(animation);
     }
 
-    public ref Animation Get(string animation)
+    public Animation Get(string animation)
     {
-        return ref CollectionsMarshal.GetValueRefOrNullRef(_animations, animation);
+        return _animations[animation];
     }
 
-    public ref AnimationController Use(string animation, bool resetOthers = true)
+    public void Use(string animation, bool resetOthers = true)
     {
         if (!_animations.ContainsKey(animation))
-            return ref this;
+            return;
         _currentAnimation = animation;
         if (!resetOthers)
-            return ref this;
+            return;
         foreach (var key in _animations.Keys.Where(key => key != animation))
         {
-            ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(_animations, key);
+            var value = _animations[key];
             value.Reset();
         }
-
-        return ref this;
-    }
-
-    public ref AnimationController Each(RefAction<Animation> action)
-    {
-        foreach (var key in _animations.Keys)
-            action.Invoke(ref CollectionsMarshal.GetValueRefOrNullRef(_animations, key));
-        return ref this;
     }
 }
