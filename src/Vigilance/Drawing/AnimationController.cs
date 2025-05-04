@@ -1,7 +1,5 @@
 using System.Collections;
 
-#pragma warning disable CS9084
-
 namespace Vigilance.Drawing;
 
 public sealed class AnimationController : IEnumerable<KeyValuePair<string, Animation>>
@@ -18,6 +16,8 @@ public sealed class AnimationController : IEnumerable<KeyValuePair<string, Anima
     }
 
     public Animation Animation => _animations[_currentAnimation];
+
+    public Animation this[string animation] => _animations[animation];
 
     public IEnumerator<KeyValuePair<string, Animation>> GetEnumerator()
     {
@@ -37,6 +37,11 @@ public sealed class AnimationController : IEnumerable<KeyValuePair<string, Anima
     public Animation Get(string animation)
     {
         return _animations[animation];
+    }
+
+    public bool TryGet(string animation, out Animation animationOut)
+    {
+        return _animations.TryGetValue(animation, out animationOut!);
     }
 
     public void Use(string animation, bool resetOthers = true)
