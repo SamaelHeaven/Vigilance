@@ -16,17 +16,17 @@ public sealed class WritableTexture
         Game.EnsureRunning();
         RenderTexture2D = Raylib.LoadRenderTexture(width, height);
         Texture = new Texture(RenderTexture2D.Texture, this);
+        Graphics = new Graphics(this);
     }
 
     public Texture Texture { get; }
+    public Graphics Graphics { get; }
 
     public int Width => RenderTexture2D.Texture.Width;
 
     public int Height => RenderTexture2D.Texture.Height;
 
     public Vector2 Size => new(Width, Height);
-
-    public Graphics Graphics => new(this);
 
     public void Update(ReadOnlySpan<Color> pixels)
     {
