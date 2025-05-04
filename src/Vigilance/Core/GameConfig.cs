@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Vigilance.Drawing;
 using Vigilance.Input;
+using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
@@ -27,6 +28,7 @@ public struct GameConfig
     public bool Debug { get; set; } = false;
     public float MasterVolume { get; set; } = 1;
     public CacheType DefaultAssetCacheType { get; set; } = CacheType.Weak;
+    public ILogger Logger { get; set; } = new ConsoleLogger();
     public LogLevel LogLevel { get; set; } = LogLevel.All;
     public int DefaultSoundMaxAliases { get; set; } = 16;
     public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
@@ -53,11 +55,14 @@ public struct GameConfig
 
     public Func<Font> DefaultFont { get; set; } =
         () =>
-            Asset.FontResource(
+        {
+            var assembly = Assemblies.Engine;
+            return Asset.FontResource(
                 "DefaultFont.ttf",
-                @namespace: FileSystem.EngineAssembly.GetName().Name! + ".Resources",
-                assembly: FileSystem.EngineAssembly
+                @namespace: assembly.GetName().Name! + ".Resources",
+                assembly: assembly
             );
+        };
 
     public string DefaultFontCharset { get; set; } =
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";

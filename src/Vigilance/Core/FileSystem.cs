@@ -13,11 +13,8 @@ public static unsafe partial class FileSystem
     static FileSystem()
     {
         if (!Game.Running)
-            Raylib.SetTraceLogLevel(TraceLogLevel.Error);
+            Raylib.SetTraceLogLevel(TraceLogLevel.None);
     }
-
-    public static Assembly GameAssembly { get; } = Assembly.GetEntryAssembly()!;
-    public static Assembly EngineAssembly { get; } = Assembly.GetExecutingAssembly();
 
     public static string ApplicationDirectory { get; } =
         FormatPath(Utf8StringUtils.GetUTF8String(Raylib.GetApplicationDirectory()));
@@ -65,7 +62,7 @@ public static unsafe partial class FileSystem
 
     public static bool ResourceExists(string resource, string? @namespace = null, Assembly? assembly = null)
     {
-        assembly ??= GameAssembly;
+        assembly ??= Assemblies.Game;
         if (ResourceNames.TryGetValue(assembly, out var names))
             return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
         names = assembly.GetManifestResourceNames();
@@ -123,14 +120,14 @@ public static unsafe partial class FileSystem
         var bytesRead = 0;
         var data = Raylib.LoadFileData(path, ref bytesRead);
         var bytes = new byte[bytesRead];
-        Marshal.Copy((IntPtr)data, bytes, 0, bytesRead);
+        Marshal.Copy((nint)data, bytes, 0, bytesRead);
         Raylib.UnloadFileData(data);
         return bytes;
     }
 
     public static byte[] ReadResourceBytes(string resource, string? @namespace = null, Assembly? assembly = null)
     {
-        using var stream = (assembly ?? GameAssembly).GetManifestResourceStream(
+        using var stream = (assembly ?? Assemblies.Game).GetManifestResourceStream(
             FormatResource(resource, @namespace ?? WorkingNamespace)
         );
         if (stream == null)

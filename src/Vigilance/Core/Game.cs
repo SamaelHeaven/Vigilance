@@ -1,8 +1,11 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Raylib_cs;
 using Vigilance.Drawing;
 using Vigilance.Input;
+using Vigilance.Logging;
 using Vigilance.Math;
 using Font = Vigilance.Drawing.Font;
 using Image = Vigilance.Drawing.Image;
@@ -160,6 +163,8 @@ public sealed class Game
 
     public static float DefaultFontSize => GetGame()._config.DefaultFontSize;
 
+    public static ILogger Logger => GetGame()._config.Logger;
+
     public static Font DefaultFont => GetGame()._defaultFont;
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
@@ -305,13 +310,17 @@ public sealed class Game
         Raylib.ToggleFullscreen();
     }
 
-    public static void Launch(GameConfig config, Scene scene)
+    public static unsafe void Launch(GameConfig config, Scene scene)
     {
         Running = true;
         var game = GetGame();
         game._config = config;
         game._scene = scene;
         LogLevel = config.LogLevel;
+        if (Platform.Desktop.IsCurrent())
+            Raylib.SetTraceLogCallback(&TraceLog);
+        var engine = Assemblies.Engine.GetName();
+        Log($"Initializing {engine.Name} {engine.Version}");
         FileSystem.WorkingNamespace = config.WorkingNamespace;
         FileSystem.ChangeDirectory(config.WorkingDirectory);
         Raylib.SetConfigFlags(game.GetConfigFlags());
@@ -338,6 +347,14 @@ public sealed class Game
     private static Game GetGame()
     {
         return _game ??= new Game();
+    }
+
+    // ReSharper disable once UseCollectionExpression
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void TraceLog(int logLevel, sbyte* format, sbyte* args)
+    {
+        var message = Raylib_cs.Logging.GetLogMessage((nint)format, (nint)args);
+        Logger.Log(message, (LogLevel)logLevel);
     }
 
     private void Loop()
