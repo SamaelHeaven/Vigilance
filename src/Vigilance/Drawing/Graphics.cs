@@ -19,38 +19,6 @@ public sealed class Graphics
         _buffer = buffer;
     }
 
-    private unsafe void BeginDrawing(Camera? camera = null)
-    {
-        var matrix = GetMatrix();
-        Rlgl.PushMatrix();
-        if (camera.HasValue)
-            Rlgl.MultMatrixf(Raylib.GetCameraMatrix2D(camera.Value.RCamera));
-        Rlgl.MultMatrixf(&matrix.M11);
-        if (CurrentBuffer == _buffer)
-            return;
-        CurrentBuffer = _buffer;
-        Raylib.EndTextureMode();
-        Raylib.BeginTextureMode(_buffer.RenderTexture2D);
-    }
-
-    private static void EndDrawing()
-    {
-        Rlgl.PopMatrix();
-    }
-
-    private void Transform(Transform transform, bool translate)
-    {
-        var position = transform.Position;
-        var scale = transform.Scale.Abs();
-        var pivotPoint = transform.PivotPoint;
-        var rotation = transform.Rotation;
-        var positionOffset = -(scale * 0.5f);
-        var rotationOffset = position + pivotPoint;
-        Rotate(rotation, rotationOffset);
-        if (translate)
-            Translate(positionOffset);
-    }
-
     #region Matrix
 
     public Matrix4x4 GetMatrix()
@@ -928,6 +896,42 @@ public sealed class Graphics
         BeginDrawing();
         Raylib.DrawPixelV(position, color.RColor);
         EndDrawing();
+    }
+
+    #endregion
+
+    #region Internal
+
+    private unsafe void BeginDrawing(Camera? camera = null)
+    {
+        var matrix = GetMatrix();
+        Rlgl.PushMatrix();
+        if (camera.HasValue)
+            Rlgl.MultMatrixf(Raylib.GetCameraMatrix2D(camera.Value.RCamera));
+        Rlgl.MultMatrixf(&matrix.M11);
+        if (CurrentBuffer == _buffer)
+            return;
+        CurrentBuffer = _buffer;
+        Raylib.EndTextureMode();
+        Raylib.BeginTextureMode(_buffer.RenderTexture2D);
+    }
+
+    private static void EndDrawing()
+    {
+        Rlgl.PopMatrix();
+    }
+
+    private void Transform(Transform transform, bool translate)
+    {
+        var position = transform.Position;
+        var scale = transform.Scale.Abs();
+        var pivotPoint = transform.PivotPoint;
+        var rotation = transform.Rotation;
+        var positionOffset = -(scale * 0.5f);
+        var rotationOffset = position + pivotPoint;
+        Rotate(rotation, rotationOffset);
+        if (translate)
+            Translate(positionOffset);
     }
 
     #endregion
