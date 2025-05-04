@@ -1,4 +1,3 @@
-using System.Numerics;
 using Raylib_cs;
 using Vector2 = Vigilance.Math.Vector2;
 
@@ -14,14 +13,7 @@ public struct Camera
     public float Rotation { get; set; } = 0;
     public float Zoom { get; set; } = 1;
 
-    public Matrix4x4 Matrix
-    {
-        get
-        {
-            var camera = new Camera2D(Offset, Target, Rotation, Zoom);
-            return Raylib.GetCameraMatrix2D(camera);
-        }
-    }
+    internal Camera2D RCamera => new(Offset, Target, Rotation, Zoom);
 
     public Camera() { }
 }

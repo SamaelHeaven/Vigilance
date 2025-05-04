@@ -7,68 +7,116 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Drawing;
 
-public readonly struct Graphics
+public sealed class Graphics
 {
     internal static WritableTexture? CurrentBuffer;
     private readonly WritableTexture _buffer;
+    private readonly Stack<Matrix4x4> _matrixStack = new();
+    private Matrix4x4 _matrix = Matrix4x4.Identity;
 
     internal Graphics(WritableTexture buffer)
     {
         _buffer = buffer;
     }
 
-    public static void PushState()
+    private unsafe void BeginDrawing(Camera? camera = null)
     {
-        Game.EnsureRunning();
+        var matrix = GetMatrix();
         Rlgl.PushMatrix();
+        if (camera.HasValue)
+            Rlgl.MultMatrixf(Raylib.GetCameraMatrix2D(camera.Value.RCamera));
+        Rlgl.MultMatrixf(&matrix.M11);
+        if (CurrentBuffer == _buffer)
+            return;
+        CurrentBuffer = _buffer;
+        Raylib.EndTextureMode();
+        Raylib.BeginTextureMode(_buffer.RenderTexture2D);
     }
 
-    public static void PopState()
+    private static void EndDrawing()
     {
-        Game.EnsureRunning();
         Rlgl.PopMatrix();
     }
 
-    public static void Translate(float v1, float? v2 = null)
+    private void Transform(Transform transform, bool translate)
     {
-        Translate(new Vector2(v1, v2 ?? v1));
+        var position = transform.Position;
+        var scale = transform.Scale.Abs();
+        var pivotPoint = transform.PivotPoint;
+        var rotation = transform.Rotation;
+        var positionOffset = -(scale * 0.5f);
+        var rotationOffset = position + pivotPoint;
+        Rotate(rotation, rotationOffset);
+        if (translate)
+            Translate(positionOffset);
     }
 
-    public static void Translate(Vector2 translation)
+    #region Matrix
+
+    public Matrix4x4 GetMatrix()
     {
-        Game.EnsureRunning();
-        Rlgl.Translatef(translation.X, translation.Y, 0);
+        return _matrixStack.Count == 0 ? _matrix : _matrixStack.Peek();
     }
 
-    public static void Rotate(float angle, float v1, float? v2 = null)
+    public void PushMatrix()
+    {
+        _matrixStack.Push(GetMatrix());
+    }
+
+    public void PopMatrix()
+    {
+        if (_matrixStack.Count != 0)
+            _matrixStack.Pop();
+    }
+
+    public void Multiply(Matrix4x4 matrix)
+    {
+        if (_matrixStack.Count == 0)
+        {
+            _matrix *= matrix;
+            return;
+        }
+
+        var top = _matrixStack.Pop();
+        _matrixStack.Push(matrix * top);
+    }
+
+    public void Translate(float v1, float? v2 = null)
+    {
+        Multiply(Matrix4x4.CreateTranslation(v1, v2 ?? v1, 0));
+    }
+
+    public void Translate(Vector2 translation)
+    {
+        Multiply(Matrix4x4.CreateTranslation(translation.X, translation.Y, 0));
+    }
+
+    public void Rotate(float angle, float v1, float? v2 = null)
     {
         Rotate(angle, new Vector2(v1, v2 ?? v1));
     }
 
-    public static void Rotate(float angle, Vector2? position = null)
+    public void Rotate(float angle, Vector2? position = null)
     {
-        Game.EnsureRunning();
         if (position.HasValue)
-            Rlgl.Translatef(position.Value.X, position.Value.Y, 0);
-        Rlgl.Rotatef(angle, 0, 0, 1);
+            Multiply(Matrix4x4.CreateTranslation(position.Value.X, position.Value.Y, 0));
+        Multiply(Matrix4x4.CreateRotationZ(MathF.PI * angle / 180f));
         if (position.HasValue)
-            Rlgl.Translatef(-position.Value.X, -position.Value.Y, 0);
+            Multiply(Matrix4x4.CreateTranslation(-position.Value.X, -position.Value.Y, 0));
     }
 
-    public static void Scale(float v1, float? v2 = null)
+    public void Scale(float v1, float? v2 = null)
     {
         Scale(new Vector2(v1, v2 ?? v1));
     }
 
-    public static void Scale(Vector2 scale)
+    public void Scale(Vector2 scale)
     {
-        Game.EnsureRunning();
-        Rlgl.Scalef(scale.X, scale.Y, 1);
+        Multiply(Matrix4x4.CreateScale(scale.X, scale.Y, 1f));
     }
 
-    public static void Transform(Transform transform)
+    public void Transform(Transform transform)
     {
-        Game.EnsureRunning();
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         var pivotPoint = transform.PivotPoint;
@@ -78,11 +126,7 @@ public readonly struct Graphics
         Rotate(rotation, pivotPoint);
     }
 
-    public static void Multiply(Matrix4x4 matrix)
-    {
-        Game.EnsureRunning();
-        Rlgl.MultMatrixf(matrix);
-    }
+    #endregion
 
     #region Rectangle
 
@@ -102,7 +146,7 @@ public readonly struct Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRec(new Raylib_cs.Rectangle(position, size), color.RColor);
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void StrokeRectangle(
@@ -135,7 +179,7 @@ public readonly struct Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleLinesEx(new Raylib_cs.Rectangle(position, size), strokeWidth, color.RColor);
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void FillRoundedRectangle(
@@ -168,7 +212,7 @@ public readonly struct Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRounded(new Raylib_cs.Rectangle(position, size), roundness, 0, color.RColor);
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void StrokeRoundedRectangle(
@@ -215,7 +259,7 @@ public readonly struct Graphics
             strokeWidth,
             color.RColor
         );
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void DrawRectangle(Transform transform, Rectangle rectangle)
@@ -232,7 +276,7 @@ public readonly struct Graphics
         var strokeWidth = rectangle.StrokeWidth;
         var position = transform.Position;
         var scale = transform.Scale.Abs();
-        PushState();
+        PushMatrix();
         Transform(transform, true);
         if (roundness > 0)
         {
@@ -245,7 +289,7 @@ public readonly struct Graphics
             StrokeRectangle(position, scale, stroke, strokeWidth, camera);
         }
 
-        PopState();
+        PopMatrix();
     }
 
     #endregion
@@ -263,7 +307,7 @@ public readonly struct Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawCircleV(center, radius, color.RColor);
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void StrokeCircle(float x, float y, float radius, Color color, float strokeWidth = 1, Camera? camera = null)
@@ -277,7 +321,7 @@ public readonly struct Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawRing(center, radius - strokeWidth, radius + 1, 0, 360, 0, color.RColor);
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void DrawCircle(Transform transform, Circle circle)
@@ -293,12 +337,12 @@ public readonly struct Graphics
         var strokeWidth = circle.StrokeWidth;
         var position = transform.Position;
         var scale = transform.Scale;
-        PushState();
+        PushMatrix();
         Transform(transform, false);
         var radius = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.25f;
         FillCircle(position, radius, fill, camera);
         StrokeCircle(position, radius, stroke, strokeWidth, camera);
-        PopState();
+        PopMatrix();
     }
 
     #endregion
@@ -357,7 +401,7 @@ public readonly struct Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawPoly(center, sides, radius, 0, color.RColor);
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void StrokeRegularPolygon(
@@ -386,7 +430,7 @@ public readonly struct Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawPolyLinesEx(center, sides, radius, 0, strokeWidth, color.RColor);
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void DrawRegularPolygon(Transform transform, RegularPolygon polygon)
@@ -403,12 +447,12 @@ public readonly struct Graphics
         var strokeWidth = polygon.StrokeWidth;
         var position = transform.Position;
         var scale = transform.Scale;
-        PushState();
+        PushMatrix();
         Transform(transform, false);
         var radius = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.25f;
         FillRegularPolygon(position, sides, radius, fill, camera);
         StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
-        PopState();
+        PopMatrix();
     }
 
     public unsafe void FillCustomPolygon(IReadOnlyList<Vector2> points, Color color, Camera? camera = null)
@@ -421,7 +465,7 @@ public readonly struct Graphics
             Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, points.Count, color.RColor);
         }
 
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void StrokeCustomPolygon(
@@ -442,7 +486,7 @@ public readonly struct Graphics
             Raylib.DrawCircleV(start, strokeWidth * 0.5f, color.RColor);
         }
 
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
@@ -459,11 +503,11 @@ public readonly struct Graphics
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
-        PushState();
+        PushMatrix();
         Transform(transform, false);
         FillCustomPolygon(points, fill, camera);
         StrokeCustomPolygon(points, stroke, strokeWidth, camera);
-        PopState();
+        PopMatrix();
     }
 
     #endregion
@@ -498,7 +542,7 @@ public readonly struct Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawRing(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void StrokeRing(
@@ -539,7 +583,7 @@ public readonly struct Graphics
 
         BeginDrawing(camera);
         Raylib.DrawRingLines(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
-        EndDrawing(camera);
+        EndDrawing();
         if (!changeLineWidth)
             return;
         Rlgl.DrawRenderBatchActive();
@@ -563,11 +607,11 @@ public readonly struct Graphics
         var scale = (MathF.Abs(transform.Scale.X) + MathF.Abs(transform.Scale.Y)) * 0.5f;
         var innerRadius = ring.InnerRadius * scale;
         var outerRadius = ring.OuterRadius * scale;
-        PushState();
+        PushMatrix();
         Transform(transform, false);
         FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
         StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, camera);
-        PopState();
+        PopMatrix();
     }
 
     #endregion
@@ -593,7 +637,7 @@ public readonly struct Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawLineEx(start, end, thickness, color.RColor);
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void DrawLine(Transform transform, Line line)
@@ -610,10 +654,10 @@ public readonly struct Graphics
         var color = line.Color;
         var thickness = line.Thickness;
         var scale = (MathF.Abs(transform.Scale.X) + MathF.Abs(transform.Scale.Y)) * 0.5f;
-        PushState();
+        PushMatrix();
         Transform(transform, false);
         DrawLine(start, end, color, thickness * scale, camera);
-        PopState();
+        PopMatrix();
     }
 
     #endregion
@@ -668,7 +712,7 @@ public readonly struct Graphics
             fontSize ?? Game.DefaultFontSize,
             spacing ?? Game.DefaultTextSpacing
         );
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void StrokeText(
@@ -723,7 +767,7 @@ public readonly struct Graphics
             spacing ?? Game.DefaultTextSpacing,
             glyphInfos
         );
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void DrawText(Transform transform, Text text)
@@ -744,13 +788,13 @@ public readonly struct Graphics
         var interpolation = text.Interpolation;
         var position = transform.Position;
         var scale = transform.Scale;
-        PushState();
+        PushMatrix();
         fontSize *= (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.5f;
         transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
         Transform(transform, true);
         FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
         StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
-        PopState();
+        PopMatrix();
     }
 
     #endregion
@@ -832,7 +876,7 @@ public readonly struct Graphics
         );
         var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
         Raylib.DrawTexturePro(texture.Texture2D, rSource, rDest, Vector2.Zero, 0, (tint ?? Color.White).RColor);
-        EndDrawing(camera);
+        EndDrawing();
     }
 
     public void DrawSprite(Transform transform, Sprite sprite)
@@ -855,10 +899,10 @@ public readonly struct Graphics
             source.Width = -source.Width;
         if (flipY)
             source.Height = -source.Height;
-        PushState();
+        PushMatrix();
         Transform(transform, true);
         DrawTexture(texture, source, new Box(position, scale), tint, interpolation, camera);
-        PopState();
+        PopMatrix();
     }
 
     #endregion
@@ -887,38 +931,4 @@ public readonly struct Graphics
     }
 
     #endregion
-
-    private void BeginDrawing(Camera? camera = null)
-    {
-        if (camera.HasValue)
-        {
-            PushState();
-            Multiply(camera.Value.Matrix);
-        }
-
-        if (CurrentBuffer == _buffer)
-            return;
-        CurrentBuffer = _buffer;
-        Raylib.EndTextureMode();
-        Raylib.BeginTextureMode(_buffer.RenderTexture2D);
-    }
-
-    private static void EndDrawing(Camera? camera = null)
-    {
-        if (camera.HasValue)
-            PopState();
-    }
-
-    private static void Transform(Transform transform, bool translate)
-    {
-        var position = transform.Position;
-        var scale = transform.Scale.Abs();
-        var pivotPoint = transform.PivotPoint;
-        var rotation = transform.Rotation;
-        var positionOffset = -(scale * 0.5f);
-        var rotationOffset = position + pivotPoint;
-        Rotate(rotation, rotationOffset);
-        if (translate)
-            Translate(positionOffset);
-    }
 }
