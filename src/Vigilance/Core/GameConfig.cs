@@ -28,7 +28,7 @@ public struct GameConfig
     public bool Debug { get; set; } = false;
     public float MasterVolume { get; set; } = 1;
     public CacheType DefaultAssetCacheType { get; set; } = CacheType.Weak;
-    public ILogger Logger { get; set; } = new ConsoleLogger();
+    public ILogger? Logger { get; set; } = new ConsoleLogger();
     public LogLevel LogLevel { get; set; } = LogLevel.All;
     public int DefaultSoundMaxAliases { get; set; } = 16;
     public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;

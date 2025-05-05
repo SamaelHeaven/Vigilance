@@ -163,8 +163,6 @@ public sealed class Game
 
     public static float DefaultFontSize => GetGame()._config.DefaultFontSize;
 
-    public static ILogger Logger => GetGame()._config.Logger;
-
     public static Font DefaultFont => GetGame()._defaultFont;
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
@@ -273,8 +271,16 @@ public sealed class Game
 
     public static void Log(string message, LogLevel level = LogLevel.Info)
     {
-        EnsureRunning();
-        Raylib.TraceLog((TraceLogLevel)level, message);
+        var game = GetGame();
+        if (game._config.LogLevel > level)
+            return;
+        if (Platform.Desktop.IsCurrent() && game._config.Logger != null)
+        {
+            game._config.Logger.Log(message, level);
+            return;
+        }
+
+        Console.WriteLine($"{level.ToString().ToUpperInvariant()}: {message}");
     }
 
     public static void Maximize()
@@ -310,33 +316,16 @@ public sealed class Game
         Raylib.ToggleFullscreen();
     }
 
-    public static unsafe void Launch(GameConfig config, Scene scene)
+    public static void Launch(GameConfig config, Scene scene)
     {
         Running = true;
         var game = GetGame();
         game._config = config;
         game._scene = scene;
-        LogLevel = config.LogLevel;
-        if (Platform.Desktop.IsCurrent())
-            Raylib.SetTraceLogCallback(&TraceLog);
-        var engine = Assemblies.Engine.GetName();
-        Log($"Initializing {engine.Name} {engine.Version}");
-        FileSystem.WorkingNamespace = config.WorkingNamespace;
-        FileSystem.ChangeDirectory(config.WorkingDirectory);
-        Raylib.SetConfigFlags(game.GetConfigFlags());
-        Raylib.InitWindow(
-            config.ScreenWidth <= 0 || !Platform.Desktop.IsCurrent() ? config.Width : config.ScreenWidth,
-            config.ScreenHeight <= 0 || !Platform.Desktop.IsCurrent() ? config.Height : config.ScreenHeight,
-            config.Title
-        );
-        Raylib.SetAudioStreamBufferSizeDefault(8192);
-        Raylib.InitAudioDevice();
-        if (config.Maximized)
-            Maximize();
-        if (config.Fullscreen)
-            ToggleFullscreen();
-        if (Platform.Desktop.IsCurrent() && config.Icon != null)
-            Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
+        game.InitializeLogging();
+        game.InitializeFileSystem();
+        game.InitializeWindow();
+        InitializeAudio();
         ExitKey = config.ExitKey;
         FpsTarget = config.FpsTarget;
         MasterVolume = config.MasterVolume;
@@ -349,12 +338,43 @@ public sealed class Game
         return _game ??= new Game();
     }
 
-    // ReSharper disable once UseCollectionExpression
-    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static unsafe void TraceLog(int logLevel, sbyte* format, sbyte* args)
+    private unsafe void InitializeLogging()
     {
-        var message = Raylib_cs.Logging.GetLogMessage((nint)format, (nint)args);
-        Logger.Log(message, (LogLevel)logLevel);
+        var engine = Assemblies.Engine.GetName();
+        Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
+        if (Platform.Desktop.IsCurrent())
+            Raylib.SetTraceLogCallback(&TraceLog);
+        else
+            Log("Failed to initialize custom logging", LogLevel.Error);
+        Log($"Initializing {engine.Name} {engine.Version}");
+    }
+
+    private void InitializeFileSystem()
+    {
+        FileSystem.WorkingNamespace = _config.WorkingNamespace;
+        FileSystem.ChangeDirectory(_config.WorkingDirectory);
+    }
+
+    private void InitializeWindow()
+    {
+        Raylib.SetConfigFlags(GetConfigFlags());
+        Raylib.InitWindow(
+            _config.ScreenWidth <= 0 || !Platform.Desktop.IsCurrent() ? _config.Width : _config.ScreenWidth,
+            _config.ScreenHeight <= 0 || !Platform.Desktop.IsCurrent() ? _config.Height : _config.ScreenHeight,
+            _config.Title
+        );
+        if (_config.Maximized)
+            Maximize();
+        if (_config.Fullscreen)
+            ToggleFullscreen();
+        if (Platform.Desktop.IsCurrent() && _config.Icon != null)
+            Raylib.SetWindowIcon(_config.Icon!.Invoke().RImage);
+    }
+
+    private static void InitializeAudio()
+    {
+        Raylib.SetAudioStreamBufferSizeDefault(8192);
+        Raylib.InitAudioDevice();
     }
 
     private void Loop()
@@ -416,5 +436,13 @@ public sealed class Game
         if (_config.Vsync)
             flags |= ConfigFlags.VSyncHint;
         return flags;
+    }
+
+    // ReSharper disable once UseCollectionExpression
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void TraceLog(int logLevel, sbyte* format, sbyte* args)
+    {
+        var message = Raylib_cs.Logging.GetLogMessage((nint)format, (nint)args);
+        GetGame()._config.Logger?.Log(message, (LogLevel)logLevel);
     }
 }
