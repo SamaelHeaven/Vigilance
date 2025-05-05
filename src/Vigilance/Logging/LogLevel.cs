@@ -11,7 +11,7 @@ public enum LogLevel
     Warn = TraceLogLevel.Warning,
     Error = TraceLogLevel.Error,
     Fatal = TraceLogLevel.Fatal,
-    None = TraceLogLevel.None,
+    None = TraceLogLevel.None
 }
 
 public static class LogLevelExtensions
@@ -26,9 +26,7 @@ public static class LogLevelExtensions
             LogLevel.Warn => ConsoleColor.Yellow,
             LogLevel.Error => ConsoleColor.Red,
             LogLevel.Fatal => ConsoleColor.DarkRed,
-            LogLevel.None => ConsoleColor.White,
-            LogLevel.All => ConsoleColor.White,
-            _ => ConsoleColor.White,
+            _ => ConsoleColor.White
         };
     }
 }
