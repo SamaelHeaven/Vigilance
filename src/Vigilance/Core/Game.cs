@@ -344,7 +344,7 @@ public sealed class Game
         Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
         try
         {
-            if (!Platform.Desktop.IsCurrent())
+            if (Platform.Web.IsCurrent())
                 throw new PlatformNotSupportedException();
             Raylib_cs.Logging.GetLogMessage(IntPtr.Zero, IntPtr.Zero);
             Raylib.SetTraceLogCallback(&TraceLog);
