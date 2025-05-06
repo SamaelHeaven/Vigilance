@@ -342,11 +342,22 @@ public sealed class Game
     {
         var engine = Assemblies.Engine.GetName();
         Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
-        if (Platform.Desktop.IsCurrent())
+        try
+        {
+            if (!Platform.Desktop.IsCurrent())
+                throw new PlatformNotSupportedException();
+            Raylib_cs.Logging.GetLogMessage(IntPtr.Zero, IntPtr.Zero);
             Raylib.SetTraceLogCallback(&TraceLog);
-        else
+        }
+        catch
+        {
+            _config.Logger = null;
             Log("Failed to initialize custom logging", LogLevel.Error);
-        Log($"Initializing {engine.Name} {engine.Version}");
+        }
+        finally
+        {
+            Log($"Initializing {engine.Name} {engine.Version}");
+        }
     }
 
     private void InitializeFileSystem()
