@@ -63,11 +63,11 @@ public sealed class Animation
 
     public int FrameCount => _frames.Length;
 
-    public void Update(TimeSpan deltaTime)
+    public void Update(TimeSpan step)
     {
         if (Paused || _frames.Length <= 1 || (RepeatCount > InfiniteRepeatCount && _repeatCount >= RepeatCount))
             return;
-        _timer += deltaTime;
+        _timer += step;
         var frameDelay = Delay + _frames[_index].Delay;
         if (_timer < frameDelay)
             return;

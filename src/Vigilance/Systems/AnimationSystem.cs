@@ -9,18 +9,18 @@ public sealed class AnimationSystem : ISystem
     {
         scene.OnFixedUpdate(() =>
         {
-            var deltaTime = Time.FixedDelta;
+            var step = Time.FixedDelta;
             scene.Each(
                 (ref Animation animation) =>
                 {
-                    animation.Update(deltaTime);
+                    animation.Update(step);
                 }
             );
 
             scene.Each(
                 (ref AnimationController controller) =>
                 {
-                    controller.Animation.Update(deltaTime);
+                    controller.Animation.Update(step);
                 }
             );
         });
