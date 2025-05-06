@@ -274,7 +274,7 @@ public sealed class Game
         var game = GetGame();
         if (game._config.LogLevel > level)
             return;
-        if (Platform.Desktop.IsCurrent() && game._config.Logger != null)
+        if (game._config.Logger != null)
         {
             game._config.Logger.Log(message, level);
             return;
