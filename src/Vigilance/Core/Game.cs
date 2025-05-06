@@ -341,22 +341,21 @@ public sealed class Game
     private unsafe void InitializeLogging()
     {
         var engine = Assemblies.Engine.GetName();
+        var message = $"Initializing {engine.Name} {engine.Version}";
         Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
         try
         {
             if (Platform.Web.IsCurrent())
                 throw new PlatformNotSupportedException();
-            Raylib_cs.Logging.GetLogMessage(nint.Zero, nint.Zero);
             Raylib.SetTraceLogCallback(&TraceLog);
+            Raylib.TraceLog(TraceLogLevel.Info, message);
         }
         catch
         {
             _config.Logger = null;
+            Raylib.SetTraceLogCallback(null);
             Log("Failed to initialize custom logging", LogLevel.Error);
-        }
-        finally
-        {
-            Log($"Initializing {engine.Name} {engine.Version}");
+            Log(message);
         }
     }
 
