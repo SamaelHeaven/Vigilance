@@ -343,6 +343,12 @@ public sealed class Game
         var engine = Assemblies.Engine.GetName();
         var message = $"Initializing {engine.Name} {engine.Version}";
         Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
+        if (_config.Logger == null)
+        {
+            Log(message);
+            return;
+        }
+
         try
         {
             if (Platform.Web.IsCurrent())
