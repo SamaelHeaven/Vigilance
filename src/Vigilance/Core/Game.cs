@@ -346,7 +346,7 @@ public sealed class Game
         {
             if (Platform.Web.IsCurrent())
                 throw new PlatformNotSupportedException();
-            Raylib_cs.Logging.GetLogMessage(IntPtr.Zero, IntPtr.Zero);
+            Raylib_cs.Logging.GetLogMessage(nint.Zero, nint.Zero);
             Raylib.SetTraceLogCallback(&TraceLog);
         }
         catch
