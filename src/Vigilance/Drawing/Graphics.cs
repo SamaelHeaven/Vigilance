@@ -37,7 +37,7 @@ public sealed class Graphics
             _matrixStack.Pop();
     }
 
-    public void Multiply(Matrix4x4 matrix)
+    public void MultiplyMatrix(Matrix4x4 matrix)
     {
         if (_matrixStack.Count == 0)
         {
@@ -51,12 +51,12 @@ public sealed class Graphics
 
     public void Translate(float v1, float? v2 = null)
     {
-        Multiply(Matrix4x4.CreateTranslation(v1, v2 ?? v1, 0));
+        MultiplyMatrix(Matrix4x4.CreateTranslation(v1, v2 ?? v1, 0));
     }
 
     public void Translate(Vector2 translation)
     {
-        Multiply(Matrix4x4.CreateTranslation(translation.X, translation.Y, 0));
+        MultiplyMatrix(Matrix4x4.CreateTranslation(translation.X, translation.Y, 0));
     }
 
     public void Rotate(float angle, float v1, float? v2 = null)
@@ -67,10 +67,10 @@ public sealed class Graphics
     public void Rotate(float angle, Vector2? position = null)
     {
         if (position.HasValue)
-            Multiply(Matrix4x4.CreateTranslation(position.Value.X, position.Value.Y, 0));
-        Multiply(Matrix4x4.CreateRotationZ(MathF.PI * angle / 180f));
+            MultiplyMatrix(Matrix4x4.CreateTranslation(position.Value.X, position.Value.Y, 0));
+        MultiplyMatrix(Matrix4x4.CreateRotationZ(MathF.PI * angle / 180f));
         if (position.HasValue)
-            Multiply(Matrix4x4.CreateTranslation(-position.Value.X, -position.Value.Y, 0));
+            MultiplyMatrix(Matrix4x4.CreateTranslation(-position.Value.X, -position.Value.Y, 0));
     }
 
     public void Scale(float v1, float? v2 = null)
@@ -80,7 +80,7 @@ public sealed class Graphics
 
     public void Scale(Vector2 scale)
     {
-        Multiply(Matrix4x4.CreateScale(scale.X, scale.Y, 1f));
+        MultiplyMatrix(Matrix4x4.CreateScale(scale.X, scale.Y, 1f));
     }
 
     public void Transform(Transform transform)
