@@ -390,7 +390,16 @@ public sealed class Game
     private static void InitializeAudio()
     {
         Raylib.SetAudioStreamBufferSizeDefault(8192);
-        Raylib.InitAudioDevice();
+        if (!OperatingSystem.IsWindows())
+        {
+            Raylib.InitAudioDevice();
+            return;
+        }
+
+        var thread = new Thread(Raylib.InitAudioDevice);
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
     }
 
     private void Loop()
