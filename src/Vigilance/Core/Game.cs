@@ -397,7 +397,6 @@ public sealed class Game
         }
 
         var thread = new Thread(Raylib.InitAudioDevice);
-        thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         thread.Join();
     }
