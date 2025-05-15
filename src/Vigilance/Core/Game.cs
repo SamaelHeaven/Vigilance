@@ -20,8 +20,8 @@ public sealed class Game
     private readonly ConcurrentStack<Action> _actions = [];
     private GameConfig _config;
     private Font _defaultFont = null!;
-    private Vector2 _previousScreenSize = Vector2.Zero;
-    private bool _resetSize;
+    private Box _previousScreen;
+    private bool _resetScreen;
     private Scene _scene = null!;
 
     private Game()
@@ -304,11 +304,11 @@ public sealed class Game
             return;
         if (Fullscreen)
         {
-            game._resetSize = true;
+            game._resetScreen = true;
         }
         else
         {
-            game._previousScreenSize = ScreenSize;
+            game._previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
             var monitor = Raylib.GetCurrentMonitor();
             ScreenSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
         }
@@ -425,10 +425,11 @@ public sealed class Game
 
     private void UpdateSize()
     {
-        if (!_resetSize)
+        if (!_resetScreen)
             return;
-        _resetSize = false;
-        ScreenSize = _previousScreenSize;
+        _resetScreen = false;
+        Raylib.SetWindowPosition((int)_previousScreen.Position.X, (int)_previousScreen.Position.Y);
+        ScreenSize = _previousScreen.Size;
     }
 
     private void UpdateActions()
