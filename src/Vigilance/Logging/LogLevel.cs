@@ -5,6 +5,7 @@ namespace Vigilance.Logging;
 public enum LogLevel
 {
     All = TraceLogLevel.All,
+    Trace = TraceLogLevel.Trace,
     Debug = TraceLogLevel.Debug,
     Info = TraceLogLevel.Info,
     Warn = TraceLogLevel.Warning,
