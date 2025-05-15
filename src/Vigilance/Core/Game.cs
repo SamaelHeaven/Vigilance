@@ -383,7 +383,7 @@ public sealed class Game
             Maximize();
         if (_config.Fullscreen)
             ToggleFullscreen();
-        if (Platform.Desktop.IsCurrent() && _config.Icon != null)
+        if (Platform.Desktop.IsCurrent() && !OperatingSystem.IsMacOS() && _config.Icon != null)
             Raylib.SetWindowIcon(_config.Icon!.Invoke().RImage);
     }
 
@@ -451,8 +451,6 @@ public sealed class Game
     private ConfigFlags GetConfigFlags()
     {
         ConfigFlags flags = 0;
-        if (_config.Msaa4X)
-            flags |= ConfigFlags.Msaa4xHint;
         if (_config.Resizable)
             flags |= ConfigFlags.ResizableWindow;
         if (!_config.Decorated)

@@ -24,7 +24,6 @@ public struct GameConfig
     public bool Decorated { get; set; } = true;
     public bool Vsync { get; set; } = true;
     public bool Resizable { get; set; } = true;
-    public bool Msaa4X { get; set; } = true;
     public bool Debug { get; set; } = false;
     public float MasterVolume { get; set; } = 1;
     public CacheType DefaultAssetCacheType { get; set; } = CacheType.Weak;
