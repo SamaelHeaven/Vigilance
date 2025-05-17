@@ -31,7 +31,7 @@ public sealed unsafe class Font
 
     public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)
     {
-        var (spacingX, spacingY) = ((float, float))(spacing ?? Game.DefaultTextSpacing);
+        var (spacingX, spacingY) = spacing ?? Game.DefaultTextSpacing;
         var size = new Vector2(0, fontSize + text.Count(c => c == '\n') * (fontSize + spacingY));
         HandleText(
             (_, _, destPosition, destSize) =>
@@ -117,6 +117,7 @@ public sealed unsafe class Font
         var x = spacing;
         var y = spacing;
         var offset = 0;
+        glyphInfos ??= _glyphInfos;
         foreach (var glyph in glyphs)
         {
             var glyphWidth = glyph.Width;
@@ -135,7 +136,7 @@ public sealed unsafe class Font
                 pixels[index + 1] = 255;
             }
 
-            (glyphInfos ?? _glyphInfos)[glyph.Character] = new GlyphInfo(
+            glyphInfos[glyph.Character] = new GlyphInfo(
                 x,
                 y,
                 glyph.Width,

@@ -101,6 +101,21 @@ public struct Color
         return new Color(rgba.R, rgba.G, rgba.B, rgba.A);
     }
 
+    public void Deconstruct(out byte r, out byte g, out byte b)
+    {
+        r = R;
+        g = G;
+        b = B;
+    }
+
+    public void Deconstruct(out byte r, out byte g, out byte b, out byte a)
+    {
+        r = R;
+        g = G;
+        b = B;
+        a = A;
+    }
+
     internal Raylib_cs.Color RColor => new(R, G, B, A);
 
     public override string ToString()

@@ -46,6 +46,12 @@ public struct Vector2
         return new Vector2(v);
     }
 
+    public void Deconstruct(out float x, out float y)
+    {
+        x = X;
+        y = Y;
+    }
+
     public override string ToString()
     {
         return $"{{ X: {X}, Y: {Y} }}";

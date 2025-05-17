@@ -1,11 +1,19 @@
 namespace Vigilance.Math;
 
-public struct Box(float x, float y, float width, float height)
+public struct Box
 {
-    public float X { get; set; } = x;
-    public float Y { get; set; } = y;
-    public float Width { get; set; } = width;
-    public float Height { get; set; } = height;
+    public float X { get; set; }
+    public float Y { get; set; }
+    public float Width { get; set; }
+    public float Height { get; set; }
+
+    public Box(float x, float y, float width, float height)
+    {
+        X = x;
+        Y = y;
+        Width = width;
+        Height = height;
+    }
 
     public Box(Vector2 position, Vector2 size)
         : this(position.X, position.Y, size.X, size.Y) { }
@@ -28,6 +36,20 @@ public struct Box(float x, float y, float width, float height)
     public static implicit operator Box((Vector2 Position, Vector2 Size) box)
     {
         return new Box(box.Position, box.Size);
+    }
+
+    public void Deconstruct(out float x, out float y, out float width, out float height)
+    {
+        x = X;
+        y = Y;
+        width = Width;
+        height = Height;
+    }
+
+    public void Deconstruct(out Vector2 position, out Vector2 size)
+    {
+        position = new Vector2(X, Y);
+        size = new Vector2(Width, Height);
     }
 
     public static Box Bounding(Transform transform)
