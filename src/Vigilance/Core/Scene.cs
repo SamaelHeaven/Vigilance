@@ -11,34 +11,44 @@ public sealed unsafe class Scene
 {
     private static Scene _current = null!;
     private readonly Dictionary<Type, object> _events = new();
+    private readonly GetSystemsDelegate _getSystemsDelegate;
     private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
-    private readonly Func<IReadOnlyCollection<ISystem>> _configureSystems;
+    private ImmutableList<ISystem> _allSystems = ImmutableList<ISystem>.Empty;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
+    private ImmutableList<ISystem> _localSystems = ImmutableList<ISystem>.Empty;
     private Query<ZIndex> _orderedQuery;
     private Action<Entity>? _renderAction;
     private Action? _renderEndAction;
     private Action? _renderStartAction;
-    private ImmutableList<ISystem> _systems = ImmutableList<ISystem>.Empty;
     private float _time;
     private Action? _updateAction;
     private World _world = World.Create();
 
-    public Scene(Func<IReadOnlyCollection<ISystem>>? systems = null)
+    public Scene(GetSystemsDelegate? systems = null)
     {
-        _configureSystems = systems ?? Array.Empty<ISystem>;
+        _getSystemsDelegate = systems ?? Array.Empty<ISystem>;
         var orderedQueryBuilder = _world.QueryBuilder<ZIndex>();
         orderedQueryBuilder.Desc.order_by = Type<ZIndex>.Id(_world);
         orderedQueryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
         _orderedQuery = orderedQueryBuilder.Build();
     }
 
-    public IReadOnlyList<ISystem> Systems
+    public IReadOnlyList<ISystem> LocalSystems
     {
         get
         {
             EnsureInitialized();
-            return _systems;
+            return _localSystems;
+        }
+    }
+
+    public IReadOnlyList<ISystem> AllSystems
+    {
+        get
+        {
+            EnsureInitialized();
+            return _allSystems;
         }
     }
 
@@ -177,10 +187,9 @@ public sealed unsafe class Scene
 
     private void Initialize()
     {
-        _systems = _configureSystems().ToImmutableList();
-        foreach (var system in Game.Systems)
-            system.Configure(this);
-        foreach (var system in _systems)
+        _localSystems = _getSystemsDelegate().ToImmutableList();
+        _allSystems = Game.Systems.Concat(_localSystems).ToImmutableList();
+        foreach (var system in _allSystems)
             system.Configure(this);
         Initialized = true;
         _initializeAction?.Invoke();

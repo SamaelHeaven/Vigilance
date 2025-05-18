@@ -3,11 +3,11 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Core;
 
-public delegate Camera CameraProvider();
+public delegate Camera GetCameraDelegate();
 
 public sealed class Camera
 {
-    public static CameraProvider DefaultProvider { get; } = () => Game.Scene.Camera;
+    public static GetCameraDelegate DefaultDelegate { get; } = () => Game.Scene.Camera;
     public Vector2 Target { get; set; } = Vector2.Zero;
     public Vector2 Offset { get; set; } = Vector2.Zero;
     public float Rotation { get; set; } = 0;

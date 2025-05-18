@@ -8,5 +8,5 @@ public sealed class RegularPolygon
     public Color Fill { get; set; } = Color.Transparent;
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
-    public CameraProvider? Camera { get; set; } = Core.Camera.DefaultProvider;
+    public GetCameraDelegate? Camera { get; set; } = Core.Camera.DefaultDelegate;
 }
