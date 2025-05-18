@@ -34,7 +34,7 @@ public sealed unsafe class Scene
 
     public IImmutableList<ISystem> Systems { get; }
 
-    public ref Camera Camera => ref _camera;
+    public Camera Camera { get; } = new();
 
     public bool Initialized { get; private set; }
 

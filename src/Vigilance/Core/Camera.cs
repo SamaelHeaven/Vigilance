@@ -5,7 +5,7 @@ namespace Vigilance.Core;
 
 public delegate Camera CameraProvider();
 
-public struct Camera
+public sealed class Camera
 {
     public static CameraProvider DefaultProvider { get; } = () => Game.Scene.Camera;
     public Vector2 Target { get; set; } = Vector2.Zero;
@@ -14,6 +14,4 @@ public struct Camera
     public float Zoom { get; set; } = 1;
 
     internal Camera2D RCamera => new(Offset, Target, Rotation, Zoom);
-
-    public Camera() { }
 }

@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public struct Ring
+public sealed class Ring
 {
     public float InnerRadius { get; set; } = 0;
     public float OuterRadius { get; set; } = 0;
@@ -12,6 +12,4 @@ public struct Ring
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
     public CameraProvider? Camera { get; set; } = Core.Camera.DefaultProvider;
-
-    public Ring() { }
 }

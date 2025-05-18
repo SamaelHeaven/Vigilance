@@ -232,11 +232,6 @@ public sealed class Graphics
 
     public void DrawRectangle(Transform transform, Rectangle rectangle)
     {
-        DrawRectangle(transform, ref rectangle);
-    }
-
-    public void DrawRectangle(Transform transform, ref readonly Rectangle rectangle)
-    {
         var camera = rectangle.Camera?.Invoke();
         var fill = rectangle.Fill;
         var stroke = rectangle.Stroke;
@@ -294,11 +289,6 @@ public sealed class Graphics
 
     public void DrawCircle(Transform transform, Circle circle)
     {
-        DrawCircle(transform, ref circle);
-    }
-
-    public void DrawCircle(Transform transform, ref readonly Circle circle)
-    {
         var camera = circle.Camera?.Invoke();
         var fill = circle.Fill;
         var stroke = circle.Stroke;
@@ -335,11 +325,6 @@ public sealed class Graphics
     }
 
     public void DrawTriangle(Transform transform, Triangle triangle)
-    {
-        DrawTriangle(transform, ref triangle);
-    }
-
-    public void DrawTriangle(Transform transform, ref readonly Triangle triangle)
     {
         DrawCustomPolygon(
             transform,
@@ -403,11 +388,6 @@ public sealed class Graphics
 
     public void DrawRegularPolygon(Transform transform, RegularPolygon polygon)
     {
-        DrawRegularPolygon(transform, ref polygon);
-    }
-
-    public void DrawRegularPolygon(Transform transform, ref readonly RegularPolygon polygon)
-    {
         var camera = polygon.Camera?.Invoke();
         var sides = polygon.Sides;
         var fill = polygon.Fill;
@@ -458,11 +438,6 @@ public sealed class Graphics
     }
 
     public void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
-    {
-        DrawCustomPolygon(transform, ref polygon);
-    }
-
-    public void DrawCustomPolygon(Transform transform, ref readonly CustomPolygon polygon)
     {
         var camera = polygon.Camera?.Invoke();
         var position = transform.Position;
@@ -560,11 +535,6 @@ public sealed class Graphics
 
     public void DrawRing(Transform transform, Ring ring)
     {
-        DrawRing(transform, ref ring);
-    }
-
-    public void DrawRing(Transform transform, ref readonly Ring ring)
-    {
         var camera = ring.Camera?.Invoke();
         var startAngle = ring.StartAngle;
         var endAngle = ring.EndAngle;
@@ -609,11 +579,6 @@ public sealed class Graphics
     }
 
     public void DrawLine(Transform transform, Line line)
-    {
-        DrawLine(transform, ref line);
-    }
-
-    public void DrawLine(Transform transform, ref readonly Line line)
     {
         var camera = line.Camera?.Invoke();
         var position = transform.Position;
@@ -740,11 +705,6 @@ public sealed class Graphics
 
     public void DrawText(Transform transform, Text text)
     {
-        DrawText(transform, ref text);
-    }
-
-    public void DrawText(Transform transform, ref readonly Text text)
-    {
         var camera = text.Camera?.Invoke();
         var value = text.Value;
         var fill = text.Fill;
@@ -849,11 +809,6 @@ public sealed class Graphics
 
     public void DrawSprite(Transform transform, Sprite sprite)
     {
-        DrawSprite(transform, ref sprite);
-    }
-
-    public void DrawSprite(Transform transform, ref readonly Sprite sprite)
-    {
         var camera = sprite.Camera?.Invoke();
         var texture = sprite.Texture;
         var interpolation = sprite.Interpolation;
@@ -906,8 +861,8 @@ public sealed class Graphics
     {
         var matrix = GetMatrix();
         Rlgl.PushMatrix();
-        if (camera.HasValue)
-            Rlgl.MultMatrixf(Raylib.GetCameraMatrix2D(camera.Value.RCamera));
+        if (camera != null)
+            Rlgl.MultMatrixf(Raylib.GetCameraMatrix2D(camera.RCamera));
         Rlgl.MultMatrixf(&matrix.M11);
         if (CurrentBuffer == _buffer)
             return;

@@ -30,14 +30,14 @@ public sealed class AnimationSystem : ISystem
             scene.Each(
                 static (ref Animation animation, ref Sprite sprite) =>
                 {
-                    animation.UpdateSprite(ref sprite);
+                    animation.UpdateSprite(sprite);
                 }
             );
 
             scene.Each(
                 static (ref AnimationController controller, ref Sprite sprite) =>
                 {
-                    controller.Animation.UpdateSprite(ref sprite);
+                    controller.Animation.UpdateSprite(sprite);
                 }
             );
         });

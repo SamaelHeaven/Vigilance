@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public struct Text
+public sealed class Text
 {
     public string Value { get; set; } = "";
     public Color Fill { get; set; } = Color.Transparent;
@@ -15,7 +15,5 @@ public struct Text
     public Interpolation? Interpolation { get; set; } = null;
     public CameraProvider? Camera { get; set; } = Core.Camera.DefaultProvider;
 
-    public readonly Vector2 Size => Font.MeasureText(Value, FontSize, Spacing);
-
-    public Text() { }
+    public Vector2 Size => Font.MeasureText(Value, FontSize, Spacing);
 }

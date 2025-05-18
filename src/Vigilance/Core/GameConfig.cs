@@ -6,7 +6,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public struct GameConfig
+public sealed class GameConfig
 {
     public string Title { get; set; } = "";
     public string WorkingDirectory { get; set; } = "";
@@ -66,5 +66,8 @@ public struct GameConfig
     public string DefaultFontCharset { get; set; } =
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
-    public GameConfig() { }
+    public GameConfig Clone()
+    {
+        return (GameConfig)MemberwiseClone();
+    }
 }

@@ -1,17 +1,18 @@
 using System.Collections;
+using System.Collections.Immutable;
 
 namespace Vigilance.Drawing;
 
 public sealed class AnimationController : IEnumerable<KeyValuePair<string, Animation>>
 {
-    private readonly Dictionary<string, Animation> _animations;
+    private readonly ImmutableDictionary<string, Animation> _animations;
     private string _currentAnimation;
 
     public AnimationController(IReadOnlyDictionary<string, Animation> animations)
     {
         if (animations.Count == 0)
             throw new ArgumentException("AnimationController must have at least one animation.");
-        _animations = animations.ToDictionary();
+        _animations = animations.ToImmutableDictionary();
         _currentAnimation = animations.First().Key;
     }
 

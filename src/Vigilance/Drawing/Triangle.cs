@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public struct Triangle
+public sealed class Triangle
 {
     public Vector2 V1 { get; set; } = Vector2.Zero;
     public Vector2 V2 { get; set; } = Vector2.Zero;
@@ -12,6 +12,4 @@ public struct Triangle
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 1;
     public CameraProvider? Camera { get; set; } = Core.Camera.DefaultProvider;
-
-    public Triangle() { }
 }

@@ -18,7 +18,7 @@ public sealed class Game
 {
     private static Game? _game;
     private readonly ConcurrentStack<Action> _actions = [];
-    private GameConfig _config;
+    private GameConfig _config = null!;
     private Font _defaultFont = null!;
     private Box _previousScreen;
     private bool _resetScreen;
@@ -320,6 +320,7 @@ public sealed class Game
     {
         Running = true;
         var game = GetGame();
+        config = config.Clone();
         game._config = config;
         game._scene = scene;
         game.InitializeLogging();

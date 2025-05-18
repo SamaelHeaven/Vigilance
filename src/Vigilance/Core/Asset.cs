@@ -165,16 +165,14 @@ public static class Asset
         SoundContainer.Invalidate(sound);
     }
 
-    private readonly struct Container<TKey, TValue>
+    private sealed class Container<TKey, TValue>
         where TKey : notnull
         where TValue : class
     {
-        private readonly Dictionary<TKey, WeakReference<TValue>> _weakFiles = new();
-        private readonly Dictionary<TKey, WeakReference<TValue>> _weakResources = new();
         private readonly Dictionary<TKey, TValue> _strongFiles = new();
         private readonly Dictionary<TKey, TValue> _strongResources = new();
-
-        public Container() { }
+        private readonly Dictionary<TKey, WeakReference<TValue>> _weakFiles = new();
+        private readonly Dictionary<TKey, WeakReference<TValue>> _weakResources = new();
 
         public TValue File(
             ref string path,

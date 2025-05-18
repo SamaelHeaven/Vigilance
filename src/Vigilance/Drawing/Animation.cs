@@ -1,9 +1,12 @@
+using System.Collections;
+using System.Collections.Immutable;
+
 namespace Vigilance.Drawing;
 
-public sealed class Animation
+public sealed class Animation : IEnumerable<AnimationFrame>
 {
     public const int InfiniteRepeatCount = -1;
-    private readonly AnimationFrame[] _frames;
+    private readonly IImmutableList<AnimationFrame> _frames;
     private Action? _completeAction;
     private int _index;
     private int? _nextIndex;
@@ -13,7 +16,7 @@ public sealed class Animation
     private TimeSpan _timer;
 
     public Animation(
-        AnimationFrame[] frames,
+        IReadOnlyList<AnimationFrame> frames,
         TimeSpan delay,
         int repeatCount = InfiniteRepeatCount,
         int startIndex = 0,
@@ -21,9 +24,9 @@ public sealed class Animation
         Action? completeAction = null
     )
     {
-        if (frames.Length == 0)
+        if (frames.Count == 0)
             throw new ArgumentException("Animation must have at least one frame.");
-        _frames = frames;
+        _frames = frames.ToImmutableList();
         _nextIndex = null;
         _completeAction = completeAction;
         _repeatAction = repeatAction;
@@ -37,14 +40,14 @@ public sealed class Animation
     public bool Paused { get; set; }
     public int RepeatCount { get; set; }
 
-    public ref readonly AnimationFrame Frame => ref _frames[_index];
+    public AnimationFrame Frame => _frames[_index];
 
     public int Index
     {
         get => _index;
         set
         {
-            _index = System.Math.Clamp(value, 0, _frames.Length - 1);
+            _index = System.Math.Clamp(value, 0, _frames.Count - 1);
             _timer = TimeSpan.Zero;
         }
     }
@@ -52,27 +55,37 @@ public sealed class Animation
     public int StartIndex
     {
         get => _startIndex;
-        set => _startIndex = System.Math.Clamp(value, 0, _frames.Length - 1);
+        set => _startIndex = System.Math.Clamp(value, 0, _frames.Count - 1);
     }
 
     public int? NextIndex
     {
         get => _nextIndex;
-        set => _nextIndex = value.HasValue ? System.Math.Clamp(value.Value, 0, _frames.Length - 1) : null;
+        set => _nextIndex = value.HasValue ? System.Math.Clamp(value.Value, 0, _frames.Count - 1) : null;
     }
 
-    public int FrameCount => _frames.Length;
+    public int FrameCount => _frames.Count;
+
+    public IEnumerator<AnimationFrame> GetEnumerator()
+    {
+        return _frames.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
 
     public void Update(TimeSpan step)
     {
-        if (Paused || _frames.Length <= 1 || (RepeatCount > InfiniteRepeatCount && _repeatCount >= RepeatCount))
+        if (Paused || _frames.Count <= 1 || (RepeatCount > InfiniteRepeatCount && _repeatCount >= RepeatCount))
             return;
         _timer += step;
         var frameDelay = Delay + _frames[_index].Delay;
         if (_timer < frameDelay)
             return;
         _timer -= frameDelay;
-        _index = _nextIndex ?? (_index + 1) % _frames.Length;
+        _index = _nextIndex ?? (_index + 1) % _frames.Count;
         if (_nextIndex.HasValue)
             _nextIndex = null;
         if (_index != _startIndex)
@@ -84,9 +97,9 @@ public sealed class Animation
         _completeAction?.Invoke();
     }
 
-    public void UpdateSprite(ref Sprite sprite)
+    public void UpdateSprite(Sprite sprite)
     {
-        ref readonly var frame = ref Frame;
+        var frame = Frame;
         if (frame.Texture != null)
             sprite.Texture = frame.Texture;
         if (frame.FlipX.HasValue)
