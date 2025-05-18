@@ -65,7 +65,7 @@ public sealed class GameConfig
     public string DefaultFontCharset { get; set; } =
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
-    public GameConfig Clone()
+    internal GameConfig Clone()
     {
         return (GameConfig)MemberwiseClone();
     }
