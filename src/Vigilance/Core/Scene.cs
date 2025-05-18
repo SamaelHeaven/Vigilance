@@ -12,7 +12,6 @@ public sealed unsafe class Scene
     private static Scene _current = null!;
     private readonly Dictionary<Type, object> _events = new();
     private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
-    private Camera _camera = new();
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
     private Query<ZIndex> _orderedQuery;

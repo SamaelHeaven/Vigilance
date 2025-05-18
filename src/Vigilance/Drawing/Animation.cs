@@ -16,7 +16,7 @@ public sealed class Animation : IEnumerable<AnimationFrame>
     private TimeSpan _timer;
 
     public Animation(
-        IReadOnlyList<AnimationFrame> frames,
+        IReadOnlyCollection<AnimationFrame> frames,
         TimeSpan delay,
         int repeatCount = InfiniteRepeatCount,
         int startIndex = 0,
