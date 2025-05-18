@@ -4,12 +4,12 @@ namespace Vigilance.Math;
 
 public static class Coordinates
 {
-    public static Vector2 GetCenter(IReadOnlyList<Vector2> points)
+    public static Vector2 GetCenter(IReadOnlyCollection<Vector2> points)
     {
         return points.Aggregate(Vector2.Zero, (a, b) => a + b) / points.Count;
     }
 
-    public static Vector2[] Scale(IReadOnlyList<Vector2> points, Vector2 scale, Vector2? offset = null)
+    public static Vector2[] Scale(IReadOnlyCollection<Vector2> points, Vector2 scale, Vector2? offset = null)
     {
         scale = scale.Abs();
         var center = GetCenter(points);

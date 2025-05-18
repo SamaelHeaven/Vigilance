@@ -23,6 +23,7 @@ public sealed class Game
     private Box _previousScreen;
     private bool _resetScreen;
     private Scene _scene = null!;
+    private ImmutableList<ISystem> _systems = null!;
 
     private Game()
     {
@@ -171,7 +172,7 @@ public sealed class Game
 
     public static int DefaultSoundMaxAliases => System.Math.Max(GetGame()._config.DefaultSoundMaxAliases, 1);
 
-    public static IImmutableList<ISystem> Systems => GetGame()._config.Systems;
+    public static IReadOnlyCollection<ISystem> Systems => GetGame()._systems;
 
     public static float MasterVolume
     {
@@ -331,6 +332,7 @@ public sealed class Game
         FpsTarget = config.FpsTarget;
         MasterVolume = config.MasterVolume;
         game._defaultFont = config.DefaultFont.Invoke();
+        game._systems = config.Systems.Invoke().ToImmutableList();
         game.Loop();
     }
 
