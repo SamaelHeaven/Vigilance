@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Raylib_cs;
@@ -23,7 +22,6 @@ public sealed class Game
     private Box _previousScreen;
     private bool _resetScreen;
     private Scene _scene = null!;
-    private ImmutableList<ISystem> _systems = null!;
 
     private Game()
     {
@@ -172,8 +170,6 @@ public sealed class Game
 
     public static int DefaultSoundMaxAliases => System.Math.Max(GetGame()._config.DefaultSoundMaxAliases, 1);
 
-    public static IReadOnlyCollection<ISystem> Systems => GetGame()._systems;
-
     public static float MasterVolume
     {
         get
@@ -239,6 +235,8 @@ public sealed class Game
             return Raylib.IsWindowFocused();
         }
     }
+
+    internal static GetSystemsDelegate Systems => GetGame()._config.Systems;
 
     public static Image Screenshot()
     {
@@ -332,7 +330,6 @@ public sealed class Game
         FpsTarget = config.FpsTarget;
         MasterVolume = config.MasterVolume;
         game._defaultFont = config.DefaultFont.Invoke();
-        game._systems = config.Systems.Invoke().ToImmutableList();
         game.Loop();
     }
 

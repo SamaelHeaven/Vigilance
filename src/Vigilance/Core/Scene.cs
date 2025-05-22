@@ -13,14 +13,13 @@ public sealed unsafe class Scene
     private readonly Dictionary<Type, object> _events = new();
     private readonly GetSystemsDelegate _getSystemsDelegate;
     private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
-    private ImmutableList<ISystem> _allSystems = ImmutableList<ISystem>.Empty;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
-    private ImmutableList<ISystem> _localSystems = ImmutableList<ISystem>.Empty;
     private Query<ZIndex> _orderedQuery;
     private Action<Entity>? _renderAction;
     private Action? _renderEndAction;
     private Action? _renderStartAction;
+    private ImmutableList<ISystem> _systems = ImmutableList<ISystem>.Empty;
     private float _time;
     private Action? _updateAction;
     private World _world = World.Create();
@@ -34,21 +33,12 @@ public sealed unsafe class Scene
         _orderedQuery = orderedQueryBuilder.Build();
     }
 
-    public IReadOnlyList<ISystem> LocalSystems
+    public IReadOnlyList<ISystem> Systems
     {
         get
         {
             EnsureInitialized();
-            return _localSystems;
-        }
-    }
-
-    public IReadOnlyList<ISystem> AllSystems
-    {
-        get
-        {
-            EnsureInitialized();
-            return _allSystems;
+            return _systems;
         }
     }
 
@@ -187,9 +177,8 @@ public sealed unsafe class Scene
 
     private void Initialize()
     {
-        _localSystems = _getSystemsDelegate().ToImmutableList();
-        _allSystems = Game.Systems.Concat(_localSystems).ToImmutableList();
-        foreach (var system in _allSystems)
+        _systems = Game.Systems.Invoke().Concat(_getSystemsDelegate.Invoke()).ToImmutableList();
+        foreach (var system in _systems)
             system.Configure(this);
         Initialized = true;
         _initializeAction?.Invoke();
