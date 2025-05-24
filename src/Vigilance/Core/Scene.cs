@@ -9,16 +9,20 @@ namespace Vigilance.Core;
 
 public sealed unsafe class Scene
 {
-    private static Scene _current = null!;
+    private static Scene _context = null!;
     private readonly Dictionary<Type, object> _events = new();
     private readonly GetSystemsDelegate _getSystemsDelegate;
     private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
+    private Action? _onDestroy;
     private Query<ZIndex> _orderedQuery;
     private Action<Entity>? _renderAction;
     private Action? _renderEndAction;
     private Action? _renderStartAction;
+    private Action? _startAction;
+    private bool _started;
+    private Action? _stopAction;
     private ImmutableList<ISystem> _systems = ImmutableList<ISystem>.Empty;
     private float _time;
     private Action? _updateAction;
@@ -50,7 +54,7 @@ public sealed unsafe class Scene
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
     {
-        var scene = _current;
+        var scene = _context;
         var e1 = new Entity(scene._world.Entity(id1), scene);
         var e2 = new Entity(scene._world.Entity(id2), scene);
         var result = e1.WorldZIndex.CompareTo(e2.WorldZIndex);
@@ -105,6 +109,24 @@ public sealed unsafe class Scene
     {
         EnsureNotInitialized();
         _initializeAction += action;
+    }
+
+    public void OnStart(Action action)
+    {
+        EnsureNotInitialized();
+        _startAction += action;
+    }
+
+    public void OnStop(Action action)
+    {
+        EnsureNotInitialized();
+        _stopAction += action;
+    }
+
+    public void OnDestroy(Action action)
+    {
+        EnsureNotInitialized();
+        _onDestroy += action;
     }
 
     public void OnUpdate(Action action)
@@ -185,19 +207,35 @@ public sealed unsafe class Scene
         Time.Restart();
     }
 
+    private void Start()
+    {
+        _startAction?.Invoke();
+        _started = true;
+    }
+
+    private void Stop()
+    {
+        _stopAction?.Invoke();
+        _started = false;
+    }
+
     internal void Update()
     {
         if (!Initialized)
             Initialize();
+        if (!_started)
+            Start();
         _updateAction?.Invoke();
         for (_time += Time.DeltaSeconds; _time >= Time.FixedDeltaSeconds; _time -= Time.FixedDeltaSeconds)
             FixedUpdate();
         Render();
+        if (Game.Scene != this)
+            Stop();
     }
 
     internal void DeferBegin()
     {
-        _current = this;
+        _context = this;
         if (!_world.IsDeferred())
             _world.DeferBegin();
     }
@@ -206,7 +244,7 @@ public sealed unsafe class Scene
     {
         if (_world.IsDeferred())
             _world.DeferEnd();
-        _current = null!;
+        _context = null!;
     }
 
     private void FixedUpdate()
@@ -228,6 +266,7 @@ public sealed unsafe class Scene
     {
         Game.RunLater(() =>
         {
+            _onDestroy?.Invoke();
             _orderedQuery.Dispose();
             _world.Dispose();
         });
