@@ -383,8 +383,11 @@ public sealed class Game
             Maximize();
         if (_config.Fullscreen)
             ToggleFullscreen();
-        if (Platform.Desktop.IsCurrent() && !OperatingSystem.IsMacOS() && _config.Icon != null)
-            Raylib.SetWindowIcon(_config.Icon!.Invoke().RImage);
+        if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon == null)
+            return;
+        var image = _config.Icon!.Invoke().Copy();
+        image.Format = ImageFormat.UncompressedR8G8B8A8;
+        Raylib.SetWindowIcon(image.RImage);
     }
 
     private static void InitializeAudio()

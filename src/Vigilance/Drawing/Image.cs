@@ -38,6 +38,12 @@ public sealed class Image
 
     public unsafe bool IsValid => RImage.Data != null;
 
+    public ImageFormat Format
+    {
+        get => (ImageFormat)RImage.Format;
+        set => Raylib.ImageFormat(ref RImage, (PixelFormat)value);
+    }
+
     public Texture ToTexture()
     {
         return new Texture(Raylib.LoadTextureFromImage(RImage));
