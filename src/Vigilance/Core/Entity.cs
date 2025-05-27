@@ -290,10 +290,7 @@ public unsafe struct Entity
     {
         var scene = Scene;
         scene.DeferBegin();
-        _entity.Children(entity =>
-        {
-            action.Invoke(new Entity(entity, scene));
-        });
+        _entity.Children(entity => action.Invoke(new Entity(entity, scene)));
         scene.DeferEnd();
         return ref this;
     }
