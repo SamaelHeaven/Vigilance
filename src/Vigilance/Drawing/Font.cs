@@ -190,7 +190,7 @@ public sealed unsafe class Font
             FT.FT_Done_Glyph(glyph);
         }
 
-        if (bitmap.buffer == null)
+        if (bitmap.buffer is null)
             return null;
         var bytes = new byte[bitmap.width * bitmap.rows];
         Marshal.Copy((nint)bitmap.buffer, bytes, 0, (int)bitmap.width * (int)bitmap.rows);

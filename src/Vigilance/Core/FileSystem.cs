@@ -130,7 +130,7 @@ public static unsafe partial class FileSystem
         using var stream = (assembly ?? Assemblies.Game).GetManifestResourceStream(
             FormatResource(resource, @namespace ?? WorkingNamespace)
         );
-        if (stream == null)
+        if (stream is null)
             return Array.Empty<byte>();
         using var ms = new MemoryStream();
         stream.CopyTo(ms);

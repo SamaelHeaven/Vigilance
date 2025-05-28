@@ -52,6 +52,12 @@ public sealed class Renderer
             width * scale,
             height * scale
         );
+        if (Graphics.CurrentClip.HasValue)
+        {
+            Raylib.EndScissorMode();
+            Graphics.CurrentClip = null;
+        }
+
         Raylib.SetTextureFilter(renderer._buffer.RenderTexture2D.Texture, (TextureFilter)renderer._interpolation);
         Raylib.EndTextureMode();
         Raylib.BeginDrawing();

@@ -100,7 +100,7 @@ public sealed class Animation : IEnumerable<AnimationFrame>
     public void UpdateSprite(Sprite sprite)
     {
         var frame = Frame;
-        if (frame.Texture != null)
+        if (frame.Texture is not null)
             sprite.Texture = frame.Texture;
         if (frame.FlipX.HasValue)
             sprite.FlipX = frame.FlipX.Value;

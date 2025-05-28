@@ -36,7 +36,7 @@ public sealed class Image
 
     public Vector2 Size => new(Width, Height);
 
-    public unsafe bool IsValid => RImage.Data != null;
+    public unsafe bool IsValid => RImage.Data is not null;
 
     public ImageFormat Format
     {

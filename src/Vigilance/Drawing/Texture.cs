@@ -62,7 +62,7 @@ public sealed class Texture
     public Image ToImage(Interpolation? interpolation = null)
     {
         var buffer = Graphics.CurrentBuffer;
-        if (_owner != null && buffer == _owner)
+        if (_owner is not null && buffer == _owner)
             Rlgl.DrawRenderBatchActive();
         Raylib.SetTextureFilter(Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         var image = Raylib.LoadImageFromTexture(Texture2D);
@@ -79,7 +79,7 @@ public sealed class Texture
 
     ~Texture()
     {
-        if (_owner != null)
+        if (_owner is not null)
             return;
         Game.RunLater(() =>
         {

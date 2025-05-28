@@ -273,7 +273,7 @@ public sealed class Game
         var game = GetGame();
         if (game._config.LogLevel > level)
             return;
-        if (game._config.Logger != null)
+        if (game._config.Logger is not null)
         {
             game._config.Logger.Log(message, level);
             return;
@@ -343,7 +343,7 @@ public sealed class Game
         var engine = Assemblies.Engine.GetName();
         var message = $"Initializing {engine.Name} {engine.Version}";
         Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
-        if (_config.Logger == null)
+        if (_config.Logger is null)
         {
             Log(message);
             return;
@@ -383,7 +383,7 @@ public sealed class Game
             Maximize();
         if (_config.Fullscreen)
             ToggleFullscreen();
-        if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon == null)
+        if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon is null)
             return;
         var image = _config.Icon!.Invoke().Copy();
         image.Format = ImageFormat.UncompressedR8G8B8A8;

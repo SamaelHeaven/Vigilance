@@ -9,9 +9,11 @@ namespace Vigilance.Drawing;
 
 public sealed class Graphics
 {
-    internal static WritableTexture? CurrentBuffer;
+    internal static WritableTexture? CurrentBuffer = null;
+    internal static Box? CurrentClip = null;
     private readonly WritableTexture _buffer;
     private readonly Stack<Matrix4x4> _matrixStack = new();
+    private Box? _clip = null;
     private Matrix4x4 _matrix = Matrix4x4.Identity;
 
     internal Graphics(WritableTexture buffer)
@@ -92,6 +94,30 @@ public sealed class Graphics
         Scale(scale);
         Translate(position);
         Rotate(rotation, pivotPoint);
+    }
+
+    #endregion
+
+    #region Clip
+
+    public void SetClip(float x, float y, float width, float height)
+    {
+        _clip = new Box(x, y, width, height);
+    }
+
+    public void SetClip(Vector2 position, Vector2 size)
+    {
+        _clip = new Box(position, size);
+    }
+
+    public void SetClip(Box? clip)
+    {
+        _clip = clip;
+    }
+
+    public Box? GetClip()
+    {
+        return _clip;
     }
 
     #endregion
@@ -861,14 +887,25 @@ public sealed class Graphics
     {
         var matrix = GetMatrix();
         Rlgl.PushMatrix();
-        if (camera != null)
+        if (camera is not null)
             Rlgl.MultMatrixf(Raylib.GetCameraMatrix2D(camera.RCamera));
         Rlgl.MultMatrixf(&matrix.M11);
-        if (CurrentBuffer == _buffer)
+        if (CurrentBuffer != _buffer)
+        {
+            CurrentBuffer = _buffer;
+            Raylib.EndTextureMode();
+            Raylib.BeginTextureMode(_buffer.RenderTexture2D);
+        }
+
+        if (Precision.AreEqual(CurrentClip, _clip))
             return;
-        CurrentBuffer = _buffer;
-        Raylib.EndTextureMode();
-        Raylib.BeginTextureMode(_buffer.RenderTexture2D);
+        if (CurrentClip.HasValue)
+            Raylib.EndScissorMode();
+        CurrentClip = _clip;
+        if (!_clip.HasValue)
+            return;
+        var clip = _clip.Value;
+        Raylib.BeginScissorMode((int)clip.X, (int)clip.Y, (int)clip.Width, (int)clip.Height);
     }
 
     private static void EndDrawing()
