@@ -5,6 +5,13 @@ namespace Vigilance.Drawing;
 
 public sealed class Sprite
 {
+    public Sprite() { }
+
+    public Sprite(Texture texture)
+    {
+        Texture = texture;
+    }
+
     public Texture Texture { get; set; } = Texture.Empty;
     public bool FlipX { get; set; } = false;
     public bool FlipY { get; set; } = false;

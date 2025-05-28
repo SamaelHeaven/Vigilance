@@ -4,6 +4,13 @@ namespace Vigilance.Drawing;
 
 public sealed class RegularPolygon
 {
+    public RegularPolygon() { }
+
+    public RegularPolygon(int sides)
+    {
+        Sides = sides;
+    }
+
     public int Sides { get; set; } = 0;
     public Color Fill { get; set; } = Color.Transparent;
     public Color Stroke { get; set; } = Color.Transparent;

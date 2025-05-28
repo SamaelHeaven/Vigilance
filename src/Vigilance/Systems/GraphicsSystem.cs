@@ -14,8 +14,6 @@ public sealed class GraphicsSystem(Graphics? graphics = null) : ISystem
 
     public void Render(Entity entity)
     {
-        if (entity.Has<Color>())
-            Graphics.DrawRectangle(entity.WorldTransform, new Rectangle { Fill = entity.Get<Color>() });
         if (entity.Has<Rectangle>())
             Graphics.DrawRectangle(entity.WorldTransform, entity.Get<Rectangle>());
         if (entity.Has<Circle>())
@@ -32,8 +30,6 @@ public sealed class GraphicsSystem(Graphics? graphics = null) : ISystem
             Graphics.DrawLine(entity.WorldTransform, entity.Get<Line>());
         if (entity.Has<Text>())
             Graphics.DrawText(entity.WorldTransform, entity.Get<Text>());
-        if (entity.Has<Texture>())
-            Graphics.DrawSprite(entity.WorldTransform, new Sprite { Texture = entity.Get<Texture>() });
         if (entity.Has<Sprite>())
             Graphics.DrawSprite(entity.WorldTransform, entity.Get<Sprite>());
     }

@@ -5,6 +5,13 @@ namespace Vigilance.Drawing;
 
 public sealed class Text
 {
+    public Text() { }
+
+    public Text(string value)
+    {
+        Value = value;
+    }
+
     public string Value { get; set; } = "";
     public Color Fill { get; set; } = Color.Transparent;
     public Color Stroke { get; set; } = Color.Transparent;
