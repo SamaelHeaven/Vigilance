@@ -23,6 +23,8 @@ public static unsafe partial class FileSystem
 
     public static string WorkingDirectory => FormatPath(Utf8StringUtils.GetUTF8String(Raylib.GetWorkingDirectory()));
 
+    public static string[] DroppedFiles => !Raylib.IsFileDropped() ? Array.Empty<string>() : Raylib.GetDroppedFiles();
+
     public static string FormatPath(string path)
     {
         return DuplicatedSlashRegex().Replace(path.Replace('\\', '/'), "/").Trim('/');

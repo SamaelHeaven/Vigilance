@@ -182,7 +182,7 @@ public static class Asset
         )
         {
             var filePath = FileSystem.FormatPath(path);
-            path = FileSystem.FormatPath(FileSystem.WorkingDirectory + "/" + path);
+            path = FileSystem.FormatPath(Path.Combine(FileSystem.WorkingDirectory, path));
             var key = keyFunc.Invoke();
             var fCacheType = cacheType ?? Game.DefaultAssetCacheType;
             var weak = fCacheType == CacheType.Weak;
