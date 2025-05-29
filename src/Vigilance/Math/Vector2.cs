@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Vigilance.Math;
@@ -120,6 +121,21 @@ public struct Vector2
     public static Vector2 operator /(Vector2 v, float f)
     {
         return f == 0 ? Zero : new Vector2(v.X / f, v.Y / f);
+    }
+
+    public readonly Vector2 Transform(Matrix3x2 matrix)
+    {
+        return System.Numerics.Vector2.Transform(this, matrix);
+    }
+
+    public readonly Vector2 Transform(Matrix4x4 matrix)
+    {
+        return System.Numerics.Vector2.Transform(this, matrix);
+    }
+
+    public readonly Vector2 Transform(Quaternion quaternion)
+    {
+        return System.Numerics.Vector2.Transform(this, quaternion);
     }
 
     public readonly float DistanceTo(Vector2 v)

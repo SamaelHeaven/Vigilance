@@ -888,7 +888,11 @@ public sealed class Graphics
         var matrix = GetMatrix();
         Rlgl.PushMatrix();
         if (camera is not null)
-            Rlgl.MultMatrixf(Raylib.GetCameraMatrix2D(camera.RCamera));
+        {
+            var cameraMatrix = camera.Matrix;
+            Rlgl.MultMatrixf(&cameraMatrix.M11);
+        }
+
         Rlgl.MultMatrixf(&matrix.M11);
         if (CurrentBuffer != _buffer)
         {

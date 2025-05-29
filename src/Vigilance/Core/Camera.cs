@@ -1,3 +1,4 @@
+using System.Numerics;
 using Raylib_cs;
 using Vector2 = Vigilance.Math.Vector2;
 
@@ -12,6 +13,19 @@ public sealed class Camera
     public Vector2 Offset { get; set; } = Vector2.Zero;
     public float Rotation { get; set; } = 0;
     public float Zoom { get; set; } = 1;
+
+    public Matrix4x4 Matrix
+    {
+        get
+        {
+            const float deg2Rad = (float)(System.Math.PI / 180);
+            var originMatrix = Matrix4x4.CreateTranslation(-Target.X, -Target.Y, 0);
+            var rotationMatrix = Matrix4x4.CreateRotationZ(Rotation * deg2Rad);
+            var scaleMatrix = Matrix4x4.CreateScale(new Vector3(Zoom, Zoom, 1));
+            var translationMatrix = Matrix4x4.CreateTranslation(Offset.X, Offset.Y, 0);
+            return originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
+        }
+    }
 
     internal Camera2D RCamera => new(Offset, Target, Rotation, Zoom);
 }

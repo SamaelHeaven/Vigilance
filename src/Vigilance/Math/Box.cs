@@ -54,37 +54,11 @@ public struct Box
 
     public static Box Bounding(Transform transform)
     {
-        var position = transform.Position;
-        var size = transform.Scale.Abs();
-        var rotation = transform.Rotation;
-        var pivotPoint = transform.PivotPoint;
-        var topLeft = position - size * 0.5f;
-        if (transform.Rotation == 0f)
-            return new Box(topLeft, size);
-        var topRight = topLeft + Vector2.Right * size;
-        var bottomLeft = topLeft + Vector2.Down * size;
-        var bottomRight = topLeft + size;
-        var rotationPoint = position + pivotPoint;
-        var rotatedTopLeft = topLeft.Rotate(rotation, rotationPoint);
-        var rotatedTopRight = topRight.Rotate(rotation, rotationPoint);
-        var rotatedBottomLeft = bottomLeft.Rotate(rotation, rotationPoint);
-        var rotatedBottomRight = bottomRight.Rotate(rotation, rotationPoint);
-        var minX = MathF.Min(
-            MathF.Min(MathF.Min(rotatedTopLeft.X, rotatedTopRight.X), rotatedBottomLeft.X),
-            rotatedBottomRight.X
-        );
-        var maxX = MathF.Max(
-            MathF.Max(MathF.Max(rotatedTopLeft.X, rotatedTopRight.X), rotatedBottomLeft.X),
-            rotatedBottomRight.X
-        );
-        var minY = MathF.Min(
-            MathF.Min(MathF.Min(rotatedTopLeft.Y, rotatedTopRight.Y), rotatedBottomLeft.Y),
-            rotatedBottomRight.Y
-        );
-        var maxY = MathF.Max(
-            MathF.Max(MathF.Max(rotatedTopLeft.Y, rotatedTopRight.Y), rotatedBottomLeft.Y),
-            rotatedBottomRight.Y
-        );
+        var (topLeft, bottomLeft, bottomRight, topRight) = Coordinates.GetPoints(transform);
+        var minX = MathF.Min(MathF.Min(MathF.Min(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
+        var maxX = MathF.Max(MathF.Max(MathF.Max(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
+        var minY = MathF.Min(MathF.Min(MathF.Min(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
+        var maxY = MathF.Max(MathF.Max(MathF.Max(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
         return new Box(minX, minY, maxX - minX, maxY - minY);
     }
 
