@@ -314,6 +314,18 @@ public sealed partial class Game
             Raylib.MinimizeWindow();
     }
 
+    public static void Focus()
+    {
+        EnsureRunning();
+        if (Platform.Web.IsCurrent())
+        {
+            JSEngine.Run("Module.canvas.focus()");
+            return;
+        }
+        
+        Raylib.SetWindowFocused();
+    }
+
     public static void ToggleFullscreen()
     {
         var game = GetGame();
