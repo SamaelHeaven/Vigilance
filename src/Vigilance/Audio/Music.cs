@@ -153,7 +153,7 @@ public sealed class Music
 
     public Music Seek(TimeSpan time)
     {
-        Raylib.SeekMusicStream(_music, time.Seconds);
+        Raylib.SeekMusicStream(_music, (float)time.TotalSeconds);
         return this;
     }
 

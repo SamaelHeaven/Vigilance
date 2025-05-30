@@ -429,8 +429,7 @@ public sealed class Game
             UpdateFullscreen();
             _scene.Update();
             Renderer.Update();
-            if (Platform.Desktop.IsCurrent())
-                Raylib.PollInputEvents();
+            Raylib.PollInputEvents();
         }
 
         Raylib.CloseAudioDevice();

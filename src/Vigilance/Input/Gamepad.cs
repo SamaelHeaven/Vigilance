@@ -5,7 +5,7 @@ namespace Vigilance.Input;
 
 public sealed class Gamepad
 {
-    private const int NbGamepads = 8;
+    private const int NbGamepads = 4;
     private const string DefaultName = "Unknown gamepad";
     private static readonly GamepadButton[] ButtonValues = Enum.GetValues<GamepadButton>().ToArray();
     private static readonly GamepadAxis[] AxisValues = Enum.GetValues<GamepadAxis>().ToArray();
@@ -32,10 +32,6 @@ public sealed class Gamepad
     public static Gamepad Second => Gamepads[1];
     public static Gamepad Third => Gamepads[2];
     public static Gamepad Fourth => Gamepads[3];
-    public static Gamepad Fifth => Gamepads[4];
-    public static Gamepad Sixth => Gamepads[5];
-    public static Gamepad Seventh => Gamepads[6];
-    public static Gamepad Eighth => Gamepads[7];
 
     public IReadOnlyList<GamepadButton> DownButtons => _downButtons.AsReadOnly();
     public IReadOnlyList<GamepadButton> UpButtons => _upButtons.AsReadOnly();
