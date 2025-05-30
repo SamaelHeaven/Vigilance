@@ -285,7 +285,9 @@ public sealed class Game
             return;
         }
 
-        Console.WriteLine($"{level.ToString().ToUpperInvariant()}: {message}");
+        if (level is > LogLevel.All and < LogLevel.None)
+            Console.Write($"{level.ToString().ToUpperInvariant()}: ");
+        Console.WriteLine(message);
     }
 
     public static void Maximize()
