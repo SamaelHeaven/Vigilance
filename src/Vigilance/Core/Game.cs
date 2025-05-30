@@ -322,7 +322,7 @@ public sealed partial class Game
             JSEngine.Run("Module.canvas.focus()");
             return;
         }
-        
+
         Raylib.SetWindowFocused();
     }
 
@@ -436,6 +436,7 @@ public sealed partial class Game
     {
         if (Platform.Web.IsCurrent())
         {
+            JSEngine.Run("Module.Engine = {}");
             emscripten_set_main_loop(&UnmanagedLoop, 0, 1);
             return;
         }
@@ -454,6 +455,7 @@ public sealed partial class Game
         Gamepad.UpdateAll();
         Music.UpdateAll();
         Sound.UpdateAll();
+        Clipboard.Update();
         UpdateSize();
         UpdateActions();
         UpdateFullscreen();
