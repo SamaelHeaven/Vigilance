@@ -2,7 +2,7 @@ namespace Vigilance.Logging;
 
 public sealed class ConsoleLogger : ILogger
 {
-    public void Log(string message, LogLevel level)
+    public void Log(LogLevel level, string message)
     {
         if (level is > LogLevel.All and < LogLevel.None)
         {
@@ -15,5 +15,6 @@ public sealed class ConsoleLogger : ILogger
         }
 
         Console.WriteLine(message);
+        Console.Out.Flush();
     }
 }

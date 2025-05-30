@@ -279,15 +279,20 @@ public sealed class Game
         if (game._config.LogLevel > level)
             return;
         var message = value?.ToString() ?? "null";
-        if (game._config.Logger is not null)
+        if (game._config.Logger is null)
         {
-            game._config.Logger.Log(message, level);
-            return;
+            if (level is > LogLevel.All and < LogLevel.None)
+                Console.Write($"{level.ToString().ToUpperInvariant()}: ");
+            Console.WriteLine(message);
+            Console.Out.Flush();
+        }
+        else
+        {
+            game._config.Logger.Log(level, message);
         }
 
-        if (level is > LogLevel.All and < LogLevel.None)
-            Console.Write($"{level.ToString().ToUpperInvariant()}: ");
-        Console.WriteLine(message);
+        if (level == LogLevel.Fatal)
+            Environment.Exit(1);
     }
 
     public static void Maximize()
@@ -351,12 +356,6 @@ public sealed class Game
         var engine = Assemblies.Engine.GetName();
         var message = $"Initializing {engine.Name} {engine.Version}";
         Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
-        if (_config.Logger is null)
-        {
-            Log(message);
-            return;
-        }
-
         try
         {
             if (Platform.Web.IsCurrent())
@@ -478,6 +477,6 @@ public sealed class Game
     private static unsafe void TraceLog(int logLevel, sbyte* format, sbyte* args)
     {
         var message = Raylib_cs.Logging.GetLogMessage((nint)format, (nint)args);
-        GetGame()._config.Logger?.Log(message, (LogLevel)logLevel);
+        Log((LogLevel)logLevel, message);
     }
 }
