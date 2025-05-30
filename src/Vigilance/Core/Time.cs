@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Raylib_cs;
 
 namespace Vigilance.Core;
@@ -7,8 +6,6 @@ public sealed class Time
 {
     public const float FixedDeltaSeconds = 1 / 60f;
     private static Time? _time;
-    private readonly TimeSpan _launch;
-    private readonly Stopwatch _stopwatch;
     private TimeSpan _delta;
     private TimeSpan _last;
     private float _scale;
@@ -16,8 +13,6 @@ public sealed class Time
     private Time()
     {
         Game.EnsureRunning();
-        _stopwatch = Stopwatch.StartNew();
-        _launch = GetTicks(_stopwatch);
         _delta = TimeSpan.Zero;
         _last = TimeSpan.Zero;
         _scale = 1;
@@ -67,23 +62,15 @@ public sealed class Time
     {
         get
         {
-            var time = GetTime();
-            return GetTicks(time._stopwatch) - time._launch;
+            GetTime();
+            return TimeSpan.FromSeconds(Raylib.GetTime());
         }
-    }
-
-    private static TimeSpan GetTicks(Stopwatch stopwatch)
-    {
-        var elapsedTicks = stopwatch.ElapsedTicks;
-        var frequency = Stopwatch.Frequency;
-        var seconds = (double)elapsedTicks / frequency;
-        return TimeSpan.FromSeconds(seconds);
     }
 
     internal static void Update()
     {
         var time = GetTime();
-        var elapsed = Elapsed;
+        var elapsed = TimeSpan.FromSeconds(Raylib.GetTime());
         time._delta = elapsed - time._last;
         time._last = elapsed;
         var fpsTarget = Game.FpsTarget;
