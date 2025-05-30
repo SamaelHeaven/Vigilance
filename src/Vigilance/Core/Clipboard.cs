@@ -4,14 +4,14 @@ namespace Vigilance.Core;
 
 public static class Clipboard
 {
-    private static bool _needed = false;
+    private static bool _refresh = false;
 
     public static string Text
     {
         get
         {
             Game.EnsureRunning();
-            _needed = true;
+            _refresh = true;
             return Platform.Web.IsCurrent()
                 ? JSEngine.Run("Module.Engine.clipboardText ?? ''")
                 : Raylib.GetClipboardText_();
@@ -27,18 +27,23 @@ public static class Clipboard
     {
         if (!Platform.Web.IsCurrent())
             return;
-        if (bool.Parse(JSEngine.Run("!!Module.Engine.clipboardError")))
-            _needed = false;
-        if (!_needed)
+        JSEngine.Run(
+            """
+                navigator.permissions.query({ name: 'clipboard-read' }).then(result => {
+                    Module.Engine.clipboardRead = result.state == 'granted';
+                })
+            """
+        );
+        var clipboardRead = bool.Parse(JSEngine.Run("Module.Engine.clipboardRead"));
+        if (!_refresh && !clipboardRead)
             return;
+        _refresh = false;
         JSEngine.Run(
             """
                 navigator.clipboard.readText().then(text => {
                     Module.Engine.clipboardText = text;
-                    Module.Engine.clipboardError = false;
                 }).catch(() => {
                     Module.Engine.clipboardText = '';
-                    Module.Engine.clipboardError = true;
                 })
             """
         );
