@@ -241,7 +241,7 @@ public sealed class Game
     public static Image Screenshot()
     {
         EnsureRunning();
-        return new Image(Raylib.LoadImageFromScreen());
+        return Renderer.Buffer.Texture.ToImage();
     }
 
     public static void OpenUrl(string url)
@@ -268,11 +268,17 @@ public sealed class Game
         game._actions.Push(action);
     }
 
-    public static void Log(string message, LogLevel level = LogLevel.Info)
+    public static void Log<T>(T value)
+    {
+        Log(LogLevel.Info, value);
+    }
+
+    public static void Log<T>(LogLevel level, T value)
     {
         var game = GetGame();
         if (game._config.LogLevel > level)
             return;
+        var message = value?.ToString() ?? "null";
         if (game._config.Logger is not null)
         {
             game._config.Logger.Log(message, level);
@@ -360,7 +366,7 @@ public sealed class Game
         {
             _config.Logger = null;
             Raylib.SetTraceLogCallback(null);
-            Log("Failed to initialize custom logging", LogLevel.Error);
+            Log(LogLevel.Error, "Failed to initialize custom logging");
             Log(message);
         }
     }
@@ -420,6 +426,8 @@ public sealed class Game
             UpdateFullscreen();
             _scene.Update();
             Renderer.Update();
+            if (Platform.Desktop.IsCurrent())
+                Raylib.PollInputEvents();
         }
 
         Raylib.CloseAudioDevice();

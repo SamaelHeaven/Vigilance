@@ -7,18 +7,19 @@ public sealed class Time
 {
     public const float FixedDeltaSeconds = 1 / 60f;
     private static Time? _time;
-    private readonly TimeSpan _launchTime;
+    private readonly TimeSpan _launch;
     private readonly Stopwatch _stopwatch;
-    private float _averageFps;
-    private float _delta;
-    private ulong _frameCount;
+    private TimeSpan _delta;
+    private TimeSpan _last;
     private float _scale;
 
     private Time()
     {
         Game.EnsureRunning();
         _stopwatch = Stopwatch.StartNew();
-        _launchTime = GetTicks(_stopwatch);
+        _launch = GetTicks(_stopwatch);
+        _delta = TimeSpan.Zero;
+        _last = TimeSpan.Zero;
         _scale = 1;
     }
 
@@ -29,7 +30,7 @@ public sealed class Time
         get
         {
             var time = GetTime();
-            return time._delta * time._scale;
+            return (float)time._delta.TotalSeconds * time._scale;
         }
     }
 
@@ -38,7 +39,7 @@ public sealed class Time
         get
         {
             var time = GetTime();
-            return TimeSpan.FromSeconds(time._delta * time._scale);
+            return time._delta * time._scale;
         }
     }
 
@@ -48,54 +49,55 @@ public sealed class Time
         set => GetTime()._scale = MathF.Max(0, value);
     }
 
-    public static float UnscaledDeltaSeconds => GetTime()._delta;
+    public static float UnscaledDeltaSeconds => (float)GetTime()._delta.TotalSeconds;
 
-    public static TimeSpan UnscaledDelta => TimeSpan.FromSeconds(GetTime()._delta);
-
-    public static float AverageFps
-    {
-        get
-        {
-            var time = GetTime();
-            return time._frameCount == 0 ? 0 : time._averageFps / time._frameCount;
-        }
-    }
+    public static TimeSpan UnscaledDelta => GetTime()._delta;
 
     public static float CurrentFps
     {
         get
         {
             var time = GetTime();
-            var delta = time._delta;
+            var delta = (float)time._delta.TotalSeconds;
             return delta <= 0 ? 0 : 1 / delta;
         }
     }
 
-    public static TimeSpan Elapsed => Ticks - GetTime()._launchTime;
-    private static TimeSpan Ticks => GetTicks(GetTime()._stopwatch);
+    public static TimeSpan Elapsed
+    {
+        get
+        {
+            var time = GetTime();
+            return GetTicks(time._stopwatch) - time._launch;
+        }
+    }
 
     private static TimeSpan GetTicks(Stopwatch stopwatch)
     {
         var elapsedTicks = stopwatch.ElapsedTicks;
         var frequency = Stopwatch.Frequency;
-        var nanoseconds = (double)elapsedTicks / frequency * 1_000_000_000;
-        return TimeSpan.FromTicks((long)nanoseconds);
+        var seconds = (double)elapsedTicks / frequency;
+        return TimeSpan.FromSeconds(seconds);
     }
 
     internal static void Update()
     {
         var time = GetTime();
-        time._frameCount++;
-        time._delta = Raylib.GetFrameTime();
-        time._averageFps += time._delta <= 0 ? 0 : 1 / time._delta;
+        var elapsed = Elapsed;
+        time._delta = elapsed - time._last;
+        time._last = elapsed;
+        var fpsTarget = Game.FpsTarget;
+        var target = fpsTarget < 1 ? 0 : 1.0 / fpsTarget;
+        var wait = target - (elapsed - time._last).TotalSeconds;
+        if (wait > 0 && wait <= target)
+            Raylib.WaitTime(wait);
     }
 
     internal static void Restart()
     {
         var time = GetTime();
-        time._delta = 0;
-        time._frameCount = 0;
-        time._averageFps = 0;
+        time._delta = TimeSpan.Zero;
+        time._last = TimeSpan.Zero;
     }
 
     private static Time GetTime()

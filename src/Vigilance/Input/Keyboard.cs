@@ -8,6 +8,7 @@ public sealed class Keyboard
 {
     private static readonly Key[] KeyValues;
     private static Keyboard? _keyboard;
+    private readonly List<Key> _currentKeys = [];
     private readonly List<Key> _downKeys = [];
     private readonly List<Key> _pressedKeys = [];
     private readonly List<Key> _releasedKeys = [];
@@ -56,9 +57,12 @@ public sealed class Keyboard
     internal static void Update()
     {
         var keyboard = GetKeyboard();
-        keyboard.Reset();
         if (!Game.Focused)
+        {
+            keyboard.Reset();
             return;
+        }
+
         keyboard.UpdateState();
     }
 
@@ -74,20 +78,23 @@ public sealed class Keyboard
 
     private void UpdateState()
     {
+        _typedString.Clear();
         for (var c = (char)Raylib.GetCharPressed(); c != 0; c = (char)Raylib.GetCharPressed())
             _typedString.Append(c);
+        _currentKeys.Clear();
         foreach (var key in KeyValues)
-        {
             if (Raylib.IsKeyDown((KeyboardKey)key))
-            {
-                _downKeys.Add(key);
-                _upKeys.Remove(key);
-            }
-
-            if (Raylib.IsKeyPressed((KeyboardKey)key))
-                _pressedKeys.Add(key);
-            if (Raylib.IsKeyReleased((KeyboardKey)key))
-                _releasedKeys.Add(key);
-        }
+                _currentKeys.Add(key);
+        _pressedKeys.Clear();
+        _pressedKeys.AddRange(_currentKeys);
+        _pressedKeys.RemoveAll(key => _downKeys.Contains(key));
+        _releasedKeys.Clear();
+        _releasedKeys.AddRange(_downKeys);
+        _releasedKeys.RemoveAll(key => _currentKeys.Contains(key));
+        _downKeys.Clear();
+        _downKeys.AddRange(_currentKeys);
+        _upKeys.Clear();
+        _upKeys.AddRange(KeyValues);
+        _upKeys.RemoveAll(key => _currentKeys.Contains(key));
     }
 }

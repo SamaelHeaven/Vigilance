@@ -17,8 +17,6 @@ public sealed class Renderer
         _buffer = new WritableTexture(Game.Size);
         _interpolation = Game.DefaultInterpolation;
         _graphics = _buffer.Graphics;
-        Raylib.BeginTextureMode(_buffer.RenderTexture2D);
-        Graphics.CurrentBuffer = _buffer;
     }
 
     public static Interpolation Interpolation
@@ -52,6 +50,12 @@ public sealed class Renderer
             width * scale,
             height * scale
         );
+        if (Graphics.CurrentBuffer is not null)
+        {
+            Raylib.EndTextureMode();
+            Graphics.CurrentBuffer = null;
+        }
+
         if (Graphics.CurrentClip.HasValue)
         {
             Raylib.EndScissorMode();
@@ -59,13 +63,10 @@ public sealed class Renderer
         }
 
         Raylib.SetTextureFilter(renderer._buffer.RenderTexture2D.Texture, (TextureFilter)renderer._interpolation);
-        Raylib.EndTextureMode();
-        Raylib.BeginDrawing();
         Raylib.ClearBackground(Raylib_cs.Color.Black);
         Raylib.DrawTexturePro(buffer.RenderTexture2D.Texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
-        Raylib.EndDrawing();
-        Raylib.BeginTextureMode(buffer.RenderTexture2D);
-        Graphics.CurrentBuffer = buffer;
+        Rlgl.DrawRenderBatchActive();
+        Raylib.SwapScreenBuffer();
     }
 
     private static Renderer GetRenderer()

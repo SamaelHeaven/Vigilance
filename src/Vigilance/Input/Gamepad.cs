@@ -10,6 +10,7 @@ public sealed class Gamepad
     private static readonly GamepadButton[] ButtonValues = Enum.GetValues<GamepadButton>().ToArray();
     private static readonly GamepadAxis[] AxisValues = Enum.GetValues<GamepadAxis>().ToArray();
     private readonly Dictionary<GamepadAxis, float> _axes;
+    private readonly List<GamepadButton> _currentButtons = [];
     private readonly List<GamepadButton> _downButtons = [];
     private readonly List<GamepadButton> _pressedButtons = [];
     private readonly List<GamepadButton> _releasedButtons = [];
@@ -53,11 +54,10 @@ public sealed class Gamepad
 
     private static Gamepad[] GetGamepads()
     {
-        var gamepads = new List<Gamepad>();
+        var gamepads = new Gamepad[NbGamepads];
         for (var i = 0; i < NbGamepads; i++)
-            gamepads.Add(new Gamepad(i));
-
-        return gamepads.ToArray();
+            gamepads[i] = new Gamepad(i);
+        return gamepads;
     }
 
     public bool IsButtonDown(GamepadButton button)
@@ -87,16 +87,18 @@ public sealed class Gamepad
 
     private void Update()
     {
-        Reset();
+        Connected = Raylib.IsGamepadAvailable(Id);
         if (!Game.Focused || !Connected)
+        {
+            Reset();
             return;
-        UpdateButtons();
-        UpdateAxes();
+        }
+
+        UpdateState();
     }
 
     private void Reset()
     {
-        Connected = Raylib.IsGamepadAvailable(Id);
         _upButtons.Clear();
         _upButtons.AddRange(ButtonValues);
         _downButtons.Clear();
@@ -106,25 +108,23 @@ public sealed class Gamepad
             _axes[axis.Key] = 0;
     }
 
-    private void UpdateButtons()
+    private void UpdateState()
     {
+        _currentButtons.Clear();
         foreach (var button in ButtonValues)
-        {
             if (Raylib.IsGamepadButtonDown(Id, (Raylib_cs.GamepadButton)button))
-            {
-                _downButtons.Add(button);
-                _upButtons.Remove(button);
-            }
-
-            if (Raylib.IsGamepadButtonPressed(Id, (Raylib_cs.GamepadButton)button))
-                _pressedButtons.Add(button);
-            if (Raylib.IsGamepadButtonReleased(Id, (Raylib_cs.GamepadButton)button))
-                _releasedButtons.Add(button);
-        }
-    }
-
-    private void UpdateAxes()
-    {
+                _currentButtons.Add(button);
+        _pressedButtons.Clear();
+        _pressedButtons.AddRange(_currentButtons);
+        _pressedButtons.RemoveAll(button => _downButtons.Contains(button));
+        _releasedButtons.Clear();
+        _releasedButtons.AddRange(_downButtons);
+        _releasedButtons.RemoveAll(button => _currentButtons.Contains(button));
+        _downButtons.Clear();
+        _downButtons.AddRange(_currentButtons);
+        _upButtons.Clear();
+        _upButtons.AddRange(ButtonValues);
+        _upButtons.RemoveAll(button => _currentButtons.Contains(button));
         foreach (var axis in AxisValues)
             _axes[axis] = Raylib.GetGamepadAxisMovement(Id, (Raylib_cs.GamepadAxis)axis);
     }

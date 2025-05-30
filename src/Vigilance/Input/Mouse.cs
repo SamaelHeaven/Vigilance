@@ -9,6 +9,7 @@ public sealed class Mouse
 {
     private static readonly MouseButton[] ButtonValues = Enum.GetValues<MouseButton>().ToArray();
     private static Mouse? _mouse;
+    private readonly List<MouseButton> _currentButtons = [];
     private readonly List<MouseButton> _downButtons = [];
     private readonly List<MouseButton> _pressedButtons = [];
     private readonly List<MouseButton> _releasedButtons = [];
@@ -111,9 +112,12 @@ public sealed class Mouse
     internal static void Update()
     {
         var mouse = GetMouse();
-        mouse.Reset();
         if (!Game.Focused)
+        {
+            mouse.Reset();
             return;
+        }
+
         mouse.UpdateState();
     }
 
@@ -124,6 +128,7 @@ public sealed class Mouse
         _upButtons.AddRange(ButtonValues);
         _pressedButtons.Clear();
         _releasedButtons.Clear();
+        _scroll = Vector2.Zero;
     }
 
     private void UpdateState()
@@ -132,18 +137,20 @@ public sealed class Mouse
         var scroll = Raylib.GetMouseWheelMoveV();
         _screenPosition = new Vector2(position.X, position.Y).Clamp(Vector2.Zero, Game.ScreenSize).Round();
         _scroll = new Vector2(scroll.X, scroll.Y);
+        _currentButtons.Clear();
         foreach (var button in ButtonValues)
-        {
             if (Raylib.IsMouseButtonDown((Raylib_cs.MouseButton)button))
-            {
-                _downButtons.Add(button);
-                _upButtons.Remove(button);
-            }
-
-            if (Raylib.IsMouseButtonPressed((Raylib_cs.MouseButton)button))
-                _pressedButtons.Add(button);
-            if (Raylib.IsMouseButtonReleased((Raylib_cs.MouseButton)button))
-                _releasedButtons.Add(button);
-        }
+                _currentButtons.Add(button);
+        _pressedButtons.Clear();
+        _pressedButtons.AddRange(_currentButtons);
+        _pressedButtons.RemoveAll(button => _downButtons.Contains(button));
+        _releasedButtons.Clear();
+        _releasedButtons.AddRange(_downButtons);
+        _releasedButtons.RemoveAll(button => _currentButtons.Contains(button));
+        _downButtons.Clear();
+        _downButtons.AddRange(_currentButtons);
+        _upButtons.Clear();
+        _upButtons.AddRange(ButtonValues);
+        _upButtons.RemoveAll(button => _currentButtons.Contains(button));
     }
 }

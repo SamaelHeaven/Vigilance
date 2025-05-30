@@ -885,6 +885,26 @@ public sealed class Graphics
 
     private unsafe void BeginDrawing(Camera? camera = null)
     {
+        if (CurrentBuffer != _buffer)
+        {
+            if (CurrentBuffer is not null)
+                Raylib.EndTextureMode();
+            CurrentBuffer = _buffer;
+            Raylib.BeginTextureMode(_buffer.RenderTexture2D);
+        }
+
+        if (!Precision.AreEqual(CurrentClip, _clip))
+        {
+            if (CurrentClip.HasValue)
+                Raylib.EndScissorMode();
+            CurrentClip = _clip;
+            if (_clip.HasValue)
+            {
+                var clip = _clip.Value;
+                Raylib.BeginScissorMode((int)clip.X, (int)clip.Y, (int)clip.Width, (int)clip.Height);
+            }
+        }
+
         var matrix = GetMatrix();
         Rlgl.PushMatrix();
         if (camera is not null)
@@ -894,22 +914,6 @@ public sealed class Graphics
         }
 
         Rlgl.MultMatrixf(&matrix.M11);
-        if (CurrentBuffer != _buffer)
-        {
-            CurrentBuffer = _buffer;
-            Raylib.EndTextureMode();
-            Raylib.BeginTextureMode(_buffer.RenderTexture2D);
-        }
-
-        if (Precision.AreEqual(CurrentClip, _clip))
-            return;
-        if (CurrentClip.HasValue)
-            Raylib.EndScissorMode();
-        CurrentClip = _clip;
-        if (!_clip.HasValue)
-            return;
-        var clip = _clip.Value;
-        Raylib.BeginScissorMode((int)clip.X, (int)clip.Y, (int)clip.Width, (int)clip.Height);
     }
 
     private static void EndDrawing()
