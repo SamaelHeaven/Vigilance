@@ -283,7 +283,7 @@ public sealed partial class Game
         var game = GetGame();
         if (game._config.LogLevel > level)
             return;
-        var message = value?.ToString() ?? "null";
+        var message = value?.ToString() ?? "";
         if (game._config.Logger is null)
         {
             if (level is > LogLevel.All and < LogLevel.None)
