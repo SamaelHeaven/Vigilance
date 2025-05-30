@@ -133,10 +133,8 @@ public sealed class Mouse
 
     private void UpdateState()
     {
-        var position = Raylib.GetMousePosition();
-        var scroll = Raylib.GetMouseWheelMoveV();
-        _screenPosition = new Vector2(position.X, position.Y).Clamp(Vector2.Zero, Game.ScreenSize).Round();
-        _scroll = new Vector2(scroll.X, scroll.Y);
+        _screenPosition = ((Vector2)Raylib.GetMousePosition()).Clamp(Vector2.Zero, Game.ScreenSize).Round();
+        _scroll = Raylib.GetMouseWheelMoveV();
         _currentButtons.Clear();
         foreach (var button in ButtonValues)
             if (Raylib.IsMouseButtonDown((Raylib_cs.MouseButton)button))
