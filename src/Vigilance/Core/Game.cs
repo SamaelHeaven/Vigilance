@@ -412,7 +412,6 @@ public sealed class Game
 
     private void Loop()
     {
-        Renderer.Initialize();
         while (!Raylib.WindowShouldClose())
         {
             Time.Update();

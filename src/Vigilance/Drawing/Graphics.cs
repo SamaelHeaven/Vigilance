@@ -21,6 +21,32 @@ public sealed class Graphics
         _buffer = buffer;
     }
 
+    #region Entity
+
+    public void DrawEntity(Entity entity)
+    {
+        if (entity.Has<Rectangle>())
+            DrawRectangle(entity.WorldTransform, entity.Get<Rectangle>());
+        if (entity.Has<Circle>())
+            DrawCircle(entity.WorldTransform, entity.Get<Circle>());
+        if (entity.Has<Triangle>())
+            DrawTriangle(entity.WorldTransform, entity.Get<Triangle>());
+        if (entity.Has<RegularPolygon>())
+            DrawRegularPolygon(entity.WorldTransform, entity.Get<RegularPolygon>());
+        if (entity.Has<CustomPolygon>())
+            DrawCustomPolygon(entity.WorldTransform, entity.Get<CustomPolygon>());
+        if (entity.Has<Ring>())
+            DrawRing(entity.WorldTransform, entity.Get<Ring>());
+        if (entity.Has<Line>())
+            DrawLine(entity.WorldTransform, entity.Get<Line>());
+        if (entity.Has<Text>())
+            DrawText(entity.WorldTransform, entity.Get<Text>());
+        if (entity.Has<Sprite>())
+            DrawSprite(entity.WorldTransform, entity.Get<Sprite>());
+    }
+
+    #endregion
+
     #region Matrix
 
     public Matrix4x4 GetMatrix()

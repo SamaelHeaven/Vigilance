@@ -29,20 +29,15 @@ public sealed class Renderer
 
     public static WritableTexture Buffer => GetRenderer()._buffer;
 
-    internal static void Initialize()
-    {
-        GetRenderer();
-    }
-
     internal static void Update()
     {
         var renderer = GetRenderer();
         var screenWidth = (float)Game.ScreenWidth;
         var screenHeight = (float)Game.ScreenHeight;
-        var width = (float)Game.Width;
-        var height = (float)Game.Height;
+        var texture = renderer._buffer.RenderTexture2D.Texture;
+        var width = (float)texture.Width;
+        var height = (float)texture.Height;
         var scale = MathF.Min(screenWidth / width, screenHeight / height);
-        var buffer = renderer._buffer;
         var source = new Raylib_cs.Rectangle(0, 0, width, -height);
         var dest = new Raylib_cs.Rectangle(
             (screenWidth - width * scale) * 0.5f,
@@ -62,9 +57,9 @@ public sealed class Renderer
             Graphics.CurrentClip = null;
         }
 
-        Raylib.SetTextureFilter(renderer._buffer.RenderTexture2D.Texture, (TextureFilter)renderer._interpolation);
+        Raylib.SetTextureFilter(texture, (TextureFilter)renderer._interpolation);
         Raylib.ClearBackground(Raylib_cs.Color.Black);
-        Raylib.DrawTexturePro(buffer.RenderTexture2D.Texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
+        Raylib.DrawTexturePro(texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
         Rlgl.DrawRenderBatchActive();
         Raylib.SwapScreenBuffer();
     }
