@@ -145,7 +145,10 @@ public sealed class Game
         get => GetGame()._config.FpsTarget;
         set
         {
-            GetGame()._config.FpsTarget = value;
+            var game = GetGame();
+            if (value < 1)
+                value = 0;
+            game._config.FpsTarget = value;
             Raylib.SetTargetFPS(value);
         }
     }
