@@ -13,5 +13,5 @@ public static partial class JSEngine
     }
 
     [LibraryImport("libc", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial IntPtr emscripten_run_script_string(string script);
+    private static partial nint emscripten_run_script_string(string script);
 }
