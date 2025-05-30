@@ -10,7 +10,7 @@ public sealed class InputAxis
     public IReadOnlyList<GamepadButton> NegativeGamepadButtons { get; init; } = Array.Empty<GamepadButton>();
     public IReadOnlyList<GamepadButton> PositiveGamepadButtons { get; init; } = Array.Empty<GamepadButton>();
     public IReadOnlyList<GamepadAxis> GamepadAxes { get; init; } = Array.Empty<GamepadAxis>();
-    public Gamepad Gamepad { get; init; } = Gamepad.First;
+    public IReadOnlyList<Gamepad> Gamepads { get; init; } = Gamepad.Gamepads;
     public float DeadZone { get; init; } = 0;
 
     public static InputAxis Horizontal => Game.HorizontalInputAxis;
@@ -24,16 +24,18 @@ public sealed class InputAxis
         get
         {
             {
-                var gamepad = Gamepad;
-                var deadZone = DeadZone;
                 var negative =
                     NegativeKeys.Any(Keyboard.IsKeyDown)
-                    || NegativeGamepadButtons.Any(button => gamepad.IsButtonDown(button))
-                    || GamepadAxes.Any(axis => (int)MathF.Round(gamepad.GetAxis(axis) - deadZone) <= -1);
+                    || Gamepads.Any(gamepad =>
+                        NegativeGamepadButtons.Any(gamepad.IsButtonDown)
+                        || GamepadAxes.Any(axis => (int)MathF.Round(gamepad.GetAxis(axis) - DeadZone) <= -1)
+                    );
                 var positive =
                     PositiveKeys.Any(Keyboard.IsKeyDown)
-                    || PositiveGamepadButtons.Any(button => gamepad.IsButtonDown(button))
-                    || GamepadAxes.Any(axis => (int)MathF.Round(gamepad.GetAxis(axis) + deadZone) >= 1);
+                    || Gamepads.Any(gamepad =>
+                        PositiveGamepadButtons.Any(gamepad.IsButtonDown)
+                        || GamepadAxes.Any(axis => (int)MathF.Round(gamepad.GetAxis(axis) + DeadZone) >= 1)
+                    );
                 if (negative && !positive)
                     return -1;
                 if (positive && !negative)

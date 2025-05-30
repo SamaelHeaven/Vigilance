@@ -13,7 +13,7 @@ using Sound = Vigilance.Audio.Sound;
 
 namespace Vigilance.Core;
 
-public sealed class Game
+public sealed partial class Game
 {
     private static Game? _game;
     private readonly ConcurrentStack<Action> _actions = [];
@@ -35,6 +35,8 @@ public sealed class Game
         get
         {
             EnsureRunning();
+            if (Platform.Web.IsCurrent())
+                return bool.Parse(JSEngine.Run("!!document.fullscreenElement"));
             return Raylib.IsWindowFullscreen();
         }
         set
@@ -316,7 +318,11 @@ public sealed class Game
     {
         var game = GetGame();
         if (Platform.Web.IsCurrent())
+        {
+            JSEngine.Run(Fullscreen ? "document.exitFullscreen()" : "Module.canvas.requestFullscreen()");
             return;
+        }
+
         if (Fullscreen)
         {
             game._resetScreen = true;
@@ -346,7 +352,7 @@ public sealed class Game
         FpsTarget = config.FpsTarget;
         MasterVolume = config.MasterVolume;
         game._defaultFont = config.DefaultFont.Invoke();
-        game.Loop();
+        game.Run();
     }
 
     private static Game GetGame()
@@ -363,7 +369,7 @@ public sealed class Game
         {
             if (Platform.Web.IsCurrent())
                 throw new PlatformNotSupportedException();
-            Raylib.SetTraceLogCallback(&TraceLog);
+            Raylib.SetTraceLogCallback(&UnmanagedLog);
             Raylib.TraceLog(TraceLogLevel.Info, message);
         }
         catch
@@ -414,26 +420,34 @@ public sealed class Game
         thread.Join();
     }
 
-    private void Loop()
+    private unsafe void Run()
     {
-        while (!Raylib.WindowShouldClose())
+        if (Platform.Web.IsCurrent())
         {
-            Time.Update();
-            Keyboard.Update();
-            Mouse.Update();
-            Gamepad.UpdateAll();
-            Music.UpdateAll();
-            Sound.UpdateAll();
-            UpdateSize();
-            UpdateActions();
-            UpdateFullscreen();
-            _scene.Update();
-            Renderer.Update();
-            Raylib.PollInputEvents();
+            emscripten_set_main_loop(&UnmanagedLoop, 0, 1);
+            return;
         }
 
+        while (!Raylib.WindowShouldClose())
+            Loop();
         Raylib.CloseAudioDevice();
         Raylib.CloseWindow();
+    }
+
+    private void Loop()
+    {
+        Time.Update();
+        Keyboard.Update();
+        Mouse.Update();
+        Gamepad.UpdateAll();
+        Music.UpdateAll();
+        Sound.UpdateAll();
+        UpdateSize();
+        UpdateActions();
+        UpdateFullscreen();
+        _scene.Update();
+        Renderer.Update();
+        Raylib.PollInputEvents();
     }
 
     private void UpdateSize()
@@ -476,9 +490,23 @@ public sealed class Game
 
     // ReSharper disable once UseCollectionExpression
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static unsafe void TraceLog(int logLevel, sbyte* format, sbyte* args)
+    private static void UnmanagedLoop()
+    {
+        GetGame().Loop();
+    }
+
+    // ReSharper disable once UseCollectionExpression
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void UnmanagedLog(int logLevel, sbyte* format, sbyte* args)
     {
         var message = Raylib_cs.Logging.GetLogMessage((nint)format, (nint)args);
         Log((LogLevel)logLevel, message);
     }
+
+    [LibraryImport("libc")]
+    private static unsafe partial void emscripten_set_main_loop(
+        delegate* unmanaged[Cdecl]<void> func,
+        int fps,
+        int simulateInfiniteLoop
+    );
 }

@@ -7,7 +7,7 @@ namespace Vigilance.Input;
 
 public sealed class Mouse
 {
-    private static readonly MouseButton[] ButtonValues = Enum.GetValues<MouseButton>().ToArray();
+    private static readonly MouseButton[] ButtonValues = Enum.GetValues<MouseButton>();
     private static Mouse? _mouse;
     private readonly List<MouseButton> _currentButtons = [];
     private readonly List<MouseButton> _downButtons = [];
