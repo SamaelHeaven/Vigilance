@@ -1,5 +1,4 @@
 using Raylib_cs;
-using Vigilance.Logging;
 
 namespace Vigilance.Core;
 
@@ -10,10 +9,7 @@ public static class Clipboard
         get
         {
             Game.EnsureRunning();
-            if (!Platform.Web.IsCurrent())
-                return Raylib.GetClipboardText_();
-            Game.Log(LogLevel.Warn, "GetClipboardText() not implemented on target platform");
-            return "";
+            return Platform.Web.IsCurrent() ? "" : Raylib.GetClipboardText_();
         }
         set
         {
