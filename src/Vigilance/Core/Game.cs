@@ -447,7 +447,7 @@ public sealed partial class Game
     {
         if (Platform.Web.IsCurrent())
         {
-            emscripten_set_main_loop(&UnmanagedLoop, 0, true);
+            emscripten_set_main_loop(&UnmanagedLoop, 0, 1);
             return;
         }
 
@@ -530,6 +530,6 @@ public sealed partial class Game
     private static unsafe partial void emscripten_set_main_loop(
         delegate* unmanaged[Cdecl]<void> func,
         int fps,
-        CBool simulateInfiniteLoop
+        sbyte simulateInfiniteLoop
     );
 }
