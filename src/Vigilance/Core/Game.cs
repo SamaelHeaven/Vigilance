@@ -376,8 +376,11 @@ public sealed partial class Game
 
     private static void InitializeCultureInfo()
     {
-        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
-        CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+        var cultureInfo = CultureInfo.InvariantCulture;
+        CultureInfo.CurrentCulture = cultureInfo;
+        CultureInfo.CurrentUICulture = cultureInfo;
+        CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+        CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
     }
 
     private unsafe void InitializeLogging()
