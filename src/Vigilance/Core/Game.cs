@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Raylib_cs;
@@ -36,7 +37,7 @@ public sealed partial class Game
         {
             EnsureRunning();
             if (Platform.Web.IsCurrent())
-                return bool.Parse(JSEngine.Run("!!document.fullscreenElement"));
+                return JSEngine.Run("!!document.fullscreenElement");
             return Raylib.IsWindowFullscreen();
         }
         set
@@ -287,7 +288,7 @@ public sealed partial class Game
         if (game._config.Logger is null)
         {
             if (level is > LogLevel.All and < LogLevel.None)
-                Console.Write($"{level.ToString().ToUpperInvariant()}: ");
+                Console.Write($"{level.ToString().ToUpper()}: ");
             Console.WriteLine(message);
             Console.Out.Flush();
         }
@@ -356,6 +357,7 @@ public sealed partial class Game
         config = config.Clone();
         game._config = config;
         game._scene = scene;
+        InitializeCultureInfo();
         game.InitializeLogging();
         game.InitializeFileSystem();
         game.InitializeWindow();
@@ -364,12 +366,18 @@ public sealed partial class Game
         FpsTarget = config.FpsTarget;
         MasterVolume = config.MasterVolume;
         game._defaultFont = config.DefaultFont.Invoke();
-        game.Run();
+        game.Start();
     }
 
     private static Game GetGame()
     {
         return _game ??= new Game();
+    }
+
+    private static void InitializeCultureInfo()
+    {
+        CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+        CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
     }
 
     private unsafe void InitializeLogging()
@@ -432,11 +440,11 @@ public sealed partial class Game
         thread.Join();
     }
 
-    private unsafe void Run()
+    private unsafe void Start()
     {
         if (Platform.Web.IsCurrent())
         {
-            emscripten_set_main_loop(&UnmanagedLoop, 0, 1);
+            emscripten_set_main_loop(&UnmanagedLoop, 0, true);
             return;
         }
 
@@ -519,6 +527,6 @@ public sealed partial class Game
     private static unsafe partial void emscripten_set_main_loop(
         delegate* unmanaged[Cdecl]<void> func,
         int fps,
-        int simulateInfiniteLoop
+        CBool simulateInfiniteLoop
     );
 }
