@@ -5,7 +5,7 @@ namespace Vigilance.Core;
 
 public static partial class JSEngine
 {
-    public static JSResult Run(string script)
+    public static JSResult Eval(string script)
     {
         if (!Platform.Web.IsCurrent())
             throw new PlatformNotSupportedException();

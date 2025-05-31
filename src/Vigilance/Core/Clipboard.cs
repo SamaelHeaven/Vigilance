@@ -16,7 +16,7 @@ public static class Clipboard
             Game.EnsureRunning();
             if (Platform.Web.IsCurrent())
             {
-                JSEngine.Run($"navigator.clipboard.writeText({value.ToJson()})");
+                JSEngine.Eval($"navigator.clipboard.writeText({value.ToJson()})");
                 return;
             }
 

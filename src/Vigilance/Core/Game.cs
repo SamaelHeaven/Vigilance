@@ -37,7 +37,7 @@ public sealed partial class Game
         {
             EnsureRunning();
             if (Platform.Web.IsCurrent())
-                return JSEngine.Run("!!document.fullscreenElement");
+                return JSEngine.Eval("!!document.fullscreenElement");
             return Raylib.IsWindowFullscreen();
         }
         set
@@ -320,7 +320,7 @@ public sealed partial class Game
         EnsureRunning();
         if (Platform.Web.IsCurrent())
         {
-            JSEngine.Run("Module.canvas.focus()");
+            JSEngine.Eval("Module.canvas.focus()");
             return;
         }
 
@@ -332,7 +332,7 @@ public sealed partial class Game
         var game = GetGame();
         if (Platform.Web.IsCurrent())
         {
-            JSEngine.Run(Fullscreen ? "document.exitFullscreen()" : "Module.canvas.requestFullscreen()");
+            JSEngine.Eval(Fullscreen ? "document.exitFullscreen()" : "Module.canvas.requestFullscreen()");
             return;
         }
 

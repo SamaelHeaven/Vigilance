@@ -130,7 +130,7 @@ public sealed class Gamepad
     private bool IsConnected()
     {
         return Platform.Web.IsCurrent()
-            ? JSEngine.Run($"!!navigator.getGamepads()[{Id}]")
+            ? JSEngine.Eval($"!!navigator.getGamepads()[{Id}]")
             : Raylib.IsGamepadAvailable(Id);
     }
 
@@ -139,21 +139,21 @@ public sealed class Gamepad
         if (!Connected)
             return DefaultName;
         return Platform.Web.IsCurrent()
-            ? JSEngine.Run($"navigator.getGamepads()[{Id}]?.id ?? {DefaultName.ToJson()}")
+            ? JSEngine.Eval($"navigator.getGamepads()[{Id}]?.id ?? {DefaultName.ToJson()}")
             : Raylib.GetGamepadName_(Id);
     }
 
     private static bool IsButtonDown(int id, GamepadButton button)
     {
         return Platform.Web.IsCurrent()
-            ? JSEngine.Run($"navigator.getGamepads()[{id}]?.buttons[{button.GetJSValue()}]?.pressed ?? false")
+            ? JSEngine.Eval($"navigator.getGamepads()[{id}]?.buttons[{button.GetJSValue()}]?.pressed ?? false")
             : Raylib.IsGamepadButtonDown(id, (Raylib_cs.GamepadButton)button);
     }
 
     private static float GetGamepadAxis(int id, GamepadAxis axis)
     {
         return Platform.Web.IsCurrent()
-            ? JSEngine.Run($"navigator.getGamepads()[{id}]?.axes[{axis.GetJSValue()}] ?? 0")
+            ? JSEngine.Eval($"navigator.getGamepads()[{id}]?.axes[{axis.GetJSValue()}] ?? 0")
             : Raylib.GetGamepadAxisMovement(id, (Raylib_cs.GamepadAxis)axis);
     }
 }
