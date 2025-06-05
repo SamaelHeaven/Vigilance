@@ -14,7 +14,7 @@ public sealed class Time
     {
         Game.EnsureRunning();
         _delta = TimeSpan.Zero;
-        _last = TimeSpan.Zero;
+        _last = TimeSpan.FromSeconds(Raylib.GetTime());
         _scale = 1;
     }
 
@@ -70,7 +70,7 @@ public sealed class Time
     internal static void Update()
     {
         var time = GetTime();
-        var elapsed = TimeSpan.FromSeconds(Raylib.GetTime());
+        var elapsed = Elapsed;
         time._delta = elapsed - time._last;
         time._last = elapsed;
         var fpsTarget = Game.FpsTarget;
@@ -84,7 +84,7 @@ public sealed class Time
     {
         var time = GetTime();
         time._delta = TimeSpan.Zero;
-        time._last = TimeSpan.Zero;
+        time._last = Elapsed;
     }
 
     private static Time GetTime()

@@ -9,10 +9,12 @@ namespace Vigilance.Core;
 
 public sealed unsafe class Scene
 {
+    private static readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> OrderByCallback =
+        &CompareEntities;
+
     private static Scene _context = null!;
     private readonly Dictionary<Type, object> _events = new();
     private readonly GetSystemsDelegate _getSystemsDelegate;
-    private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
     private Action? _onDestroy;
@@ -31,10 +33,7 @@ public sealed unsafe class Scene
     public Scene(GetSystemsDelegate? systems = null)
     {
         _getSystemsDelegate = systems ?? Array.Empty<ISystem>;
-        var orderedQueryBuilder = _world.QueryBuilder<ZIndex>();
-        orderedQueryBuilder.Desc.order_by = Type<ZIndex>.Id(_world);
-        orderedQueryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
-        _orderedQuery = orderedQueryBuilder.Build();
+        _orderedQuery = BuildOrderedQuery();
     }
 
     public IReadOnlyList<ISystem> Systems
@@ -59,6 +58,29 @@ public sealed unsafe class Scene
         var e2 = new Entity(scene._world.Entity(id2), scene);
         var result = e1.WorldZIndex.CompareTo(e2.WorldZIndex);
         return result == 0 ? id1.CompareTo(id2) : result;
+    }
+
+    public void Restart()
+    {
+        if (!Initialized)
+            return;
+        if (Game.Scene == this || _world.IsDeferred())
+        {
+            Game.RunLater(RestartAction);
+            return;
+        }
+
+        RestartAction();
+        return;
+
+        void RestartAction()
+        {
+            if (_started)
+                Stop();
+            _time = 0;
+            Each(entity => entity.Destroy());
+            _initializeAction?.Invoke();
+        }
     }
 
     public Entity Entity(string name = "")
@@ -207,13 +229,21 @@ public sealed unsafe class Scene
         Time.Restart();
     }
 
+    private Query<ZIndex> BuildOrderedQuery()
+    {
+        var queryBuilder = _world.QueryBuilder<ZIndex>();
+        queryBuilder.Desc.order_by = Type<ZIndex>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)OrderByCallback;
+        return queryBuilder.Build();
+    }
+
     private void Start()
     {
         _startAction?.Invoke();
         _started = true;
     }
 
-    private void Stop()
+    internal void Stop()
     {
         _stopAction?.Invoke();
         _started = false;
@@ -229,8 +259,6 @@ public sealed unsafe class Scene
         for (_time += Time.DeltaSeconds; _time >= Time.FixedDeltaSeconds; _time -= Time.FixedDeltaSeconds)
             FixedUpdate();
         Render();
-        if (Game.Scene != this)
-            Stop();
     }
 
     internal void DeferBegin()
@@ -438,17 +466,6 @@ public sealed unsafe class Scene
         OnSet<Position>(action.Invoke, traverse);
     }
 
-    public void OnSetPosition(Action<Vector2> action, bool traverse = true)
-    {
-        OnSet(
-            (ref Position position) =>
-            {
-                action.Invoke(position.Value);
-            },
-            traverse
-        );
-    }
-
     public void OnSetPosition(Action<Entity, Vector2> action, bool traverse = true)
     {
         OnSet(
@@ -467,17 +484,6 @@ public sealed unsafe class Scene
     public void OnSetScale(Action<Entity> action, bool traverse = true)
     {
         OnSet<Scale>(action.Invoke, traverse);
-    }
-
-    public void OnSetScale(Action<Vector2> action, bool traverse = true)
-    {
-        OnSet(
-            (ref Scale scale) =>
-            {
-                action.Invoke(scale.Value);
-            },
-            traverse
-        );
     }
 
     public void OnSetScale(Action<Entity, Vector2> action, bool traverse = true)
@@ -500,17 +506,6 @@ public sealed unsafe class Scene
         OnSet<Rotation>(action.Invoke, traverse);
     }
 
-    public void OnSetRotation(Action<float> action, bool traverse = true)
-    {
-        OnSet(
-            (ref Rotation rotation) =>
-            {
-                action.Invoke(rotation.Value);
-            },
-            traverse
-        );
-    }
-
     public void OnSetRotation(Action<Entity, float> action, bool traverse = true)
     {
         OnSet(
@@ -531,17 +526,6 @@ public sealed unsafe class Scene
         OnSet<PivotPoint>(action.Invoke, traverse);
     }
 
-    public void OnSetPivotPoint(Action<Vector2> action, bool traverse = true)
-    {
-        OnSet(
-            (ref PivotPoint pivotPoint) =>
-            {
-                action.Invoke(pivotPoint.Value);
-            },
-            traverse
-        );
-    }
-
     public void OnSetPivotPoint(Action<Entity, Vector2> action, bool traverse = true)
     {
         OnSet(
@@ -560,17 +544,6 @@ public sealed unsafe class Scene
     public void OnSetZIndex(Action<Entity> action, bool traverse = true)
     {
         OnSet<ZIndex>(action.Invoke, traverse);
-    }
-
-    public void OnSetZIndex(Action<int> action, bool traverse = true)
-    {
-        OnSet(
-            (ref ZIndex zIndex) =>
-            {
-                action.Invoke(zIndex.Value);
-            },
-            traverse
-        );
     }
 
     public void OnSetZIndex(Action<Entity, int> action, bool traverse = true)

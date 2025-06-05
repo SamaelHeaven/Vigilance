@@ -114,7 +114,15 @@ public sealed partial class Game
     public static Scene Scene
     {
         get => GetGame()._scene;
-        set => GetGame()._scene = value;
+        set
+        {
+            var game = GetGame();
+            if (game._scene == value)
+                return;
+            var scene = game._scene;
+            game._scene = value;
+            RunLater(() => scene.Stop());
+        }
     }
 
     public static string Title
