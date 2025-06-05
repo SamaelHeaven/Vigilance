@@ -47,9 +47,9 @@ public sealed partial class Game
         }
     }
 
-    public static int Width => GetGame()._config.Width;
+    public static int Width => (int)GetGame()._config.Size.X;
 
-    public static int Height => GetGame()._config.Height;
+    public static int Height => (int)GetGame()._config.Size.Y;
 
     public static Vector2 Size => new(Width, Height);
 
@@ -422,10 +422,14 @@ public sealed partial class Game
     {
         Raylib.SetConfigFlags(GetConfigFlags());
         Raylib.InitWindow(
-            _config.ScreenWidth <= 0 || !Platform.Desktop.IsCurrent() ? _config.Width : _config.ScreenWidth,
-            _config.ScreenHeight <= 0 || !Platform.Desktop.IsCurrent() ? _config.Height : _config.ScreenHeight,
+            (int)(_config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.X : _config.ScreenSize.X),
+            (int)(_config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.Y : _config.ScreenSize.Y),
             _config.Title
         );
+        if (Platform.Desktop.IsCurrent() && _config.MinSize.HasValue)
+            Raylib.SetWindowMinSize((int)_config.MinSize.Value.X, (int)_config.MinSize.Value.Y);
+        if (Platform.Desktop.IsCurrent() && _config.MaxSize.HasValue)
+            Raylib.SetWindowMaxSize((int)_config.MaxSize.Value.X, (int)_config.MaxSize.Value.Y);
         if (_config.Maximized)
             Maximize();
         if (_config.Fullscreen)

@@ -13,10 +13,10 @@ public sealed class GameConfig
     public Func<Image>? Icon { get; set; } = null;
     public Key ExitKey { get; set; } = Key.Null;
     public Key FullscreenKey { get; set; } = Key.Null;
-    public int Width { get; set; } = 800;
-    public int Height { get; set; } = 600;
-    public int ScreenWidth { get; set; } = 0;
-    public int ScreenHeight { get; set; } = 0;
+    public Vector2 Size { get; set; } = new(800, 600);
+    public Vector2 ScreenSize { get; set; } = Vector2.Zero;
+    public Vector2? MinSize { get; set; } = null;
+    public Vector2? MaxSize { get; set; } = null;
     public int FpsTarget { get; set; } = 0;
     public bool Fullscreen { get; set; } = false;
     public bool Maximized { get; set; } = false;
