@@ -119,9 +119,11 @@ public sealed partial class Game
             var game = GetGame();
             if (game._scene == value)
                 return;
-            var scene = game._scene;
-            game._scene = value;
-            RunLater(() => scene.Stop());
+            RunLater(() =>
+            {
+                game._scene.Stop();
+                game._scene = value;
+            });
         }
     }
 

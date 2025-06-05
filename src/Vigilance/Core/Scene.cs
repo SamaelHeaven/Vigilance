@@ -64,7 +64,8 @@ public sealed unsafe class Scene
     {
         if (!Initialized)
             return;
-        if (Game.Scene == this || _world.IsDeferred())
+        var current = Game.Scene == this;
+        if (current || _world.IsDeferred())
         {
             Game.RunLater(RestartAction);
             return;
@@ -75,7 +76,7 @@ public sealed unsafe class Scene
 
         void RestartAction()
         {
-            if (_started)
+            if (current && _started)
                 Stop();
             _time = 0;
             Each(entity => entity.Destroy());
