@@ -42,7 +42,7 @@ public sealed class WritableTexture
 
     ~WritableTexture()
     {
-        Game.RunLater(() =>
+        Game.Defer(() =>
         {
             Raylib.UnloadRenderTexture(RenderTexture2D);
         });

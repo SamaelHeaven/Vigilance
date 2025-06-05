@@ -67,7 +67,7 @@ public sealed unsafe class Scene
         var current = Game.Scene == this;
         if (current || _world.IsDeferred())
         {
-            Game.RunLater(RestartAction);
+            Game.Defer(RestartAction);
             return;
         }
 
@@ -293,7 +293,7 @@ public sealed unsafe class Scene
 
     ~Scene()
     {
-        Game.RunLater(() =>
+        Game.Defer(() =>
         {
             _onDestroy?.Invoke();
             _orderedQuery.Dispose();

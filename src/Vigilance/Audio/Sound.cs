@@ -150,7 +150,7 @@ public sealed class Sound
 
     ~Sound()
     {
-        Game.RunLater(() =>
+        Game.Defer(() =>
         {
             foreach (var (sound, _) in _aliases)
                 Raylib.UnloadSoundAlias(sound);

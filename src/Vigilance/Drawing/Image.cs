@@ -182,6 +182,6 @@ public sealed class Image
 
     ~Image()
     {
-        Game.RunLater(() => Raylib.UnloadImage(RImage));
+        Game.Defer(() => Raylib.UnloadImage(RImage));
     }
 }

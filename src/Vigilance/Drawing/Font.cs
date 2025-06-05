@@ -233,7 +233,7 @@ public sealed unsafe class Font
 
     ~Font()
     {
-        Game.RunLater(() =>
+        Game.Defer(() =>
         {
             FT.FT_Stroker_Done(_stroker);
             FT.FT_Done_Face(_face);

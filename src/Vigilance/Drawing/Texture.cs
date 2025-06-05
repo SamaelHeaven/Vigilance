@@ -81,7 +81,7 @@ public sealed class Texture
     {
         if (_owner is not null)
             return;
-        Game.RunLater(() =>
+        Game.Defer(() =>
         {
             Raylib.UnloadTexture(Texture2D);
         });

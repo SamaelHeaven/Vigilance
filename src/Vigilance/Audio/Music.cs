@@ -170,7 +170,7 @@ public sealed class Music
 
     ~Music()
     {
-        Game.RunLater(() =>
+        Game.Defer(() =>
         {
             Raylib.UnloadMusicStream(_music);
             Marshal.FreeHGlobal(_buffer);

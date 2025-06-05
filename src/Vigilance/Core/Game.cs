@@ -119,7 +119,7 @@ public sealed partial class Game
             var game = GetGame();
             if (game._scene == value)
                 return;
-            RunLater(() =>
+            Defer(() =>
             {
                 game._scene.Stop();
                 game._scene = value;
@@ -278,7 +278,7 @@ public sealed partial class Game
             throw new InvalidOperationException("Game is already running.");
     }
 
-    public static void RunLater(Action action)
+    public static void Defer(Action action)
     {
         var game = GetGame();
         game._actions.Push(action);
