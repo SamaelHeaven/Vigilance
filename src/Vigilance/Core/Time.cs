@@ -82,22 +82,17 @@ public sealed class Time
     internal static void Update()
     {
         var time = GetTime();
+        var fpsTarget = Game.FpsTarget;
+        var target = fpsTarget < 1 ? 0 : 1.0 / fpsTarget;
+        var wait = target - (Elapsed - time._last).TotalSeconds;
+        if (wait > 0 && wait <= target)
+            Raylib.WaitTime(wait);
         var elapsed = Elapsed;
         time._delta = elapsed - time._last;
         time._last = elapsed;
         while (time._fpsHistory.Count >= FpsHistorySize)
             time._fpsHistory.Dequeue();
         time._fpsHistory.Enqueue(CurrentFps);
-    }
-
-    internal static void Sync()
-    {
-        var time = GetTime();
-        var fpsTarget = Game.FpsTarget;
-        var target = fpsTarget < 1 ? 0 : 1.0 / fpsTarget;
-        var wait = target - (Elapsed - time._last).TotalSeconds;
-        if (wait > 0 && wait <= target)
-            Raylib.WaitTime(wait);
     }
 
     internal static void Restart()
