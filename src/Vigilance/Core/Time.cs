@@ -85,9 +85,9 @@ public sealed class Time
         var elapsed = Elapsed;
         time._delta = elapsed - time._last;
         time._last = elapsed;
-        time._fpsHistory.Enqueue(CurrentFps);
-        if (time._fpsHistory.Count > FpsHistorySize)
+        while (time._fpsHistory.Count >= FpsHistorySize)
             time._fpsHistory.Dequeue();
+        time._fpsHistory.Enqueue(CurrentFps);
         var fpsTarget = Game.FpsTarget;
         var target = fpsTarget < 1 ? 0 : 1.0 / fpsTarget;
         var wait = target - (elapsed - time._last).TotalSeconds;
