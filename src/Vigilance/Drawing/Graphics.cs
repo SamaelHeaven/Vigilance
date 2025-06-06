@@ -43,6 +43,8 @@ public sealed class Graphics
             DrawText(entity.WorldTransform, entity.Get<Text>());
         if (entity.Has<Sprite>())
             DrawSprite(entity.WorldTransform, entity.Get<Sprite>());
+        if (entity.Has<Grid>())
+            DrawGrid(entity.WorldTransform, entity.Get<Grid>());
     }
 
     #endregion
@@ -877,6 +879,60 @@ public sealed class Graphics
         PushMatrix();
         Transform(transform, true);
         DrawTexture(texture, source, new Box(position, scale), tint, interpolation, camera);
+        PopMatrix();
+    }
+
+    #endregion
+
+    #region Grid
+
+    public void DrawGrid(
+        float x,
+        float y,
+        float width,
+        float height,
+        float cellSize,
+        Color color,
+        float thickness = 1,
+        Camera? camera = null
+    )
+    {
+        DrawGrid(new Vector2(x, y), new Vector2(width, height), cellSize, color, thickness, camera);
+    }
+
+    public void DrawGrid(Box box, float cellSize, Color color, float thickness = 1, Camera? camera = null)
+    {
+        DrawGrid(box.Position, box.Size, cellSize, color, thickness, camera);
+    }
+
+    public void DrawGrid(
+        Vector2 position,
+        Vector2 size,
+        float cellSize,
+        Color color,
+        float thickness = 1,
+        Camera? camera = null
+    )
+    {
+        BeginDrawing(camera);
+        for (var x = position.X; x <= position.X + size.X; x += cellSize)
+            Raylib.DrawLineEx(new Vector2(x, position.Y), new Vector2(x, position.Y + size.Y), thickness, color.RColor);
+        for (var y = position.Y; y <= position.Y + size.Y; y += cellSize)
+            Raylib.DrawLineEx(new Vector2(position.X, y), new Vector2(position.X + size.X, y), thickness, color.RColor);
+        EndDrawing();
+    }
+
+    public void DrawGrid(Transform transform, Grid grid)
+    {
+        var camera = grid.Camera?.Invoke();
+        var color = grid.Color;
+        var cellSize = grid.CellSize;
+        var thickness = grid.Thickness;
+        var position = transform.Position;
+        var scale = transform.Scale.Abs();
+        PushMatrix();
+        Transform(transform, true);
+        DrawGrid(position, scale, cellSize, color, thickness, camera);
         PopMatrix();
     }
 
