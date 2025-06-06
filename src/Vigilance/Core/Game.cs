@@ -490,6 +490,7 @@ public sealed partial class Game
         _scene.Update();
         Renderer.Update();
         Raylib.PollInputEvents();
+        Time.Sync();
     }
 
     private void UpdateSize()

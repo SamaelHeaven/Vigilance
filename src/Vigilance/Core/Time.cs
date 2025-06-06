@@ -88,9 +88,14 @@ public sealed class Time
         while (time._fpsHistory.Count >= FpsHistorySize)
             time._fpsHistory.Dequeue();
         time._fpsHistory.Enqueue(CurrentFps);
+    }
+
+    internal static void Sync()
+    {
+        var time = GetTime();
         var fpsTarget = Game.FpsTarget;
         var target = fpsTarget < 1 ? 0 : 1.0 / fpsTarget;
-        var wait = target - (elapsed - time._last).TotalSeconds;
+        var wait = target - (Elapsed - time._last).TotalSeconds;
         if (wait > 0 && wait <= target)
             Raylib.WaitTime(wait);
     }
@@ -100,6 +105,7 @@ public sealed class Time
         var time = GetTime();
         time._delta = TimeSpan.Zero;
         time._last = Elapsed;
+        time._fpsHistory.Clear();
     }
 
     private static Time GetTime()
