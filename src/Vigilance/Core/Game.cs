@@ -475,8 +475,7 @@ public sealed partial class Game
             Frame();
         Raylib.CloseAudioDevice();
         Raylib.CloseWindow();
-        Running = false;
-        _game = null;
+        Environment.Exit(0);
     }
 
     private void Frame()
