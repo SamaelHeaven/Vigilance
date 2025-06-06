@@ -377,7 +377,7 @@ public sealed partial class Game
         FpsTarget = config.FpsTarget;
         MasterVolume = config.MasterVolume;
         game._defaultFont = config.DefaultFont.Invoke();
-        game.Start();
+        game.Loop();
     }
 
     public static void Quit()
@@ -463,23 +463,23 @@ public sealed partial class Game
         thread.Join();
     }
 
-    private unsafe void Start()
+    private unsafe void Loop()
     {
         if (Platform.Web.IsCurrent())
         {
-            emscripten_set_main_loop(&UnmanagedLoop, 0, 1);
+            emscripten_set_main_loop(&UnmanagedFrame, 0, 1);
             return;
         }
 
         while (!Raylib.WindowShouldClose() && !_quit)
-            Loop();
+            Frame();
         Raylib.CloseAudioDevice();
         Raylib.CloseWindow();
         Running = false;
         _game = null;
     }
 
-    private void Loop()
+    private void Frame()
     {
         Time.Update();
         Keyboard.Update();
@@ -535,9 +535,9 @@ public sealed partial class Game
 
     // ReSharper disable once UseCollectionExpression
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static void UnmanagedLoop()
+    private static void UnmanagedFrame()
     {
-        GetGame().Loop();
+        GetGame().Frame();
     }
 
     // ReSharper disable once UseCollectionExpression
