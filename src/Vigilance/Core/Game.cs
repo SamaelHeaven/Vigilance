@@ -21,6 +21,7 @@ public sealed partial class Game
     private GameConfig _config = null!;
     private Font _defaultFont = null!;
     private Box _previousScreen;
+    private bool _quit;
     private bool _resetScreen;
     private Scene _scene = null!;
 
@@ -379,6 +380,11 @@ public sealed partial class Game
         game.Start();
     }
 
+    public static void Quit()
+    {
+        GetGame()._quit = true;
+    }
+
     private static Game GetGame()
     {
         return _game ??= new Game();
@@ -465,10 +471,12 @@ public sealed partial class Game
             return;
         }
 
-        while (!Raylib.WindowShouldClose())
+        while (!Raylib.WindowShouldClose() && !_quit)
             Loop();
         Raylib.CloseAudioDevice();
         Raylib.CloseWindow();
+        Running = false;
+        _game = null;
     }
 
     private void Loop()
