@@ -14,7 +14,7 @@ public sealed class Renderer
     private Renderer()
     {
         Game.EnsureRunning();
-        _buffer = new WritableTexture(Game.Size);
+        _buffer = new WritableTexture(Game.Size, Game.Scale);
         _interpolation = Game.DefaultInterpolation;
         _graphics = _buffer.Graphics;
     }
@@ -35,10 +35,10 @@ public sealed class Renderer
         var screenWidth = (float)Game.ScreenWidth;
         var screenHeight = (float)Game.ScreenHeight;
         var texture = renderer._buffer.RenderTexture2D.Texture;
-        var width = (float)texture.Width;
-        var height = (float)texture.Height;
+        var width = renderer._buffer.UnscaledWidth;
+        var height = renderer._buffer.UnscaledHeight;
         var scale = MathF.Min(screenWidth / width, screenHeight / height);
-        var source = new Raylib_cs.Rectangle(0, 0, width, -height);
+        var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
         var dest = new Raylib_cs.Rectangle(
             (screenWidth - width * scale) * 0.5f,
             (screenHeight - height * scale) * 0.5f,

@@ -989,6 +989,7 @@ public sealed class Graphics
 
         var matrix = GetMatrix();
         Rlgl.PushMatrix();
+        Rlgl.Scalef(_buffer.Scale, _buffer.Scale, 1);
         if (camera is not null)
         {
             var cameraMatrix = camera.Matrix;

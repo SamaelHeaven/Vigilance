@@ -17,6 +17,7 @@ public sealed class GameConfig
     public Vector2 ScreenSize { get; set; } = Vector2.Zero;
     public Vector2? MinSize { get; set; } = null;
     public Vector2? MaxSize { get; set; } = null;
+    public float Scale { get; set; } = 1.0f;
     public int FpsTarget { get; set; } = 0;
     public bool Fullscreen { get; set; } = false;
     public bool Maximized { get; set; } = false;

@@ -112,6 +112,8 @@ public sealed partial class Game
         }
     }
 
+    public static float Scale => MathF.Max(1, GetGame()._config.Scale);
+
     public static Scene Scene
     {
         get => GetGame()._scene;
