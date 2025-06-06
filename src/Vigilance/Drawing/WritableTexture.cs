@@ -24,17 +24,17 @@ public sealed class WritableTexture
     public Graphics Graphics { get; }
     public float Scale { get; }
 
-    public int Width => RenderTexture2D.Texture.Width;
+    public float Width => RenderTexture2D.Texture.Width / Scale;
 
-    public int Height => RenderTexture2D.Texture.Height;
+    public float Height => RenderTexture2D.Texture.Height / Scale;
 
     public Vector2 Size => new(Width, Height);
 
-    public float UnscaledWidth => Width / Scale;
+    public int ScaledWidth => RenderTexture2D.Texture.Width;
 
-    public float UnscaledHeight => Height / Scale;
+    public int ScaledHeight => RenderTexture2D.Texture.Height;
 
-    public Vector2 UnscaledSize => new(UnscaledWidth, UnscaledHeight);
+    public Vector2 ScaledSize => new(ScaledWidth, ScaledHeight);
 
     public void Update(ReadOnlySpan<Color> pixels)
     {

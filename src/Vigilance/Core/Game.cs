@@ -48,9 +48,9 @@ public sealed partial class Game
         }
     }
 
-    public static int Width => (int)GetGame()._config.Size.X;
+    public static float Width => GetGame()._config.Size.X;
 
-    public static int Height => (int)GetGame()._config.Size.Y;
+    public static float Height => GetGame()._config.Size.Y;
 
     public static Vector2 Size => new(Width, Height);
 
