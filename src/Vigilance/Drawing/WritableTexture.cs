@@ -48,6 +48,18 @@ public sealed class WritableTexture
         return writableTexture.Texture;
     }
 
+    public Image ToImage(Interpolation? interpolation = null)
+    {
+        var image = Texture.ToImage();
+        image.Resize(Width, Height, interpolation);
+        return image;
+    }
+
+    public Image ToScaledImage()
+    {
+        return Texture.ToImage();
+    }
+
     ~WritableTexture()
     {
         Game.Defer(() =>

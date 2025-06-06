@@ -59,12 +59,11 @@ public sealed class Texture
 
     public bool Writable => _owner is WritableTexture;
 
-    public Image ToImage(Interpolation? interpolation = null)
+    public Image ToImage()
     {
         var buffer = Graphics.CurrentBuffer;
         if (_owner is not null && buffer == _owner)
             Rlgl.DrawRenderBatchActive();
-        Raylib.SetTextureFilter(Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         var image = Raylib.LoadImageFromTexture(Texture2D);
         if (Writable)
             Raylib.ImageFlipVertical(ref image);
@@ -73,7 +72,7 @@ public sealed class Texture
 
     public Texture Copy()
     {
-        var image = ToImage(Interpolation.Nearest);
+        var image = ToImage();
         return image.ToTexture();
     }
 

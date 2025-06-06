@@ -24,10 +24,13 @@ public sealed class Image
         }
     }
 
-    public Image(int width, int height, Color? color = null)
+    public Image(Vector2 size, Color? color = null)
+        : this(size.X, size.Y, color) { }
+
+    public Image(float width, float height, Color? color = null)
     {
         Game.EnsureRunning();
-        RImage = Raylib.GenImageColor(width, height, (color ?? Color.Transparent).RColor);
+        RImage = Raylib.GenImageColor((int)width, (int)height, (color ?? Color.Transparent).RColor);
     }
 
     public int Width => RImage.Width;
@@ -98,8 +101,12 @@ public sealed class Image
 
     public Image Crop(float x, float y, float width, float height)
     {
-        Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(x, y, width, height));
-        return this;
+        return Crop(new Vector2(x, y), new Vector2(width, height));
+    }
+
+    public Image Crop(Box box)
+    {
+        return Crop(box.Position, box.Size);
     }
 
     public Image Crop(Vector2 position, Vector2 size)
@@ -108,9 +115,23 @@ public sealed class Image
         return this;
     }
 
-    public Image Crop(Box box)
+    public Image Resize(float width, float height, Interpolation? interpolation = null)
     {
-        Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(box.X, box.Y, box.Width, box.Height));
+        return Resize(new Vector2(width, height), interpolation);
+    }
+
+    public Image Resize(Vector2 size, Interpolation? interpolation = null)
+    {
+        switch (interpolation ?? Game.DefaultInterpolation)
+        {
+            case Interpolation.Nearest:
+                Raylib.ImageResizeNN(ref RImage, (int)size.X, (int)size.Y);
+                break;
+            default:
+                Raylib.ImageResize(ref RImage, (int)size.X, (int)size.Y);
+                break;
+        }
+
         return this;
     }
 

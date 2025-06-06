@@ -8,7 +8,6 @@ using Vigilance.Input;
 using Vigilance.Logging;
 using Vigilance.Math;
 using Font = Vigilance.Drawing.Font;
-using Image = Vigilance.Drawing.Image;
 using Music = Vigilance.Audio.Music;
 using Sound = Vigilance.Audio.Sound;
 
@@ -256,12 +255,6 @@ public sealed partial class Game
     }
 
     internal static GetSystemsDelegate Systems => GetGame()._config.Systems;
-
-    public static Image Screenshot()
-    {
-        EnsureRunning();
-        return Renderer.Buffer.Texture.ToImage();
-    }
 
     public static void OpenUrl(string url)
     {
