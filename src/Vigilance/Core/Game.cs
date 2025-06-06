@@ -473,9 +473,7 @@ public sealed partial class Game
 
         while (!Raylib.WindowShouldClose() && !_quit)
             Frame();
-        Raylib.CloseAudioDevice();
-        Raylib.CloseWindow();
-        Environment.Exit(0);
+        Dispose();
     }
 
     private void Frame()
@@ -530,6 +528,14 @@ public sealed partial class Game
         if (_config.Vsync)
             flags |= ConfigFlags.VSyncHint;
         return flags;
+    }
+
+    private void Dispose()
+    {
+        _config.QuitAction?.Invoke();
+        Raylib.CloseAudioDevice();
+        Raylib.CloseWindow();
+        Environment.Exit(0);
     }
 
     // ReSharper disable once UseCollectionExpression
