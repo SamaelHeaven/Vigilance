@@ -22,8 +22,10 @@ public sealed class GameConfig
     public bool Maximized { get; set; } = false;
     public bool Decorated { get; set; } = true;
     public bool Vsync { get; set; } = true;
+    public bool Msaa4X { get; set; } = true;
     public bool Resizable { get; set; } = true;
     public bool Debug { get; set; } = false;
+    public bool RunMinimized { get; set; } = true;
     public float MasterVolume { get; set; } = 1;
     public CacheType DefaultAssetCacheType { get; set; } = CacheType.Weak;
     public ILogger? Logger { get; set; } = new ConsoleLogger();
