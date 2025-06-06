@@ -34,9 +34,9 @@ public sealed class Renderer
         var renderer = GetRenderer();
         var screenWidth = (float)Game.ScreenWidth;
         var screenHeight = (float)Game.ScreenHeight;
+        var width = Game.Width;
+        var height = Game.Height;
         var texture = renderer._buffer.RenderTexture2D.Texture;
-        var width = renderer._buffer.Width;
-        var height = renderer._buffer.Height;
         var scale = MathF.Min(screenWidth / width, screenHeight / height);
         var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
         var dest = new Raylib_cs.Rectangle(
