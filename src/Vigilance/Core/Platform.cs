@@ -2,17 +2,19 @@ namespace Vigilance.Core;
 
 public enum Platform
 {
+    Unknown,
     Desktop,
     Web,
-    Unknown,
 }
 
 public static class PlatformExtensions
 {
     public static bool IsCurrent(this Platform platform)
     {
+        if (OperatingSystem.IsBrowser())
+            return platform == Platform.Web;
         if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
             return platform == Platform.Desktop;
-        return platform == (OperatingSystem.IsBrowser() ? Platform.Web : Platform.Unknown);
+        return platform == Platform.Unknown;
     }
 }
