@@ -5,7 +5,9 @@ namespace Vigilance.Core;
 public sealed class Time
 {
     public const float FixedDeltaSeconds = 1 / 60f;
+    private const int FpsHistorySize = 200;
     private static Time? _time;
+    private readonly Queue<float> _fpsHistory;
     private TimeSpan _delta;
     private TimeSpan _last;
     private float _scale;
@@ -15,6 +17,7 @@ public sealed class Time
         Game.EnsureRunning();
         _delta = TimeSpan.Zero;
         _last = TimeSpan.FromSeconds(Raylib.GetTime());
+        _fpsHistory = new Queue<float>(FpsHistorySize);
         _scale = 1;
     }
 
@@ -58,6 +61,15 @@ public sealed class Time
         }
     }
 
+    public static float AverageFps
+    {
+        get
+        {
+            var time = GetTime();
+            return time._fpsHistory.Count == 0 ? 0 : time._fpsHistory.Average();
+        }
+    }
+
     public static TimeSpan Elapsed
     {
         get
@@ -73,6 +85,9 @@ public sealed class Time
         var elapsed = Elapsed;
         time._delta = elapsed - time._last;
         time._last = elapsed;
+        time._fpsHistory.Enqueue(CurrentFps);
+        if (time._fpsHistory.Count > FpsHistorySize)
+            time._fpsHistory.Dequeue();
         var fpsTarget = Game.FpsTarget;
         var target = fpsTarget < 1 ? 0 : 1.0 / fpsTarget;
         var wait = target - (elapsed - time._last).TotalSeconds;
