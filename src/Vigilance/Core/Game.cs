@@ -415,7 +415,7 @@ public sealed partial class Game
         {
             _config.Logger = null;
             Raylib.SetTraceLogCallback(null);
-            Log(LogLevel.Warn, "Failed to initialize custom logging");
+            Log(LogLevel.Warning, "Failed to initialize custom logging");
             Log(message);
         }
     }

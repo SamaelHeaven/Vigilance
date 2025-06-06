@@ -8,7 +8,7 @@ public enum LogLevel
     Trace = TraceLogLevel.Trace,
     Debug = TraceLogLevel.Debug,
     Info = TraceLogLevel.Info,
-    Warn = TraceLogLevel.Warning,
+    Warning = TraceLogLevel.Warning,
     Error = TraceLogLevel.Error,
     Fatal = TraceLogLevel.Fatal,
     None = TraceLogLevel.None,
@@ -22,7 +22,7 @@ public static class LogLevelExtensions
         {
             LogLevel.Debug => ConsoleColor.Cyan,
             LogLevel.Info => ConsoleColor.Green,
-            LogLevel.Warn => ConsoleColor.Yellow,
+            LogLevel.Warning => ConsoleColor.Yellow,
             LogLevel.Error => ConsoleColor.Red,
             LogLevel.Fatal => ConsoleColor.DarkRed,
             _ => null,
