@@ -23,7 +23,6 @@ public sealed class GameConfig
     public bool Maximized { get; set; } = false;
     public bool Decorated { get; set; } = true;
     public bool Vsync { get; set; } = true;
-    public bool Msaa4X { get; set; } = true;
     public bool Resizable { get; set; } = true;
     public bool Debug { get; set; } = false;
     public bool RunMinimized { get; set; } = true;

@@ -523,8 +523,6 @@ public sealed partial class Game
     private ConfigFlags GetConfigFlags()
     {
         ConfigFlags flags = 0;
-        if (_config.Msaa4X)
-            flags |= ConfigFlags.Msaa4xHint;
         if (_config.Resizable)
             flags |= ConfigFlags.ResizableWindow;
         if (!_config.Decorated)
