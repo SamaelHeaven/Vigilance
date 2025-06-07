@@ -10,7 +10,7 @@ public sealed unsafe class Font
 {
     private static readonly FreeTypeLibrary FtLibrary = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
-    private readonly Dictionary<int, (Texture2D Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
+    private readonly Dictionary<int, (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
     private nint _buffer;
     private FT_FaceRec_* _face;
     private int _spaceSize;
@@ -27,7 +27,7 @@ public sealed unsafe class Font
 
     public string Charset { get; }
     public int Quality { get; }
-    internal Texture2D Atlas { get; }
+    public Texture Atlas { get; }
 
     public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)
     {
@@ -43,6 +43,23 @@ public sealed unsafe class Font
             (spacingX, spacingY)
         );
         return size;
+    }
+
+    public Texture GetStrokeAtlas(int strokeWidth)
+    {
+        var stroke = GetStroke(strokeWidth);
+        return stroke.Atlas;
+    }
+
+    public GlyphInfo GetGlyphInfo(char c)
+    {
+        return _glyphInfos[c];
+    }
+
+    public GlyphInfo GetStrokeGlyphInfo(char c, int strokeWidth)
+    {
+        var stroke = GetStroke(strokeWidth);
+        return stroke.GlyphInfos[c];
     }
 
     internal void HandleText(
@@ -103,7 +120,7 @@ public sealed unsafe class Font
         return Charset.Select(c => LoadGlyph(c, false)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
     }
 
-    private Texture2D DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
+    private Texture DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
     {
         const int spacing = 2;
         const int nbCols = 10;
@@ -164,7 +181,7 @@ public sealed unsafe class Font
                 Mipmaps = 1,
             };
             result.Id = Rlgl.LoadTexture(pixelsBuffer, result.Width, result.Height, result.Format, result.Mipmaps);
-            return result;
+            return new Texture(result);
         }
     }
 
@@ -205,7 +222,7 @@ public sealed unsafe class Font
         );
     }
 
-    internal (Texture2D Atlas, Dictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
+    internal (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
     {
         strokeWidth = System.Math.Clamp(strokeWidth, 0, 50);
         if (_strokes.TryGetValue(strokeWidth, out var stroke))
@@ -238,9 +255,6 @@ public sealed unsafe class Font
             FT.FT_Stroker_Done(_stroker);
             FT.FT_Done_Face(_face);
             Marshal.FreeHGlobal(_buffer);
-            Raylib.UnloadTexture(Atlas);
-            foreach (var (_, (atlas, _)) in _strokes)
-                Raylib.UnloadTexture(atlas);
         });
     }
 

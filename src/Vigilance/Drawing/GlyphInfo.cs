@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-internal readonly struct GlyphInfo(int x, int y, int width, int height, int advance, int offsetX, int offsetY)
+public readonly struct GlyphInfo(int x, int y, int width, int height, int advance, int offsetX, int offsetY)
 {
     public readonly int X = x;
     public readonly int Y = y;

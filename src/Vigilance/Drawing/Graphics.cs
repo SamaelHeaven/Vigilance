@@ -693,14 +693,14 @@ public sealed class Graphics
         if (text == "" || color == Color.Transparent)
             return;
         font ??= Game.DefaultFont;
-        Raylib.SetTextureFilter(font.Atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
+        Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDrawing(camera);
         var rColor = color.RColor;
         font.HandleText(
             (sourcePosition, sourceSize, destPosition, destSize) =>
             {
                 Raylib.DrawTexturePro(
-                    font.Atlas,
+                    font.Atlas.Texture2D,
                     new Raylib_cs.Rectangle(sourcePosition, sourceSize),
                     new Raylib_cs.Rectangle(destPosition + position, destSize),
                     new Vector2(),
@@ -747,14 +747,14 @@ public sealed class Graphics
             return;
         font ??= Game.DefaultFont;
         var (atlas, glyphInfos) = font.GetStroke((int)MathF.Round(strokeWidth));
-        Raylib.SetTextureFilter(atlas, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
+        Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDrawing(camera);
         var rColor = color.RColor;
         font.HandleText(
             (sourcePosition, sourceSize, destPosition, destSize) =>
             {
                 Raylib.DrawTexturePro(
-                    atlas,
+                    atlas.Texture2D,
                     new Raylib_cs.Rectangle(sourcePosition, sourceSize),
                     new Raylib_cs.Rectangle(destPosition + position, destSize),
                     new Vector2(),
