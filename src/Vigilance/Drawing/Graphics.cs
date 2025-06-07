@@ -616,19 +616,19 @@ public sealed class Graphics
         float endX,
         float endY,
         Color color,
-        float thickness = 1,
+        float thick = 1,
         Camera? camera = null
     )
     {
-        DrawLine(new Vector2(startX, startY), new Vector2(endX, endY), color, thickness, camera);
+        DrawLine(new Vector2(startX, startY), new Vector2(endX, endY), color, thick, camera);
     }
 
-    public void DrawLine(Vector2 start, Vector2 end, Color color, float thickness = 1, Camera? camera = null)
+    public void DrawLine(Vector2 start, Vector2 end, Color color, float thick = 1, Camera? camera = null)
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || thick <= 0)
             return;
         BeginDrawing(camera);
-        Raylib.DrawLineEx(start, end, thickness, color.RColor);
+        Raylib.DrawLineEx(start, end, thick, color.RColor);
         EndDrawing();
     }
 
@@ -639,11 +639,11 @@ public sealed class Graphics
         var start = line.Start + position;
         var end = line.End + position;
         var color = line.Color;
-        var thickness = line.Thickness;
+        var thick = line.Thick;
         var scale = (MathF.Abs(transform.Scale.X) + MathF.Abs(transform.Scale.Y)) * 0.5f;
         PushMatrix();
         Transform(transform, false);
-        DrawLine(start, end, color, thickness * scale, camera);
+        DrawLine(start, end, color, thick * scale, camera);
         PopMatrix();
     }
 
@@ -893,16 +893,16 @@ public sealed class Graphics
         float height,
         float cellSize,
         Color color,
-        float thickness = 1,
+        float thick = 1,
         Camera? camera = null
     )
     {
-        DrawGrid(new Vector2(x, y), new Vector2(width, height), cellSize, color, thickness, camera);
+        DrawGrid(new Vector2(x, y), new Vector2(width, height), cellSize, color, thick, camera);
     }
 
-    public void DrawGrid(Box box, float cellSize, Color color, float thickness = 1, Camera? camera = null)
+    public void DrawGrid(Box box, float cellSize, Color color, float thick = 1, Camera? camera = null)
     {
-        DrawGrid(box.Position, box.Size, cellSize, color, thickness, camera);
+        DrawGrid(box.Position, box.Size, cellSize, color, thick, camera);
     }
 
     public void DrawGrid(
@@ -910,15 +910,17 @@ public sealed class Graphics
         Vector2 size,
         float cellSize,
         Color color,
-        float thickness = 1,
+        float thick = 1,
         Camera? camera = null
     )
     {
+        if (color == Color.Transparent || thick <= 0)
+            return;
         BeginDrawing(camera);
         for (var x = position.X; x <= position.X + size.X; x += cellSize)
-            Raylib.DrawLineEx(new Vector2(x, position.Y), new Vector2(x, position.Y + size.Y), thickness, color.RColor);
+            Raylib.DrawLineEx(new Vector2(x, position.Y), new Vector2(x, position.Y + size.Y), thick, color.RColor);
         for (var y = position.Y; y <= position.Y + size.Y; y += cellSize)
-            Raylib.DrawLineEx(new Vector2(position.X, y), new Vector2(position.X + size.X, y), thickness, color.RColor);
+            Raylib.DrawLineEx(new Vector2(position.X, y), new Vector2(position.X + size.X, y), thick, color.RColor);
         EndDrawing();
     }
 
@@ -927,13 +929,188 @@ public sealed class Graphics
         var camera = grid.Camera?.Invoke();
         var color = grid.Color;
         var cellSize = grid.CellSize;
-        var thickness = grid.Thickness;
+        var thick = grid.Thick;
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         PushMatrix();
         Transform(transform, true);
-        DrawGrid(position, scale, cellSize, color, thickness, camera);
+        DrawGrid(position, scale, cellSize, color, thick, camera);
         PopMatrix();
+    }
+
+    #endregion
+
+    #region Spline
+
+    public unsafe void DrawSplineLinear(
+        IReadOnlyList<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        var count = points.Count;
+        if (color == Color.Transparent || count < 2 || thick <= 0)
+            return;
+        BeginDrawing(camera);
+        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        {
+            Raylib.DrawSplineLinear((System.Numerics.Vector2*)pointsBuffer, count, thick, color.RColor);
+        }
+
+        EndDrawing();
+    }
+
+    public unsafe void DrawSplineBasis(
+        IReadOnlyList<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        var count = points.Count;
+        if (color == Color.Transparent || count < 4 || thick <= 0)
+            return;
+        BeginDrawing(camera);
+        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        {
+            Raylib.DrawSplineBasis((System.Numerics.Vector2*)pointsBuffer, count, thick, color.RColor);
+        }
+
+        EndDrawing();
+    }
+
+    public unsafe void DrawSplineCatmullRom(
+        IReadOnlyList<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        var count = points.Count;
+        if (color == Color.Transparent || count < 4 || thick <= 0)
+            return;
+        BeginDrawing(camera);
+        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        {
+            Raylib.DrawSplineCatmullRom((System.Numerics.Vector2*)pointsBuffer, count, thick, color.RColor);
+        }
+
+        EndDrawing();
+    }
+
+    public unsafe void DrawSplineBezierQuadratic(
+        IReadOnlyList<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        var count = points.Count;
+        if (color == Color.Transparent || count < 3 || thick <= 0)
+            return;
+        BeginDrawing(camera);
+        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        {
+            Raylib.DrawSplineBezierQuadratic((System.Numerics.Vector2*)pointsBuffer, count, thick, color.RColor);
+        }
+
+        EndDrawing();
+    }
+
+    public unsafe void DrawSplineBezierCubic(
+        IReadOnlyList<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        var count = points.Count;
+        if (color == Color.Transparent || count < 4 || thick <= 0)
+            return;
+        BeginDrawing(camera);
+        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        {
+            Raylib.DrawSplineBezierCubic((System.Numerics.Vector2*)pointsBuffer, count, thick, color.RColor);
+        }
+
+        EndDrawing();
+    }
+
+    public void DrawSplineSegmentLinear(Vector2 p1, Vector2 p2, Color color, float thick = 1, Camera? camera = null)
+    {
+        if (color == Color.Transparent || thick <= 0)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawSplineSegmentLinear(p1, p2, thick, color.RColor);
+        EndDrawing();
+    }
+
+    public void DrawSplineSegmentBasis(
+        Vector2 p1,
+        Vector2 p2,
+        Vector2 p3,
+        Vector2 p4,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || thick <= 0)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawSplineSegmentBasis(p1, p2, p3, p4, thick, color.RColor);
+        EndDrawing();
+    }
+
+    public void DrawSplineSegmentCatmullRom(
+        Vector2 p1,
+        Vector2 p2,
+        Vector2 p3,
+        Vector2 p4,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || thick <= 0)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawSplineSegmentCatmullRom(p1, p2, p3, p4, thick, color.RColor);
+        EndDrawing();
+    }
+
+    public void DrawSplineSegmentCatmullRom(
+        Vector2 p1,
+        Vector2 p2,
+        Vector2 p3,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || thick <= 0)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawSplineSegmentBezierQuadratic(p1, p2, p3, thick, color.RColor);
+        EndDrawing();
+    }
+
+    public void DrawSplineSegmentBezierCubic(
+        Vector2 p1,
+        Vector2 p2,
+        Vector2 p3,
+        Vector2 p4,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || thick <= 0)
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawSplineSegmentBezierCubic(p1, p2, p3, p4, thick, color.RColor);
+        EndDrawing();
     }
 
     #endregion

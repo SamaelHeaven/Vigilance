@@ -12,7 +12,7 @@ public sealed class Grid
     }
 
     public float CellSize { get; set; }
-    public float Thickness { get; set; } = 1;
+    public float Thick { get; set; } = 1;
     public Color Color { get; set; } = Color.Transparent;
     public GetCameraDelegate? Camera { get; set; } = Core.Camera.DefaultDelegate;
 }
