@@ -124,6 +124,19 @@ public sealed class Graphics
         Rotate(rotation, pivotPoint);
     }
 
+    public void Pivot(Transform transform, bool translate)
+    {
+        var position = transform.Position;
+        var scale = transform.Scale.Abs();
+        var pivotPoint = transform.PivotPoint;
+        var rotation = transform.Rotation;
+        var positionOffset = -(scale * 0.5f);
+        var rotationOffset = position + pivotPoint;
+        Rotate(rotation, rotationOffset);
+        if (translate)
+            Translate(positionOffset);
+    }
+
     #endregion
 
     #region Clip
@@ -294,7 +307,7 @@ public sealed class Graphics
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         PushMatrix();
-        Transform(transform, true);
+        Pivot(transform, true);
         if (roundness > 0)
         {
             FillRoundedRectangle(position, scale, fill, roundness, camera);
@@ -350,7 +363,7 @@ public sealed class Graphics
         var position = transform.Position;
         var scale = transform.Scale;
         PushMatrix();
-        Transform(transform, false);
+        Pivot(transform, false);
         var radius = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.25f;
         FillCircle(position, radius, fill, camera);
         StrokeCircle(position, radius, stroke, strokeWidth, camera);
@@ -450,7 +463,7 @@ public sealed class Graphics
         var position = transform.Position;
         var scale = transform.Scale;
         PushMatrix();
-        Transform(transform, false);
+        Pivot(transform, false);
         var radius = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.25f;
         FillRegularPolygon(position, sides, radius, fill, camera);
         StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
@@ -501,7 +514,7 @@ public sealed class Graphics
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
         PushMatrix();
-        Transform(transform, false);
+        Pivot(transform, false);
         FillCustomPolygon(points, fill, camera);
         StrokeCustomPolygon(points, stroke, strokeWidth, camera);
         PopMatrix();
@@ -600,7 +613,7 @@ public sealed class Graphics
         var innerRadius = ring.InnerRadius * scale;
         var outerRadius = ring.OuterRadius * scale;
         PushMatrix();
-        Transform(transform, false);
+        Pivot(transform, false);
         FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
         StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, camera);
         PopMatrix();
@@ -642,7 +655,7 @@ public sealed class Graphics
         var thick = line.Thick;
         var scale = (MathF.Abs(transform.Scale.X) + MathF.Abs(transform.Scale.Y)) * 0.5f;
         PushMatrix();
-        Transform(transform, false);
+        Pivot(transform, false);
         DrawLine(start, end, color, thick * scale, camera);
         PopMatrix();
     }
@@ -773,7 +786,7 @@ public sealed class Graphics
         PushMatrix();
         fontSize *= (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.5f;
         transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
-        Transform(transform, true);
+        Pivot(transform, true);
         FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
         StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
         PopMatrix();
@@ -877,7 +890,7 @@ public sealed class Graphics
         if (flipY)
             source.Height = -source.Height;
         PushMatrix();
-        Transform(transform, true);
+        Pivot(transform, true);
         DrawTexture(texture, source, new Box(position, scale), tint, interpolation, camera);
         PopMatrix();
     }
@@ -933,7 +946,7 @@ public sealed class Graphics
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         PushMatrix();
-        Transform(transform, true);
+        Pivot(transform, true);
         DrawGrid(position, scale, cellSize, color, thick, camera);
         PopMatrix();
     }
@@ -1138,6 +1151,13 @@ public sealed class Graphics
         EndDrawing();
     }
 
+    public void Draw(Action action, Camera? camera = null)
+    {
+        BeginDrawing(camera);
+        action.Invoke();
+        EndDrawing();
+    }
+
     #endregion
 
     #region Internal
@@ -1179,19 +1199,6 @@ public sealed class Graphics
     private static void EndDrawing()
     {
         Rlgl.PopMatrix();
-    }
-
-    private void Transform(Transform transform, bool translate)
-    {
-        var position = transform.Position;
-        var scale = transform.Scale.Abs();
-        var pivotPoint = transform.PivotPoint;
-        var rotation = transform.Rotation;
-        var positionOffset = -(scale * 0.5f);
-        var rotationOffset = position + pivotPoint;
-        Rotate(rotation, rotationOffset);
-        if (translate)
-            Translate(positionOffset);
     }
 
     #endregion
