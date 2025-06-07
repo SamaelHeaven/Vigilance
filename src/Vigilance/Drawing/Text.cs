@@ -13,7 +13,7 @@ public sealed class Text
     }
 
     public string Value { get; set; } = "";
-    public Color Fill { get; set; } = Color.Transparent;
+    public Color Fill { get; set; } = Color.White;
     public Color Stroke { get; set; } = Color.Transparent;
     public Font Font { get; set; } = Game.DefaultFont;
     public float FontSize { get; set; } = Game.DefaultFontSize;

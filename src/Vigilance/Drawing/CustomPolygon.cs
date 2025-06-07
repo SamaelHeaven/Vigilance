@@ -13,7 +13,7 @@ public sealed class CustomPolygon
     }
 
     public IReadOnlyList<Vector2> Points { get; set; } = Array.Empty<Vector2>();
-    public Color Fill { get; set; } = Color.Transparent;
+    public Color Fill { get; set; } = Color.White;
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
     public GetCameraDelegate? Camera { get; set; } = Core.Camera.DefaultDelegate;
