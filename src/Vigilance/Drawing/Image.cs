@@ -4,7 +4,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class Image
+public sealed unsafe class Image
 {
     internal Raylib_cs.Image RImage;
 
@@ -14,7 +14,7 @@ public sealed class Image
         RImage = image;
     }
 
-    public unsafe Image(string fileType, ReadOnlySpan<byte> bytes)
+    public Image(string fileType, ReadOnlySpan<byte> bytes)
     {
         Game.EnsureRunning();
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
@@ -39,7 +39,7 @@ public sealed class Image
 
     public Vector2 Size => new(Width, Height);
 
-    public unsafe bool IsValid => RImage.Data is not null;
+    public bool IsValid => RImage.Data is not null;
 
     public ImageFormat Format
     {
@@ -57,7 +57,7 @@ public sealed class Image
         return new Image(Raylib.ImageCopy(RImage));
     }
 
-    public unsafe Color[] GetPixels()
+    public Color[] GetPixels()
     {
         var colors = Raylib.LoadImageColors(RImage);
         var pixels = new Color[Width * Height];

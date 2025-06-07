@@ -7,7 +7,7 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Drawing;
 
-public sealed class Graphics
+public sealed unsafe class Graphics
 {
     internal static WritableTexture? CurrentBuffer = null;
     internal static Box? CurrentClip = null;
@@ -470,7 +470,7 @@ public sealed class Graphics
         PopMatrix();
     }
 
-    public unsafe void FillCustomPolygon(IReadOnlyList<Vector2> points, Color color, Camera? camera = null)
+    public void FillCustomPolygon(IReadOnlyList<Vector2> points, Color color, Camera? camera = null)
     {
         if (color == Color.Transparent || points.Count < 3)
             return;
@@ -955,12 +955,7 @@ public sealed class Graphics
 
     #region Spline
 
-    public unsafe void DrawSplineLinear(
-        IReadOnlyList<Vector2> points,
-        Color color,
-        float thick = 1,
-        Camera? camera = null
-    )
+    public void DrawSplineLinear(IReadOnlyList<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
         var count = points.Count;
         if (color == Color.Transparent || count < 2 || thick <= 0)
@@ -974,12 +969,7 @@ public sealed class Graphics
         EndDrawing();
     }
 
-    public unsafe void DrawSplineBasis(
-        IReadOnlyList<Vector2> points,
-        Color color,
-        float thick = 1,
-        Camera? camera = null
-    )
+    public void DrawSplineBasis(IReadOnlyList<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
         var count = points.Count;
         if (color == Color.Transparent || count < 4 || thick <= 0)
@@ -993,12 +983,7 @@ public sealed class Graphics
         EndDrawing();
     }
 
-    public unsafe void DrawSplineCatmullRom(
-        IReadOnlyList<Vector2> points,
-        Color color,
-        float thick = 1,
-        Camera? camera = null
-    )
+    public void DrawSplineCatmullRom(IReadOnlyList<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
         var count = points.Count;
         if (color == Color.Transparent || count < 4 || thick <= 0)
@@ -1012,7 +997,7 @@ public sealed class Graphics
         EndDrawing();
     }
 
-    public unsafe void DrawSplineBezierQuadratic(
+    public void DrawSplineBezierQuadratic(
         IReadOnlyList<Vector2> points,
         Color color,
         float thick = 1,
@@ -1031,7 +1016,7 @@ public sealed class Graphics
         EndDrawing();
     }
 
-    public unsafe void DrawSplineBezierCubic(
+    public void DrawSplineBezierCubic(
         IReadOnlyList<Vector2> points,
         Color color,
         float thick = 1,
@@ -1162,7 +1147,7 @@ public sealed class Graphics
 
     #region Internal
 
-    private unsafe void BeginDrawing(Camera? camera = null)
+    private void BeginDrawing(Camera? camera = null)
     {
         if (CurrentBuffer != _buffer)
         {

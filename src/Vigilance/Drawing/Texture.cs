@@ -4,7 +4,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class Texture
+public sealed unsafe class Texture
 {
     private static Texture? _empty;
     private readonly object? _owner;
@@ -17,7 +17,7 @@ public sealed class Texture
         _owner = owner;
     }
 
-    public unsafe Texture(string fileType, ReadOnlySpan<byte> bytes)
+    public Texture(string fileType, ReadOnlySpan<byte> bytes)
     {
         Game.EnsureRunning();
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
@@ -29,7 +29,7 @@ public sealed class Texture
         }
     }
 
-    public unsafe Texture(ReadOnlySpan<Color> pixels, int width, int height)
+    public Texture(ReadOnlySpan<Color> pixels, int width, int height)
     {
         Game.EnsureRunning();
         if (pixels.Length != width * height)

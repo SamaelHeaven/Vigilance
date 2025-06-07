@@ -13,7 +13,7 @@ using Sound = Vigilance.Audio.Sound;
 
 namespace Vigilance.Core;
 
-public sealed partial class Game
+public sealed unsafe class Game
 {
     private static Game? _game;
     private readonly ConcurrentStack<Action> _actions = [];
@@ -394,7 +394,7 @@ public sealed partial class Game
         CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
     }
 
-    private unsafe void InitializeLogging()
+    private void InitializeLogging()
     {
         var engine = Assemblies.Engine.GetName();
         var message = $"Initializing {engine.Name} {engine.Version}";
@@ -458,11 +458,11 @@ public sealed partial class Game
         thread.Join();
     }
 
-    private unsafe void Loop()
+    private void Loop()
     {
         if (Platform.Web.IsCurrent())
         {
-            emscripten_set_main_loop(&UnmanagedFrame, 0, 1);
+            Emscripten.SetMainLoop(&UnmanagedFrame, 0, 1);
             return;
         }
 
@@ -544,16 +544,9 @@ public sealed partial class Game
 
     // ReSharper disable once UseCollectionExpression
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static unsafe void UnmanagedLog(int logLevel, sbyte* format, sbyte* args)
+    private static void UnmanagedLog(int logLevel, sbyte* format, sbyte* args)
     {
         var message = Raylib_cs.Logging.GetLogMessage((nint)format, (nint)args);
         Log((LogLevel)logLevel, message);
     }
-
-    [LibraryImport("libc")]
-    private static unsafe partial void emscripten_set_main_loop(
-        delegate* unmanaged[Cdecl]<void> func,
-        int fps,
-        sbyte simulateInfiniteLoop
-    );
 }

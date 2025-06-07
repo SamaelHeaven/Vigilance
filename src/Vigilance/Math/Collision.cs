@@ -2,7 +2,7 @@ using Raylib_cs;
 
 namespace Vigilance.Math;
 
-public static class Collision
+public static unsafe class Collision
 {
     public static bool CheckBoxes(Box box1, Box box2)
     {
@@ -60,7 +60,7 @@ public static class Collision
         return Raylib.CheckCollisionPointLine(point, start, end, threshold);
     }
 
-    public static unsafe bool CheckPointPolygon(Vector2 point, IReadOnlyList<Vector2> polygon)
+    public static bool CheckPointPolygon(Vector2 point, IReadOnlyList<Vector2> polygon)
     {
         fixed (Vector2* polygonBuffer = polygon as Vector2[] ?? polygon.ToArray())
         {
@@ -73,7 +73,7 @@ public static class Collision
         return CheckLines(start1, end1, start2, end2, out _);
     }
 
-    public static unsafe bool CheckLines(
+    public static bool CheckLines(
         Vector2 start1,
         Vector2 end1,
         Vector2 start2,
