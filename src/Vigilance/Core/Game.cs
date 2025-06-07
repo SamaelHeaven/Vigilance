@@ -535,14 +535,12 @@ public sealed unsafe class Game
         Environment.Exit(0);
     }
 
-    // ReSharper disable once UseCollectionExpression
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static void UnmanagedFrame()
     {
         GetGame().Frame();
     }
 
-    // ReSharper disable once UseCollectionExpression
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static void UnmanagedLog(int logLevel, sbyte* format, sbyte* args)
     {

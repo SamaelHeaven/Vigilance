@@ -49,7 +49,6 @@ public sealed unsafe class Scene
 
     public bool Initialized { get; private set; }
 
-    // ReSharper disable once UseCollectionExpression
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
     {
