@@ -27,6 +27,7 @@ public sealed unsafe class Font
 
     public string Charset { get; }
     public int Quality { get; }
+    public IReadOnlyDictionary<char, GlyphInfo> GlyphInfos => _glyphInfos.AsReadOnly();
     public Texture Atlas { get; }
 
     public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)
@@ -34,9 +35,9 @@ public sealed unsafe class Font
         var (spacingX, spacingY) = spacing ?? Game.DefaultTextSpacing;
         var size = new Vector2(0, fontSize + text.Count(c => c == '\n') * (fontSize + spacingY));
         HandleText(
-            (_, _, destPosition, destSize) =>
+            info =>
             {
-                size.X = MathF.Max(size.X, destPosition.X + destSize.X);
+                size.X = MathF.Max(size.X, info.Dest.Position.X + info.Dest.Size.X);
             },
             text,
             fontSize,
@@ -62,12 +63,29 @@ public sealed unsafe class Font
         return stroke.GlyphInfos[c];
     }
 
-    internal void HandleText(
-        Action<Vector2, Vector2, Vector2, Vector2> action,
+    public IReadOnlyDictionary<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
+    {
+        var stroke = GetStroke(strokeWidth);
+        return stroke.GlyphInfos.AsReadOnly();
+    }
+
+    public void HandleText(
+        Action<(Box Source, Box Dest)> action,
+        string text,
+        float? fontSize,
+        Vector2? spacing,
+        IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
+    )
+    {
+        HandleText(action, text, fontSize ?? Game.DefaultFontSize, spacing ?? Game.DefaultTextSpacing, glyphInfos);
+    }
+
+    public void HandleText(
+        Action<(Box Source, Box Dest)> action,
         string text,
         float fontSize,
         Vector2 spacing,
-        Dictionary<char, GlyphInfo>? glyphInfos = null
+        IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
         var aspectRatio = Quality / fontSize;
@@ -91,7 +109,7 @@ public sealed unsafe class Font
             var sourceSize = new Vector2(glyph.Width, glyph.Height);
             var destPosition = position + new Vector2(glyph.OffsetX, glyph.OffsetY) / aspectRatio;
             var destSize = sourceSize / aspectRatio;
-            action.Invoke(sourcePosition, sourceSize, destPosition, destSize);
+            action.Invoke((new Box(sourcePosition, sourceSize), new Box(destPosition, destSize)));
             position.X += glyph.Advance / aspectRatio + spacing.X;
         }
     }

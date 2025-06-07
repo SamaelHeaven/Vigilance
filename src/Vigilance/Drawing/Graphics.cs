@@ -697,20 +697,20 @@ public sealed class Graphics
         BeginDrawing(camera);
         var rColor = color.RColor;
         font.HandleText(
-            (sourcePosition, sourceSize, destPosition, destSize) =>
+            info =>
             {
                 Raylib.DrawTexturePro(
                     font.Atlas.Texture2D,
-                    new Raylib_cs.Rectangle(sourcePosition, sourceSize),
-                    new Raylib_cs.Rectangle(destPosition + position, destSize),
+                    new Raylib_cs.Rectangle(info.Source.Position, info.Source.Size),
+                    new Raylib_cs.Rectangle(info.Dest.Position + position, info.Dest.Size),
                     new Vector2(),
                     0,
                     rColor
                 );
             },
             text,
-            fontSize ?? Game.DefaultFontSize,
-            spacing ?? Game.DefaultTextSpacing
+            fontSize,
+            spacing
         );
         EndDrawing();
     }
@@ -751,20 +751,20 @@ public sealed class Graphics
         BeginDrawing(camera);
         var rColor = color.RColor;
         font.HandleText(
-            (sourcePosition, sourceSize, destPosition, destSize) =>
+            info =>
             {
                 Raylib.DrawTexturePro(
                     atlas.Texture2D,
-                    new Raylib_cs.Rectangle(sourcePosition, sourceSize),
-                    new Raylib_cs.Rectangle(destPosition + position, destSize),
+                    new Raylib_cs.Rectangle(info.Source.Position, info.Source.Size),
+                    new Raylib_cs.Rectangle(info.Dest.Position + position, info.Dest.Size),
                     new Vector2(),
                     0,
                     rColor
                 );
             },
             text,
-            fontSize ?? Game.DefaultFontSize,
-            spacing ?? Game.DefaultTextSpacing,
+            fontSize,
+            spacing,
             glyphInfos
         );
         EndDrawing();
