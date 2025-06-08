@@ -12,7 +12,6 @@ public sealed class HttpRequest(string url, string method, Action<HttpResponse>?
     public string Method { get; init; } = method;
     public TimeSpan Timeout { get; set; }
     public Dictionary<string, string> Headers { get; } = new(StringComparer.OrdinalIgnoreCase);
-    public string? ContentType { get; set; }
     public byte[]? Body { get; set; }
 
     public string Text

@@ -21,8 +21,6 @@ internal sealed class HttpClientCore : IHttpClient
                 )
             )
                 requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value);
-            if (!string.IsNullOrEmpty(request.ContentType) && requestMessage.Content is not null)
-                requestMessage.Content.Headers.ContentType = new MediaTypeHeaderValue(request.ContentType);
             HttpResponseMessage responseMessage;
             if (request.Timeout != default)
             {

@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Raylib_cs;
 using Vigilance.Core;
 
 namespace Vigilance.Net;
@@ -19,7 +18,6 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         {
             var id = _requestId++;
             var method = Encoding.UTF8.GetBytes(request.Method);
-            using var overriddenMimeType = request.ContentType.ToUtf8Buffer();
             var attr = new EmscriptenFetchAttr();
             Emscripten.FetchAttrInit(ref attr);
             attr.UserData = id;
@@ -28,7 +26,6 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
                 attr.RequestMethod[i] = method[i];
             attr.RequestMethod[EmscriptenFetchAttr.RequestMethodSize - 1] = 0;
             attr.TimeoutMSecs = (uint)request.Timeout.TotalMilliseconds;
-            attr.OverriddenMimeType = (nint)overriddenMimeType.AsPointer();
             if (request.Headers is { Count: > 0 } headers)
             {
                 var elements = headers.Count * 2 + 1;
