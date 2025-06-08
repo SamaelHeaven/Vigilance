@@ -8,8 +8,8 @@ namespace Vigilance.Net;
 
 internal sealed unsafe class HttpClientWeb : IHttpClient
 {
-    private static readonly Dictionary<nint, Action<HttpResponse>?> FetchCallbacks = new();
-    private static nint _fetchId = 0;
+    private static readonly Dictionary<nint, HttpRequest> Requests = new();
+    private static nint _requestId = 0;
 
     public void Fetch(HttpRequest request)
     {
@@ -17,7 +17,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         nint[]? headerBuffers = null;
         try
         {
-            var id = _fetchId++;
+            var id = _requestId++;
             var method = Encoding.UTF8.GetBytes(request.Method);
             using var overriddenMimeType = request.ContentType.ToUtf8Buffer();
             var attr = new EmscriptenFetchAttr();
@@ -53,13 +53,13 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
                 attr.RequestDataSize = (nuint)(request.Body?.Length ?? 0);
                 attr.OnSuccess = &OnFetchComplete;
                 attr.OnError = &OnFetchComplete;
-                FetchCallbacks[id] = request.OnComplete;
+                Requests[id] = request;
                 Emscripten.Fetch(ref attr, request.Url);
             }
         }
         catch (Exception e)
         {
-            request.OnComplete?.Invoke(new HttpResponse { StatusText = e.Message });
+            Http.CompleteFetch(request, new HttpResponse { StatusText = e.Message });
         }
         finally
         {
@@ -110,8 +110,8 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         finally
         {
             Emscripten.FetchClose(fetch);
-            FetchCallbacks[id]?.Invoke(response);
-            FetchCallbacks.Remove(id);
+            Http.CompleteFetch(Requests[id], response);
+            Requests.Remove(id);
         }
     }
 }

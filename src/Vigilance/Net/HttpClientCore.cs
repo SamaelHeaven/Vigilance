@@ -52,7 +52,7 @@ internal sealed class HttpClientCore : IHttpClient
         }
         finally
         {
-            request.OnComplete?.Invoke(response);
+            Http.CompleteFetch(request, response);
         }
     }
 }

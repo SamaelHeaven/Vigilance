@@ -7,9 +7,9 @@ public sealed class HttpRequest(string url, string? method = null, Action<HttpRe
     public HttpRequest(string url, Action<HttpResponse>? onComplete = null)
         : this(url, null, onComplete) { }
 
-    public string Url { get; set; } = url;
-    public string Method { get; set; } = method ?? "GET";
-    public Action<HttpResponse>? OnComplete { get; set; } = onComplete;
+    public string Url { get; } = url;
+    public Action<HttpResponse>? OnComplete { get; } = onComplete;
+    public string Method { get; init; } = method ?? "GET";
     public TimeSpan Timeout { get; set; }
     public Dictionary<string, string> Headers { get; } = new(StringComparer.OrdinalIgnoreCase);
     public string? ContentType { get; set; }
