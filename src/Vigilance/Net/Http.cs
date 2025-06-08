@@ -1,3 +1,4 @@
+using System.Web;
 using Vigilance.Core;
 using Vigilance.Logging;
 
@@ -23,8 +24,8 @@ public static class Http
 
     internal static void CompleteFetch(HttpRequest request, HttpResponse response)
     {
-        var method = request.Method.ToUpper();
-        var url = Uri.EscapeDataString(request.Url).Replace("%2F", "/").Replace("%3A", ":");
+        var method = HttpUtility.UrlPathEncode(request.Method.ToUpper());
+        var url = HttpUtility.UrlPathEncode(request.Url).Replace("\"", "%22");
         var statusCode = response.StatusCode;
         var statusText = response.StatusText;
         var logLevel = response.Success ? LogLevel.Info : LogLevel.Error;
