@@ -24,7 +24,7 @@ public static class Http
 
     internal static void CompleteFetch(HttpRequest request, HttpResponse response)
     {
-        var method = HttpUtility.UrlPathEncode(request.Method.ToUpper());
+        var method = Uri.EscapeDataString(request.Method.ToUpper());
         var url = HttpUtility.UrlPathEncode(request.Url).Replace("\"", "%22");
         var statusCode = response.StatusCode;
         var statusText = response.StatusText;
