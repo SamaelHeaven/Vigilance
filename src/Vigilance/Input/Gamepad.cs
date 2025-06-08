@@ -129,31 +129,41 @@ public sealed class Gamepad
 
     private bool IsConnected()
     {
-        return Platform.Web.IsCurrent()
-            ? JSEngine.Eval($"!!navigator.getGamepads()[{Id}]")
-            : Raylib.IsGamepadAvailable(Id);
+        return Game.Platform switch
+        {
+            Platform.Web => JSEngine.Eval($"!!navigator.getGamepads()[{Id}]"),
+            _ => Raylib.IsGamepadAvailable(Id),
+        };
     }
 
     private string GetName()
     {
         if (!Connected)
             return DefaultName;
-        return Platform.Web.IsCurrent()
-            ? JSEngine.Eval($"navigator.getGamepads()[{Id}]?.id ?? {DefaultName.ToJson()}")
-            : Raylib.GetGamepadName_(Id);
+        return Game.Platform switch
+        {
+            Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{Id}]?.id ?? {DefaultName.ToJson()}"),
+            _ => Raylib.GetGamepadName_(Id),
+        };
     }
 
     private static bool IsButtonDown(int id, GamepadButton button)
     {
-        return Platform.Web.IsCurrent()
-            ? JSEngine.Eval($"navigator.getGamepads()[{id}]?.buttons[{button.GetJSValue()}]?.pressed ?? false")
-            : Raylib.IsGamepadButtonDown(id, (Raylib_cs.GamepadButton)button);
+        return Game.Platform switch
+        {
+            Platform.Web => JSEngine.Eval(
+                $"navigator.getGamepads()[{id}]?.buttons[{button.GetJSValue()}]?.pressed ?? false"
+            ),
+            _ => Raylib.IsGamepadButtonDown(id, (Raylib_cs.GamepadButton)button),
+        };
     }
 
     private static float GetGamepadAxis(int id, GamepadAxis axis)
     {
-        return Platform.Web.IsCurrent()
-            ? JSEngine.Eval($"navigator.getGamepads()[{id}]?.axes[{axis.GetJSValue()}] ?? 0")
-            : Raylib.GetGamepadAxisMovement(id, (Raylib_cs.GamepadAxis)axis);
+        return Game.Platform switch
+        {
+            Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{id}]?.axes[{axis.GetJSValue()}] ?? 0"),
+            _ => Raylib.GetGamepadAxisMovement(id, (Raylib_cs.GamepadAxis)axis),
+        };
     }
 }

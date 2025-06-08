@@ -31,14 +31,19 @@ public sealed unsafe class Game
 
     public static bool Running { get; private set; }
 
+    public static Platform Platform { get; } =
+        Enum.GetValues<Platform>().FirstOrDefault(platform => platform.IsCurrent());
+
     public static bool Fullscreen
     {
         get
         {
             EnsureRunning();
-            if (Platform.Web.IsCurrent())
-                return JSEngine.Eval("!!document.fullscreenElement");
-            return Raylib.IsWindowFullscreen();
+            return Platform switch
+            {
+                Platform.Web => JSEngine.Eval("!!document.fullscreenElement"),
+                _ => Raylib.IsWindowFullscreen(),
+            };
         }
         set
         {
@@ -292,16 +297,15 @@ public sealed unsafe class Game
             return;
         var message = value?.ToString() ?? "";
         if (game._config.Logger is null)
-        {
-            if (level is > LogLevel.All and < LogLevel.None)
-                Console.Write($"{level.ToString().ToUpper()}: ");
-            Console.WriteLine(message);
-            Console.Out.Flush();
-        }
+            lock (Console.Out)
+            {
+                if (level is > LogLevel.All and < LogLevel.None)
+                    Console.Write($"{level.ToString().ToUpper()}: ");
+                Console.WriteLine(message);
+                Console.Out.Flush();
+            }
         else
-        {
             game._config.Logger.Log(level, message);
-        }
 
         if (level == LogLevel.Fatal)
             Environment.Exit(1);
@@ -324,13 +328,10 @@ public sealed unsafe class Game
     public static void Focus()
     {
         EnsureRunning();
-        if (Platform.Web.IsCurrent())
-        {
+        if (Platform == Platform.Web)
             JSEngine.Eval("Module.canvas.focus()");
-            return;
-        }
-
-        Raylib.SetWindowFocused();
+        else
+            Raylib.SetWindowFocused();
     }
 
     public static void ToggleFullscreen()
@@ -339,21 +340,22 @@ public sealed unsafe class Game
         if (Platform.Web.IsCurrent())
         {
             JSEngine.Eval(Fullscreen ? "document.exitFullscreen()" : "Module.canvas.requestFullscreen()");
-            return;
         }
-
-        if (Fullscreen)
+        else if (Platform.Desktop.IsCurrent())
         {
-            game._resetScreen = true;
-        }
-        else
-        {
-            game._previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
-            var monitor = Raylib.GetCurrentMonitor();
-            ScreenSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
-        }
+            if (Fullscreen)
+            {
+                game._resetScreen = true;
+            }
+            else
+            {
+                game._previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
+                var monitor = Raylib.GetCurrentMonitor();
+                ScreenSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
+            }
 
-        Raylib.ToggleFullscreen();
+            Raylib.ToggleFullscreen();
+        }
     }
 
     public static void Launch(GameConfig config, Scene scene)
