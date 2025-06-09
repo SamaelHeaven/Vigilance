@@ -14,10 +14,9 @@ public sealed class AnimationController : IEnumerable<KeyValuePair<string, Anima
     public AnimationController(IEnumerable<KeyValuePair<string, Animation>> animations)
     {
         var list = animations as IList<KeyValuePair<string, Animation>> ?? animations.ToList();
-        var dictionary = list.ToImmutableDictionary();
-        if (dictionary.Count == 0)
+        if (list.Count == 0)
             throw new ArgumentException("AnimationController must have at least one animation.");
-        _animations = dictionary;
+        _animations = list.ToImmutableDictionary();
         _currentAnimation = list.First().Key;
     }
 
