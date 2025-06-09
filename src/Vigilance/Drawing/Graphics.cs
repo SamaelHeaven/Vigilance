@@ -1139,8 +1139,14 @@ public sealed unsafe class Graphics
     public void Draw(Action action, Camera? camera = null)
     {
         BeginDrawing(camera);
-        action.Invoke();
-        EndDrawing();
+        try
+        {
+            action.Invoke();
+        }
+        finally
+        {
+            EndDrawing();
+        }
     }
 
     #endregion
