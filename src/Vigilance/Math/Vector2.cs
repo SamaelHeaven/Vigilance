@@ -192,7 +192,7 @@ public struct Vector2
 
     public readonly Vector2 Rotate(float degrees, Vector2 origin)
     {
-        var rad = degrees * (MathF.PI / 180);
+        var rad = degrees.DegToRad();
         var cos = MathF.Cos(rad);
         var sin = MathF.Sin(rad);
         var translated = this - origin;
