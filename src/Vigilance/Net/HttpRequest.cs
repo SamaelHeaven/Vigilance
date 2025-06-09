@@ -2,9 +2,9 @@ using System.Text;
 
 namespace Vigilance.Net;
 
-public sealed class HttpRequest(string url, string method, Action<HttpResponse>? onComplete = null)
+public sealed class HttpRequest(string url, string method, Action<HttpResponse>? onComplete)
 {
-    public HttpRequest(string url, Action<HttpResponse>? onComplete = null)
+    public HttpRequest(string url, Action<HttpResponse>? onComplete)
         : this(url, "GET", onComplete) { }
 
     public string Url { get; } = url;
