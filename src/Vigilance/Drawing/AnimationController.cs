@@ -9,15 +9,16 @@ public sealed class AnimationController : IEnumerable<KeyValuePair<string, Anima
     private string _currentAnimation;
 
     public AnimationController(IEnumerable<(string, Animation)> animations)
-        : this(animations.ToImmutableDictionary(x => x.Item1, x => x.Item2)) { }
+        : this(animations.Select(x => new KeyValuePair<string, Animation>(x.Item1, x.Item2))) { }
 
     public AnimationController(IEnumerable<KeyValuePair<string, Animation>> animations)
     {
-        var dictionary = animations.ToImmutableDictionary();
+        var list = animations as IList<KeyValuePair<string, Animation>> ?? animations.ToList();
+        var dictionary = list.ToImmutableDictionary();
         if (dictionary.Count == 0)
             throw new ArgumentException("AnimationController must have at least one animation.");
         _animations = dictionary;
-        _currentAnimation = dictionary.First().Key;
+        _currentAnimation = list.First().Key;
     }
 
     public Animation Animation => _animations[_currentAnimation];

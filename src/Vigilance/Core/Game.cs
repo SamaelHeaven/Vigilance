@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -287,15 +288,28 @@ public sealed unsafe class Game
 
     public static void Log<T>(T value)
     {
-        Log(LogLevel.Info, value);
+        Log(value is Exception ? LogLevel.Error : LogLevel.Info, value, null);
     }
 
     public static void Log<T>(LogLevel level, T value)
     {
+        Log(level, value, null);
+    }
+
+    private static void Log<T>(LogLevel level, T value, int? stackDepth)
+    {
         var game = GetGame();
         if (game._config.LogLevel > level)
             return;
-        var message = value?.ToString() ?? "";
+        var message = value is Exception e ? $"{e.GetType()}: {e.Message}" : value?.ToString() ?? "";
+        if (level is LogLevel.Error or LogLevel.Fatal)
+        {
+            var trace = new StackTrace(true);
+            var frame = trace.GetFrame(stackDepth ?? 2);
+            if (frame is not null)
+                message += $"\n    at {frame.ToString().Trim('\n')}";
+        }
+
         if (game._config.Logger is null)
             lock (Console.Out)
             {
