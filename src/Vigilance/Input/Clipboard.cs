@@ -1,6 +1,7 @@
 using Raylib_cs;
+using Vigilance.Core;
 
-namespace Vigilance.Core;
+namespace Vigilance.Input;
 
 public static class Clipboard
 {

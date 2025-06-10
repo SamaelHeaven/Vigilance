@@ -1,4 +1,4 @@
-namespace Vigilance.Core;
+namespace Vigilance.Drawing;
 
 public enum Viewport
 {
