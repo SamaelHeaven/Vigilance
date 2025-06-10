@@ -362,6 +362,7 @@ public sealed unsafe class Game
 
     public static void Launch(GameConfig config, Scene scene)
     {
+        EnsureNotRunning();
         Running = true;
         var game = GetGame();
         config = config.Clone();
