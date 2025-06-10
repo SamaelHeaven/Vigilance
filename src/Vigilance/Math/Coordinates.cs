@@ -43,43 +43,93 @@ public static class Coordinates
         return points.Select(point => (offset ?? Vector2.Zero) + (center + (point - center) * scale)).ToArray();
     }
 
-    public static Vector2 ScreenToLocal(Vector2 coordinates)
+    public static Vector2 ScreenToViewport(Vector2 coordinates, Viewport? viewport = null)
     {
         var size = Game.Size;
         var screenSize = Game.ScreenSize;
-        var scale = MathF.Min(screenSize.X / size.X, screenSize.Y / size.Y);
-        coordinates -= (screenSize - size * scale) * 0.5f;
-        coordinates /= scale;
-        return coordinates;
+        var scaleX = screenSize.X / size.X;
+        var scaleY = screenSize.Y / size.Y;
+        switch (viewport ?? Game.Viewport)
+        {
+            case Viewport.Fit:
+            {
+                var scale = MathF.Min(scaleX, scaleY);
+                var offset = (screenSize - size * scale) * 0.5f;
+                coordinates -= offset;
+                coordinates /= scale;
+                return coordinates;
+            }
+            case Viewport.Stretch:
+            {
+                coordinates.X /= scaleX;
+                coordinates.Y /= scaleY;
+                return coordinates;
+            }
+            case Viewport.Crop:
+            {
+                var scale = MathF.Max(scaleX, scaleY);
+                var offset = (screenSize - size * scale) * 0.5f;
+                coordinates -= offset;
+                coordinates /= scale;
+                return coordinates;
+            }
+            default:
+                throw new ArgumentOutOfRangeException(nameof(viewport));
+        }
     }
 
-    public static Vector2 ScreenToWorld(Vector2 coordinates, Camera camera)
+    public static Vector2 ScreenToWorld(Vector2 coordinates, Camera? camera = null)
     {
-        return Raylib.GetScreenToWorld2D(coordinates, camera.RCamera);
+        return Raylib.GetScreenToWorld2D(coordinates, (camera ?? Game.Scene.Camera).RCamera);
     }
 
-    public static Vector2 LocalToScreen(Vector2 coordinates)
+    public static Vector2 ViewportToScreen(Vector2 coordinates, Viewport? viewport = null)
     {
         var size = Game.Size;
         var screenSize = Game.ScreenSize;
-        var scale = MathF.Min(screenSize.X / size.X, screenSize.Y / size.Y);
-        coordinates *= scale;
-        coordinates += (screenSize - size * scale) * 0.5f;
-        return coordinates;
+        var scaleX = screenSize.X / size.X;
+        var scaleY = screenSize.Y / size.Y;
+        switch (viewport ?? Game.Viewport)
+        {
+            case Viewport.Fit:
+            {
+                var scale = MathF.Min(scaleX, scaleY);
+                var offset = (screenSize - size * scale) * 0.5f;
+                coordinates *= scale;
+                coordinates += offset;
+                return coordinates;
+            }
+            case Viewport.Stretch:
+            {
+                coordinates.X *= scaleX;
+                coordinates.Y *= scaleY;
+                return coordinates;
+            }
+            case Viewport.Crop:
+            {
+                var scale = MathF.Max(scaleX, scaleY);
+                var offset = (screenSize - size * scale) * 0.5f;
+                coordinates *= scale;
+                coordinates += offset;
+                return coordinates;
+            }
+            default:
+                throw new ArgumentOutOfRangeException(nameof(viewport));
+        }
     }
 
-    public static Vector2 LocalToWorld(Vector2 coordinates, Camera camera)
+    public static Vector2 ViewportToWorld(Vector2 coordinates, Viewport? viewport = null, Camera? camera = null)
     {
-        return ScreenToWorld(LocalToScreen(coordinates), camera);
+        return ScreenToWorld(ViewportToScreen(coordinates, viewport), camera);
     }
 
-    public static Vector2 WorldToLocal(Vector2 coordinates, Camera camera)
+    public static Vector2 WorldToViewport(Vector2 coordinates, Camera? camera = null, Viewport? viewport = null)
     {
-        return ScreenToLocal(WorldToScreen(coordinates, camera));
+        return ScreenToViewport(WorldToScreen(coordinates, camera), viewport);
     }
 
-    public static Vector2 WorldToScreen(Vector2 coordinates, Camera camera)
+    public static Vector2 WorldToScreen(Vector2 coordinates, Camera? camera = null)
     {
-        return Raylib.GetWorldToScreen2D(coordinates, camera.RCamera);
+        return Raylib.GetWorldToScreen2D(coordinates, (camera ?? Game.Scene.Camera).RCamera);
     }
 }

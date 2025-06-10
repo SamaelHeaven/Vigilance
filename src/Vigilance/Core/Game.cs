@@ -116,6 +116,22 @@ public sealed unsafe class Game
         }
     }
 
+    public static Viewport Viewport
+    {
+        get
+        {
+            var game = GetGame();
+            return Enum.IsDefined(typeof(Viewport), game._config.Viewport) ? game._config.Viewport : Viewport.Fit;
+        }
+        set
+        {
+            var game = GetGame();
+            if (!Enum.IsDefined(typeof(Viewport), value))
+                return;
+            Defer(() => game._config.Viewport = value);
+        }
+    }
+
     public static float Scale => MathF.Max(1, GetGame()._config.Scale);
 
     public static Scene Scene
@@ -189,7 +205,16 @@ public sealed unsafe class Game
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
 
-    public static CacheType DefaultAssetCacheType => GetGame()._config.DefaultAssetCacheType;
+    public static CacheType DefaultAssetCacheType
+    {
+        get
+        {
+            var game = GetGame();
+            return Enum.IsDefined(typeof(CacheType), game._config.DefaultAssetCacheType)
+                ? game._config.DefaultAssetCacheType
+                : CacheType.Weak;
+        }
+    }
 
     public static int DefaultSoundMaxAliases => System.Math.Max(GetGame()._config.DefaultSoundMaxAliases, 1);
 
@@ -215,10 +240,17 @@ public sealed unsafe class Game
 
     public static LogLevel LogLevel
     {
-        get => GetGame()._config.LogLevel;
+        get
+        {
+            var game = GetGame();
+            return Enum.IsDefined(typeof(LogLevel), game._config.LogLevel) ? game._config.LogLevel : LogLevel.All;
+        }
         set
         {
-            GetGame()._config.LogLevel = value;
+            var game = GetGame();
+            if (!Enum.IsDefined(typeof(LogLevel), value))
+                return;
+            game._config.LogLevel = value;
             Raylib.SetTraceLogLevel((TraceLogLevel)value);
         }
     }

@@ -36,13 +36,25 @@ public sealed class Mouse
 
     public static Vector2 Position
     {
-        get => Coordinates.ScreenToLocal(GetMouse()._screenPosition).Clamp(Vector2.Zero, Game.Size).Round();
+        get => Coordinates.ScreenToViewport(GetMouse()._screenPosition).Clamp(Vector2.Zero, Game.Size);
         set
         {
-            var position = value.Clamp(Vector2.Zero, Game.Size).Round();
-            if (Position == position)
+            var position = value.Clamp(Vector2.Zero, Game.Size);
+            if (Precision.AreEqual(Position, position))
                 return;
-            ScreenPosition = Coordinates.LocalToScreen(position);
+            ScreenPosition = Coordinates.ViewportToScreen(position);
+        }
+    }
+
+    public static Vector2 WorldPosition
+    {
+        get => Coordinates.ScreenToWorld(GetMouse()._screenPosition);
+        set
+        {
+            var position = value.Clamp(Vector2.Zero, Game.Size);
+            if (Precision.AreEqual(Position, position))
+                return;
+            ScreenPosition = Coordinates.WorldToScreen(position);
         }
     }
 
@@ -55,7 +67,7 @@ public sealed class Mouse
             if (!Game.Focused)
                 return;
             var position = value.Clamp(Vector2.Zero, Game.ScreenSize).Round();
-            if (mouse._screenPosition == position)
+            if (Precision.AreEqual(mouse._screenPosition, position))
                 return;
             mouse._screenPosition = position;
             Raylib.SetMousePosition((int)position.X, (int)position.Y);

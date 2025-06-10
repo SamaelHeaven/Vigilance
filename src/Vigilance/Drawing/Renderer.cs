@@ -37,14 +37,29 @@ public sealed class Renderer
         var width = Game.Width;
         var height = Game.Height;
         var texture = renderer._buffer.RenderTexture2D.Texture;
-        var scale = MathF.Min(screenWidth / width, screenHeight / height);
+        var scaleX = screenWidth / width;
+        var scaleY = screenHeight / height;
+        var minScale = MathF.Min(scaleX, scaleY);
+        var maxScale = MathF.Max(scaleX, scaleY);
         var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
-        var dest = new Raylib_cs.Rectangle(
-            (screenWidth - width * scale) * 0.5f,
-            (screenHeight - height * scale) * 0.5f,
-            width * scale,
-            height * scale
-        );
+        var dest = Game.Viewport switch
+        {
+            Viewport.Fit => new Raylib_cs.Rectangle(
+                (screenWidth - width * minScale) * 0.5f,
+                (screenHeight - height * minScale) * 0.5f,
+                width * minScale,
+                height * minScale
+            ),
+            Viewport.Stretch => new Raylib_cs.Rectangle(0, 0, screenWidth, screenHeight),
+            Viewport.Crop => new Raylib_cs.Rectangle(
+                (screenWidth - width * maxScale) * 0.5f,
+                (screenHeight - height * maxScale) * 0.5f,
+                width * maxScale,
+                height * maxScale
+            ),
+            _ => throw new ArgumentOutOfRangeException(),
+        };
+
         if (Graphics.CurrentBuffer is not null)
         {
             Raylib.EndTextureMode();
