@@ -185,6 +185,8 @@ public sealed unsafe class Game
             var game = GetGame();
             if (value < 1)
                 value = 0;
+            if (value == FpsTarget)
+                return;
             game._config.FpsTarget = value;
             Raylib.SetTargetFPS(value);
         }
