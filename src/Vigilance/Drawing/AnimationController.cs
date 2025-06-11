@@ -52,7 +52,7 @@ public sealed class AnimationController : IEnumerable<KeyValuePair<string, Anima
     public void Use(string animation, bool resetOthers = true)
     {
         if (!_animations.ContainsKey(animation))
-            return;
+            throw new KeyNotFoundException(animation);
         _currentAnimation = animation;
         if (!resetOthers)
             return;
