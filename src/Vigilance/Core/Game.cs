@@ -317,12 +317,12 @@ public sealed unsafe class Game
         game._actions.Push(action);
     }
 
-    public static void Log<T>(T value)
+    public static void Log(object? value)
     {
         Log(value is Exception ? LogLevel.Error : LogLevel.Info, value);
     }
 
-    public static void Log<T>(LogLevel level, T value)
+    public static void Log(LogLevel level, object? value)
     {
         var game = GetGame();
         if (game._config.LogLevel > level)
