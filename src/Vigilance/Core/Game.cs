@@ -18,6 +18,7 @@ public sealed unsafe class Game
     private static Game? _game;
     private readonly ConcurrentStack<Action> _actions = [];
     private GameConfig _config = null!;
+    private GameConfig _launchConfig = null!;
     private Font _defaultFont = null!;
     private Box _previousScreen;
     private bool _quit;
@@ -291,6 +292,8 @@ public sealed unsafe class Game
         }
     }
 
+    public static GameConfig Config => GetGame()._launchConfig.Clone();
+
     internal static GetSystemsDelegate Systems => GetGame()._config.Systems;
 
     public static void OpenUrl(string url)
@@ -397,8 +400,8 @@ public sealed unsafe class Game
         EnsureNotRunning();
         Running = true;
         var game = GetGame();
-        config = config.Clone();
-        game._config = config;
+        game._launchConfig = config.Clone();
+        game._config = config.Clone();
         game._scene = scene;
         InitializeCultureInfo();
         game.InitializeLogging();
