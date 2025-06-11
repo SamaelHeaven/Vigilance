@@ -7,9 +7,9 @@ public sealed class AnimationSystem : ISystem
 {
     public void Configure(Scene scene)
     {
-        scene.OnFixedUpdate(() =>
+        scene.OnUpdate(() =>
         {
-            var step = Time.FixedDelta;
+            var step = Time.Delta;
             scene.Each(
                 (ref Animation animation) =>
                 {
@@ -18,19 +18,16 @@ public sealed class AnimationSystem : ISystem
             );
 
             scene.Each(
-                (ref AnimationController controller) =>
-                {
-                    controller.Animation.Update(step);
-                }
-            );
-        });
-
-        scene.OnRenderStart(() =>
-        {
-            scene.Each(
                 static (ref Animation animation, ref Sprite sprite) =>
                 {
                     animation.UpdateSprite(sprite);
+                }
+            );
+
+            scene.Each(
+                (ref AnimationController controller) =>
+                {
+                    controller.Animation.Update(step);
                 }
             );
 
