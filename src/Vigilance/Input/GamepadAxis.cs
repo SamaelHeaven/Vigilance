@@ -9,3 +9,11 @@ public enum GamepadAxis
     LeftTrigger = Raylib_cs.GamepadAxis.LeftTrigger,
     RightTrigger = Raylib_cs.GamepadAxis.RightTrigger,
 }
+
+public static class GamepadAxisExtensions
+{
+    public static int GetJSValue(this GamepadAxis axis)
+    {
+        return (int)axis;
+    }
+}

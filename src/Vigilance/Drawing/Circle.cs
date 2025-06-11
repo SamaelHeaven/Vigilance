@@ -2,12 +2,10 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public struct Circle
+public sealed class Circle
 {
-    public Color Fill { get; set; } = Color.Transparent;
+    public Color Fill { get; set; } = Color.White;
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
-    public CameraProvider? Camera { get; set; } = Core.Camera.DefaultProvider;
-
-    public Circle() { }
+    public GetCameraDelegate? Camera { get; set; } = Core.Camera.DefaultDelegate;
 }

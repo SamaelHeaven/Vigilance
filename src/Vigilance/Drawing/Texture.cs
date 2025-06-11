@@ -4,7 +4,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class Texture
+public sealed unsafe class Texture
 {
     private static Texture? _empty;
     private readonly object? _owner;
@@ -17,7 +17,7 @@ public sealed class Texture
         _owner = owner;
     }
 
-    public unsafe Texture(string fileType, ReadOnlySpan<byte> bytes)
+    public Texture(string fileType, ReadOnlySpan<byte> bytes)
     {
         Game.EnsureRunning();
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
@@ -29,7 +29,7 @@ public sealed class Texture
         }
     }
 
-    public unsafe Texture(ReadOnlySpan<Color> pixels, int width, int height)
+    public Texture(ReadOnlySpan<Color> pixels, int width, int height)
     {
         Game.EnsureRunning();
         if (pixels.Length != width * height)
@@ -49,7 +49,9 @@ public sealed class Texture
         Texture2D = result;
     }
 
-    public static Texture Empty => _empty ??= new Texture([Color.Transparent], 1, 1);
+    public static Texture Empty => _empty ??= new Texture(stackalloc Color[1] { Color.Transparent }, 1, 1);
+
+    public uint Id => Texture2D.Id;
 
     public int Width => Texture2D.Width;
 
@@ -59,12 +61,11 @@ public sealed class Texture
 
     public bool Writable => _owner is WritableTexture;
 
-    public Image ToImage(Interpolation? interpolation = null)
+    public Image ToImage()
     {
         var buffer = Graphics.CurrentBuffer;
-        if (_owner != null && buffer == _owner)
+        if (_owner is not null && buffer == _owner)
             Rlgl.DrawRenderBatchActive();
-        Raylib.SetTextureFilter(Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         var image = Raylib.LoadImageFromTexture(Texture2D);
         if (Writable)
             Raylib.ImageFlipVertical(ref image);
@@ -73,15 +74,15 @@ public sealed class Texture
 
     public Texture Copy()
     {
-        var image = ToImage(Interpolation.Nearest);
+        var image = ToImage();
         return image.ToTexture();
     }
 
     ~Texture()
     {
-        if (_owner != null)
+        if (_owner is not null)
             return;
-        Game.RunLater(() =>
+        Game.Defer(() =>
         {
             Raylib.UnloadTexture(Texture2D);
         });

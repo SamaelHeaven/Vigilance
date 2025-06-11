@@ -1,68 +1,64 @@
 namespace Vigilance.Math;
 
-public struct Box(float x, float y, float width, float height)
+public struct Box
 {
-    public float X { get; set; } = x;
-    public float Y { get; set; } = y;
-    public float Width { get; set; } = width;
-    public float Height { get; set; } = height;
+    public float X { get; set; }
+    public float Y { get; set; }
+    public float Width { get; set; }
+    public float Height { get; set; }
+
+    public Box(float x, float y, float width, float height)
+    {
+        X = x;
+        Y = y;
+        Width = width;
+        Height = height;
+    }
 
     public Box(Vector2 position, Vector2 size)
         : this(position.X, position.Y, size.X, size.Y) { }
 
-    public static implicit operator (float, float, float, float)(Box box)
+    public static implicit operator (float X, float Y, float Width, float Height)(Box box)
     {
         return (box.X, box.Y, box.Width, box.Height);
     }
 
-    public static implicit operator Box((float, float, float, float) box)
+    public static implicit operator Box((float X, float Y, float Width, float Height) box)
     {
-        return new Box(box.Item1, box.Item2, box.Item3, box.Item4);
+        return new Box(box.X, box.Y, box.Width, box.Height);
     }
 
-    public static implicit operator (Vector2, Vector2)(Box box)
+    public static implicit operator (Vector2 Position, Vector2 Size)(Box box)
     {
         return (box.Position, box.Size);
     }
 
-    public static implicit operator Box((Vector2, Vector2) box)
+    public static implicit operator Box((Vector2 Position, Vector2 Size) box)
     {
-        return new Box(box.Item1, box.Item2);
+        return new Box(box.Position, box.Size);
+    }
+
+    public void Deconstruct(out float x, out float y, out float width, out float height)
+    {
+        x = X;
+        y = Y;
+        width = Width;
+        height = Height;
+    }
+
+    public void Deconstruct(out Vector2 position, out Vector2 size)
+    {
+        position = new Vector2(X, Y);
+        size = new Vector2(Width, Height);
     }
 
     public static Box Bounding(Transform transform)
     {
-        var position = transform.Position;
-        var size = transform.Scale.Abs();
-        var rotation = transform.Rotation;
-        var pivotPoint = transform.PivotPoint;
-        var topLeft = position - size * 0.5f;
-        if (transform.Rotation == 0f)
-            return new Box(topLeft, size);
-        var topRight = topLeft + Vector2.Right * size;
-        var bottomLeft = topLeft + Vector2.Down * size;
-        var bottomRight = topLeft + size;
-        var rotationPoint = position + pivotPoint;
-        var rotatedTopLeft = topLeft.Rotate(rotation, rotationPoint);
-        var rotatedTopRight = topRight.Rotate(rotation, rotationPoint);
-        var rotatedBottomLeft = bottomLeft.Rotate(rotation, rotationPoint);
-        var rotatedBottomRight = bottomRight.Rotate(rotation, rotationPoint);
-        var minX = MathF.Min(
-            MathF.Min(MathF.Min(rotatedTopLeft.X, rotatedTopRight.X), rotatedBottomLeft.X),
-            rotatedBottomRight.X
-        );
-        var maxX = MathF.Max(
-            MathF.Max(MathF.Max(rotatedTopLeft.X, rotatedTopRight.X), rotatedBottomLeft.X),
-            rotatedBottomRight.X
-        );
-        var minY = MathF.Min(
-            MathF.Min(MathF.Min(rotatedTopLeft.Y, rotatedTopRight.Y), rotatedBottomLeft.Y),
-            rotatedBottomRight.Y
-        );
-        var maxY = MathF.Max(
-            MathF.Max(MathF.Max(rotatedTopLeft.Y, rotatedTopRight.Y), rotatedBottomLeft.Y),
-            rotatedBottomRight.Y
-        );
+        var (topLeft, bottomLeft, bottomRight, topRight) = Coordinates.GetPoints(transform);
+        var minX = MathF.Min(MathF.Min(MathF.Min(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
+        var maxX = MathF.Max(MathF.Max(MathF.Max(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
+        var minY = MathF.Min(MathF.Min(MathF.Min(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
+        var maxY = MathF.Max(MathF.Max(MathF.Max(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
         return new Box(minX, minY, maxX - minX, maxY - minY);
     }
 

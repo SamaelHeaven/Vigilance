@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
 
 namespace Vigilance.Math;
@@ -31,19 +32,25 @@ public struct Vector2
         return new Vector2(v.X, v.Y);
     }
 
-    public static implicit operator (float, float)(Vector2 v)
+    public static implicit operator (float X, float Y)(Vector2 v)
     {
         return (v.X, v.Y);
     }
 
-    public static implicit operator Vector2((float, float) v)
+    public static implicit operator Vector2((float X, float Y) v)
     {
-        return new Vector2(v.Item1, v.Item2);
+        return new Vector2(v.X, v.Y);
     }
 
     public static implicit operator Vector2(float v)
     {
         return new Vector2(v);
+    }
+
+    public void Deconstruct(out float x, out float y)
+    {
+        x = X;
+        y = Y;
     }
 
     public override string ToString()
@@ -116,6 +123,21 @@ public struct Vector2
         return f == 0 ? Zero : new Vector2(v.X / f, v.Y / f);
     }
 
+    public readonly Vector2 Transform(Matrix3x2 matrix)
+    {
+        return System.Numerics.Vector2.Transform(this, matrix);
+    }
+
+    public readonly Vector2 Transform(Matrix4x4 matrix)
+    {
+        return System.Numerics.Vector2.Transform(this, matrix);
+    }
+
+    public readonly Vector2 Transform(Quaternion quaternion)
+    {
+        return System.Numerics.Vector2.Transform(this, quaternion);
+    }
+
     public readonly float DistanceTo(Vector2 v)
     {
         var d = this - v;
@@ -170,7 +192,7 @@ public struct Vector2
 
     public readonly Vector2 Rotate(float degrees, Vector2 origin)
     {
-        var rad = degrees * (MathF.PI / 180);
+        var rad = degrees.DegToRad();
         var cos = MathF.Cos(rad);
         var sin = MathF.Sin(rad);
         var translated = this - origin;

@@ -5,11 +5,13 @@ namespace Vigilance.Input;
 
 public sealed class Gamepad
 {
-    private const int NbGamepads = 8;
+    private const int MaxGamepads = 4;
     private const string DefaultName = "Unknown gamepad";
-    private static readonly GamepadButton[] ButtonValues = Enum.GetValues<GamepadButton>().ToArray();
-    private static readonly GamepadAxis[] AxisValues = Enum.GetValues<GamepadAxis>().ToArray();
+    private static readonly Gamepad[] GamepadArray = GetGamepads();
+    private static readonly GamepadButton[] ButtonValues = Enum.GetValues<GamepadButton>();
+    private static readonly GamepadAxis[] AxisValues = Enum.GetValues<GamepadAxis>();
     private readonly Dictionary<GamepadAxis, float> _axes;
+    private readonly List<GamepadButton> _currentButtons = [];
     private readonly List<GamepadButton> _downButtons = [];
     private readonly List<GamepadButton> _pressedButtons = [];
     private readonly List<GamepadButton> _releasedButtons = [];
@@ -18,23 +20,20 @@ public sealed class Gamepad
     private Gamepad(int id)
     {
         Id = id;
-        Connected = Game.Running ? Raylib.IsGamepadAvailable(Id) : false;
+        Connected = false;
+        Name = DefaultName;
         _axes = new Dictionary<GamepadAxis, float>();
         foreach (var axis in Enum.GetValues<GamepadAxis>())
             _axes.Add(axis, 0);
     }
 
-    public static IReadOnlyList<Gamepad> Gamepads { get; } = GetGamepads();
+    public static IReadOnlyList<Gamepad> Gamepads { get; } = GamepadArray.AsReadOnly();
     public int Id { get; }
 
-    public static Gamepad First => Gamepads[0];
-    public static Gamepad Second => Gamepads[1];
-    public static Gamepad Third => Gamepads[2];
-    public static Gamepad Fourth => Gamepads[3];
-    public static Gamepad Fifth => Gamepads[4];
-    public static Gamepad Sixth => Gamepads[5];
-    public static Gamepad Seventh => Gamepads[6];
-    public static Gamepad Eighth => Gamepads[7];
+    public static Gamepad First => GamepadArray[0];
+    public static Gamepad Second => GamepadArray[1];
+    public static Gamepad Third => GamepadArray[2];
+    public static Gamepad Fourth => GamepadArray[3];
 
     public IReadOnlyList<GamepadButton> DownButtons => _downButtons.AsReadOnly();
     public IReadOnlyList<GamepadButton> UpButtons => _upButtons.AsReadOnly();
@@ -42,22 +41,20 @@ public sealed class Gamepad
     public IReadOnlyList<GamepadButton> ReleasedButtons => _releasedButtons.AsReadOnly();
     public IReadOnlyDictionary<GamepadAxis, float> Axes => _axes.AsReadOnly();
     public bool Connected { get; private set; }
-
-    public string Name => !Connected ? DefaultName : Raylib.GetGamepadName_(Id);
+    public string Name { get; private set; }
 
     internal static void UpdateAll()
     {
-        foreach (var gamepad in Gamepads)
+        foreach (var gamepad in GamepadArray)
             gamepad.Update();
     }
 
     private static Gamepad[] GetGamepads()
     {
-        var gamepads = new List<Gamepad>();
-        for (var i = 0; i < NbGamepads; i++)
-            gamepads.Add(new Gamepad(i));
-
-        return gamepads.ToArray();
+        var gamepads = new Gamepad[MaxGamepads];
+        for (var i = 0; i < MaxGamepads; i++)
+            gamepads[i] = new Gamepad(i);
+        return gamepads;
     }
 
     public bool IsButtonDown(GamepadButton button)
@@ -87,16 +84,19 @@ public sealed class Gamepad
 
     private void Update()
     {
-        Reset();
+        Connected = IsConnected();
+        Name = GetName();
         if (!Game.Focused || !Connected)
+        {
+            Reset();
             return;
-        UpdateButtons();
-        UpdateAxes();
+        }
+
+        UpdateState();
     }
 
     private void Reset()
     {
-        Connected = Raylib.IsGamepadAvailable(Id);
         _upButtons.Clear();
         _upButtons.AddRange(ButtonValues);
         _downButtons.Clear();
@@ -106,26 +106,64 @@ public sealed class Gamepad
             _axes[axis.Key] = 0;
     }
 
-    private void UpdateButtons()
+    private void UpdateState()
     {
+        _currentButtons.Clear();
         foreach (var button in ButtonValues)
-        {
-            if (Raylib.IsGamepadButtonDown(Id, (Raylib_cs.GamepadButton)button))
-            {
-                _downButtons.Add(button);
-                _upButtons.Remove(button);
-            }
-
-            if (Raylib.IsGamepadButtonPressed(Id, (Raylib_cs.GamepadButton)button))
-                _pressedButtons.Add(button);
-            if (Raylib.IsGamepadButtonReleased(Id, (Raylib_cs.GamepadButton)button))
-                _releasedButtons.Add(button);
-        }
+            if (IsButtonDown(Id, button))
+                _currentButtons.Add(button);
+        _pressedButtons.Clear();
+        _pressedButtons.AddRange(_currentButtons);
+        _pressedButtons.RemoveAll(button => _downButtons.Contains(button));
+        _releasedButtons.Clear();
+        _releasedButtons.AddRange(_downButtons);
+        _releasedButtons.RemoveAll(button => _currentButtons.Contains(button));
+        _downButtons.Clear();
+        _downButtons.AddRange(_currentButtons);
+        _upButtons.Clear();
+        _upButtons.AddRange(ButtonValues);
+        _upButtons.RemoveAll(button => _currentButtons.Contains(button));
+        foreach (var axis in AxisValues)
+            _axes[axis] = GetGamepadAxis(Id, axis);
     }
 
-    private void UpdateAxes()
+    private bool IsConnected()
     {
-        foreach (var axis in AxisValues)
-            _axes[axis] = Raylib.GetGamepadAxisMovement(Id, (Raylib_cs.GamepadAxis)axis);
+        return Game.Platform switch
+        {
+            Platform.Web => JSEngine.Eval($"!!navigator.getGamepads()[{Id}]"),
+            _ => Raylib.IsGamepadAvailable(Id),
+        };
+    }
+
+    private string GetName()
+    {
+        if (!Connected)
+            return DefaultName;
+        return Game.Platform switch
+        {
+            Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{Id}]?.id ?? {DefaultName.ToJson()}"),
+            _ => Raylib.GetGamepadName_(Id),
+        };
+    }
+
+    private static bool IsButtonDown(int id, GamepadButton button)
+    {
+        return Game.Platform switch
+        {
+            Platform.Web => JSEngine.Eval(
+                $"navigator.getGamepads()[{id}]?.buttons[{button.GetJSValue()}]?.pressed ?? false"
+            ),
+            _ => Raylib.IsGamepadButtonDown(id, (Raylib_cs.GamepadButton)button),
+        };
+    }
+
+    private static float GetGamepadAxis(int id, GamepadAxis axis)
+    {
+        return Game.Platform switch
+        {
+            Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{id}]?.axes[{axis.GetJSValue()}] ?? 0"),
+            _ => Raylib.GetGamepadAxisMovement(id, (Raylib_cs.GamepadAxis)axis),
+        };
     }
 }

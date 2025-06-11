@@ -9,44 +9,78 @@ namespace Vigilance.Core;
 
 public sealed unsafe class Scene
 {
-    private static Scene _current = null!;
-    private readonly Dictionary<Type, List<object>> _events = new();
-    private readonly List<Action> _fixedUpdateActions = [];
-    private readonly List<Action> _initializeActions = [];
-    private readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> _orderByCallback = &CompareEntities;
-    private readonly List<Action<Entity>> _renderActions = [];
-    private readonly List<Action> _renderEndActions = [];
-    private readonly List<Action> _renderStartActions = [];
-    private readonly List<Action> _updateActions = [];
-    private Camera _camera = new();
+    private static readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> OrderByCallback =
+        &CompareEntities;
+
+    private static Scene _context = null!;
+    private readonly Dictionary<Type, object> _events = new();
+    private readonly GetSystemsDelegate _getSystemsDelegate;
+    private Action? _fixedUpdateAction;
+    private Action? _initializeAction;
+    private Action? _onDestroy;
     private Query<ZIndex> _orderedQuery;
+    private Action<Entity>? _renderAction;
+    private Action? _renderEndAction;
+    private Action? _renderStartAction;
+    private Action? _startAction;
+    private bool _started;
+    private Action? _stopAction;
+    private ImmutableList<ISystem> _systems = ImmutableList<ISystem>.Empty;
     private float _time;
+    private Action? _updateAction;
     private World _world = World.Create();
 
-    public Scene(IImmutableList<ISystem>? systems = null)
+    public Scene(GetSystemsDelegate? systems = null)
     {
-        Systems = systems ?? ImmutableList<ISystem>.Empty;
-        var orderedQueryBuilder = _world.QueryBuilder<ZIndex>();
-        orderedQueryBuilder.Desc.order_by = Type<ZIndex>.Id(_world);
-        orderedQueryBuilder.Desc.order_by_callback = (nint)_orderByCallback;
-        _orderedQuery = orderedQueryBuilder.Build();
+        _getSystemsDelegate = systems ?? Array.Empty<ISystem>;
+        _orderedQuery = BuildOrderedQuery();
     }
 
-    public IImmutableList<ISystem> Systems { get; }
+    public IReadOnlyList<ISystem> Systems
+    {
+        get
+        {
+            EnsureInitialized();
+            return _systems;
+        }
+    }
 
-    public ref Camera Camera => ref _camera;
+    public Camera Camera { get; } = new();
 
     public bool Initialized { get; private set; }
 
-    // ReSharper disable once UseCollectionExpression
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
     {
-        var scene = _current;
+        var scene = _context;
         var e1 = new Entity(scene._world.Entity(id1), scene);
         var e2 = new Entity(scene._world.Entity(id2), scene);
         var result = e1.WorldZIndex.CompareTo(e2.WorldZIndex);
         return result == 0 ? id1.CompareTo(id2) : result;
+    }
+
+    public void Restart()
+    {
+        if (!Initialized)
+            return;
+        var current = Game.Scene == this;
+        if (current || _world.IsDeferred())
+        {
+            Game.Defer(RestartAction);
+            return;
+        }
+
+        RestartAction();
+        return;
+
+        void RestartAction()
+        {
+            if (current && _started)
+                Stop();
+            _time = 0;
+            Each(entity => entity.Destroy());
+            _initializeAction?.Invoke();
+        }
     }
 
     public Entity Entity(string name = "")
@@ -74,62 +108,91 @@ public sealed unsafe class Scene
 
     public void On<T>(Action action)
     {
-        On<T>(_ => action.Invoke());
+        On((ref T _) => action.Invoke());
     }
 
-    public void On<T>(Action<T> action)
+    public void On<T>(RefAction<T> action)
     {
         EnsureNotInitialized();
         var type = typeof(T);
-        if (!_events.ContainsKey(type))
-            _events.Add(type, []);
-        _events[type].Add(action);
+        if (!_events.TryGetValue(type, out var value))
+        {
+            value = action;
+            _events.Add(type, value);
+            return;
+        }
+
+        var existing = value as RefAction<T>;
+        existing += action;
+        _events[type] = existing;
     }
 
     public void OnInitialize(Action action)
     {
         EnsureNotInitialized();
-        _initializeActions.Add(action);
+        _initializeAction += action;
+    }
+
+    public void OnStart(Action action)
+    {
+        EnsureNotInitialized();
+        _startAction += action;
+    }
+
+    public void OnStop(Action action)
+    {
+        EnsureNotInitialized();
+        _stopAction += action;
+    }
+
+    public void OnDestroy(Action action)
+    {
+        EnsureNotInitialized();
+        _onDestroy += action;
     }
 
     public void OnUpdate(Action action)
     {
         EnsureNotInitialized();
-        _updateActions.Add(action);
+        _updateAction += action;
     }
 
     public void OnFixedUpdate(Action action)
     {
         EnsureNotInitialized();
-        _fixedUpdateActions.Add(action);
+        _fixedUpdateAction += action;
     }
 
     public void OnRenderStart(Action action)
     {
         EnsureNotInitialized();
-        _renderStartActions.Add(action);
+        _renderStartAction += action;
     }
 
     public void OnRenderEnd(Action action)
     {
         EnsureNotInitialized();
-        _renderEndActions.Add(action);
+        _renderEndAction += action;
     }
 
     public void OnRender(Action<Entity> action)
     {
         EnsureNotInitialized();
-        _renderActions.Add(action);
+        _renderAction += action;
     }
 
     public void Emit<T>(T @event)
     {
+        Emit(ref @event);
+    }
+
+    public void Emit<T>(ref T @event)
+    {
         EnsureInitialized();
         var type = typeof(T);
-        if (!_events.TryGetValue(type, out var actions))
+        if (!_events.TryGetValue(type, out var action))
             return;
-        foreach (var action in actions)
-            ((Action<T>)action).Invoke(@event);
+        ((RefAction<T>)action).Invoke(ref @event);
     }
 
     public int Count()
@@ -158,64 +221,80 @@ public sealed unsafe class Scene
 
     private void Initialize()
     {
-        foreach (var system in Game.Systems)
-            system.Configure(this);
-        foreach (var system in Systems)
+        _systems = Game.Systems.Invoke().Concat(_getSystemsDelegate.Invoke()).ToImmutableList();
+        foreach (var system in _systems)
             system.Configure(this);
         Initialized = true;
-        foreach (var action in _initializeActions)
-            action.Invoke();
+        _initializeAction?.Invoke();
         Time.Restart();
+    }
+
+    private Query<ZIndex> BuildOrderedQuery()
+    {
+        var queryBuilder = _world.QueryBuilder<ZIndex>();
+        queryBuilder.Desc.order_by = Type<ZIndex>.Id(_world);
+        queryBuilder.Desc.order_by_callback = (nint)OrderByCallback;
+        return queryBuilder.Build();
+    }
+
+    private void Start()
+    {
+        _startAction?.Invoke();
+        _started = true;
+    }
+
+    internal void Stop()
+    {
+        _stopAction?.Invoke();
+        _started = false;
     }
 
     internal void Update()
     {
         if (!Initialized)
             Initialize();
-        foreach (var action in _updateActions)
-            action.Invoke();
-        for (_time += Time.Delta; _time >= Time.FixedDelta; _time -= Time.FixedDelta)
+        if (!_started)
+            Start();
+        _updateAction?.Invoke();
+        for (_time += Time.DeltaSeconds; _time >= Time.FixedDeltaSeconds; _time -= Time.FixedDeltaSeconds)
             FixedUpdate();
         Render();
     }
 
-    private void DeferBegin()
+    internal void DeferBegin()
     {
-        _current = this;
+        _context = this;
         if (!_world.IsDeferred())
             _world.DeferBegin();
     }
 
-    private void DeferEnd()
+    internal void DeferEnd()
     {
         if (_world.IsDeferred())
             _world.DeferEnd();
-        _current = null!;
+        _context = null!;
     }
 
     private void FixedUpdate()
     {
-        foreach (var action in _fixedUpdateActions)
-            action.Invoke();
+        _fixedUpdateAction?.Invoke();
     }
 
     private void Render()
     {
-        foreach (var action in _renderStartActions)
-            action.Invoke();
+        _renderStartAction?.Invoke();
         OrderedEach(entity =>
         {
-            foreach (var action in _renderActions)
-                action.Invoke(entity);
+            _renderAction?.Invoke(entity);
         });
-        foreach (var action in _renderEndActions)
-            action.Invoke();
+        _renderEndAction?.Invoke();
     }
 
     ~Scene()
     {
-        Game.RunLater(() =>
+        Game.Defer(() =>
         {
+            _onDestroy?.Invoke();
             _orderedQuery.Dispose();
             _world.Dispose();
         });
@@ -223,7 +302,7 @@ public sealed unsafe class Scene
 
     #region OnAdd
 
-    public void OnAdd<T>(EachEntityAction action)
+    public void OnAdd<T>(EntityAction action)
     {
         EnsureNotInitialized();
         _world
@@ -237,7 +316,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnAdd<T>(EachAction<T> action)
+    public void OnAdd<T>(RefAction<T> action)
     {
         EnsureNotInitialized();
         _world
@@ -251,7 +330,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnAdd<T>(EachEntityAction<T> action)
+    public void OnAdd<T>(EntityAction<T> action)
     {
         EnsureNotInitialized();
         _world
@@ -269,7 +348,7 @@ public sealed unsafe class Scene
 
     #region OnSet
 
-    public void OnSet<T>(EachEntityAction action, bool traverse = false)
+    public void OnSet<T>(EntityAction action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
@@ -290,7 +369,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnSet<T>(EachAction<T> action, bool traverse = false)
+    public void OnSet<T>(RefAction<T> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
@@ -311,7 +390,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnSet<T>(EachEntityAction<T> action, bool traverse = false)
+    public void OnSet<T>(EntityAction<T> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
@@ -336,7 +415,7 @@ public sealed unsafe class Scene
 
     #region OnRemove
 
-    public void OnRemove<T>(EachEntityAction action)
+    public void OnRemove<T>(EntityAction action)
     {
         EnsureNotInitialized();
         _world
@@ -350,7 +429,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnRemove<T>(EachAction<T> action)
+    public void OnRemove<T>(RefAction<T> action)
     {
         EnsureNotInitialized();
         _world
@@ -364,7 +443,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnRemove<T>(EachEntityAction<T> action)
+    public void OnRemove<T>(EntityAction<T> action)
     {
         EnsureNotInitialized();
         _world
@@ -387,17 +466,6 @@ public sealed unsafe class Scene
         OnSet<Position>(action.Invoke, traverse);
     }
 
-    public void OnSetPosition(Action<Vector2> action, bool traverse = true)
-    {
-        OnSet(
-            (ref Position position) =>
-            {
-                action.Invoke(position.Value);
-            },
-            traverse
-        );
-    }
-
     public void OnSetPosition(Action<Entity, Vector2> action, bool traverse = true)
     {
         OnSet(
@@ -416,17 +484,6 @@ public sealed unsafe class Scene
     public void OnSetScale(Action<Entity> action, bool traverse = true)
     {
         OnSet<Scale>(action.Invoke, traverse);
-    }
-
-    public void OnSetScale(Action<Vector2> action, bool traverse = true)
-    {
-        OnSet(
-            (ref Scale scale) =>
-            {
-                action.Invoke(scale.Value);
-            },
-            traverse
-        );
     }
 
     public void OnSetScale(Action<Entity, Vector2> action, bool traverse = true)
@@ -449,17 +506,6 @@ public sealed unsafe class Scene
         OnSet<Rotation>(action.Invoke, traverse);
     }
 
-    public void OnSetRotation(Action<float> action, bool traverse = true)
-    {
-        OnSet(
-            (ref Rotation rotation) =>
-            {
-                action.Invoke(rotation.Value);
-            },
-            traverse
-        );
-    }
-
     public void OnSetRotation(Action<Entity, float> action, bool traverse = true)
     {
         OnSet(
@@ -478,17 +524,6 @@ public sealed unsafe class Scene
     public void OnSetPivotPoint(Action<Entity> action, bool traverse = true)
     {
         OnSet<PivotPoint>(action.Invoke, traverse);
-    }
-
-    public void OnSetPivotPoint(Action<Vector2> action, bool traverse = true)
-    {
-        OnSet(
-            (ref PivotPoint pivotPoint) =>
-            {
-                action.Invoke(pivotPoint.Value);
-            },
-            traverse
-        );
     }
 
     public void OnSetPivotPoint(Action<Entity, Vector2> action, bool traverse = true)
@@ -511,17 +546,6 @@ public sealed unsafe class Scene
         OnSet<ZIndex>(action.Invoke, traverse);
     }
 
-    public void OnSetZIndex(Action<int> action, bool traverse = true)
-    {
-        OnSet(
-            (ref ZIndex zIndex) =>
-            {
-                action.Invoke(zIndex.Value);
-            },
-            traverse
-        );
-    }
-
     public void OnSetZIndex(Action<Entity, int> action, bool traverse = true)
     {
         OnSet(
@@ -537,7 +561,7 @@ public sealed unsafe class Scene
 
     #region Each
 
-    public void Each(EachEntityAction action)
+    public void Each(EntityAction action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -545,7 +569,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0>(EachAction<T0> action)
+    public void Each<T0>(RefAction<T0> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -553,7 +577,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0>(EachEntityAction<T0> action)
+    public void Each<T0>(EntityAction<T0> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -561,7 +585,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1>(EachAction<T0, T1> action)
+    public void Each<T0, T1>(RefAction<T0, T1> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -569,7 +593,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1>(EachEntityAction<T0, T1> action)
+    public void Each<T0, T1>(EntityAction<T0, T1> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -580,7 +604,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2>(EachAction<T0, T1, T2> action)
+    public void Each<T0, T1, T2>(RefAction<T0, T1, T2> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -588,7 +612,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2>(EachEntityAction<T0, T1, T2> action)
+    public void Each<T0, T1, T2>(EntityAction<T0, T1, T2> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -599,7 +623,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3>(EachAction<T0, T1, T2, T3> action)
+    public void Each<T0, T1, T2, T3>(RefAction<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -607,7 +631,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3>(EachEntityAction<T0, T1, T2, T3> action)
+    public void Each<T0, T1, T2, T3>(EntityAction<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -618,7 +642,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4>(EachAction<T0, T1, T2, T3, T4> action)
+    public void Each<T0, T1, T2, T3, T4>(RefAction<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -629,7 +653,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4>(EachEntityAction<T0, T1, T2, T3, T4> action)
+    public void Each<T0, T1, T2, T3, T4>(EntityAction<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -640,7 +664,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5>(EachAction<T0, T1, T2, T3, T4, T5> action)
+    public void Each<T0, T1, T2, T3, T4, T5>(RefAction<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -651,7 +675,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5>(EachEntityAction<T0, T1, T2, T3, T4, T5> action)
+    public void Each<T0, T1, T2, T3, T4, T5>(EntityAction<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -662,7 +686,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6>(EachAction<T0, T1, T2, T3, T4, T5, T6> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6>(RefAction<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -673,7 +697,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6>(EntityAction<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -692,7 +716,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6, T7>(RefAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -703,7 +727,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6, T7>(EntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -723,7 +747,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8>(RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -734,7 +758,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -767,7 +791,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -789,7 +813,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
     )
     {
         EnsureInitialized();
@@ -826,7 +850,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
     )
     {
         EnsureInitialized();
@@ -850,7 +874,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
     )
     {
         EnsureInitialized();
@@ -889,7 +913,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
     )
     {
         EnsureInitialized();
@@ -928,7 +952,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
     )
     {
         EnsureInitialized();
@@ -969,7 +993,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
     )
     {
         EnsureInitialized();
@@ -1010,7 +1034,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
     )
     {
         EnsureInitialized();
@@ -1053,7 +1077,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
     )
     {
         EnsureInitialized();
@@ -1096,7 +1120,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
     )
     {
         EnsureInitialized();
@@ -1141,7 +1165,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
     )
     {
         EnsureInitialized();
@@ -1186,7 +1210,7 @@ public sealed unsafe class Scene
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
     )
     {
         EnsureInitialized();
@@ -1236,7 +1260,7 @@ public sealed unsafe class Scene
 
     #region OrderedEach
 
-    public void OrderedEach(EachEntityAction action)
+    public void OrderedEach(EntityAction action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1244,7 +1268,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0>(EachAction<T0> action)
+    public void OrderedEach<T0>(RefAction<T0> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1258,7 +1282,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0>(EachEntityAction<T0> action)
+    public void OrderedEach<T0>(EntityAction<T0> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1272,7 +1296,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1>(EachAction<T0, T1> action)
+    public void OrderedEach<T0, T1>(RefAction<T0, T1> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1286,7 +1310,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1>(EachEntityAction<T0, T1> action)
+    public void OrderedEach<T0, T1>(EntityAction<T0, T1> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1300,7 +1324,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2>(EachAction<T0, T1, T2> action)
+    public void OrderedEach<T0, T1, T2>(RefAction<T0, T1, T2> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1314,7 +1338,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2>(EachEntityAction<T0, T1, T2> action)
+    public void OrderedEach<T0, T1, T2>(EntityAction<T0, T1, T2> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1333,7 +1357,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3>(EachAction<T0, T1, T2, T3> action)
+    public void OrderedEach<T0, T1, T2, T3>(RefAction<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1352,7 +1376,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3>(EachEntityAction<T0, T1, T2, T3> action)
+    public void OrderedEach<T0, T1, T2, T3>(EntityAction<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1372,7 +1396,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4>(EachAction<T0, T1, T2, T3, T4> action)
+    public void OrderedEach<T0, T1, T2, T3, T4>(RefAction<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1392,7 +1416,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4>(EachEntityAction<T0, T1, T2, T3, T4> action)
+    public void OrderedEach<T0, T1, T2, T3, T4>(EntityAction<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1413,7 +1437,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5>(EachAction<T0, T1, T2, T3, T4, T5> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5>(RefAction<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1441,7 +1465,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5>(EachEntityAction<T0, T1, T2, T3, T4, T5> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5>(EntityAction<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1470,7 +1494,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EachAction<T0, T1, T2, T3, T4, T5, T6> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(RefAction<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1500,7 +1524,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EntityAction<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1531,7 +1555,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(RefAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1563,7 +1587,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1596,7 +1620,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1630,9 +1654,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action
-    )
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1668,7 +1690,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
     )
     {
         EnsureInitialized();
@@ -1706,7 +1728,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
     )
     {
         EnsureInitialized();
@@ -1745,7 +1767,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
     )
     {
         EnsureInitialized();
@@ -1785,7 +1807,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
     )
     {
         EnsureInitialized();
@@ -1826,7 +1848,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
     )
     {
         EnsureInitialized();
@@ -1868,7 +1890,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
     )
     {
         EnsureInitialized();
@@ -1911,7 +1933,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
     )
     {
         EnsureInitialized();
@@ -1955,7 +1977,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
     )
     {
         EnsureInitialized();
@@ -2000,7 +2022,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
     )
     {
         EnsureInitialized();
@@ -2046,7 +2068,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
     )
     {
         EnsureInitialized();
@@ -2093,7 +2115,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        EachAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
+        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
     )
     {
         EnsureInitialized();
@@ -2141,7 +2163,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        EachEntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
+        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
     )
     {
         EnsureInitialized();

@@ -14,11 +14,9 @@ public sealed class Renderer
     private Renderer()
     {
         Game.EnsureRunning();
-        _buffer = new WritableTexture(Game.Size);
+        _buffer = new WritableTexture(Game.Size, Game.Scale);
         _interpolation = Game.DefaultInterpolation;
         _graphics = _buffer.Graphics;
-        Raylib.BeginTextureMode(_buffer.RenderTexture2D);
-        Graphics.CurrentBuffer = _buffer;
     }
 
     public static Interpolation Interpolation
@@ -31,35 +29,54 @@ public sealed class Renderer
 
     public static WritableTexture Buffer => GetRenderer()._buffer;
 
-    internal static void Initialize()
-    {
-        GetRenderer();
-    }
-
     internal static void Update()
     {
         var renderer = GetRenderer();
         var screenWidth = (float)Game.ScreenWidth;
         var screenHeight = (float)Game.ScreenHeight;
-        var width = (float)Game.Width;
-        var height = (float)Game.Height;
-        var scale = MathF.Min(screenWidth / width, screenHeight / height);
-        var buffer = renderer._buffer;
-        var source = new Raylib_cs.Rectangle(0, 0, width, -height);
-        var dest = new Raylib_cs.Rectangle(
-            (screenWidth - width * scale) * 0.5f,
-            (screenHeight - height * scale) * 0.5f,
-            width * scale,
-            height * scale
-        );
-        Raylib.SetTextureFilter(renderer._buffer.RenderTexture2D.Texture, (TextureFilter)renderer._interpolation);
-        Raylib.EndTextureMode();
-        Raylib.BeginDrawing();
+        var width = Game.Width;
+        var height = Game.Height;
+        var texture = renderer._buffer.RenderTexture2D.Texture;
+        var scaleX = screenWidth / width;
+        var scaleY = screenHeight / height;
+        var minScale = MathF.Min(scaleX, scaleY);
+        var maxScale = MathF.Max(scaleX, scaleY);
+        var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
+        var dest = Game.Viewport switch
+        {
+            Viewport.Fit => new Raylib_cs.Rectangle(
+                (screenWidth - width * minScale) * 0.5f,
+                (screenHeight - height * minScale) * 0.5f,
+                width * minScale,
+                height * minScale
+            ),
+            Viewport.Stretch => new Raylib_cs.Rectangle(0, 0, screenWidth, screenHeight),
+            Viewport.Crop => new Raylib_cs.Rectangle(
+                (screenWidth - width * maxScale) * 0.5f,
+                (screenHeight - height * maxScale) * 0.5f,
+                width * maxScale,
+                height * maxScale
+            ),
+            _ => throw new ArgumentOutOfRangeException(),
+        };
+
+        if (Graphics.CurrentBuffer is not null)
+        {
+            Raylib.EndTextureMode();
+            Graphics.CurrentBuffer = null;
+        }
+
+        if (Graphics.CurrentClip.HasValue)
+        {
+            Raylib.EndScissorMode();
+            Graphics.CurrentClip = null;
+        }
+
+        Raylib.SetTextureFilter(texture, (TextureFilter)renderer._interpolation);
         Raylib.ClearBackground(Raylib_cs.Color.Black);
-        Raylib.DrawTexturePro(buffer.RenderTexture2D.Texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
-        Raylib.EndDrawing();
-        Raylib.BeginTextureMode(buffer.RenderTexture2D);
-        Graphics.CurrentBuffer = buffer;
+        Raylib.DrawTexturePro(texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
+        Rlgl.DrawRenderBatchActive();
+        Raylib.SwapScreenBuffer();
     }
 
     private static Renderer GetRenderer()

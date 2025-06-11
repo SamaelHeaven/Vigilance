@@ -2,9 +2,9 @@ using Vigilance.Core;
 
 namespace Vigilance.Systems;
 
-public class YSortSystem(float offset = 0) : ISystem
+public sealed class YSortSystem(float offset = 0) : ISystem
 {
-    public readonly float Offset = offset;
+    public float Offset { get; set; } = offset;
 
     public void Configure(Scene scene)
     {

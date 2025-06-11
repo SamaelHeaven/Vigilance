@@ -8,25 +8,33 @@ public sealed class WritableTexture
 {
     internal readonly RenderTexture2D RenderTexture2D;
 
-    public WritableTexture(Vector2 size)
-        : this((int)size.X, (int)size.Y) { }
+    public WritableTexture(Vector2 size, float scale = 1)
+        : this(size.X, size.Y, scale) { }
 
-    public WritableTexture(int width, int height)
+    public WritableTexture(float width, float height, float scale = 1)
     {
         Game.EnsureRunning();
-        RenderTexture2D = Raylib.LoadRenderTexture(width, height);
+        RenderTexture2D = Raylib.LoadRenderTexture((int)(width * scale), (int)(height * scale));
         Texture = new Texture(RenderTexture2D.Texture, this);
+        Graphics = new Graphics(this);
+        Scale = MathF.Max(1, scale);
     }
 
     public Texture Texture { get; }
+    public Graphics Graphics { get; }
+    public float Scale { get; }
 
-    public int Width => RenderTexture2D.Texture.Width;
+    public float Width => RenderTexture2D.Texture.Width / Scale;
 
-    public int Height => RenderTexture2D.Texture.Height;
+    public float Height => RenderTexture2D.Texture.Height / Scale;
 
     public Vector2 Size => new(Width, Height);
 
-    public Graphics Graphics => new(this);
+    public int ScaledWidth => RenderTexture2D.Texture.Width;
+
+    public int ScaledHeight => RenderTexture2D.Texture.Height;
+
+    public Vector2 ScaledSize => new(ScaledWidth, ScaledHeight);
 
     public void Update(ReadOnlySpan<Color> pixels)
     {
@@ -40,9 +48,21 @@ public sealed class WritableTexture
         return writableTexture.Texture;
     }
 
+    public Image ToImage(Interpolation? interpolation = null)
+    {
+        var image = Texture.ToImage();
+        image.Resize(Width, Height, interpolation);
+        return image;
+    }
+
+    public Image ToScaledImage()
+    {
+        return Texture.ToImage();
+    }
+
     ~WritableTexture()
     {
-        Game.RunLater(() =>
+        Game.Defer(() =>
         {
             Raylib.UnloadRenderTexture(RenderTexture2D);
         });

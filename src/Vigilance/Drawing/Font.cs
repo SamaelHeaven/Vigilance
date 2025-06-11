@@ -10,8 +10,8 @@ public sealed unsafe class Font
 {
     private static readonly FreeTypeLibrary FtLibrary = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
-    private readonly Dictionary<int, (Texture2D, Dictionary<char, GlyphInfo>)> _strokes = new();
-    private IntPtr _buffer;
+    private readonly Dictionary<int, (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
+    private nint _buffer;
     private FT_FaceRec_* _face;
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
@@ -27,16 +27,17 @@ public sealed unsafe class Font
 
     public string Charset { get; }
     public int Quality { get; }
-    internal Texture2D Atlas { get; }
+    public IReadOnlyDictionary<char, GlyphInfo> GlyphInfos => _glyphInfos.AsReadOnly();
+    public Texture Atlas { get; }
 
     public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)
     {
-        var (spacingX, spacingY) = ((float, float))(spacing ?? Game.DefaultTextSpacing);
+        var (spacingX, spacingY) = spacing ?? Game.DefaultTextSpacing;
         var size = new Vector2(0, fontSize + text.Count(c => c == '\n') * (fontSize + spacingY));
         HandleText(
-            (_, _, destPosition, destSize) =>
+            info =>
             {
-                size.X = MathF.Max(size.X, destPosition.X + destSize.X);
+                size.X = MathF.Max(size.X, info.Dest.Position.X + info.Dest.Size.X);
             },
             text,
             fontSize,
@@ -45,12 +46,46 @@ public sealed unsafe class Font
         return size;
     }
 
-    internal void HandleText(
-        Action<Vector2, Vector2, Vector2, Vector2> action,
+    public Texture GetStrokeAtlas(int strokeWidth)
+    {
+        var stroke = GetStroke(strokeWidth);
+        return stroke.Atlas;
+    }
+
+    public GlyphInfo GetGlyphInfo(char c)
+    {
+        return _glyphInfos[c];
+    }
+
+    public GlyphInfo GetStrokeGlyphInfo(char c, int strokeWidth)
+    {
+        var stroke = GetStroke(strokeWidth);
+        return stroke.GlyphInfos[c];
+    }
+
+    public IReadOnlyDictionary<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
+    {
+        var stroke = GetStroke(strokeWidth);
+        return stroke.GlyphInfos.AsReadOnly();
+    }
+
+    public void HandleText(
+        Action<(Box Source, Box Dest)> action,
+        string text,
+        float? fontSize,
+        Vector2? spacing,
+        IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
+    )
+    {
+        HandleText(action, text, fontSize ?? Game.DefaultFontSize, spacing ?? Game.DefaultTextSpacing, glyphInfos);
+    }
+
+    public void HandleText(
+        Action<(Box Source, Box Dest)> action,
         string text,
         float fontSize,
         Vector2 spacing,
-        Dictionary<char, GlyphInfo>? glyphInfos = null
+        IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
         var aspectRatio = Quality / fontSize;
@@ -74,7 +109,7 @@ public sealed unsafe class Font
             var sourceSize = new Vector2(glyph.Width, glyph.Height);
             var destPosition = position + new Vector2(glyph.OffsetX, glyph.OffsetY) / aspectRatio;
             var destSize = sourceSize / aspectRatio;
-            action.Invoke(sourcePosition, sourceSize, destPosition, destSize);
+            action.Invoke((new Box(sourcePosition, sourceSize), new Box(destPosition, destSize)));
             position.X += glyph.Advance / aspectRatio + spacing.X;
         }
     }
@@ -103,7 +138,7 @@ public sealed unsafe class Font
         return Charset.Select(c => LoadGlyph(c, false)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
     }
 
-    private Texture2D DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
+    private Texture DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
     {
         const int spacing = 2;
         const int nbCols = 10;
@@ -117,6 +152,7 @@ public sealed unsafe class Font
         var x = spacing;
         var y = spacing;
         var offset = 0;
+        glyphInfos ??= _glyphInfos;
         foreach (var glyph in glyphs)
         {
             var glyphWidth = glyph.Width;
@@ -135,7 +171,7 @@ public sealed unsafe class Font
                 pixels[index + 1] = 255;
             }
 
-            (glyphInfos ?? _glyphInfos)[glyph.Character] = new GlyphInfo(
+            glyphInfos[glyph.Character] = new GlyphInfo(
                 x,
                 y,
                 glyph.Width,
@@ -163,7 +199,7 @@ public sealed unsafe class Font
                 Mipmaps = 1,
             };
             result.Id = Rlgl.LoadTexture(pixelsBuffer, result.Width, result.Height, result.Format, result.Mipmaps);
-            return result;
+            return new Texture(result);
         }
     }
 
@@ -189,10 +225,10 @@ public sealed unsafe class Font
             FT.FT_Done_Glyph(glyph);
         }
 
-        if (bitmap.buffer == null)
+        if (bitmap.buffer is null)
             return null;
         var bytes = new byte[bitmap.width * bitmap.rows];
-        Marshal.Copy((IntPtr)bitmap.buffer, bytes, 0, (int)bitmap.width * (int)bitmap.rows);
+        Marshal.Copy((nint)bitmap.buffer, bytes, 0, (int)bitmap.width * (int)bitmap.rows);
         return new Glyph(
             bytes,
             c,
@@ -204,7 +240,7 @@ public sealed unsafe class Font
         );
     }
 
-    internal (Texture2D, Dictionary<char, GlyphInfo>) GetStroke(int strokeWidth)
+    internal (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
     {
         strokeWidth = System.Math.Clamp(strokeWidth, 0, 50);
         if (_strokes.TryGetValue(strokeWidth, out var stroke))
@@ -232,14 +268,11 @@ public sealed unsafe class Font
 
     ~Font()
     {
-        Game.RunLater(() =>
+        Game.Defer(() =>
         {
             FT.FT_Stroker_Done(_stroker);
             FT.FT_Done_Face(_face);
             Marshal.FreeHGlobal(_buffer);
-            Raylib.UnloadTexture(Atlas);
-            foreach (var (_, (atlas, _)) in _strokes)
-                Raylib.UnloadTexture(atlas);
         });
     }
 

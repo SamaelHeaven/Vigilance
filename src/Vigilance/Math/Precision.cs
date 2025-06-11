@@ -10,9 +10,27 @@ public static class Precision
         return MathF.Abs(a - b) <= epsilon;
     }
 
+    public static bool AreEqual(float? a, float? b, float epsilon = DefaultFloatEpsilon)
+    {
+        if (a is null && b is null)
+            return true;
+        if (a is null || b is null)
+            return false;
+        return AreEqual(a.Value, b.Value, epsilon);
+    }
+
     public static bool AreEqual(double a, double b, double epsilon = DefaultDoubleEpsilon)
     {
         return System.Math.Abs(a - b) <= epsilon;
+    }
+
+    public static bool AreEqual(double? a, double? b, double epsilon = DefaultDoubleEpsilon)
+    {
+        if (a is null && b is null)
+            return true;
+        if (a is null || b is null)
+            return false;
+        return AreEqual(a.Value, b.Value, epsilon);
     }
 
     public static bool AreEqual(Vector2 a, Vector2 b, float epsilon = DefaultFloatEpsilon)
@@ -20,9 +38,27 @@ public static class Precision
         return AreEqual(a.X, b.X, epsilon) && AreEqual(a.Y, b.Y, epsilon);
     }
 
+    public static bool AreEqual(Vector2? a, Vector2? b, float epsilon = DefaultFloatEpsilon)
+    {
+        if (a is null && b is null)
+            return true;
+        if (a is null || b is null)
+            return false;
+        return AreEqual(a.Value, b.Value, epsilon);
+    }
+
     public static bool AreEqual(Box a, Box b, float epsilon = DefaultFloatEpsilon)
     {
         return AreEqual(a.Position, b.Position, epsilon) && AreEqual(a.Size, b.Size, epsilon);
+    }
+
+    public static bool AreEqual(Box? a, Box? b, float epsilon = DefaultFloatEpsilon)
+    {
+        if (a is null && b is null)
+            return true;
+        if (a is null || b is null)
+            return false;
+        return AreEqual(a.Value, b.Value, epsilon);
     }
 
     public static bool AreEqual(Transform a, Transform b, float epsilon = DefaultFloatEpsilon)
@@ -31,5 +67,14 @@ public static class Precision
             && AreEqual(a.Scale, b.Scale, epsilon)
             && AreEqual(a.Rotation, b.Rotation, epsilon)
             && AreEqual(a.PivotPoint, b.PivotPoint, epsilon);
+    }
+
+    public static bool AreEqual(Transform? a, Transform? b, float epsilon = DefaultFloatEpsilon)
+    {
+        if (a is null && b is null)
+            return true;
+        if (a is null || b is null)
+            return false;
+        return AreEqual(a.Value, b.Value, epsilon);
     }
 }

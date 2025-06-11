@@ -1,21 +1,27 @@
-using System.Collections.Immutable;
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Raylib_cs;
 using Vigilance.Drawing;
 using Vigilance.Input;
+using Vigilance.Logging;
 using Vigilance.Math;
 using Font = Vigilance.Drawing.Font;
-using Image = Vigilance.Drawing.Image;
+using Music = Vigilance.Audio.Music;
+using Sound = Vigilance.Audio.Sound;
 
 namespace Vigilance.Core;
 
-public sealed class Game
+public sealed unsafe class Game
 {
     private static Game? _game;
-    private readonly List<Action> _actions = [];
-    private GameConfig _config;
+    private readonly ConcurrentStack<Action> _actions = [];
+    private GameConfig _config = null!;
     private Font _defaultFont = null!;
-    private Vector2 _previousScreenSize = Vector2.Zero;
-    private bool _resetSize;
+    private Box _previousScreen;
+    private bool _quit;
+    private bool _resetScreen;
     private Scene _scene = null!;
 
     private Game()
@@ -25,12 +31,19 @@ public sealed class Game
 
     public static bool Running { get; private set; }
 
+    public static Platform Platform { get; } =
+        Enum.GetValues<Platform>().FirstOrDefault(platform => platform.IsCurrent());
+
     public static bool Fullscreen
     {
         get
         {
             EnsureRunning();
-            return Raylib.IsWindowFullscreen();
+            return Platform switch
+            {
+                Platform.Web => JSEngine.Eval("!!document.fullscreenElement"),
+                _ => Raylib.IsWindowFullscreen(),
+            };
         }
         set
         {
@@ -39,9 +52,9 @@ public sealed class Game
         }
     }
 
-    public static int Width => GetGame()._config.Width;
+    public static float Width => GetGame()._config.Size.X;
 
-    public static int Height => GetGame()._config.Height;
+    public static float Height => GetGame()._config.Size.Y;
 
     public static Vector2 Size => new(Width, Height);
 
@@ -50,13 +63,15 @@ public sealed class Game
         get
         {
             EnsureRunning();
+            if (Platform.Desktop.IsCurrent() && Fullscreen)
+                return Raylib.GetMonitorWidth(Raylib.GetCurrentMonitor());
             return Raylib.GetScreenWidth();
         }
         set
         {
             if (!Platform.Desktop.IsCurrent())
                 return;
-            if (Fullscreen && value != Width)
+            if (Fullscreen)
                 return;
             if (ScreenWidth == value)
                 return;
@@ -69,13 +84,15 @@ public sealed class Game
         get
         {
             EnsureRunning();
+            if (Platform.Desktop.IsCurrent() && Fullscreen)
+                return Raylib.GetMonitorHeight(Raylib.GetCurrentMonitor());
             return Raylib.GetScreenHeight();
         }
         set
         {
             if (!Platform.Desktop.IsCurrent())
                 return;
-            if (Fullscreen && value != Height)
+            if (Fullscreen)
                 return;
             if (ScreenHeight == value)
                 return;
@@ -90,19 +107,47 @@ public sealed class Game
         {
             if (!Platform.Desktop.IsCurrent())
                 return;
-            var size = value.Round();
-            if (Fullscreen && size != Size)
+            if (Fullscreen)
                 return;
+            var size = value.Round();
             if (ScreenSize == size)
                 return;
             Raylib.SetWindowSize((int)size.X, (int)size.Y);
         }
     }
 
+    public static Viewport Viewport
+    {
+        get
+        {
+            var game = GetGame();
+            return Enum.IsDefined(typeof(Viewport), game._config.Viewport) ? game._config.Viewport : Viewport.Fit;
+        }
+        set
+        {
+            var game = GetGame();
+            if (!Enum.IsDefined(typeof(Viewport), value))
+                return;
+            Defer(() => game._config.Viewport = value);
+        }
+    }
+
+    public static float Scale => MathF.Max(1, GetGame()._config.Scale);
+
     public static Scene Scene
     {
         get => GetGame()._scene;
-        set => GetGame()._scene = value;
+        set
+        {
+            var game = GetGame();
+            if (game._scene == value)
+                return;
+            Defer(() =>
+            {
+                game._scene.Stop();
+                game._scene = value;
+            });
+        }
     }
 
     public static string Title
@@ -136,9 +181,11 @@ public sealed class Game
         get => GetGame()._config.FpsTarget;
         set
         {
-            GetGame()._config.FpsTarget = value;
+            var game = GetGame();
+            if (value < 1)
+                value = 0;
+            game._config.FpsTarget = value;
             Raylib.SetTargetFPS(value);
-            Time.Restart();
         }
     }
 
@@ -158,15 +205,53 @@ public sealed class Game
 
     public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
 
-    public static IImmutableList<ISystem> Systems => GetGame()._config.Systems;
+    public static CacheType DefaultAssetCacheType
+    {
+        get
+        {
+            var game = GetGame();
+            return Enum.IsDefined(typeof(CacheType), game._config.DefaultAssetCacheType)
+                ? game._config.DefaultAssetCacheType
+                : CacheType.Weak;
+        }
+    }
+
+    public static int DefaultSoundMaxAliases => System.Math.Max(GetGame()._config.DefaultSoundMaxAliases, 1);
+
+    public static float MasterVolume
+    {
+        get
+        {
+            EnsureRunning();
+            return Raylib.GetMasterVolume();
+        }
+        set
+        {
+            EnsureRunning();
+            Raylib.SetMasterVolume(System.Math.Clamp(value, 0, 1));
+        }
+    }
 
     public static bool Debug
     {
         get => GetGame()._config.Debug;
+        set => GetGame()._config.Debug = value;
+    }
+
+    public static LogLevel LogLevel
+    {
+        get
+        {
+            var game = GetGame();
+            return Enum.IsDefined(typeof(LogLevel), game._config.LogLevel) ? game._config.LogLevel : LogLevel.All;
+        }
         set
         {
-            GetGame()._config.Debug = value;
-            Raylib.SetTraceLogLevel(value ? TraceLogLevel.All : TraceLogLevel.Error);
+            var game = GetGame();
+            if (!Enum.IsDefined(typeof(LogLevel), value))
+                return;
+            game._config.LogLevel = value;
+            Raylib.SetTraceLogLevel((TraceLogLevel)value);
         }
     }
 
@@ -186,12 +271,6 @@ public sealed class Game
             EnsureRunning();
             return Raylib.IsWindowMaximized();
         }
-        set
-        {
-            EnsureRunning();
-            if (!Maximized && value)
-                Raylib.MaximizeWindow();
-        }
     }
 
     public static bool Minimized
@@ -200,12 +279,6 @@ public sealed class Game
         {
             EnsureRunning();
             return Raylib.IsWindowMinimized();
-        }
-        set
-        {
-            EnsureRunning();
-            if (!Minimized && value)
-                Raylib.MinimizeWindow();
         }
     }
 
@@ -218,10 +291,7 @@ public sealed class Game
         }
     }
 
-    public static Image Screenshot()
-    {
-        return new Image(Raylib.LoadImageFromScreen());
-    }
+    internal static GetSystemsDelegate Systems => GetGame()._config.Systems;
 
     public static void OpenUrl(string url)
     {
@@ -241,59 +311,110 @@ public sealed class Game
             throw new InvalidOperationException("Game is already running.");
     }
 
-    public static void RunLater(Action action)
+    public static void Defer(Action action)
     {
         var game = GetGame();
-        lock (game._actions)
-        {
-            game._actions.Add(action);
-        }
+        game._actions.Push(action);
     }
 
-    public static void Launch(GameConfig config, Scene scene)
+    public static void Log<T>(T value)
     {
-        Running = true;
+        Log(value is Exception ? LogLevel.Error : LogLevel.Info, value);
+    }
+
+    public static void Log<T>(LogLevel level, T value)
+    {
         var game = GetGame();
-        game._config = config;
-        game._scene = scene;
-        FileSystem.WorkingNamespace = config.WorkingNamespace;
-        FileSystem.ChangeDirectory(config.WorkingDirectory);
-        Raylib.SetTraceLogLevel(config.Debug ? TraceLogLevel.All : TraceLogLevel.Error);
-        Raylib.SetConfigFlags(game.GetConfigFlags());
-        Raylib.InitWindow(
-            config.ScreenWidth <= 0 || !Platform.Desktop.IsCurrent() ? config.Width : config.ScreenWidth,
-            config.ScreenHeight <= 0 || !Platform.Desktop.IsCurrent() ? config.Height : config.ScreenHeight,
-            config.Title
-        );
-        Raylib.SetTargetFPS(config.FpsTarget);
-        Raylib.SetExitKey((KeyboardKey)config.ExitKey);
-        if (config.Maximized)
-            Maximized = true;
-        if (config.Fullscreen)
-            ToggleFullscreen();
-        if (Platform.Desktop.IsCurrent() && config.Icon != null)
-            Raylib.SetWindowIcon(config.Icon!.Invoke().RImage);
-        game._defaultFont = config.DefaultFont.Invoke();
-        game.Loop();
+        if (game._config.LogLevel > level)
+            return;
+        var message = value is Exception e
+            ? $"{e.GetType()}: {e.Message}{(e.StackTrace is null ? "" : $"\n{e.StackTrace}")}"
+            : value?.ToString() ?? "";
+        if (game._config.Logger is null)
+            lock (Console.Out)
+            {
+                if (level is > LogLevel.All and < LogLevel.None)
+                    Console.Write($"{level.ToString().ToUpper()}: ");
+                Console.WriteLine(message);
+                Console.Out.Flush();
+            }
+        else
+            game._config.Logger.Log(level, message);
+
+        if (level == LogLevel.Fatal)
+            Environment.Exit(1);
+    }
+
+    public static void Maximize()
+    {
+        EnsureRunning();
+        if (!Maximized && Platform.Desktop.IsCurrent())
+            Raylib.MaximizeWindow();
+    }
+
+    public static void Minimize()
+    {
+        EnsureRunning();
+        if (!Minimized && Platform.Desktop.IsCurrent())
+            Raylib.MinimizeWindow();
+    }
+
+    public static void Focus()
+    {
+        EnsureRunning();
+        if (Platform == Platform.Web)
+            JSEngine.Eval("Module.canvas.focus()");
+        else
+            Raylib.SetWindowFocused();
     }
 
     public static void ToggleFullscreen()
     {
         var game = GetGame();
         if (Platform.Web.IsCurrent())
-            return;
-        if (Fullscreen)
         {
-            game._resetSize = true;
+            JSEngine.Eval(Fullscreen ? "document.exitFullscreen()" : "Module.canvas.requestFullscreen()");
         }
-        else
+        else if (Platform.Desktop.IsCurrent())
         {
-            game._previousScreenSize = ScreenSize;
-            var monitor = Raylib.GetCurrentMonitor();
-            ScreenSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
-        }
+            if (Fullscreen)
+            {
+                game._resetScreen = true;
+            }
+            else
+            {
+                game._previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
+                var monitor = Raylib.GetCurrentMonitor();
+                ScreenSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
+            }
 
-        Raylib.ToggleFullscreen();
+            Raylib.ToggleFullscreen();
+        }
+    }
+
+    public static void Launch(GameConfig config, Scene scene)
+    {
+        EnsureNotRunning();
+        Running = true;
+        var game = GetGame();
+        config = config.Clone();
+        game._config = config;
+        game._scene = scene;
+        InitializeCultureInfo();
+        game.InitializeLogging();
+        game.InitializeFileSystem();
+        game.InitializeWindow();
+        InitializeAudio();
+        ExitKey = config.ExitKey;
+        FpsTarget = config.FpsTarget;
+        MasterVolume = config.MasterVolume;
+        game._defaultFont = config.DefaultFont.Invoke();
+        game.Loop();
+    }
+
+    public static void Quit()
+    {
+        GetGame()._quit = true;
     }
 
     private static Game GetGame()
@@ -301,39 +422,126 @@ public sealed class Game
         return _game ??= new Game();
     }
 
+    private static void InitializeCultureInfo()
+    {
+        var cultureInfo = CultureInfo.InvariantCulture;
+        CultureInfo.CurrentCulture = cultureInfo;
+        CultureInfo.CurrentUICulture = cultureInfo;
+        CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+        CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
+    }
+
+    private void InitializeLogging()
+    {
+        var engine = Assemblies.Engine.GetName();
+        var message = $"Initializing {engine.Name} {engine.Version}";
+        Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
+        try
+        {
+            if (Platform.Web.IsCurrent())
+                throw new PlatformNotSupportedException();
+            Raylib.SetTraceLogCallback(&UnmanagedLog);
+            Raylib.TraceLog(TraceLogLevel.Info, message);
+        }
+        catch
+        {
+            _config.Logger = null;
+            Raylib.SetTraceLogCallback(null);
+            Log(LogLevel.Warning, "Failed to initialize custom logging");
+            Log(message);
+        }
+    }
+
+    private void InitializeFileSystem()
+    {
+        FileSystem.WorkingNamespace = _config.WorkingNamespace;
+        FileSystem.ChangeDirectory(_config.WorkingDirectory);
+    }
+
+    private void InitializeWindow()
+    {
+        Raylib.SetConfigFlags(GetConfigFlags());
+        Raylib.InitWindow(
+            (int)(_config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.X : _config.ScreenSize.X),
+            (int)(_config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.Y : _config.ScreenSize.Y),
+            _config.Title
+        );
+        if (Platform.Desktop.IsCurrent() && _config.MinSize.HasValue)
+            Raylib.SetWindowMinSize((int)_config.MinSize.Value.X, (int)_config.MinSize.Value.Y);
+        if (Platform.Desktop.IsCurrent() && _config.MaxSize.HasValue)
+            Raylib.SetWindowMaxSize((int)_config.MaxSize.Value.X, (int)_config.MaxSize.Value.Y);
+        if (_config.Maximized)
+            Maximize();
+        if (_config.Fullscreen)
+            ToggleFullscreen();
+        if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon is null)
+            return;
+        var image = _config.Icon!.Invoke().Copy();
+        image.Format = ImageFormat.UncompressedR8G8B8A8;
+        Raylib.SetWindowIcon(image.RImage);
+    }
+
+    private static void InitializeAudio()
+    {
+        Raylib.SetAudioStreamBufferSizeDefault(8192);
+        if (!OperatingSystem.IsWindows())
+        {
+            Raylib.InitAudioDevice();
+            return;
+        }
+
+        var thread = new Thread(Raylib.InitAudioDevice);
+        thread.Start();
+        thread.Join();
+    }
+
     private void Loop()
     {
-        Renderer.Initialize();
-        while (!Raylib.WindowShouldClose())
+        if (Platform.Web.IsCurrent())
         {
-            Time.Update();
-            Keyboard.Update();
-            Mouse.Update();
-            Gamepad.UpdateAll();
-            UpdateSize();
-            UpdateActions();
-            UpdateFullscreen();
-            _scene.Update();
-            Renderer.Update();
+            Emscripten.SetMainLoop(&UnmanagedFrame, 0, 1);
+            return;
         }
+
+        while (!Raylib.WindowShouldClose() && !_quit)
+            Frame();
+        Dispose();
+    }
+
+    private void Frame()
+    {
+        Time.Update();
+        Keyboard.Update();
+        Mouse.Update();
+        Gamepad.UpdateAll();
+        Music.UpdateAll();
+        Sound.UpdateAll();
+        UpdateSize();
+        UpdateActions();
+        UpdateFullscreen();
+        _scene.Update();
+        Renderer.Update();
+        Raylib.PollInputEvents();
     }
 
     private void UpdateSize()
     {
-        if (!_resetSize)
+        if (!_resetScreen)
             return;
-        _resetSize = false;
-        ScreenSize = _previousScreenSize;
+        _resetScreen = false;
+        Raylib.SetWindowPosition((int)_previousScreen.Position.X, (int)_previousScreen.Position.Y);
+        ScreenSize = _previousScreen.Size;
     }
 
     private void UpdateActions()
     {
-        lock (_actions)
-        {
-            foreach (var action in _actions)
-                action.Invoke();
-            _actions.Clear();
-        }
+        var length = _actions.Count;
+        if (length == 0)
+            return;
+        var actions = new Action[length];
+        var amount = _actions.TryPopRange(actions, 0, length);
+        for (var i = amount - 1; i >= 0; i--)
+            actions[i].Invoke();
     }
 
     private void UpdateFullscreen()
@@ -345,14 +553,35 @@ public sealed class Game
     private ConfigFlags GetConfigFlags()
     {
         ConfigFlags flags = 0;
-        if (_config.Msaa4X)
-            flags |= ConfigFlags.Msaa4xHint;
         if (_config.Resizable)
             flags |= ConfigFlags.ResizableWindow;
         if (!_config.Decorated)
             flags |= ConfigFlags.UndecoratedWindow;
         if (_config.Vsync)
             flags |= ConfigFlags.VSyncHint;
+        if (_config.RunMinimized)
+            flags |= ConfigFlags.AlwaysRunWindow;
         return flags;
+    }
+
+    private void Dispose()
+    {
+        _config.QuitAction?.Invoke();
+        Raylib.CloseAudioDevice();
+        Raylib.CloseWindow();
+        Environment.Exit(0);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static void UnmanagedFrame()
+    {
+        GetGame().Frame();
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static void UnmanagedLog(int logLevel, sbyte* format, sbyte* args)
+    {
+        var message = Raylib_cs.Logging.GetLogMessage((nint)format, (nint)args);
+        Log((LogLevel)logLevel, message);
     }
 }

@@ -1,11 +1,11 @@
-using System.Collections.Immutable;
 using Vigilance.Drawing;
 using Vigilance.Input;
+using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public struct GameConfig
+public sealed class GameConfig
 {
     public string Title { get; set; } = "";
     public string WorkingDirectory { get; set; } = "";
@@ -13,23 +13,31 @@ public struct GameConfig
     public Func<Image>? Icon { get; set; } = null;
     public Key ExitKey { get; set; } = Key.Null;
     public Key FullscreenKey { get; set; } = Key.Null;
-    public int Width { get; set; } = 800;
-    public int Height { get; set; } = 600;
-    public int ScreenWidth { get; set; } = 0;
-    public int ScreenHeight { get; set; } = 0;
-    public int FpsTarget { get; set; } = 60;
+    public Vector2 Size { get; set; } = new(800, 600);
+    public Vector2 ScreenSize { get; set; } = Vector2.Zero;
+    public Vector2? MinSize { get; set; } = null;
+    public Vector2? MaxSize { get; set; } = null;
+    public Viewport Viewport { get; set; } = Viewport.Fit;
+    public float Scale { get; set; } = 1.0f;
+    public int FpsTarget { get; set; } = 0;
     public bool Fullscreen { get; set; } = false;
     public bool Maximized { get; set; } = false;
     public bool Decorated { get; set; } = true;
     public bool Vsync { get; set; } = true;
     public bool Resizable { get; set; } = true;
-    public bool Msaa4X { get; set; } = true;
     public bool Debug { get; set; } = false;
+    public bool RunMinimized { get; set; } = true;
+    public float MasterVolume { get; set; } = 1;
+    public CacheType DefaultAssetCacheType { get; set; } = CacheType.Weak;
+    public ILogger? Logger { get; set; } = new ConsoleLogger();
+    public LogLevel LogLevel { get; set; } = LogLevel.All;
+    public int DefaultSoundMaxAliases { get; set; } = 16;
     public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
     public Vector2 DefaultTextSpacing { get; set; } = new(0, 4);
     public int DefaultFontQuality { get; set; } = 128;
     public float DefaultFontSize { get; set; } = 16;
-    public IImmutableList<ISystem> Systems { get; set; } = ImmutableList<ISystem>.Empty;
+    public GetSystemsDelegate Systems { get; set; } = Array.Empty<ISystem>;
+    public Action? QuitAction { get; set; } = null;
 
     public InputAxis HorizontalInputAxis { get; set; } =
         new()
@@ -49,14 +57,20 @@ public struct GameConfig
 
     public Func<Font> DefaultFont { get; set; } =
         () =>
-            Asset.FontResource(
+        {
+            var assembly = Assemblies.Engine;
+            return Asset.FontResource(
                 "DefaultFont.ttf",
-                @namespace: FileSystem.EngineAssembly.GetName().Name! + ".Resources",
-                assembly: FileSystem.EngineAssembly
+                @namespace: $"{assembly.GetName().Name}.Resources",
+                assembly: assembly
             );
+        };
 
     public string DefaultFontCharset { get; set; } =
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
-    public GameConfig() { }
+    internal GameConfig Clone()
+    {
+        return (GameConfig)MemberwiseClone();
+    }
 }
