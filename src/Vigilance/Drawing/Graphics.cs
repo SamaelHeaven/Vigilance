@@ -98,7 +98,7 @@ public sealed unsafe class Graphics
     {
         if (position.HasValue)
             MultiplyMatrix(Matrix4x4.CreateTranslation(position.Value.X, position.Value.Y, 0));
-        MultiplyMatrix(Matrix4x4.CreateRotationZ(MathF.PI * angle / 180f));
+        MultiplyMatrix(Matrix4x4.CreateRotationZ(angle.DegToRad()));
         if (position.HasValue)
             MultiplyMatrix(Matrix4x4.CreateTranslation(-position.Value.X, -position.Value.Y, 0));
     }
