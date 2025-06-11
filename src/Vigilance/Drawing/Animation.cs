@@ -7,13 +7,11 @@ public sealed class Animation : IEnumerable<AnimationFrame>
 {
     public const int InfiniteRepeatCount = -1;
     private readonly IImmutableList<AnimationFrame> _frames;
-    private Action? _completeAction;
+    private TimeSpan _elapsed;
     private int _index;
     private int? _nextIndex;
-    private Action? _repeatAction;
-    private int _repeatCount;
+    private int _repeatCounter;
     private int _startIndex;
-    private TimeSpan _timer;
 
     public Animation(
         IReadOnlyCollection<AnimationFrame> frames,
@@ -28,8 +26,8 @@ public sealed class Animation : IEnumerable<AnimationFrame>
             throw new ArgumentException("Animation must have at least one frame.");
         _frames = frames.ToImmutableList();
         _nextIndex = null;
-        _completeAction = completeAction;
-        _repeatAction = repeatAction;
+        OnComplete = completeAction;
+        OnRepeat = repeatAction;
         Delay = delay;
         RepeatCount = repeatCount;
         Index = startIndex;
@@ -48,7 +46,7 @@ public sealed class Animation : IEnumerable<AnimationFrame>
         set
         {
             _index = System.Math.Clamp(value, 0, _frames.Count - 1);
-            _timer = TimeSpan.Zero;
+            _elapsed = TimeSpan.Zero;
         }
     }
 
@@ -76,25 +74,27 @@ public sealed class Animation : IEnumerable<AnimationFrame>
         return GetEnumerator();
     }
 
+    public event Action? OnComplete;
+    public event Action? OnRepeat;
+
     public void Update(TimeSpan step)
     {
-        if (Paused || _frames.Count <= 1 || (RepeatCount > InfiniteRepeatCount && _repeatCount >= RepeatCount))
+        if (Paused || _frames.Count <= 1 || (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount))
             return;
-        _timer += step;
+        _elapsed += step;
         var frameDelay = Delay + _frames[_index].Delay;
-        if (_timer < frameDelay)
+        if (_elapsed < frameDelay)
             return;
-        _timer -= frameDelay;
+        _elapsed -= frameDelay;
         _index = _nextIndex ?? (_index + 1) % _frames.Count;
         if (_nextIndex.HasValue)
             _nextIndex = null;
         if (_index != _startIndex)
             return;
-        _repeatCount++;
-        _repeatAction?.Invoke();
-        if (RepeatCount <= InfiniteRepeatCount)
-            return;
-        _completeAction?.Invoke();
+        _repeatCounter++;
+        OnRepeat?.Invoke();
+        if (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount)
+            OnComplete?.Invoke();
     }
 
     public void UpdateSprite(Sprite sprite)
@@ -117,17 +117,7 @@ public sealed class Animation : IEnumerable<AnimationFrame>
     public void Reset()
     {
         _index = 0;
-        _timer = TimeSpan.Zero;
-        _repeatCount = 0;
-    }
-
-    public void OnComplete(Action action)
-    {
-        _completeAction += action;
-    }
-
-    public void OnRepeat(Action action)
-    {
-        _repeatAction += action;
+        _elapsed = TimeSpan.Zero;
+        _repeatCounter = 0;
     }
 }
