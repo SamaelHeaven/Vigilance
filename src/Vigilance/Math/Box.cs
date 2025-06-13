@@ -95,6 +95,6 @@ public struct Box
 
     public override string ToString()
     {
-        return $"{{ X: {X}, Y: {Y}, Width: {Width}, Height: {Height} }}";
+        return $"[{nameof(X)}: {X}, {nameof(Y)}: {Y}, {nameof(Width)}: {Width}, {nameof(Height)}: {Height}]";
     }
 }

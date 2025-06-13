@@ -55,7 +55,7 @@ public struct Vector2
 
     public override string ToString()
     {
-        return $"{{ X: {X}, Y: {Y} }}";
+        return $"<{X}, {Y}>";
     }
 
     public override bool Equals(object? obj)

@@ -11,7 +11,14 @@ public struct Transform
 
     public override string ToString()
     {
-        return $"{{\n  Position: {Position}\n  Scale: {Scale}\n  Rotation: {Rotation}\n  PivotPoint: {PivotPoint}\n}}";
+        return $"""
+            [
+              {nameof(Position)}: {Position},
+              {nameof(Scale)}: {Scale},
+              {nameof(Rotation)}: {Rotation},
+              {nameof(PivotPoint)}: {PivotPoint}
+            ]
+            """;
     }
 
     public override bool Equals(object? obj)

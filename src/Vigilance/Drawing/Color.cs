@@ -120,7 +120,7 @@ public struct Color
 
     public override string ToString()
     {
-        return $"{{ R: {R}, G: {G}, B: {B}, A: {A} }}";
+        return $"[{nameof(R)}={R}, {nameof(G)}={G}, {nameof(B)}={B}, {nameof(A)}={A}]";
     }
 
     public string ToHex()

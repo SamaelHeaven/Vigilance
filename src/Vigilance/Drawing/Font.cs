@@ -98,6 +98,9 @@ public sealed unsafe class Font
                     position.X = 0;
                     position.Y += fontSize + spacing.Y;
                     continue;
+                case '\t':
+                    position.X += (_spaceSize / aspectRatio + spacing.X) * 4;
+                    continue;
                 case ' ':
                     position.X += _spaceSize / aspectRatio + spacing.X;
                     continue;
