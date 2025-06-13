@@ -21,7 +21,7 @@ public sealed unsafe class Scene
     private Query<ZIndex> _orderedQuery;
     private Action<Entity>? _renderAction;
     private Action? _renderEndAction;
-    private Action? _renderStartAction;
+    private Action? _renderBeginAction;
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
@@ -163,10 +163,10 @@ public sealed unsafe class Scene
         _fixedUpdateAction += action;
     }
 
-    public void OnRenderStart(Action action)
+    public void OnRenderBegin(Action action)
     {
         EnsureNotInitialized();
-        _renderStartAction += action;
+        _renderBeginAction += action;
     }
 
     public void OnRenderEnd(Action action)
@@ -282,7 +282,7 @@ public sealed unsafe class Scene
 
     private void Render()
     {
-        _renderStartAction?.Invoke();
+        _renderBeginAction?.Invoke();
         OrderedEach(entity =>
         {
             _renderAction?.Invoke(entity);

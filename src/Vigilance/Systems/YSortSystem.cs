@@ -8,7 +8,7 @@ public sealed class YSortSystem(float offset = 0) : ISystem
 
     public void Configure(Scene scene)
     {
-        scene.OnRenderStart(() =>
+        scene.OnRenderBegin(() =>
         {
             scene.Each(
                 (Entity entity, ref YSort ySort) =>
