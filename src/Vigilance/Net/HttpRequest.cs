@@ -11,7 +11,7 @@ public sealed class HttpRequest(string url, string method, Action<HttpResponse>?
     public Action<HttpResponse>? OnComplete { get; } = onComplete;
     public string Method { get; init; } = method;
     public TimeSpan Timeout { get; set; }
-    public HttpHeaders Headers { get; } = new();
+    public HttpHeaders Headers { get; init; } = new();
     public byte[]? Body { get; set; }
 
     public string Text

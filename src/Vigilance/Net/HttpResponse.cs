@@ -6,7 +6,7 @@ public sealed class HttpResponse
 {
     public int StatusCode { get; set; }
     public string StatusText { get; set; } = "";
-    public HttpHeaders Headers { get; } = new();
+    public HttpHeaders Headers { get; init; } = new();
     public byte[] Body { get; set; } = Array.Empty<byte>();
 
     public string Text
