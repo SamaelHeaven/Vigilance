@@ -15,13 +15,14 @@ public sealed unsafe class Scene
     private static Scene _context = null!;
     private readonly Dictionary<Type, object> _events = new();
     private readonly GetSystemsDelegate _getSystemsDelegate;
+    private Action? _deferredAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
     private Action? _onDestroy;
     private Query<ZIndex> _orderedQuery;
     private Action<Entity>? _renderAction;
-    private Action? _renderEndAction;
     private Action? _renderBeginAction;
+    private Action? _renderEndAction;
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
@@ -48,6 +49,8 @@ public sealed unsafe class Scene
     public Camera Camera { get; } = new();
 
     public bool Initialized { get; private set; }
+
+    public bool Deferred => _world.IsDeferred();
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
@@ -106,12 +109,7 @@ public sealed unsafe class Scene
         return new Entity(_world.Lookup(name), this);
     }
 
-    public void On<T>(Action action)
-    {
-        On((ref T _) => action.Invoke());
-    }
-
-    public void On<T>(RefAction<T> action)
+    public void On<T>(Action<T> action)
     {
         EnsureNotInitialized();
         var type = typeof(T);
@@ -122,7 +120,7 @@ public sealed unsafe class Scene
             return;
         }
 
-        var existing = value as RefAction<T>;
+        var existing = value as Action<T>;
         existing += action;
         _events[type] = existing;
     }
@@ -192,7 +190,7 @@ public sealed unsafe class Scene
         var type = typeof(T);
         if (!_events.TryGetValue(type, out var action))
             return;
-        ((RefAction<T>)action).Invoke(ref @event);
+        ((Action<T>)action).Invoke(@event);
     }
 
     public int Count()
@@ -205,6 +203,18 @@ public sealed unsafe class Scene
     {
         EnsureInitialized();
         return _world.Count<T>();
+    }
+
+    public void Defer(Action action)
+    {
+        EnsureInitialized();
+        if (!_world.IsDeferred())
+        {
+            action.Invoke();
+            return;
+        }
+
+        _deferredAction += action;
     }
 
     public void EnsureInitialized()
@@ -271,7 +281,13 @@ public sealed unsafe class Scene
     internal void DeferEnd()
     {
         if (_world.IsDeferred())
+        {
             _world.DeferEnd();
+            var action = _deferredAction;
+            _deferredAction = null;
+            action?.Invoke();
+        }
+
         _context = null!;
     }
 
@@ -302,7 +318,7 @@ public sealed unsafe class Scene
 
     #region OnAdd
 
-    public void OnAdd<T>(EntityAction action)
+    public void OnAdd<T>(Action<Entity> action)
     {
         EnsureNotInitialized();
         _world
@@ -316,7 +332,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnAdd<T>(RefAction<T> action)
+    public void OnAdd<T>(Action<T> action)
     {
         EnsureNotInitialized();
         _world
@@ -325,12 +341,12 @@ public sealed unsafe class Scene
             .Each(
                 (Iter _, int _, ref T t) =>
                 {
-                    action.Invoke(ref t);
+                    action.Invoke(t);
                 }
             );
     }
 
-    public void OnAdd<T>(EntityAction<T> action)
+    public void OnAdd<T>(Action<Entity, T> action)
     {
         EnsureNotInitialized();
         _world
@@ -339,7 +355,7 @@ public sealed unsafe class Scene
             .Each(
                 (Iter it, int i, ref T t) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i), this), ref t);
+                    action.Invoke(new Entity(it.Entity(i), this), t);
                 }
             );
     }
@@ -348,7 +364,7 @@ public sealed unsafe class Scene
 
     #region OnSet
 
-    public void OnSet<T>(EntityAction action, bool traverse = false)
+    public void OnSet<T>(Action<Entity> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
@@ -369,7 +385,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnSet<T>(RefAction<T> action, bool traverse = false)
+    public void OnSet<T>(Action<T> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
@@ -380,7 +396,7 @@ public sealed unsafe class Scene
                 {
                     if (!traverse)
                     {
-                        action.Invoke(ref t);
+                        action.Invoke(t);
                         return;
                     }
 
@@ -390,7 +406,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnSet<T>(EntityAction<T> action, bool traverse = false)
+    public void OnSet<T>(Action<Entity, T> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
@@ -402,7 +418,7 @@ public sealed unsafe class Scene
                     var entity = new Entity(it.Entity(i), this);
                     if (!traverse)
                     {
-                        action.Invoke(entity, ref t);
+                        action.Invoke(entity, t);
                         return;
                     }
 
@@ -415,7 +431,7 @@ public sealed unsafe class Scene
 
     #region OnRemove
 
-    public void OnRemove<T>(EntityAction action)
+    public void OnRemove<T>(Action<Entity> action)
     {
         EnsureNotInitialized();
         _world
@@ -429,7 +445,7 @@ public sealed unsafe class Scene
             );
     }
 
-    public void OnRemove<T>(RefAction<T> action)
+    public void OnRemove<T>(Action<T> action)
     {
         EnsureNotInitialized();
         _world
@@ -438,12 +454,12 @@ public sealed unsafe class Scene
             .Each(
                 (Iter _, int _, ref T t) =>
                 {
-                    action.Invoke(ref t);
+                    action.Invoke(t);
                 }
             );
     }
 
-    public void OnRemove<T>(EntityAction<T> action)
+    public void OnRemove<T>(Action<Entity, T> action)
     {
         EnsureNotInitialized();
         _world
@@ -452,7 +468,7 @@ public sealed unsafe class Scene
             .Each(
                 (Iter it, int i, ref T t) =>
                 {
-                    action.Invoke(new Entity(it.Entity(i), this), ref t);
+                    action.Invoke(new Entity(it.Entity(i), this), t);
                 }
             );
     }
@@ -469,7 +485,7 @@ public sealed unsafe class Scene
     public void OnSetPosition(Action<Entity, Vector2> action, bool traverse = true)
     {
         OnSet(
-            (Entity entity, ref Position position) =>
+            (Entity entity, Position position) =>
             {
                 action.Invoke(entity, position.Value);
             },
@@ -489,7 +505,7 @@ public sealed unsafe class Scene
     public void OnSetScale(Action<Entity, Vector2> action, bool traverse = true)
     {
         OnSet(
-            (Entity entity, ref Scale scale) =>
+            (Entity entity, Scale scale) =>
             {
                 action.Invoke(entity, scale.Value);
             },
@@ -509,7 +525,7 @@ public sealed unsafe class Scene
     public void OnSetRotation(Action<Entity, float> action, bool traverse = true)
     {
         OnSet(
-            (Entity entity, ref Rotation rotation) =>
+            (Entity entity, Rotation rotation) =>
             {
                 action.Invoke(entity, rotation.Value);
             },
@@ -529,7 +545,7 @@ public sealed unsafe class Scene
     public void OnSetPivotPoint(Action<Entity, Vector2> action, bool traverse = true)
     {
         OnSet(
-            (Entity entity, ref PivotPoint pivotPoint) =>
+            (Entity entity, PivotPoint pivotPoint) =>
             {
                 action.Invoke(entity, pivotPoint.Value);
             },
@@ -549,7 +565,7 @@ public sealed unsafe class Scene
     public void OnSetZIndex(Action<Entity, int> action, bool traverse = true)
     {
         OnSet(
-            (Entity entity, ref ZIndex zIndex) =>
+            (Entity entity, ZIndex zIndex) =>
             {
                 action.Invoke(entity, zIndex.Value);
             },
@@ -561,7 +577,7 @@ public sealed unsafe class Scene
 
     #region Each
 
-    public void Each(EntityAction action)
+    public void Each(Action<Entity> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -569,135 +585,130 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void Each<T0>(RefAction<T0> action)
+    public void Each<T0>(Action<T0> action)
     {
         EnsureInitialized();
         DeferBegin();
-        _world.Each((ref T0 t0) => action.Invoke(ref t0));
+        _world.Each((ref T0 t0) => action.Invoke(t0));
         DeferEnd();
     }
 
-    public void Each<T0>(EntityAction<T0> action)
+    public void Each<T0>(Action<Entity, T0> action)
     {
         EnsureInitialized();
         DeferBegin();
-        _world.Each((Flecs.NET.Core.Entity entity, ref T0 t0) => action.Invoke(new Entity(entity, this), ref t0));
+        _world.Each((Flecs.NET.Core.Entity entity, ref T0 t0) => action.Invoke(new Entity(entity, this), t0));
         DeferEnd();
     }
 
-    public void Each<T0, T1>(RefAction<T0, T1> action)
+    public void Each<T0, T1>(Action<T0, T1> action)
     {
         EnsureInitialized();
         DeferBegin();
-        _world.Each((ref T0 t0, ref T1 t1) => action.Invoke(ref t0, ref t1));
+        _world.Each((ref T0 t0, ref T1 t1) => action.Invoke(t0, t1));
         DeferEnd();
     }
 
-    public void Each<T0, T1>(EntityAction<T0, T1> action)
+    public void Each<T0, T1>(Action<Entity, T0, T1> action)
     {
         EnsureInitialized();
         DeferBegin();
         _world.Each(
-            (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1) =>
-                action.Invoke(new Entity(entity, this), ref t0, ref t1)
+            (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1) => action.Invoke(new Entity(entity, this), t0, t1)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2>(RefAction<T0, T1, T2> action)
+    public void Each<T0, T1, T2>(Action<T0, T1, T2> action)
     {
         EnsureInitialized();
         DeferBegin();
-        _world.Each((ref T0 t0, ref T1 t1, ref T2 t2) => action.Invoke(ref t0, ref t1, ref t2));
+        _world.Each((ref T0 t0, ref T1 t1, ref T2 t2) => action.Invoke(t0, t1, t2));
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2>(EntityAction<T0, T1, T2> action)
+    public void Each<T0, T1, T2>(Action<Entity, T0, T1, T2> action)
     {
         EnsureInitialized();
         DeferBegin();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2) =>
-                action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2)
+                action.Invoke(new Entity(entity, this), t0, t1, t2)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3>(RefAction<T0, T1, T2, T3> action)
+    public void Each<T0, T1, T2, T3>(Action<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
         DeferBegin();
-        _world.Each((ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3) => action.Invoke(ref t0, ref t1, ref t2, ref t3));
+        _world.Each((ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3) => action.Invoke(t0, t1, t2, t3));
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3>(EntityAction<T0, T1, T2, T3> action)
+    public void Each<T0, T1, T2, T3>(Action<Entity, T0, T1, T2, T3> action)
     {
         EnsureInitialized();
         DeferBegin();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3) =>
-                action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3)
+                action.Invoke(new Entity(entity, this), t0, t1, t2, t3)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4>(RefAction<T0, T1, T2, T3, T4> action)
+    public void Each<T0, T1, T2, T3, T4>(Action<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
         DeferBegin();
-        _world.Each(
-            (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4) =>
-                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4)
-        );
+        _world.Each((ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4) => action.Invoke(t0, t1, t2, t3, t4));
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4>(EntityAction<T0, T1, T2, T3, T4> action)
+    public void Each<T0, T1, T2, T3, T4>(Action<Entity, T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
         DeferBegin();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4) =>
-                action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4)
+                action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5>(RefAction<T0, T1, T2, T3, T4, T5> action)
+    public void Each<T0, T1, T2, T3, T4, T5>(Action<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
         DeferBegin();
         _world.Each(
-            (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5) =>
-                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5)
+            (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5) => action.Invoke(t0, t1, t2, t3, t4, t5)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5>(EntityAction<T0, T1, T2, T3, T4, T5> action)
+    public void Each<T0, T1, T2, T3, T4, T5>(Action<Entity, T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
         DeferBegin();
         _world.Each(
             (Flecs.NET.Core.Entity entity, ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5) =>
-                action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5)
+                action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4, t5)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6>(RefAction<T0, T1, T2, T3, T4, T5, T6> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6>(Action<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
         DeferBegin();
         _world.Each(
             (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5, ref T6 t6) =>
-                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6)
+                action.Invoke(t0, t1, t2, t3, t4, t5, t6)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6>(EntityAction<T0, T1, T2, T3, T4, T5, T6> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6>(Action<Entity, T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -711,23 +722,23 @@ public sealed unsafe class Scene
                 ref T4 t4,
                 ref T5 t5,
                 ref T6 t6
-            ) => action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6)
+            ) => action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4, t5, t6)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7>(RefAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6, T7>(Action<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
         DeferBegin();
         _world.Each(
             (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5, ref T6 t6, ref T7 t7) =>
-                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7)
+                action.Invoke(t0, t1, t2, t3, t4, t5, t6, t7)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7>(EntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6, T7>(Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -742,23 +753,23 @@ public sealed unsafe class Scene
                 ref T5 t5,
                 ref T6 t6,
                 ref T7 t7
-            ) => action.Invoke(new Entity(entity, this), ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7)
+            ) => action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4, t5, t6, t7)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8>(RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8>(Action<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
         DeferBegin();
         _world.Each(
             (ref T0 t0, ref T1 t1, ref T2 t2, ref T3 t3, ref T4 t4, ref T5 t5, ref T6 t6, ref T7 t7, ref T8 t8) =>
-                action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7, ref t8)
+                action.Invoke(t0, t1, t2, t3, t4, t5, t6, t7, t8)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8>(Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -774,24 +785,12 @@ public sealed unsafe class Scene
                 ref T6 t6,
                 ref T7 t7,
                 ref T8 t8
-            ) =>
-                action.Invoke(
-                    new Entity(entity, this),
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8
-                )
+            ) => action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4, t5, t6, t7, t8)
         );
         DeferEnd();
     }
 
-    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action)
+    public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -807,13 +806,13 @@ public sealed unsafe class Scene
                 ref T7 t7,
                 ref T8 t8,
                 ref T9 t9
-            ) => action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7, ref t8, ref t9)
+            ) => action.Invoke(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
     )
     {
         EnsureInitialized();
@@ -831,26 +830,13 @@ public sealed unsafe class Scene
                 ref T7 t7,
                 ref T8 t8,
                 ref T9 t9
-            ) =>
-                action.Invoke(
-                    new Entity(entity, this),
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8,
-                    ref t9
-                )
+            ) => action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4, t5, t6, t7, t8, t9)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
     )
     {
         EnsureInitialized();
@@ -868,13 +854,13 @@ public sealed unsafe class Scene
                 ref T8 t8,
                 ref T9 t9,
                 ref T10 t10
-            ) => action.Invoke(ref t0, ref t1, ref t2, ref t3, ref t4, ref t5, ref t6, ref t7, ref t8, ref t9, ref t10)
+            ) => action.Invoke(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
     )
     {
         EnsureInitialized();
@@ -893,27 +879,13 @@ public sealed unsafe class Scene
                 ref T8 t8,
                 ref T9 t9,
                 ref T10 t10
-            ) =>
-                action.Invoke(
-                    new Entity(entity, this),
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8,
-                    ref t9,
-                    ref t10
-                )
+            ) => action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
     )
     {
         EnsureInitialized();
@@ -932,27 +904,13 @@ public sealed unsafe class Scene
                 ref T9 t9,
                 ref T10 t10,
                 ref T11 t11
-            ) =>
-                action.Invoke(
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8,
-                    ref t9,
-                    ref t10,
-                    ref t11
-                )
+            ) => action.Invoke(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
     )
     {
         EnsureInitialized();
@@ -972,28 +930,13 @@ public sealed unsafe class Scene
                 ref T9 t9,
                 ref T10 t10,
                 ref T11 t11
-            ) =>
-                action.Invoke(
-                    new Entity(entity, this),
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8,
-                    ref t9,
-                    ref t10,
-                    ref t11
-                )
+            ) => action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
     )
     {
         EnsureInitialized();
@@ -1013,28 +956,13 @@ public sealed unsafe class Scene
                 ref T10 t10,
                 ref T11 t11,
                 ref T12 t12
-            ) =>
-                action.Invoke(
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8,
-                    ref t9,
-                    ref t10,
-                    ref t11,
-                    ref t12
-                )
+            ) => action.Invoke(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
     )
     {
         EnsureInitialized();
@@ -1055,29 +983,13 @@ public sealed unsafe class Scene
                 ref T10 t10,
                 ref T11 t11,
                 ref T12 t12
-            ) =>
-                action.Invoke(
-                    new Entity(entity, this),
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8,
-                    ref t9,
-                    ref t10,
-                    ref t11,
-                    ref t12
-                )
+            ) => action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
     )
     {
         EnsureInitialized();
@@ -1098,29 +1010,13 @@ public sealed unsafe class Scene
                 ref T11 t11,
                 ref T12 t12,
                 ref T13 t13
-            ) =>
-                action.Invoke(
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8,
-                    ref t9,
-                    ref t10,
-                    ref t11,
-                    ref t12,
-                    ref t13
-                )
+            ) => action.Invoke(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
     )
     {
         EnsureInitialized();
@@ -1142,30 +1038,13 @@ public sealed unsafe class Scene
                 ref T11 t11,
                 ref T12 t12,
                 ref T13 t13
-            ) =>
-                action.Invoke(
-                    new Entity(entity, this),
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8,
-                    ref t9,
-                    ref t10,
-                    ref t11,
-                    ref t12,
-                    ref t13
-                )
+            ) => action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
     )
     {
         EnsureInitialized();
@@ -1187,30 +1066,13 @@ public sealed unsafe class Scene
                 ref T12 t12,
                 ref T13 t13,
                 ref T14 t14
-            ) =>
-                action.Invoke(
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8,
-                    ref t9,
-                    ref t10,
-                    ref t11,
-                    ref t12,
-                    ref t13,
-                    ref t14
-                )
+            ) => action.Invoke(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14)
         );
         DeferEnd();
     }
 
     public void Each<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
     )
     {
         EnsureInitialized();
@@ -1234,24 +1096,7 @@ public sealed unsafe class Scene
                 ref T13 t13,
                 ref T14 t14
             ) =>
-                action.Invoke(
-                    new Entity(entity, this),
-                    ref t0,
-                    ref t1,
-                    ref t2,
-                    ref t3,
-                    ref t4,
-                    ref t5,
-                    ref t6,
-                    ref t7,
-                    ref t8,
-                    ref t9,
-                    ref t10,
-                    ref t11,
-                    ref t12,
-                    ref t13,
-                    ref t14
-                )
+                action.Invoke(new Entity(entity, this), t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14)
         );
         DeferEnd();
     }
@@ -1260,7 +1105,7 @@ public sealed unsafe class Scene
 
     #region OrderedEach
 
-    public void OrderedEach(EntityAction action)
+    public void OrderedEach(Action<Entity> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1268,7 +1113,7 @@ public sealed unsafe class Scene
         DeferEnd();
     }
 
-    public void OrderedEach<T0>(RefAction<T0> action)
+    public void OrderedEach<T0>(Action<T0> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1276,13 +1121,13 @@ public sealed unsafe class Scene
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>())
-                    action.Invoke(ref entity.GetMut<T0>());
+                    action.Invoke(entity.Get<T0>());
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0>(EntityAction<T0> action)
+    public void OrderedEach<T0>(Action<Entity, T0> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1290,13 +1135,13 @@ public sealed unsafe class Scene
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>())
-                    action.Invoke(new Entity(entity, this), ref entity.GetMut<T0>());
+                    action.Invoke(new Entity(entity, this), entity.Get<T0>());
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1>(RefAction<T0, T1> action)
+    public void OrderedEach<T0, T1>(Action<T0, T1> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1304,13 +1149,13 @@ public sealed unsafe class Scene
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>())
-                    action.Invoke(ref entity.GetMut<T0>(), ref entity.GetMut<T1>());
+                    action.Invoke(entity.Get<T0>(), entity.Get<T1>());
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1>(EntityAction<T0, T1> action)
+    public void OrderedEach<T0, T1>(Action<Entity, T0, T1> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1318,13 +1163,13 @@ public sealed unsafe class Scene
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>())
-                    action.Invoke(new Entity(entity, this), ref entity.GetMut<T0>(), ref entity.GetMut<T1>());
+                    action.Invoke(new Entity(entity, this), entity.Get<T0>(), entity.Get<T1>());
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2>(RefAction<T0, T1, T2> action)
+    public void OrderedEach<T0, T1, T2>(Action<T0, T1, T2> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1332,13 +1177,13 @@ public sealed unsafe class Scene
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>())
-                    action.Invoke(ref entity.GetMut<T0>(), ref entity.GetMut<T1>(), ref entity.GetMut<T2>());
+                    action.Invoke(entity.Get<T0>(), entity.Get<T1>(), entity.Get<T2>());
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2>(EntityAction<T0, T1, T2> action)
+    public void OrderedEach<T0, T1, T2>(Action<Entity, T0, T1, T2> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1346,18 +1191,13 @@ public sealed unsafe class Scene
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>())
-                    action.Invoke(
-                        new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>()
-                    );
+                    action.Invoke(new Entity(entity, this), entity.Get<T0>(), entity.Get<T1>(), entity.Get<T2>());
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3>(RefAction<T0, T1, T2, T3> action)
+    public void OrderedEach<T0, T1, T2, T3>(Action<T0, T1, T2, T3> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1365,18 +1205,13 @@ public sealed unsafe class Scene
             (Flecs.NET.Core.Entity entity, ref ZIndex _) =>
             {
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>())
-                    action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>()
-                    );
+                    action.Invoke(entity.Get<T0>(), entity.Get<T1>(), entity.Get<T2>(), entity.Get<T3>());
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3>(EntityAction<T0, T1, T2, T3> action)
+    public void OrderedEach<T0, T1, T2, T3>(Action<Entity, T0, T1, T2, T3> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1386,17 +1221,17 @@ public sealed unsafe class Scene
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>())
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>()
                     );
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4>(RefAction<T0, T1, T2, T3, T4> action)
+    public void OrderedEach<T0, T1, T2, T3, T4>(Action<T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1405,18 +1240,18 @@ public sealed unsafe class Scene
             {
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>() && entity.Has<T4>())
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>()
                     );
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4>(EntityAction<T0, T1, T2, T3, T4> action)
+    public void OrderedEach<T0, T1, T2, T3, T4>(Action<Entity, T0, T1, T2, T3, T4> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1426,18 +1261,18 @@ public sealed unsafe class Scene
                 if (entity.Has<T0>() && entity.Has<T1>() && entity.Has<T2>() && entity.Has<T3>() && entity.Has<T4>())
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>()
                     );
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5>(RefAction<T0, T1, T2, T3, T4, T5> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5>(Action<T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1453,19 +1288,19 @@ public sealed unsafe class Scene
                     && entity.Has<T5>()
                 )
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>()
                     );
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5>(EntityAction<T0, T1, T2, T3, T4, T5> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5>(Action<Entity, T0, T1, T2, T3, T4, T5> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1482,19 +1317,19 @@ public sealed unsafe class Scene
                 )
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>()
                     );
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(RefAction<T0, T1, T2, T3, T4, T5, T6> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(Action<T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1511,20 +1346,20 @@ public sealed unsafe class Scene
                     && entity.Has<T6>()
                 )
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>()
                     );
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(EntityAction<T0, T1, T2, T3, T4, T5, T6> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6>(Action<Entity, T0, T1, T2, T3, T4, T5, T6> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1542,20 +1377,20 @@ public sealed unsafe class Scene
                 )
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>()
                     );
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(RefAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(Action<T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1573,21 +1408,21 @@ public sealed unsafe class Scene
                     && entity.Has<T7>()
                 )
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>()
                     );
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(EntityAction<T0, T1, T2, T3, T4, T5, T6, T7> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7>(Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1606,21 +1441,21 @@ public sealed unsafe class Scene
                 )
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>()
                     );
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(Action<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
     {
         EnsureInitialized();
         DeferBegin();
@@ -1639,22 +1474,24 @@ public sealed unsafe class Scene
                     && entity.Has<T8>()
                 )
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>()
                     );
             }
         );
         DeferEnd();
     }
 
-    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8> action)
+    public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8> action
+    )
     {
         EnsureInitialized();
         DeferBegin();
@@ -1674,15 +1511,15 @@ public sealed unsafe class Scene
                 )
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>()
                     );
             }
         );
@@ -1690,7 +1527,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
     )
     {
         EnsureInitialized();
@@ -1711,16 +1548,16 @@ public sealed unsafe class Scene
                     && entity.Has<T9>()
                 )
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>()
                     );
             }
         );
@@ -1728,7 +1565,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> action
     )
     {
         EnsureInitialized();
@@ -1750,16 +1587,16 @@ public sealed unsafe class Scene
                 )
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>()
                     );
             }
         );
@@ -1767,7 +1604,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
     )
     {
         EnsureInitialized();
@@ -1789,17 +1626,17 @@ public sealed unsafe class Scene
                     && entity.Has<T10>()
                 )
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>(),
+                        entity.Get<T10>()
                     );
             }
         );
@@ -1807,7 +1644,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> action
     )
     {
         EnsureInitialized();
@@ -1830,17 +1667,17 @@ public sealed unsafe class Scene
                 )
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>(),
+                        entity.Get<T10>()
                     );
             }
         );
@@ -1848,7 +1685,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
     )
     {
         EnsureInitialized();
@@ -1871,18 +1708,18 @@ public sealed unsafe class Scene
                     && entity.Has<T11>()
                 )
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>(),
+                        entity.Get<T10>(),
+                        entity.Get<T11>()
                     );
             }
         );
@@ -1890,7 +1727,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> action
     )
     {
         EnsureInitialized();
@@ -1914,18 +1751,18 @@ public sealed unsafe class Scene
                 )
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>(),
+                        entity.Get<T10>(),
+                        entity.Get<T11>()
                     );
             }
         );
@@ -1933,7 +1770,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
     )
     {
         EnsureInitialized();
@@ -1957,19 +1794,19 @@ public sealed unsafe class Scene
                     && entity.Has<T12>()
                 )
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>(),
+                        entity.Get<T10>(),
+                        entity.Get<T11>(),
+                        entity.Get<T12>()
                     );
             }
         );
@@ -1977,7 +1814,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> action
     )
     {
         EnsureInitialized();
@@ -2002,19 +1839,19 @@ public sealed unsafe class Scene
                 )
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>(),
+                        entity.Get<T10>(),
+                        entity.Get<T11>(),
+                        entity.Get<T12>()
                     );
             }
         );
@@ -2022,7 +1859,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
     )
     {
         EnsureInitialized();
@@ -2047,20 +1884,20 @@ public sealed unsafe class Scene
                     && entity.Has<T13>()
                 )
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>(),
-                        ref entity.GetMut<T13>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>(),
+                        entity.Get<T10>(),
+                        entity.Get<T11>(),
+                        entity.Get<T12>(),
+                        entity.Get<T13>()
                     );
             }
         );
@@ -2068,7 +1905,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> action
     )
     {
         EnsureInitialized();
@@ -2094,20 +1931,20 @@ public sealed unsafe class Scene
                 )
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>(),
-                        ref entity.GetMut<T13>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>(),
+                        entity.Get<T10>(),
+                        entity.Get<T11>(),
+                        entity.Get<T12>(),
+                        entity.Get<T13>()
                     );
             }
         );
@@ -2115,7 +1952,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        RefAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
+        Action<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
     )
     {
         EnsureInitialized();
@@ -2141,21 +1978,21 @@ public sealed unsafe class Scene
                     && entity.Has<T14>()
                 )
                     action.Invoke(
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>(),
-                        ref entity.GetMut<T13>(),
-                        ref entity.GetMut<T14>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>(),
+                        entity.Get<T10>(),
+                        entity.Get<T11>(),
+                        entity.Get<T12>(),
+                        entity.Get<T13>(),
+                        entity.Get<T14>()
                     );
             }
         );
@@ -2163,7 +2000,7 @@ public sealed unsafe class Scene
     }
 
     public void OrderedEach<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        EntityAction<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
+        Action<Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> action
     )
     {
         EnsureInitialized();
@@ -2190,21 +2027,21 @@ public sealed unsafe class Scene
                 )
                     action.Invoke(
                         new Entity(entity, this),
-                        ref entity.GetMut<T0>(),
-                        ref entity.GetMut<T1>(),
-                        ref entity.GetMut<T2>(),
-                        ref entity.GetMut<T3>(),
-                        ref entity.GetMut<T4>(),
-                        ref entity.GetMut<T5>(),
-                        ref entity.GetMut<T6>(),
-                        ref entity.GetMut<T7>(),
-                        ref entity.GetMut<T8>(),
-                        ref entity.GetMut<T9>(),
-                        ref entity.GetMut<T10>(),
-                        ref entity.GetMut<T11>(),
-                        ref entity.GetMut<T12>(),
-                        ref entity.GetMut<T13>(),
-                        ref entity.GetMut<T14>()
+                        entity.Get<T0>(),
+                        entity.Get<T1>(),
+                        entity.Get<T2>(),
+                        entity.Get<T3>(),
+                        entity.Get<T4>(),
+                        entity.Get<T5>(),
+                        entity.Get<T6>(),
+                        entity.Get<T7>(),
+                        entity.Get<T8>(),
+                        entity.Get<T9>(),
+                        entity.Get<T10>(),
+                        entity.Get<T11>(),
+                        entity.Get<T12>(),
+                        entity.Get<T13>(),
+                        entity.Get<T14>()
                     );
             }
         );

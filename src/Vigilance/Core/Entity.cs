@@ -52,7 +52,7 @@ public unsafe struct Entity
         set
         {
             if (!Precision.AreEqual(Position, value))
-                Set(new Position { Value = value });
+                Set(new Position { Value = value }, false);
         }
     }
 
@@ -62,7 +62,7 @@ public unsafe struct Entity
         set
         {
             if (!Precision.AreEqual(Scale, value))
-                Set(new Scale { Value = value });
+                Set(new Scale { Value = value }, false);
         }
     }
 
@@ -72,7 +72,7 @@ public unsafe struct Entity
         set
         {
             if (!Precision.AreEqual(Rotation, value))
-                Set(new Rotation { Value = value });
+                Set(new Rotation { Value = value }, false);
         }
     }
 
@@ -82,7 +82,7 @@ public unsafe struct Entity
         set
         {
             if (!Precision.AreEqual(PivotPoint, value))
-                Set(new PivotPoint { Value = value });
+                Set(new PivotPoint { Value = value }, false);
         }
     }
 
@@ -92,7 +92,7 @@ public unsafe struct Entity
         set
         {
             if (ZIndex != value)
-                Set(new ZIndex { Value = value });
+                Set(new ZIndex { Value = value }, false);
         }
     }
 
@@ -162,6 +162,8 @@ public unsafe struct Entity
         }
     }
 
+    public Components Components => _entity.Has<Components>() ? _entity.Get<Components>() : Components.Empty;
+
     public static bool operator ==(Entity a, Entity b)
     {
         return a.Equals(b);
@@ -174,7 +176,12 @@ public unsafe struct Entity
 
     public override bool Equals(object? obj)
     {
-        return obj is Entity entity && _entity == entity._entity;
+        return obj is Entity entity && Equals(entity);
+    }
+
+    public bool Equals(Entity other)
+    {
+        return _entity == other._entity;
     }
 
     public override int GetHashCode()
@@ -236,32 +243,86 @@ public unsafe struct Entity
         return ref this;
     }
 
-    public ref T Get<T>()
+    public T Get<T>()
     {
-        return ref _entity.GetMut<T>();
+        return _entity.Get<T>();
     }
 
     public ref Entity Set<T>(T data)
     {
-        Set(ref data);
+        Set(data, true);
         return ref this;
     }
 
     public ref Entity Set<T>(ref T data)
     {
+        Set(data, true);
+        return ref this;
+    }
+
+    private ref Entity Set<T>(T data, bool updateComponents)
+    {
+        Set(ref data, updateComponents);
+        return ref this;
+    }
+
+    private ref Entity Set<T>(ref T data, bool updateComponents)
+    {
+        object? obj = data;
+        var entity = _entity;
+        var type = typeof(T);
         var hadT = _entity.Has<T>();
+        if (updateComponents)
+            Scene.Defer(UpdateComponents);
         _entity.Set(ref data);
         if (hadT)
             _entity.CsWorld().Event<SetEvent>().Id<T>().Entity(_entity).Enqueue();
         else
             _entity.CsWorld().Event<AddEvent>().Id<T>().Entity(_entity).Enqueue();
         return ref this;
+
+        void UpdateComponents()
+        {
+            Components components;
+            if (!entity.Has<Components>())
+            {
+                components = new Components();
+                entity.Set(components);
+            }
+            else
+            {
+                components = entity.Get<Components>();
+            }
+
+            var component = new Component(type, obj);
+            components.Values.Remove(component);
+            components.Values.Add(component);
+        }
     }
 
     public ref Entity Remove<T>()
     {
+        var entity = _entity;
+        var type = typeof(T);
+        Scene.Defer(UpdateComponents);
         _entity.Remove<T>();
         return ref this;
+
+        void UpdateComponents()
+        {
+            Components components;
+            if (!entity.Has<Components>())
+            {
+                components = new Components();
+                entity.Set(components);
+            }
+            else
+            {
+                components = entity.Get<Components>();
+            }
+
+            components.Values.Remove(new Component(type));
+        }
     }
 
     public void Destroy()
@@ -286,7 +347,7 @@ public unsafe struct Entity
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
-    public ref Entity Children(EntityAction action)
+    public ref Entity Children(Action<Entity> action)
     {
         var scene = Scene;
         scene.DeferBegin();
@@ -297,33 +358,33 @@ public unsafe struct Entity
 
     #region Traverse
 
-    public ref Entity Traverse(EntityAction action)
+    public ref Entity Traverse(Action<Entity> action)
     {
-        action(this);
+        action.Invoke(this);
         Children(child => child.Traverse(action));
         return ref this;
     }
 
-    public ref Entity Traverse<T>(EntityAction action)
+    public ref Entity Traverse<T>(Action<Entity> action)
     {
         if (Has<T>())
-            action(this);
+            action.Invoke(this);
         Children(child => child.Traverse<T>(action));
         return ref this;
     }
 
-    public ref Entity Traverse<T>(RefAction<T> action)
+    public ref Entity Traverse<T>(Action<T> action)
     {
         if (Has<T>())
-            action(ref Get<T>());
+            action.Invoke(Get<T>());
         Children(child => child.Traverse(action));
         return ref this;
     }
 
-    public ref Entity Traverse<T>(EntityAction<T> action)
+    public ref Entity Traverse<T>(Action<Entity, T> action)
     {
         if (Has<T>())
-            action(this, ref Get<T>());
+            action.Invoke(this, Get<T>());
         Children(child => child.Traverse(action));
         return ref this;
     }

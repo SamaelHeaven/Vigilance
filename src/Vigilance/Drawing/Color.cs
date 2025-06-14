@@ -120,7 +120,7 @@ public struct Color
 
     public override string ToString()
     {
-        return $"[{nameof(R)}={R}, {nameof(G)}={G}, {nameof(B)}={B}, {nameof(A)}={A}]";
+        return $"[R={R}, G={G}, B={B}, A={A}]";
     }
 
     public string ToHex()
@@ -135,7 +135,12 @@ public struct Color
 
     public override bool Equals(object? obj)
     {
-        return obj is Color c && c.R == R && c.G == G && c.B == B && c.A == A;
+        return obj is Color c && Equals(c);
+    }
+
+    public bool Equals(Color other)
+    {
+        return R == other.R && G == other.G && B == other.B && A == other.A;
     }
 
     public static bool operator ==(Color a, Color b)

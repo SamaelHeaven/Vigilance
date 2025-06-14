@@ -11,28 +11,28 @@ public sealed class AnimationSystem : ISystem
         {
             var step = Time.Delta;
             scene.Each(
-                (ref Animation animation) =>
+                (Animation animation) =>
                 {
                     animation.Update(step);
                 }
             );
 
             scene.Each(
-                static (ref Animation animation, ref Sprite sprite) =>
+                (Animation animation, Sprite sprite) =>
                 {
                     animation.UpdateSprite(sprite);
                 }
             );
 
             scene.Each(
-                (ref AnimationController controller) =>
+                (AnimationController controller) =>
                 {
                     controller.Animation.Update(step);
                 }
             );
 
             scene.Each(
-                static (ref AnimationController controller, ref Sprite sprite) =>
+                (AnimationController controller, Sprite sprite) =>
                 {
                     controller.Animation.UpdateSprite(sprite);
                 }

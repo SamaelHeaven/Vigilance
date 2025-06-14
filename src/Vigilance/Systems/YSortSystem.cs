@@ -11,7 +11,7 @@ public sealed class YSortSystem(float offset = 0) : ISystem
         scene.OnRenderBegin(() =>
         {
             scene.Each(
-                (Entity entity, ref YSort ySort) =>
+                (Entity entity, YSort ySort) =>
                 {
                     entity.ZIndex = (int)MathF.Round(entity.WorldPosition.Y + Offset + ySort.Offset);
                 }

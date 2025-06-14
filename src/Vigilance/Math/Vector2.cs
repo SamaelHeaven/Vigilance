@@ -60,7 +60,12 @@ public struct Vector2
 
     public override bool Equals(object? obj)
     {
-        return obj is Vector2 v && X.Equals(v.X) && Y.Equals(v.Y);
+        return obj is Vector2 v && Equals(v);
+    }
+
+    public bool Equals(Vector2 other)
+    {
+        return X.Equals(other.X) && Y.Equals(other.Y);
     }
 
     public static bool operator ==(Vector2 a, Vector2 b)

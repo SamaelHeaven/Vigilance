@@ -18,8 +18,8 @@ public sealed unsafe class Game
     private static Game? _game;
     private readonly ConcurrentStack<Action> _actions = [];
     private GameConfig _config = null!;
-    private GameConfig _launchConfig = null!;
     private Font _defaultFont = null!;
+    private GameConfig _launchConfig = null!;
     private Box _previousScreen;
     private bool _quit;
     private bool _resetScreen;

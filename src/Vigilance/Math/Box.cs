@@ -70,12 +70,12 @@ public struct Box
 
     public override bool Equals(object? obj)
     {
-        if (obj is Box boundingBox)
-            return X.Equals(boundingBox.X)
-                && Y.Equals(boundingBox.Y)
-                && Width.Equals(boundingBox.Width)
-                && Height.Equals(boundingBox.Height);
-        return base.Equals(obj);
+        return obj is Box other && Equals(other);
+    }
+
+    public bool Equals(Box other)
+    {
+        return X.Equals(other.X) && Y.Equals(other.Y) && Width.Equals(other.Width) && Height.Equals(other.Height);
     }
 
     public static bool operator ==(Box a, Box b)
@@ -95,6 +95,6 @@ public struct Box
 
     public override string ToString()
     {
-        return $"[{nameof(X)}: {X}, {nameof(Y)}: {Y}, {nameof(Width)}: {Width}, {nameof(Height)}: {Height}]";
+        return $"[X={X}, Y={Y}, W={Width}, H={Height}]";
     }
 }

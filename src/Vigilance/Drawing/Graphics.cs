@@ -115,13 +115,13 @@ public sealed unsafe class Graphics
 
     public void Transform(Transform transform)
     {
-        var position = transform.Position;
-        var scale = transform.Scale;
-        var pivotPoint = transform.PivotPoint;
         var rotation = transform.Rotation;
-        Scale(scale);
-        Translate(position);
+        var pivotPoint = transform.PivotPoint;
+        var position = transform.Position;
+        var scale = transform.Scale.Abs();
         Rotate(rotation, pivotPoint);
+        Translate(position);
+        Scale(scale);
     }
 
     public void Pivot(Transform transform, bool translate)
@@ -310,7 +310,7 @@ public sealed unsafe class Graphics
         Pivot(transform, true);
         if (roundness > 0)
         {
-            FillRoundedRectangle(position, scale, fill, roundness, camera);
+            FillRoundedRectangle(position - strokeWidth * 0.5f, scale + strokeWidth, fill, roundness, camera);
             StrokeRoundedRectangle(position, scale, stroke, roundness, strokeWidth, camera);
         }
         else
@@ -1178,6 +1178,7 @@ public sealed unsafe class Graphics
         var matrix = GetMatrix();
         Rlgl.PushMatrix();
         Rlgl.Scalef(_buffer.Scale, _buffer.Scale, 1);
+        Rlgl.Translatef(0.375f, 0.375f, 0);
         if (camera is not null)
         {
             var cameraMatrix = camera.Matrix;
