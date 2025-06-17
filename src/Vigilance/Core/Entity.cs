@@ -248,6 +248,15 @@ public unsafe struct Entity
         return _entity.Get<T>();
     }
 
+    public bool TryGet<T>(out T t)
+    {
+        var result = Has<T>();
+        t = default!;
+        if (result)
+            t = Get<T>();
+        return result;
+    }
+
     public ref Entity Set<T>(T data)
     {
         Set(data, true);

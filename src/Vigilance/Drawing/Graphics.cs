@@ -25,26 +25,26 @@ public sealed unsafe class Graphics
 
     public void DrawEntity(Entity entity)
     {
-        if (entity.Has<Rectangle>())
-            DrawRectangle(entity.WorldTransform, entity.Get<Rectangle>());
-        if (entity.Has<Circle>())
-            DrawCircle(entity.WorldTransform, entity.Get<Circle>());
-        if (entity.Has<Triangle>())
-            DrawTriangle(entity.WorldTransform, entity.Get<Triangle>());
-        if (entity.Has<RegularPolygon>())
-            DrawRegularPolygon(entity.WorldTransform, entity.Get<RegularPolygon>());
-        if (entity.Has<CustomPolygon>())
-            DrawCustomPolygon(entity.WorldTransform, entity.Get<CustomPolygon>());
-        if (entity.Has<Ring>())
-            DrawRing(entity.WorldTransform, entity.Get<Ring>());
-        if (entity.Has<Line>())
-            DrawLine(entity.WorldTransform, entity.Get<Line>());
-        if (entity.Has<Text>())
-            DrawText(entity.WorldTransform, entity.Get<Text>());
-        if (entity.Has<Sprite>())
-            DrawSprite(entity.WorldTransform, entity.Get<Sprite>());
-        if (entity.Has<Grid>())
-            DrawGrid(entity.WorldTransform, entity.Get<Grid>());
+        if (entity.TryGet(out Rectangle rectangle))
+            DrawRectangle(entity.WorldTransform, rectangle);
+        if (entity.TryGet(out Circle circle))
+            DrawCircle(entity.WorldTransform, circle);
+        if (entity.TryGet(out Triangle triangle))
+            DrawTriangle(entity.WorldTransform, triangle);
+        if (entity.TryGet(out RegularPolygon regularPolygon))
+            DrawRegularPolygon(entity.WorldTransform, regularPolygon);
+        if (entity.TryGet(out CustomPolygon customPolygon))
+            DrawCustomPolygon(entity.WorldTransform, customPolygon);
+        if (entity.TryGet(out Ring ring))
+            DrawRing(entity.WorldTransform, ring);
+        if (entity.TryGet(out Line line))
+            DrawLine(entity.WorldTransform, line);
+        if (entity.TryGet(out Text text))
+            DrawText(entity.WorldTransform, text);
+        if (entity.TryGet(out Sprite sprite))
+            DrawSprite(entity.WorldTransform, sprite);
+        if (entity.TryGet(out Grid grid))
+            DrawGrid(entity.WorldTransform, grid);
     }
 
     #endregion
