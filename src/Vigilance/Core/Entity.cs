@@ -276,61 +276,28 @@ public unsafe struct Entity
 
     private ref Entity Set<T>(ref T data, bool updateComponents)
     {
-        object? obj = data;
-        var entity = _entity;
         var type = typeof(T);
+        if (type == typeof(Components))
+            throw new InvalidOperationException("Components cannot be set.");
         var hadT = _entity.Has<T>();
         if (updateComponents)
-            Scene.Defer(UpdateComponents);
+            Scene.DeferSetComponent(_entity, type, data);
         _entity.Set(ref data);
         if (hadT)
             _entity.CsWorld().Event<SetEvent>().Id<T>().Entity(_entity).Enqueue();
         else
             _entity.CsWorld().Event<AddEvent>().Id<T>().Entity(_entity).Enqueue();
         return ref this;
-
-        void UpdateComponents()
-        {
-            Components components;
-            if (!entity.Has<Components>())
-            {
-                components = new Components();
-                entity.Set(components);
-            }
-            else
-            {
-                components = entity.Get<Components>();
-            }
-
-            var component = new Component(type, obj);
-            components.Values.Remove(component);
-            components.Values.Add(component);
-        }
     }
 
     public ref Entity Remove<T>()
     {
-        var entity = _entity;
         var type = typeof(T);
-        Scene.Defer(UpdateComponents);
+        if (type == typeof(Components))
+            throw new InvalidOperationException("Components cannot be removed.");
+        Scene.DeferRemoveComponent(_entity, type);
         _entity.Remove<T>();
         return ref this;
-
-        void UpdateComponents()
-        {
-            Components components;
-            if (!entity.Has<Components>())
-            {
-                components = new Components();
-                entity.Set(components);
-            }
-            else
-            {
-                components = entity.Get<Components>();
-            }
-
-            components.Values.Remove(new Component(type));
-        }
     }
 
     public void Destroy()

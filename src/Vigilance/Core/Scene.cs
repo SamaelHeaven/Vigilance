@@ -11,7 +11,16 @@ public sealed unsafe class Scene
     private static readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> OrderByCallback =
         &CompareEntities;
 
+    private static readonly Stack<Scene> Contexts = new();
     private static Scene _context = null!;
+
+    private readonly Queue<(
+        ComponentOperation Operation,
+        Flecs.NET.Core.Entity Entity,
+        Type Type,
+        object? Data
+    )> _componentOperations = new();
+
     private readonly Dictionary<Type, object> _events = new();
     private readonly SystemsFunc _systemsFunc;
     private Action? _deferredAction;
@@ -66,7 +75,7 @@ public sealed unsafe class Scene
         if (!Initialized)
             return;
         var current = Game.Scene == this;
-        if (current || _world.IsDeferred())
+        if (current || Deferred)
         {
             Game.Defer(RestartAction);
             return;
@@ -207,13 +216,13 @@ public sealed unsafe class Scene
     public void Defer(Action action)
     {
         EnsureInitialized();
-        if (!_world.IsDeferred())
+        if (Deferred)
         {
-            action.Invoke();
+            _deferredAction += action;
             return;
         }
 
-        _deferredAction += action;
+        action.Invoke();
     }
 
     public void EnsureInitialized()
@@ -226,6 +235,77 @@ public sealed unsafe class Scene
     {
         if (Initialized)
             throw new InvalidOperationException("Scene has been initialized.");
+    }
+
+    internal void DeferSetComponent(Flecs.NET.Core.Entity entity, Type type, object? date)
+    {
+        if (Deferred)
+        {
+            _componentOperations.Enqueue((ComponentOperation.Set, entity, type, date));
+            return;
+        }
+
+        SetComponent(entity, type, date);
+    }
+
+    internal void DeferRemoveComponent(Flecs.NET.Core.Entity entity, Type type)
+    {
+        if (Deferred)
+        {
+            _componentOperations.Enqueue((ComponentOperation.Remove, entity, type, null));
+            return;
+        }
+
+        RemoveComponent(entity, type);
+    }
+
+    internal void Stop()
+    {
+        _stopAction?.Invoke();
+        _started = false;
+    }
+
+    internal void Update()
+    {
+        if (!Initialized)
+            Initialize();
+        if (!_started)
+            Start();
+        _updateAction?.Invoke();
+        for (_time += Time.DeltaSeconds; _time >= Time.FixedDeltaSeconds; _time -= Time.FixedDeltaSeconds)
+            FixedUpdate();
+        Render();
+    }
+
+    internal void DeferBegin()
+    {
+        Contexts.Push(this);
+        _context = this;
+        if (!Deferred)
+            _world.DeferBegin();
+    }
+
+    internal void DeferEnd()
+    {
+        if (!Deferred || !_world.DeferEnd())
+            return;
+        while (_componentOperations.TryDequeue(out var component))
+            switch (component.Operation)
+            {
+                case ComponentOperation.Set:
+                    SetComponent(component.Entity, component.Type, component.Data);
+                    break;
+                case ComponentOperation.Remove:
+                    RemoveComponent(component.Entity, component.Type);
+                    break;
+                default:
+                    continue;
+            }
+
+        var action = _deferredAction;
+        _deferredAction = null;
+        action?.Invoke();
+        _context = Contexts.Count == 0 ? null! : Contexts.Pop();
     }
 
     private void Initialize()
@@ -252,44 +332,6 @@ public sealed unsafe class Scene
         _started = true;
     }
 
-    internal void Stop()
-    {
-        _stopAction?.Invoke();
-        _started = false;
-    }
-
-    internal void Update()
-    {
-        if (!Initialized)
-            Initialize();
-        if (!_started)
-            Start();
-        _updateAction?.Invoke();
-        for (_time += Time.DeltaSeconds; _time >= Time.FixedDeltaSeconds; _time -= Time.FixedDeltaSeconds)
-            FixedUpdate();
-        Render();
-    }
-
-    internal void DeferBegin()
-    {
-        _context = this;
-        if (!_world.IsDeferred())
-            _world.DeferBegin();
-    }
-
-    internal void DeferEnd()
-    {
-        if (_world.IsDeferred())
-        {
-            _world.DeferEnd();
-            var action = _deferredAction;
-            _deferredAction = null;
-            action?.Invoke();
-        }
-
-        _context = null!;
-    }
-
     private void FixedUpdate()
     {
         _fixedUpdateAction?.Invoke();
@@ -305,6 +347,40 @@ public sealed unsafe class Scene
         _renderEndAction?.Invoke();
     }
 
+    private static void SetComponent(Flecs.NET.Core.Entity entity, Type type, object? data)
+    {
+        Components components;
+        if (!entity.Has<Components>())
+        {
+            components = new Components();
+            entity.Set(components);
+        }
+        else
+        {
+            components = entity.Get<Components>();
+        }
+
+        var component = new Component(type, data);
+        components.Values.Remove(component);
+        components.Values.Add(component);
+    }
+
+    private static void RemoveComponent(Flecs.NET.Core.Entity entity, Type type)
+    {
+        Components components;
+        if (!entity.Has<Components>())
+        {
+            components = new Components();
+            entity.Set(components);
+        }
+        else
+        {
+            components = entity.Get<Components>();
+        }
+
+        components.Values.Remove(new Component(type));
+    }
+
     ~Scene()
     {
         Game.Defer(() =>
@@ -313,6 +389,12 @@ public sealed unsafe class Scene
             _orderedQuery.Dispose();
             _world.Dispose();
         });
+    }
+
+    private enum ComponentOperation
+    {
+        Set,
+        Remove,
     }
 
     #region OnAdd
