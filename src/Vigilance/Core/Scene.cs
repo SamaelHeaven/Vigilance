@@ -14,7 +14,7 @@ public sealed unsafe class Scene
 
     private static Scene _context = null!;
     private readonly Dictionary<Type, object> _events = new();
-    private readonly GetSystemsDelegate _getSystemsDelegate;
+    private readonly SystemsFunc _systemsFunc;
     private Action? _deferredAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
@@ -31,9 +31,9 @@ public sealed unsafe class Scene
     private Action? _updateAction;
     private World _world = World.Create();
 
-    public Scene(GetSystemsDelegate? systems = null)
+    public Scene(SystemsFunc? systems = null)
     {
-        _getSystemsDelegate = systems ?? Array.Empty<ISystem>;
+        _systemsFunc = systems ?? Array.Empty<ISystem>;
         _orderedQuery = BuildOrderedQuery();
     }
 
@@ -231,7 +231,7 @@ public sealed unsafe class Scene
 
     private void Initialize()
     {
-        _systems = Game.Systems.Invoke().Concat(_getSystemsDelegate.Invoke()).ToImmutableList();
+        _systems = Game.Systems.Invoke().Concat(_systemsFunc.Invoke()).ToImmutableList();
         foreach (var system in _systems)
             system.Configure(this);
         Initialized = true;

@@ -36,7 +36,7 @@ public sealed class GameConfig
     public Vector2 DefaultTextSpacing { get; set; } = new(0, 4);
     public int DefaultFontQuality { get; set; } = 128;
     public float DefaultFontSize { get; set; } = 16;
-    public GetSystemsDelegate Systems { get; set; } = Array.Empty<ISystem>;
+    public SystemsFunc Systems { get; set; } = Array.Empty<ISystem>;
     public Action? QuitAction { get; set; } = null;
 
     public InputAxis HorizontalInputAxis { get; set; } =

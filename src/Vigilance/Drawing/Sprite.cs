@@ -18,5 +18,5 @@ public sealed class Sprite
     public Box? Source { get; set; } = null;
     public Color Tint { get; set; } = Color.White;
     public Interpolation Interpolation { get; set; } = Game.DefaultInterpolation;
-    public GetCameraDelegate? Camera { get; set; } = Core.Camera.DefaultDelegate;
+    public CameraFunc? Camera { get; set; } = Core.Camera.DefaultFunc;
 }

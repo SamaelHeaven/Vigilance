@@ -9,6 +9,32 @@ public struct Transform
 
     public Transform() { }
 
+    public Transform(Vector2 position)
+    {
+        Position = position;
+    }
+
+    public Transform(Vector2 position, Vector2 scale)
+    {
+        Position = position;
+        Scale = scale;
+    }
+
+    public Transform(Vector2 position, Vector2 scale, float rotation)
+    {
+        Position = position;
+        Scale = scale;
+        Rotation = rotation;
+    }
+
+    public Transform(Vector2 position, Vector2 scale, float rotation, Vector2 pivotPoint)
+    {
+        Position = position;
+        Scale = scale;
+        Rotation = rotation;
+        PivotPoint = pivotPoint;
+    }
+
     public override bool Equals(object? obj)
     {
         return obj is Transform t && Equals(t);

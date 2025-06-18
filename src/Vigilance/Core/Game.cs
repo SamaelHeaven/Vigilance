@@ -296,7 +296,7 @@ public sealed unsafe class Game
 
     public static GameConfig Config => GetGame()._launchConfig.Clone();
 
-    internal static GetSystemsDelegate Systems => GetGame()._config.Systems;
+    internal static SystemsFunc Systems => GetGame()._config.Systems;
 
     public static void OpenUrl(string url)
     {

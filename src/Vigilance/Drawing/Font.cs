@@ -34,16 +34,13 @@ public sealed unsafe class Font
     {
         var (spacingX, spacingY) = spacing ?? Game.DefaultTextSpacing;
         var size = new Vector2(0, fontSize + text.Count(c => c == '\n') * (fontSize + spacingY));
-        HandleText(
-            info =>
-            {
-                size.X = MathF.Max(size.X, info.Dest.Position.X + info.Dest.Size.X);
-            },
-            text,
-            fontSize,
-            (spacingX, spacingY)
-        );
+        HandleText(HandleTextAction, text, fontSize, (spacingX, spacingY));
         return size;
+
+        void HandleTextAction(Box source, Box dest)
+        {
+            size.X = MathF.Max(size.X, dest.Position.X + dest.Size.X);
+        }
     }
 
     public Texture GetStrokeAtlas(int strokeWidth)
@@ -70,7 +67,7 @@ public sealed unsafe class Font
     }
 
     public void HandleText(
-        Action<(Box Source, Box Dest)> action,
+        HandleTextAction action,
         string text,
         float? fontSize,
         Vector2? spacing,
@@ -81,7 +78,7 @@ public sealed unsafe class Font
     }
 
     public void HandleText(
-        Action<(Box Source, Box Dest)> action,
+        HandleTextAction action,
         string text,
         float fontSize,
         Vector2 spacing,
@@ -112,7 +109,7 @@ public sealed unsafe class Font
             var sourceSize = new Vector2(glyph.Width, glyph.Height);
             var destPosition = position + new Vector2(glyph.OffsetX, glyph.OffsetY) / aspectRatio;
             var destSize = sourceSize / aspectRatio;
-            action.Invoke((new Box(sourcePosition, sourceSize), new Box(destPosition, destSize)));
+            action.Invoke(new Box(sourcePosition, sourceSize), new Box(destPosition, destSize));
             position.X += glyph.Advance / aspectRatio + spacing.X;
         }
     }
@@ -288,3 +285,5 @@ public sealed unsafe class Font
         public FT_Bitmap_ Bitmap;
     }
 }
+
+public delegate void HandleTextAction(Box source, Box dest);

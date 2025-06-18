@@ -696,23 +696,21 @@ public sealed unsafe class Graphics
         Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDrawing(camera);
         var rColor = color.RColor;
-        font.HandleText(
-            info =>
-            {
-                Raylib.DrawTexturePro(
-                    font.Atlas.Texture2D,
-                    new Raylib_cs.Rectangle(info.Source.Position, info.Source.Size),
-                    new Raylib_cs.Rectangle(info.Dest.Position + position, info.Dest.Size),
-                    new Vector2(),
-                    0,
-                    rColor
-                );
-            },
-            text,
-            fontSize,
-            spacing
-        );
+        font.HandleText(HandleTextAction, text, fontSize, spacing);
         EndDrawing();
+        return;
+
+        void HandleTextAction(Box source, Box dest)
+        {
+            Raylib.DrawTexturePro(
+                font.Atlas.Texture2D,
+                new Raylib_cs.Rectangle(source.Position, source.Size),
+                new Raylib_cs.Rectangle(dest.Position + position, dest.Size),
+                new Vector2(),
+                0,
+                rColor
+            );
+        }
     }
 
     public void StrokeText(
@@ -750,24 +748,21 @@ public sealed unsafe class Graphics
         Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDrawing(camera);
         var rColor = color.RColor;
-        font.HandleText(
-            info =>
-            {
-                Raylib.DrawTexturePro(
-                    atlas.Texture2D,
-                    new Raylib_cs.Rectangle(info.Source.Position, info.Source.Size),
-                    new Raylib_cs.Rectangle(info.Dest.Position + position, info.Dest.Size),
-                    new Vector2(),
-                    0,
-                    rColor
-                );
-            },
-            text,
-            fontSize,
-            spacing,
-            glyphInfos
-        );
+        font.HandleText(HandleTextAction, text, fontSize, spacing, glyphInfos);
         EndDrawing();
+        return;
+
+        void HandleTextAction(Box source, Box dest)
+        {
+            Raylib.DrawTexturePro(
+                atlas.Texture2D,
+                new Raylib_cs.Rectangle(source.Position, source.Size),
+                new Raylib_cs.Rectangle(dest.Position + position, dest.Size),
+                new Vector2(),
+                0,
+                rColor
+            );
+        }
     }
 
     public void DrawText(Transform transform, Text text)

@@ -20,7 +20,7 @@ public sealed class Text
     public float StrokeWidth { get; set; } = 0;
     public Vector2 Spacing { get; set; } = Game.DefaultTextSpacing;
     public Interpolation? Interpolation { get; set; } = null;
-    public GetCameraDelegate? Camera { get; set; } = Core.Camera.DefaultDelegate;
+    public CameraFunc? Camera { get; set; } = Core.Camera.DefaultFunc;
 
     public Vector2 Size => Font.MeasureText(Value, FontSize, Spacing);
 }

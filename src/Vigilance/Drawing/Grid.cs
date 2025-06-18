@@ -14,5 +14,5 @@ public sealed class Grid
     public float CellSize { get; set; }
     public float Thick { get; set; } = 1;
     public Color Color { get; set; } = Color.White;
-    public GetCameraDelegate? Camera { get; set; } = Core.Camera.DefaultDelegate;
+    public CameraFunc? Camera { get; set; } = Core.Camera.DefaultFunc;
 }
