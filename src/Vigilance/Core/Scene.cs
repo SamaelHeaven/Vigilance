@@ -2,7 +2,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Flecs.NET.Core;
-using Vigilance.Events;
 using Vigilance.Math;
 
 namespace Vigilance.Core;

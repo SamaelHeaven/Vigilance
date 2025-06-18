@@ -1,7 +1,6 @@
 #pragma warning disable CS9084
 
 using Flecs.NET.Core;
-using Vigilance.Events;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
