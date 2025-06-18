@@ -303,14 +303,16 @@ public sealed unsafe class Graphics
         var fill = rectangle.Fill;
         var stroke = rectangle.Stroke;
         var roundness = rectangle.Roundness;
-        var strokeWidth = rectangle.StrokeWidth;
+        var strokeWidth = MathF.Max(0, rectangle.StrokeWidth);
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         PushMatrix();
         Pivot(transform, true);
         if (roundness > 0)
         {
-            FillRoundedRectangle(position - strokeWidth * 0.5f, scale + strokeWidth, fill, roundness, camera);
+            position += strokeWidth;
+            scale -= strokeWidth * 2;
+            FillRoundedRectangle(position, scale, fill, roundness, camera);
             StrokeRoundedRectangle(position, scale, stroke, roundness, strokeWidth, camera);
         }
         else
