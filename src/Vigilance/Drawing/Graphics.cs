@@ -698,12 +698,7 @@ public sealed unsafe class Graphics
         Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDrawing(camera);
         var rColor = color.RColor;
-        font.HandleText(HandleTextAction, text, fontSize, spacing);
-        EndDrawing();
-        return;
-
-        void HandleTextAction(Box source, Box dest)
-        {
+        foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing))
             Raylib.DrawTexturePro(
                 font.Atlas.Texture2D,
                 new Raylib_cs.Rectangle(source.Position, source.Size),
@@ -712,7 +707,7 @@ public sealed unsafe class Graphics
                 0,
                 rColor
             );
-        }
+        EndDrawing();
     }
 
     public void StrokeText(
@@ -750,12 +745,7 @@ public sealed unsafe class Graphics
         Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
         BeginDrawing(camera);
         var rColor = color.RColor;
-        font.HandleText(HandleTextAction, text, fontSize, spacing, glyphInfos);
-        EndDrawing();
-        return;
-
-        void HandleTextAction(Box source, Box dest)
-        {
+        foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, glyphInfos))
             Raylib.DrawTexturePro(
                 atlas.Texture2D,
                 new Raylib_cs.Rectangle(source.Position, source.Size),
@@ -764,7 +754,7 @@ public sealed unsafe class Graphics
                 0,
                 rColor
             );
-        }
+        EndDrawing();
     }
 
     public void DrawText(Transform transform, Text text)

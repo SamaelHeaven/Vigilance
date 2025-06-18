@@ -34,13 +34,9 @@ public sealed unsafe class Font
     {
         var (spacingX, spacingY) = spacing ?? Game.DefaultTextSpacing;
         var size = new Vector2(0, fontSize + text.Count(c => c == '\n') * (fontSize + spacingY));
-        HandleText(HandleTextAction, text, fontSize, (spacingX, spacingY));
-        return size;
-
-        void HandleTextAction(Box source, Box dest)
-        {
+        foreach (var (_, dest) in GetTextBounds(text, fontSize, new Vector2(spacingX, spacingY)))
             size.X = MathF.Max(size.X, dest.Position.X + dest.Size.X);
-        }
+        return size;
     }
 
     public Texture GetStrokeAtlas(int strokeWidth)
@@ -66,19 +62,17 @@ public sealed unsafe class Font
         return stroke.GlyphInfos.AsReadOnly();
     }
 
-    public void HandleText(
-        HandleTextAction action,
+    public IEnumerable<(Box Source, Box Dest)> GetTextBounds(
         string text,
         float? fontSize,
         Vector2? spacing,
         IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
-        HandleText(action, text, fontSize ?? Game.DefaultFontSize, spacing ?? Game.DefaultTextSpacing, glyphInfos);
+        return GetTextBounds(text, fontSize ?? Game.DefaultFontSize, spacing ?? Game.DefaultTextSpacing, glyphInfos);
     }
 
-    public void HandleText(
-        HandleTextAction action,
+    public IEnumerable<(Box Source, Box Dest)> GetTextBounds(
         string text,
         float fontSize,
         Vector2 spacing,
@@ -109,7 +103,7 @@ public sealed unsafe class Font
             var sourceSize = new Vector2(glyph.Width, glyph.Height);
             var destPosition = position + new Vector2(glyph.OffsetX, glyph.OffsetY) / aspectRatio;
             var destSize = sourceSize / aspectRatio;
-            action.Invoke(new Box(sourcePosition, sourceSize), new Box(destPosition, destSize));
+            yield return (new Box(sourcePosition, sourceSize), new Box(destPosition, destSize));
             position.X += glyph.Advance / aspectRatio + spacing.X;
         }
     }
@@ -285,5 +279,3 @@ public sealed unsafe class Font
         public FT_Bitmap_ Bitmap;
     }
 }
-
-public delegate void HandleTextAction(Box source, Box dest);
