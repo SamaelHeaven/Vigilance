@@ -317,7 +317,7 @@ public sealed unsafe class Graphics
         }
         else
         {
-            FillRectangle(position, scale, fill, camera);
+            FillRectangle(position + strokeWidth, scale - strokeWidth * 2, fill, camera);
             StrokeRectangle(position, scale, stroke, strokeWidth, camera);
         }
 
