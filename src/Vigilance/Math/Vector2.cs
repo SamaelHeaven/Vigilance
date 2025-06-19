@@ -221,6 +221,16 @@ public struct Vector2
         return new Vector2(MathF.Round(X), MathF.Round(Y));
     }
 
+    public readonly Vector2 Floor()
+    {
+        return new Vector2(MathF.Floor(X), MathF.Floor(Y));
+    }
+
+    public readonly Vector2 Ceil()
+    {
+        return new Vector2(MathF.Ceiling(X), MathF.Ceiling(Y));
+    }
+
     public readonly Vector2 Abs()
     {
         return new Vector2(MathF.Abs(X), MathF.Abs(Y));

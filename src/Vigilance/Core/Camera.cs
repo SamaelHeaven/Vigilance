@@ -19,10 +19,12 @@ public sealed class Camera
     {
         get
         {
-            var originMatrix = Matrix4x4.CreateTranslation(-Target.X, -Target.Y, 0);
+            var target = Target.Round();
+            var offset = Offset.Round();
+            var originMatrix = Matrix4x4.CreateTranslation(-target.X, -target.Y, 0);
             var rotationMatrix = Matrix4x4.CreateRotationZ(Rotation.DegToRad());
             var scaleMatrix = Matrix4x4.CreateScale(new Vector3(Zoom, Zoom, 1));
-            var translationMatrix = Matrix4x4.CreateTranslation(Offset.X, Offset.Y, 0);
+            var translationMatrix = Matrix4x4.CreateTranslation(offset.X, offset.Y, 0);
             return originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
         }
     }

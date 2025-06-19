@@ -748,7 +748,7 @@ public sealed unsafe class Graphics
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, glyphInfos))
             Raylib.DrawTexturePro(
                 atlas.Texture2D,
-                new Raylib_cs.Rectangle(source.Position, source.Size),
+                new Raylib_cs.Rectangle(source.Position + strokeWidth, source.Size - strokeWidth),
                 new Raylib_cs.Rectangle(dest.Position + position, dest.Size),
                 new Vector2(),
                 0,
@@ -1165,7 +1165,6 @@ public sealed unsafe class Graphics
         var matrix = GetMatrix();
         Rlgl.PushMatrix();
         Rlgl.Scalef(_buffer.Scale, _buffer.Scale, 1);
-        Rlgl.Translatef(0.375f, 0.375f, 0);
         if (camera is not null)
         {
             var cameraMatrix = camera.Matrix;
