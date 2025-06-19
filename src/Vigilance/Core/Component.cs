@@ -1,32 +1,14 @@
 namespace Vigilance.Core;
 
-public readonly struct Component(Type type, object? data = null)
+public abstract class Component
 {
-    public Type Type { get; } = type;
-    public object? Data { get; } = data;
+    public virtual void Update(Entity entity) { }
 
-    public override bool Equals(object? obj)
-    {
-        return obj is Component c && Equals(c);
-    }
+    public virtual void FixedUpdate(Entity entity) { }
 
-    public bool Equals(Component other)
-    {
-        return Type == other.Type;
-    }
+    public virtual void RenderBegin(Entity entity) { }
 
-    public static bool operator ==(Component a, Component b)
-    {
-        return a.Equals(b);
-    }
+    public virtual void Render(Entity entity) { }
 
-    public static bool operator !=(Component a, Component b)
-    {
-        return !a.Equals(b);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Type);
-    }
+    public virtual void RenderEnd(Entity entity) { }
 }

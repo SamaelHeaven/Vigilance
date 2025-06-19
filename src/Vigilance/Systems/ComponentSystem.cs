@@ -11,7 +11,7 @@ public sealed class ComponentSystem : ISystem
             scene.Each(
                 (Entity entity, Components components) =>
                 {
-                    foreach (var component in components.OfType<IComponent>())
+                    foreach (var component in components.OfType<Component>())
                         component.Update(entity);
                 }
             );
@@ -22,7 +22,7 @@ public sealed class ComponentSystem : ISystem
             scene.Each(
                 (Entity entity, Components components) =>
                 {
-                    foreach (var component in components.OfType<IComponent>())
+                    foreach (var component in components.OfType<Component>())
                         component.FixedUpdate(entity);
                 }
             );
@@ -33,7 +33,7 @@ public sealed class ComponentSystem : ISystem
             scene.Each(
                 (Entity entity, Components components) =>
                 {
-                    foreach (var component in components.OfType<IComponent>())
+                    foreach (var component in components.OfType<Component>())
                         component.RenderBegin(entity);
                 }
             );
@@ -41,7 +41,7 @@ public sealed class ComponentSystem : ISystem
 
         scene.OnRender(entity =>
         {
-            foreach (var component in entity.Components.OfType<IComponent>())
+            foreach (var component in entity.Components.OfType<Component>())
                 component.Render(entity);
         });
 
@@ -50,7 +50,7 @@ public sealed class ComponentSystem : ISystem
             scene.Each(
                 (Entity entity, Components components) =>
                 {
-                    foreach (var component in components.OfType<IComponent>())
+                    foreach (var component in components.OfType<Component>())
                         component.RenderEnd(entity);
                 }
             );

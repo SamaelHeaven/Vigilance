@@ -2,15 +2,15 @@ using System.Collections;
 
 namespace Vigilance.Core;
 
-public readonly struct Components : IReadOnlyList<Component>
+public readonly struct Components : IReadOnlyList<ComponentEntry>
 {
     public static Components Empty { get; } = new();
 
-    internal readonly List<Component> Values = new();
+    internal readonly List<ComponentEntry> Values = new();
 
     public int Count => Values.Count;
 
-    public Component this[int index] => Values[index];
+    public ComponentEntry this[int index] => Values[index];
 
     public Components() { }
 
@@ -21,7 +21,7 @@ public readonly struct Components : IReadOnlyList<Component>
                 yield return t;
     }
 
-    public IEnumerator<Component> GetEnumerator()
+    public IEnumerator<ComponentEntry> GetEnumerator()
     {
         return Values.GetEnumerator();
     }
