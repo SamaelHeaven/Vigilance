@@ -11,7 +11,7 @@ public sealed class ComponentSystem : ISystem
             scene.Each(
                 (Entity entity, Components components) =>
                 {
-                    foreach (var component in components.OfType<Component>())
+                    foreach (var component in components.OfType<IComponent>())
                         component.Update(entity);
                 }
             );
@@ -22,38 +22,16 @@ public sealed class ComponentSystem : ISystem
             scene.Each(
                 (Entity entity, Components components) =>
                 {
-                    foreach (var component in components.OfType<Component>())
+                    foreach (var component in components.OfType<IComponent>())
                         component.FixedUpdate(entity);
-                }
-            );
-        });
-
-        scene.OnRenderBegin(() =>
-        {
-            scene.Each(
-                (Entity entity, Components components) =>
-                {
-                    foreach (var component in components.OfType<Component>())
-                        component.RenderBegin(entity);
                 }
             );
         });
 
         scene.OnRender(entity =>
         {
-            foreach (var component in entity.Components.OfType<Component>())
+            foreach (var component in entity.Components.OfType<IComponent>())
                 component.Render(entity);
-        });
-
-        scene.OnRenderEnd(() =>
-        {
-            scene.Each(
-                (Entity entity, Components components) =>
-                {
-                    foreach (var component in components.OfType<Component>())
-                        component.RenderEnd(entity);
-                }
-            );
         });
     }
 }

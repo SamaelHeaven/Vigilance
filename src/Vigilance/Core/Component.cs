@@ -1,14 +1,19 @@
 namespace Vigilance.Core;
 
-public abstract class Component
+public interface IComponent
+{
+    void Update(Entity entity);
+
+    void FixedUpdate(Entity entity);
+
+    void Render(Entity entity);
+}
+
+public abstract class Component : IComponent
 {
     public virtual void Update(Entity entity) { }
 
     public virtual void FixedUpdate(Entity entity) { }
 
-    public virtual void RenderBegin(Entity entity) { }
-
     public virtual void Render(Entity entity) { }
-
-    public virtual void RenderEnd(Entity entity) { }
 }
