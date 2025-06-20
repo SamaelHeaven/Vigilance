@@ -14,6 +14,7 @@ public sealed unsafe class Graphics
     private readonly WritableTexture? _buffer;
     private readonly Stack<Matrix4x4> _matrixStack = new();
     private Box? _clip = null;
+    private bool _drawing = false;
     private Matrix4x4 _matrix = Matrix4x4.Identity;
 
     internal Graphics(WritableTexture? buffer)
@@ -1134,44 +1135,15 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void Draw(Action action, Camera? camera = null)
-    {
-        BeginDrawing(camera);
-        try
-        {
-            action.Invoke();
-        }
-        finally
-        {
-            EndDrawing();
-        }
-    }
-
     #endregion
 
-    #region Internal
+    #region Drawing
 
-    internal static void Reset()
+    public void BeginDrawing(Camera? camera = null)
     {
-        if (CurrentBuffer is not null)
-        {
-            Raylib.EndTextureMode();
-            CurrentBuffer = null;
-        }
-
-        if (!CurrentClip.HasValue)
-            return;
-        Raylib.EndScissorMode();
-        CurrentClip = null;
-    }
-
-    internal static void DrawRenderBatchActive()
-    {
-        Rlgl.DrawRenderBatchActive();
-    }
-
-    private void BeginDrawing(Camera? camera = null)
-    {
+        if (_drawing)
+            throw new InvalidOperationException("Cannot begin drawing while already drawing.");
+        _drawing = true;
         if (CurrentBuffer != _buffer)
         {
             if (CurrentBuffer is null)
@@ -1214,9 +1186,35 @@ public sealed unsafe class Graphics
         Rlgl.MultMatrixf(&matrix.M11);
     }
 
-    private static void EndDrawing()
+    public void EndDrawing()
     {
+        if (!_drawing)
+            throw new InvalidOperationException($"{nameof(BeginDrawing)} must be called before {nameof(EndDrawing)}.");
+        _drawing = false;
         Rlgl.PopMatrix();
+    }
+
+    #endregion
+
+    #region Internal
+
+    internal static void Reset()
+    {
+        if (CurrentBuffer is not null)
+        {
+            Raylib.EndTextureMode();
+            CurrentBuffer = null;
+        }
+
+        if (!CurrentClip.HasValue)
+            return;
+        Raylib.EndScissorMode();
+        CurrentClip = null;
+    }
+
+    internal static void DrawRenderBatchActive()
+    {
+        Rlgl.DrawRenderBatchActive();
     }
 
     #endregion
