@@ -8,7 +8,7 @@ public delegate Camera CameraFunc();
 
 public sealed class Camera
 {
-    public static CameraFunc DefaultFunc { get; } = () => Game.Scene.Camera;
+    public static CameraFunc Default { get; } = () => Game.Scene.Camera;
     public Vector2 Target { get; set; } = Vector2.Zero;
     public Vector2 Offset { get; set; } = Vector2.Zero;
     public float Rotation { get; set; } = 0;

@@ -9,5 +9,5 @@ public sealed class Line
     public Vector2 End { get; set; } = Vector2.Zero;
     public Color Color { get; set; } = Color.White;
     public float Thick { get; set; } = 1;
-    public CameraFunc? Camera { get; set; } = Core.Camera.DefaultFunc;
+    public CameraFunc? Camera { get; set; } = Core.Camera.Default;
 }

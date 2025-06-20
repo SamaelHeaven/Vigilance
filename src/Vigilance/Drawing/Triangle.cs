@@ -20,5 +20,5 @@ public sealed class Triangle
     public Color Fill { get; set; } = Color.White;
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 1;
-    public CameraFunc? Camera { get; set; } = Core.Camera.DefaultFunc;
+    public CameraFunc? Camera { get; set; } = Core.Camera.Default;
 }
