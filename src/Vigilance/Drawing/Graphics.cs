@@ -73,10 +73,9 @@ public sealed unsafe class Graphics
         _matrixStack.Push(matrix);
     }
 
-    public void PopMatrix()
+    public Matrix4x4 PopMatrix()
     {
-        if (_matrixStack.Count != 0)
-            _matrixStack.Pop();
+        return _matrixStack.Count != 0 ? _matrixStack.Pop() : _matrix;
     }
 
     public void MultiplyMatrix(Matrix4x4 matrix)
