@@ -1144,6 +1144,8 @@ public sealed unsafe class Graphics
         if (_drawing)
             throw new InvalidOperationException("Cannot begin drawing while already drawing.");
         _drawing = true;
+        var offset = Renderer.Offset;
+        var scale = Renderer.Scale;
         if (CurrentBuffer != _buffer)
         {
             if (CurrentBuffer is null)
@@ -1157,19 +1159,7 @@ public sealed unsafe class Graphics
 
         var clip = _clip;
         if (clip is not null)
-        {
-            if (_buffer is null)
-            {
-                var offset = Renderer.Offset;
-                var scale = Renderer.Scale;
-                clip = new Box(clip.Value.Position * scale + offset, clip.Value.Size * scale);
-            }
-            else
-            {
-                clip = new Box(clip.Value.Position * _buffer.Scale, clip.Value.Size * _buffer.Scale);
-            }
-        }
-
+            clip = new Box(clip.Value.Position * scale + offset, clip.Value.Size * scale);
         if (!Precision.AreEqual(CurrentClip, clip))
         {
             if (CurrentClip.HasValue)
@@ -1186,18 +1176,8 @@ public sealed unsafe class Graphics
 
         var matrix = GetMatrix();
         Rlgl.PushMatrix();
-        if (_buffer is null)
-        {
-            var offset = Renderer.Offset;
-            var scale = Renderer.Scale;
-            Rlgl.Translatef(offset.X, offset.Y, 0);
-            Rlgl.Scalef(scale.X, scale.Y, 1);
-        }
-        else
-        {
-            Rlgl.Scalef(_buffer.Scale, _buffer.Scale, 1);
-        }
-
+        Rlgl.Translatef(offset.X, offset.Y, 0);
+        Rlgl.Scalef(scale.X, scale.Y, 1);
         if (camera is not null)
             matrix *= camera.Matrix;
         Rlgl.MultMatrixf(&matrix.M11);
