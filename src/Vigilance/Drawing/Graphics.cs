@@ -1151,7 +1151,7 @@ public sealed unsafe class Graphics
 
     #region Internal
 
-    internal void Reset()
+    internal static void Reset()
     {
         if (CurrentBuffer is not null)
         {
@@ -1159,13 +1159,10 @@ public sealed unsafe class Graphics
             CurrentBuffer = null;
         }
 
-        if (CurrentClip.HasValue)
-        {
-            Raylib.EndScissorMode();
-            CurrentClip = null;
-        }
-
-        LoadIdentity();
+        if (!CurrentClip.HasValue)
+            return;
+        Raylib.EndScissorMode();
+        CurrentClip = null;
     }
 
     internal static void DrawRenderBatchActive()

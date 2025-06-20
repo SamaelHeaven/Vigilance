@@ -61,6 +61,7 @@ public sealed class Renderer
             }
         ).Round();
 
+        Graphics.LoadIdentity();
         if (Game.RendererConfig.Mode == RenderingMode.Buffer)
             return;
         Graphics.Scale(renderer._scale);

@@ -8,6 +8,7 @@ using Vigilance.Input;
 using Vigilance.Logging;
 using Vigilance.Math;
 using Font = Vigilance.Drawing.Font;
+using Image = Vigilance.Drawing.Image;
 using Music = Vigilance.Audio.Music;
 using Sound = Vigilance.Audio.Sound;
 
@@ -369,6 +370,26 @@ public sealed unsafe class Game
             JSEngine.Eval("Module.canvas.focus()");
         else
             Raylib.SetWindowFocused();
+    }
+
+    public static Image Screenshot()
+    {
+        var width = ScreenWidth;
+        var height = ScreenHeight;
+        Graphics.Reset();
+        Graphics.DrawRenderBatchActive();
+        var data = Rlgl.ReadScreenPixels(ScreenWidth, ScreenHeight);
+        var rImage = new Raylib_cs.Image
+        {
+            Data = data,
+            Width = width,
+            Height = height,
+            Mipmaps = 1,
+            Format = PixelFormat.UncompressedR8G8B8A8,
+        };
+        var image = new Image(rImage).Copy();
+        Raylib.MemFree(data);
+        return image;
     }
 
     public static void ToggleFullscreen()
