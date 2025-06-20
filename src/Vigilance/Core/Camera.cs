@@ -1,5 +1,4 @@
 using System.Numerics;
-using Raylib_cs;
 using Vigilance.Math;
 using Vector2 = Vigilance.Math.Vector2;
 
