@@ -18,7 +18,8 @@ public sealed class GameConfig
     public Vector2? MinSize { get; set; } = null;
     public Vector2? MaxSize { get; set; } = null;
     public Viewport Viewport { get; set; } = Viewport.Fit;
-    public RendererConfig RendererConfig { get; set; } = RendererConfig.Screen();
+    public RenderingMode RenderingMode { get; set; } = RenderingMode.Screen();
+    public Color Background { get; set; } = Color.Black;
     public int FpsTarget { get; set; } = 0;
     public bool Fullscreen { get; set; } = false;
     public bool Maximized { get; set; } = false;

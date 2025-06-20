@@ -1174,7 +1174,9 @@ public sealed unsafe class Graphics
     {
         if (CurrentBuffer != _buffer)
         {
-            if (CurrentBuffer is not null)
+            if (CurrentBuffer is null)
+                DrawRenderBatchActive();
+            else
                 Raylib.EndTextureMode();
             CurrentBuffer = _buffer;
             if (_buffer is not null)

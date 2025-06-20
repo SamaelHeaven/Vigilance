@@ -7,6 +7,7 @@ using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Logging;
 using Vigilance.Math;
+using Color = Vigilance.Drawing.Color;
 using Font = Vigilance.Drawing.Font;
 using Image = Vigilance.Drawing.Image;
 using Music = Vigilance.Audio.Music;
@@ -191,7 +192,9 @@ public sealed unsafe class Game
         }
     }
 
-    public static RendererConfig RendererConfig => GetGame()._config.RendererConfig;
+    public static RenderingMode RenderingMode => GetGame()._config.RenderingMode;
+
+    public static Color Background => GetGame()._config.Background;
 
     public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis;
 
