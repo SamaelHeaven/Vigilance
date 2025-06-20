@@ -218,22 +218,22 @@ public struct Vector2
 
     public readonly Vector2 Round()
     {
-        return new Vector2(MathF.Round(X), MathF.Round(Y));
+        return new Vector2(X.Round(), Y.Round());
     }
 
     public readonly Vector2 Floor()
     {
-        return new Vector2(MathF.Floor(X), MathF.Floor(Y));
+        return new Vector2(X.Floor(), Y.Floor());
     }
 
     public readonly Vector2 Ceil()
     {
-        return new Vector2(MathF.Ceiling(X), MathF.Ceiling(Y));
+        return new Vector2(X.Ceil(), Y.Ceil());
     }
 
     public readonly Vector2 Abs()
     {
-        return new Vector2(MathF.Abs(X), MathF.Abs(Y));
+        return new Vector2(X.Abs(), Y.Abs());
     }
 
     public readonly Vector2 Normalize()

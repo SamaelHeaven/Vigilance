@@ -7,7 +7,7 @@ public static class Precision
 
     public static bool AreEqual(float a, float b, float epsilon = DefaultFloatEpsilon)
     {
-        return MathF.Abs(a - b) <= epsilon;
+        return (a - b).Abs() <= epsilon;
     }
 
     public static bool AreEqual(float? a, float? b, float epsilon = DefaultFloatEpsilon)

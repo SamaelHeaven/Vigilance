@@ -145,7 +145,7 @@ public sealed unsafe class Font
     {
         var colSize = glyphs.Select(glyph => glyph.Width).Prepend(0).Max();
         var rowSize = glyphs.Select(glyph => glyph.Height).Prepend(0).Max();
-        var nbRows = (int)MathF.Ceiling(glyphs.Count / (float)AtlasNbCols);
+        var nbRows = (int)(glyphs.Count / (float)AtlasNbCols).Ceil();
         var width = AtlasNbCols * (colSize + AtlasSpacing) + AtlasSpacing;
         var height = nbRows * (rowSize + AtlasSpacing) + AtlasSpacing;
         var pixels = new byte[width * height * 2];

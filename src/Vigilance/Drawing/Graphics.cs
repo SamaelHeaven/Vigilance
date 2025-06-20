@@ -378,7 +378,7 @@ public sealed unsafe class Graphics
         var scale = transform.Scale;
         PushMatrix();
         Pivot(transform, false);
-        var radius = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.25f;
+        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
         FillCircle(position, radius, fill, camera);
         StrokeCircle(position, radius, stroke, strokeWidth, camera);
         PopMatrix();
@@ -478,7 +478,7 @@ public sealed unsafe class Graphics
         var scale = transform.Scale;
         PushMatrix();
         Pivot(transform, false);
-        var radius = (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.25f;
+        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
         FillRegularPolygon(position, sides, radius, fill, camera);
         StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
         PopMatrix();
@@ -623,7 +623,7 @@ public sealed unsafe class Graphics
         var stroke = ring.Stroke;
         var strokeWidth = ring.StrokeWidth;
         var position = transform.Position;
-        var scale = (MathF.Abs(transform.Scale.X) + MathF.Abs(transform.Scale.Y)) * 0.5f;
+        var scale = (transform.Scale.X.Abs() + transform.Scale.Y.Abs()) * 0.5f;
         var innerRadius = ring.InnerRadius * scale;
         var outerRadius = ring.OuterRadius * scale;
         PushMatrix();
@@ -667,7 +667,7 @@ public sealed unsafe class Graphics
         var end = line.End + position;
         var color = line.Color;
         var thick = line.Thick;
-        var scale = (MathF.Abs(transform.Scale.X) + MathF.Abs(transform.Scale.Y)) * 0.5f;
+        var scale = (transform.Scale.X.Abs() + transform.Scale.Y.Abs()) * 0.5f;
         PushMatrix();
         Pivot(transform, false);
         DrawLine(start, end, color, thick * scale, camera);
@@ -753,7 +753,7 @@ public sealed unsafe class Graphics
         if (text == "" || color == Color.Transparent || strokeWidth <= 0)
             return;
         font ??= Game.DefaultFont;
-        var (atlas, glyphInfos) = font.GetStroke((int)MathF.Round(strokeWidth));
+        var (atlas, glyphInfos) = font.GetStroke((int)strokeWidth.Round());
         Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
         BeginDrawing(camera);
         var rColor = color.RColor;
@@ -783,7 +783,7 @@ public sealed unsafe class Graphics
         var position = transform.Position;
         var scale = transform.Scale;
         PushMatrix();
-        fontSize *= (MathF.Abs(scale.X) + MathF.Abs(scale.Y)) * 0.5f;
+        fontSize *= (scale.X.Abs() + scale.Y.Abs()) * 0.5f;
         transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
         Pivot(transform, true);
         FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
@@ -1155,16 +1155,33 @@ public sealed unsafe class Graphics
                 Raylib.BeginTextureMode(_buffer.RenderTexture2D);
         }
 
-        if (!Precision.AreEqual(CurrentClip, _clip))
+        var clip = _clip;
+        if (clip is not null)
+        {
+            if (_buffer is null)
+            {
+                var offset = Renderer.Offset;
+                var scale = Renderer.Scale;
+                clip = new Box(clip.Value.Position * scale + offset, clip.Value.Size * scale);
+            }
+            else
+            {
+                clip = new Box(clip.Value.Position * _buffer.Scale, clip.Value.Size * _buffer.Scale);
+            }
+        }
+
+        if (!Precision.AreEqual(CurrentClip, clip))
         {
             if (CurrentClip.HasValue)
                 Raylib.EndScissorMode();
-            CurrentClip = _clip;
-            if (_clip.HasValue)
-            {
-                var clip = _clip.Value;
-                Raylib.BeginScissorMode((int)clip.X, (int)clip.Y, (int)clip.Width, (int)clip.Height);
-            }
+            CurrentClip = clip;
+            if (clip.HasValue)
+                Raylib.BeginScissorMode(
+                    (int)clip.Value.X.Round(),
+                    (int)clip.Value.Y.Round(),
+                    (int)clip.Value.Width.Round(),
+                    (int)clip.Value.Height.Round()
+                );
         }
 
         var matrix = GetMatrix();
