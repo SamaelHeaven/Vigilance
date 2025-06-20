@@ -298,8 +298,6 @@ public sealed unsafe class Scene
                 case ComponentOperation.Remove:
                     RemoveComponent(component.Entity, component.Type);
                     break;
-                default:
-                    continue;
             }
 
         var action = _deferredAction;
