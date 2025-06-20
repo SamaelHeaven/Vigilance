@@ -60,7 +60,7 @@ public sealed class Renderer
                 ),
                 _ => throw new ArgumentOutOfRangeException(),
             }
-        ).Round();
+        ).Ceil();
 
         Graphics.LoadIdentity();
         if (mode.ModeType == RenderingModeType.Buffer)
