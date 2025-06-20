@@ -8,20 +8,27 @@ public sealed class Renderer
 {
     private static Renderer? _renderer;
     private readonly Graphics _graphics;
+    private readonly WritableTexture? _buffer;
+    private Vector2 _scale;
     private Vector2 _offset;
 
     private Renderer()
     {
         Game.EnsureRunning();
-        _graphics = new Graphics(null);
+        var config = Game.RendererConfig;
+        if (config.Mode == RenderingMode.Buffer)
+            _buffer = new WritableTexture(Game.Size, config.Scale);
+        _graphics = new Graphics(_buffer);
     }
 
     public static Graphics Graphics => GetRenderer()._graphics;
 
+    public static WritableTexture? Buffer => GetRenderer()._buffer;
+
     internal static void BeginDrawing()
     {
         Graphics.Reset();
-        Graphics.ClearBackground(Color.Black);
+        Raylib.ClearBackground(Raylib_cs.Color.Black);
         var renderer = GetRenderer();
         var screenWidth = (float)Game.ScreenWidth;
         var screenHeight = (float)Game.ScreenHeight;
@@ -31,7 +38,7 @@ public sealed class Renderer
         var scaleY = screenHeight / height;
         var minScale = MathF.Min(scaleX, scaleY);
         var maxScale = MathF.Max(scaleX, scaleY);
-        var scale = Game.Viewport switch
+        renderer._scale = Game.Viewport switch
         {
             Viewport.Fit => new Vector2(minScale),
             Viewport.Stretch => new Vector2(scaleX, scaleY),
@@ -53,7 +60,10 @@ public sealed class Renderer
                 _ => throw new ArgumentOutOfRangeException(),
             }
         ).Round();
-        Graphics.Scale(scale);
+
+        if (Game.RendererConfig.Mode == RenderingMode.Buffer)
+            return;
+        Graphics.Scale(renderer._scale);
         Graphics.Translate(renderer._offset);
     }
 
@@ -62,14 +72,31 @@ public sealed class Renderer
         var renderer = GetRenderer();
         var screenWidth = Game.ScreenWidth;
         var screenHeight = Game.ScreenHeight;
+        var width = Game.Width;
+        var height = Game.Height;
+        var scaleX = renderer._scale.X;
+        var scaleY = renderer._scale.Y;
         var offsetX = (int)renderer._offset.X;
         var offsetY = (int)renderer._offset.Y;
         var color = Color.Black;
+        var config = Game.RendererConfig;
         Graphics.Reset();
-        Graphics.FillRectangle(0, 0, offsetX, screenHeight, color);
-        Graphics.FillRectangle(screenWidth - offsetX, 0, offsetX, screenHeight, color);
-        Graphics.FillRectangle(0, 0, screenWidth, offsetY, color);
-        Graphics.FillRectangle(0, screenHeight - offsetY, screenWidth, offsetY, color);
+        if (config.Mode == RenderingMode.Buffer)
+        {
+            var texture = renderer._buffer!.Texture.Texture2D;
+            var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
+            var dest = new Raylib_cs.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
+            Raylib.SetTextureFilter(texture, (TextureFilter)config.Interpolation);
+            Raylib.DrawTexturePro(texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
+        }
+        else
+        {
+            Graphics.FillRectangle(0, 0, offsetX, screenHeight, color);
+            Graphics.FillRectangle(screenWidth - offsetX, 0, offsetX, screenHeight, color);
+            Graphics.FillRectangle(0, 0, screenWidth, offsetY, color);
+            Graphics.FillRectangle(0, screenHeight - offsetY, screenWidth, offsetY, color);
+        }
+
         Graphics.DrawRenderBatchActive();
         Raylib.SwapScreenBuffer();
     }

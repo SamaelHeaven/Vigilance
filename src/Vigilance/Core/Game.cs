@@ -190,6 +190,8 @@ public sealed unsafe class Game
         }
     }
 
+    public static RendererConfig RendererConfig => GetGame()._config.RendererConfig;
+
     public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis;
 
     public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis;
