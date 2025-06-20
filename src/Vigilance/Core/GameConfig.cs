@@ -61,7 +61,7 @@ public sealed class GameConfig
         {
             var assembly = Assemblies.Engine;
             return Asset.FontResource(
-                "DefaultFont.ttf",
+                "Font.Default.ttf",
                 @namespace: $"{assembly.GetName().Name}.Resources",
                 assembly: assembly
             );

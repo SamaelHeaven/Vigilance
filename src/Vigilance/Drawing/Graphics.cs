@@ -1197,14 +1197,20 @@ public sealed unsafe class Graphics
 
         var matrix = GetMatrix();
         Rlgl.PushMatrix();
-        if (_buffer is not null)
-            Rlgl.Scalef(_buffer.Scale, _buffer.Scale, 1);
-        if (camera is not null)
+        if (_buffer is null)
         {
-            var cameraMatrix = camera.Matrix;
-            Rlgl.MultMatrixf(&cameraMatrix.M11);
+            var offset = Renderer.Offset;
+            var scale = Renderer.Scale;
+            Rlgl.Translatef(offset.X, offset.Y, 0);
+            Rlgl.Scalef(scale.X, scale.Y, 1);
+        }
+        else
+        {
+            Rlgl.Scalef(_buffer.Scale, _buffer.Scale, 1);
         }
 
+        if (camera is not null)
+            matrix *= camera.Matrix;
         Rlgl.MultMatrixf(&matrix.M11);
     }
 

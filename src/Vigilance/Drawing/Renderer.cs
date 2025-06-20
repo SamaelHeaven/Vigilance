@@ -25,6 +25,10 @@ public sealed class Renderer
 
     public static WritableTexture? Buffer => GetRenderer()._buffer;
 
+    public static Vector2 Offset => GetRenderer()._offset;
+
+    public static Vector2 Scale => GetRenderer()._scale;
+
     internal static void BeginDrawing()
     {
         Graphics.Reset();
@@ -38,7 +42,6 @@ public sealed class Renderer
         var scaleY = screenHeight / height;
         var minScale = MathF.Min(scaleX, scaleY);
         var maxScale = MathF.Max(scaleX, scaleY);
-        var mode = Game.RenderingMode;
         renderer._scale = Game.Viewport switch
         {
             Viewport.Fit => new Vector2(minScale),
@@ -61,12 +64,6 @@ public sealed class Renderer
                 _ => throw new ArgumentOutOfRangeException(),
             }
         ).Ceil();
-
-        Graphics.LoadIdentity();
-        if (mode.ModeType == RenderingModeType.Buffer)
-            return;
-        Graphics.Scale(renderer._scale);
-        Graphics.Translate(renderer._offset);
     }
 
     internal static void EndDrawing()

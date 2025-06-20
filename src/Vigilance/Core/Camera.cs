@@ -28,6 +28,4 @@ public sealed class Camera
             return originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
         }
     }
-
-    internal Camera2D RCamera => new(Offset, Target, Rotation, Zoom);
 }
