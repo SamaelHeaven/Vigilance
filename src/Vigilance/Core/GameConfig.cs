@@ -18,7 +18,6 @@ public sealed class GameConfig
     public Vector2? MinSize { get; set; } = null;
     public Vector2? MaxSize { get; set; } = null;
     public Viewport Viewport { get; set; } = Viewport.Fit;
-    public float Scale { get; set; } = 1.0f;
     public int FpsTarget { get; set; } = 0;
     public bool Fullscreen { get; set; } = false;
     public bool Maximized { get; set; } = false;
@@ -27,12 +26,12 @@ public sealed class GameConfig
     public bool Resizable { get; set; } = true;
     public bool Debug { get; set; } = false;
     public bool RunMinimized { get; set; } = true;
+    public bool Msaa4X { get; set; } = false;
     public float MasterVolume { get; set; } = 1;
     public CacheType DefaultAssetCacheType { get; set; } = CacheType.Weak;
     public ILogger? Logger { get; set; } = new ConsoleLogger();
     public LogLevel LogLevel { get; set; } = LogLevel.All;
     public int DefaultSoundMaxAliases { get; set; } = 16;
-    public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
     public Vector2 DefaultTextSpacing { get; set; } = new(0, 4);
     public int DefaultFontQuality { get; set; } = 128;
     public float DefaultFontSize { get; set; } = 16;

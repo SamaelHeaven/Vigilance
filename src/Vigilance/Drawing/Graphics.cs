@@ -11,12 +11,12 @@ public sealed unsafe class Graphics
 {
     internal static WritableTexture? CurrentBuffer = null;
     internal static Box? CurrentClip = null;
-    private readonly WritableTexture _buffer;
+    private readonly WritableTexture? _buffer;
     private readonly Stack<Matrix4x4> _matrixStack = new();
     private Box? _clip = null;
     private Matrix4x4 _matrix = Matrix4x4.Identity;
 
-    internal Graphics(WritableTexture buffer)
+    internal Graphics(WritableTexture? buffer)
     {
         _buffer = buffer;
     }
@@ -56,9 +56,20 @@ public sealed unsafe class Graphics
         return _matrixStack.Count == 0 ? _matrix : _matrixStack.Peek();
     }
 
+    public void LoadIdentity()
+    {
+        _matrixStack.Clear();
+        _matrix = Matrix4x4.Identity;
+    }
+
     public void PushMatrix()
     {
         _matrixStack.Push(GetMatrix());
+    }
+
+    public void PushMatrix(Matrix4x4 matrix)
+    {
+        _matrixStack.Push(matrix);
     }
 
     public void PopMatrix()
@@ -589,7 +600,7 @@ public sealed unsafe class Graphics
         var changeLineWidth = !Precision.AreEqual(lineWidth, strokeWidth);
         if (changeLineWidth)
         {
-            Rlgl.DrawRenderBatchActive();
+            DrawRenderBatchActive();
             Rlgl.SetLineWidth(strokeWidth);
         }
 
@@ -598,7 +609,7 @@ public sealed unsafe class Graphics
         EndDrawing();
         if (!changeLineWidth)
             return;
-        Rlgl.DrawRenderBatchActive();
+        DrawRenderBatchActive();
         Rlgl.SetLineWidth(lineWidth);
     }
 
@@ -695,7 +706,7 @@ public sealed unsafe class Graphics
         if (text == "" || color == Color.Transparent)
             return;
         font ??= Game.DefaultFont;
-        Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
+        Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
         BeginDrawing(camera);
         var rColor = color.RColor;
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing))
@@ -742,13 +753,13 @@ public sealed unsafe class Graphics
             return;
         font ??= Game.DefaultFont;
         var (atlas, glyphInfos) = font.GetStroke((int)MathF.Round(strokeWidth));
-        Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
+        Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
         BeginDrawing(camera);
         var rColor = color.RColor;
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, glyphInfos))
             Raylib.DrawTexturePro(
                 atlas.Texture2D,
-                new Raylib_cs.Rectangle(source.Position + strokeWidth, source.Size - strokeWidth),
+                new Raylib_cs.Rectangle(source.Position, source.Size),
                 new Raylib_cs.Rectangle(dest.Position + position, dest.Size),
                 new Vector2(),
                 0,
@@ -848,7 +859,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Game.DefaultInterpolation));
+        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
         BeginDrawing(camera);
         var rSource = new Raylib_cs.Rectangle(
             source.X,
@@ -1140,6 +1151,28 @@ public sealed unsafe class Graphics
 
     #region Internal
 
+    internal void Reset()
+    {
+        if (CurrentBuffer is not null)
+        {
+            Raylib.EndTextureMode();
+            CurrentBuffer = null;
+        }
+
+        if (CurrentClip.HasValue)
+        {
+            Raylib.EndScissorMode();
+            CurrentClip = null;
+        }
+
+        LoadIdentity();
+    }
+
+    internal static void DrawRenderBatchActive()
+    {
+        Rlgl.DrawRenderBatchActive();
+    }
+
     private void BeginDrawing(Camera? camera = null)
     {
         if (CurrentBuffer != _buffer)
@@ -1147,7 +1180,8 @@ public sealed unsafe class Graphics
             if (CurrentBuffer is not null)
                 Raylib.EndTextureMode();
             CurrentBuffer = _buffer;
-            Raylib.BeginTextureMode(_buffer.RenderTexture2D);
+            if (_buffer is not null)
+                Raylib.BeginTextureMode(_buffer.RenderTexture2D);
         }
 
         if (!Precision.AreEqual(CurrentClip, _clip))
@@ -1164,7 +1198,8 @@ public sealed unsafe class Graphics
 
         var matrix = GetMatrix();
         Rlgl.PushMatrix();
-        Rlgl.Scalef(_buffer.Scale, _buffer.Scale, 1);
+        if (_buffer is not null)
+            Rlgl.Scalef(_buffer.Scale, _buffer.Scale, 1);
         if (camera is not null)
         {
             var cameraMatrix = camera.Matrix;

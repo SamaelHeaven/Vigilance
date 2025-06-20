@@ -65,7 +65,7 @@ public sealed unsafe class Texture
     {
         var buffer = Graphics.CurrentBuffer;
         if (_owner is not null && buffer == _owner)
-            Rlgl.DrawRenderBatchActive();
+            Graphics.DrawRenderBatchActive();
         var image = Raylib.LoadImageFromTexture(Texture2D);
         if (Writable)
             Raylib.ImageFlipVertical(ref image);

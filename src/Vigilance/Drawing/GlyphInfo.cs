@@ -1,12 +1,13 @@
 namespace Vigilance.Drawing;
 
-public readonly struct GlyphInfo(int x, int y, int width, int height, int advance, int offsetX, int offsetY)
+public struct GlyphInfo(int x, int y, int width, int height, int advance, int offsetX, int offsetY, int stroke)
 {
-    public readonly int X = x;
-    public readonly int Y = y;
-    public readonly int Width = width;
-    public readonly int Height = height;
-    public readonly int Advance = advance;
-    public readonly int OffsetX = offsetX;
-    public readonly int OffsetY = offsetY;
+    public int X { get; set; } = x;
+    public int Y { get; set; } = y;
+    public int Width { get; set; } = width;
+    public int Height { get; set; } = height;
+    public int Advance { get; set; } = advance;
+    public int OffsetX { get; set; } = offsetX;
+    public int OffsetY { get; set; } = offsetY;
+    public int Stroke { get; set; } = stroke;
 }

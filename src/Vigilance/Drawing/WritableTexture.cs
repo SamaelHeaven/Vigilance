@@ -39,7 +39,7 @@ public sealed class WritableTexture
     public void Update(ReadOnlySpan<Color> pixels)
     {
         if (Graphics.CurrentBuffer == this)
-            Rlgl.DrawRenderBatchActive();
+            Graphics.DrawRenderBatchActive();
         Raylib.UpdateTexture(RenderTexture2D.Texture, pixels);
     }
 

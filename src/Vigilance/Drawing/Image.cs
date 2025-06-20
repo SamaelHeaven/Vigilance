@@ -122,7 +122,7 @@ public sealed unsafe class Image
 
     public Image Resize(Vector2 size, Interpolation? interpolation = null)
     {
-        switch (interpolation ?? Game.DefaultInterpolation)
+        switch (interpolation ?? Interpolation.Nearest)
         {
             case Interpolation.Nearest:
                 Raylib.ImageResizeNN(ref RImage, (int)size.X, (int)size.Y);

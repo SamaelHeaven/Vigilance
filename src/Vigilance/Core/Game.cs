@@ -133,8 +133,6 @@ public sealed unsafe class Game
         }
     }
 
-    public static float Scale => MathF.Max(1, GetGame()._config.Scale);
-
     public static Scene Scene
     {
         get => GetGame()._scene;
@@ -195,8 +193,6 @@ public sealed unsafe class Game
     public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis;
 
     public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis;
-
-    public static Interpolation DefaultInterpolation => GetGame()._config.DefaultInterpolation;
 
     public static Vector2 DefaultTextSpacing => GetGame()._config.DefaultTextSpacing;
 
@@ -524,8 +520,9 @@ public sealed unsafe class Game
         UpdateSize();
         UpdateActions();
         UpdateFullscreen();
+        Renderer.BeginDrawing();
         _scene.Update();
-        Renderer.Update();
+        Renderer.EndDrawing();
         Raylib.PollInputEvents();
     }
 
@@ -566,6 +563,8 @@ public sealed unsafe class Game
             flags |= ConfigFlags.VSyncHint;
         if (_config.RunMinimized)
             flags |= ConfigFlags.AlwaysRunWindow;
+        if (_config.Msaa4X)
+            flags |= ConfigFlags.Msaa4xHint;
         return flags;
     }
 
