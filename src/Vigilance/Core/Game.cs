@@ -387,9 +387,7 @@ public sealed unsafe class Game
             Mipmaps = 1,
             Format = PixelFormat.UncompressedR8G8B8A8,
         };
-        var image = new Image(rImage).Copy();
-        Raylib.MemFree(data);
-        return image;
+        return new Image(rImage);
     }
 
     public static void ToggleFullscreen()
