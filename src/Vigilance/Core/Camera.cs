@@ -14,16 +14,16 @@ public sealed class Camera
     public float Rotation { get; set; } = 0;
     public float Zoom { get; set; } = 1;
 
-    public Matrix4x4 Matrix
+    public Matrix3x2 Matrix
     {
         get
         {
             var target = Target.Round();
             var offset = Offset.Round();
-            var originMatrix = Matrix4x4.CreateTranslation(-target.X, -target.Y, 0);
-            var rotationMatrix = Matrix4x4.CreateRotationZ(Rotation.DegToRad());
-            var scaleMatrix = Matrix4x4.CreateScale(new Vector3(Zoom, Zoom, 1));
-            var translationMatrix = Matrix4x4.CreateTranslation(offset.X, offset.Y, 0);
+            var originMatrix = Matrix3x2.CreateTranslation(-target.X, -target.Y);
+            var rotationMatrix = Matrix3x2.CreateRotation(Rotation.DegToRad());
+            var scaleMatrix = Matrix3x2.CreateScale(Zoom, Zoom);
+            var translationMatrix = Matrix3x2.CreateTranslation(offset.X, offset.Y);
             return originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
         }
     }

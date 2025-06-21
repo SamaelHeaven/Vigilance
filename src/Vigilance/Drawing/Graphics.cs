@@ -12,10 +12,10 @@ public sealed unsafe class Graphics
     internal static WritableTexture? CurrentBuffer = null;
     internal static Box? CurrentClip = null;
     private readonly WritableTexture? _buffer;
-    private readonly Stack<Matrix4x4> _matrixStack = new();
+    private readonly Stack<Matrix3x2> _matrixStack = new();
     private Box? _clip = null;
     private bool _drawing = false;
-    private Matrix4x4 _matrix = Matrix4x4.Identity;
+    private Matrix3x2 _matrix = Matrix3x2.Identity;
 
     internal Graphics(WritableTexture? buffer)
     {
@@ -52,7 +52,7 @@ public sealed unsafe class Graphics
 
     #region Matrix
 
-    public Matrix4x4 GetMatrix()
+    public Matrix3x2 GetMatrix()
     {
         return _matrixStack.Count == 0 ? _matrix : _matrixStack.Peek();
     }
@@ -60,7 +60,7 @@ public sealed unsafe class Graphics
     public void LoadIdentity()
     {
         _matrixStack.Clear();
-        _matrix = Matrix4x4.Identity;
+        _matrix = Matrix3x2.Identity;
     }
 
     public void PushMatrix()
@@ -68,17 +68,17 @@ public sealed unsafe class Graphics
         _matrixStack.Push(GetMatrix());
     }
 
-    public void PushMatrix(Matrix4x4 matrix)
+    public void PushMatrix(Matrix3x2 matrix)
     {
         _matrixStack.Push(matrix);
     }
 
-    public Matrix4x4 PopMatrix()
+    public Matrix3x2 PopMatrix()
     {
         return _matrixStack.Count != 0 ? _matrixStack.Pop() : _matrix;
     }
 
-    public void MultiplyMatrix(Matrix4x4 matrix)
+    public void MultiplyMatrix(Matrix3x2 matrix)
     {
         if (_matrixStack.Count == 0)
         {
@@ -92,12 +92,12 @@ public sealed unsafe class Graphics
 
     public void Translate(float v1, float? v2 = null)
     {
-        MultiplyMatrix(Matrix4x4.CreateTranslation(v1, v2 ?? v1, 0));
+        MultiplyMatrix(Matrix3x2.CreateTranslation(v1, v2 ?? v1));
     }
 
     public void Translate(Vector2 translation)
     {
-        MultiplyMatrix(Matrix4x4.CreateTranslation(translation.X, translation.Y, 0));
+        MultiplyMatrix(Matrix3x2.CreateTranslation(translation.X, translation.Y));
     }
 
     public void Rotate(float angle, float v1, float? v2 = null)
@@ -108,10 +108,10 @@ public sealed unsafe class Graphics
     public void Rotate(float angle, Vector2? position = null)
     {
         if (position.HasValue)
-            MultiplyMatrix(Matrix4x4.CreateTranslation(position.Value.X, position.Value.Y, 0));
-        MultiplyMatrix(Matrix4x4.CreateRotationZ(angle.DegToRad()));
+            MultiplyMatrix(Matrix3x2.CreateTranslation(position.Value.X, position.Value.Y));
+        MultiplyMatrix(Matrix3x2.CreateRotation(angle.DegToRad()));
         if (position.HasValue)
-            MultiplyMatrix(Matrix4x4.CreateTranslation(-position.Value.X, -position.Value.Y, 0));
+            MultiplyMatrix(Matrix3x2.CreateTranslation(-position.Value.X, -position.Value.Y));
     }
 
     public void Scale(float v1, float? v2 = null)
@@ -121,7 +121,7 @@ public sealed unsafe class Graphics
 
     public void Scale(Vector2 scale)
     {
-        MultiplyMatrix(Matrix4x4.CreateScale(scale.X, scale.Y, 1f));
+        MultiplyMatrix(Matrix3x2.CreateScale(scale.X, scale.Y));
     }
 
     public void Transform(Transform transform)
@@ -1173,13 +1173,31 @@ public sealed unsafe class Graphics
                 );
         }
 
-        var matrix = GetMatrix();
+        var matrix3X2 = GetMatrix();
         Rlgl.PushMatrix();
         Rlgl.Translatef(offset.X, offset.Y, 0);
         Rlgl.Scalef(scale.X, scale.Y, 1);
         if (camera is not null)
-            matrix *= camera.Matrix;
-        Rlgl.MultMatrixf(&matrix.M11);
+            matrix3X2 *= camera.Matrix;
+        var matrix4X4 = new Matrix4x4(
+            matrix3X2.M11,
+            matrix3X2.M12,
+            0,
+            0,
+            matrix3X2.M21,
+            matrix3X2.M22,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            matrix3X2.M31,
+            matrix3X2.M32,
+            0,
+            1
+        );
+        Rlgl.MultMatrixf(&matrix4X4.M11);
     }
 
     public void EndDrawing()

@@ -96,7 +96,7 @@ public static class Coordinates
     public static Vector2 LocalToWorld(Vector2 coordinates, Camera? camera = null)
     {
         camera ??= Game.Scene.Camera;
-        return Matrix4x4.Invert(camera.Matrix, out var matrix) ? coordinates.Transform(matrix) : Vector2.Zero;
+        return Matrix3x2.Invert(camera.Matrix, out var matrix) ? coordinates.Transform(matrix) : Vector2.Zero;
     }
 
     public static Vector2 WorldToLocal(Vector2 coordinates, Camera? camera = null)
