@@ -18,6 +18,22 @@ public struct Box
     public Box(Vector2 position, Vector2 size)
         : this(position.X, position.Y, size.X, size.Y) { }
 
+    public Box(Transform transform)
+        : this(new Quad(transform)) { }
+
+    public Box(Quad quad)
+    {
+        var (topLeft, bottomLeft, bottomRight, topRight) = quad;
+        var minX = MathF.Min(MathF.Min(MathF.Min(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
+        var maxX = MathF.Max(MathF.Max(MathF.Max(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
+        var minY = MathF.Min(MathF.Min(MathF.Min(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
+        var maxY = MathF.Max(MathF.Max(MathF.Max(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
+        X = minX;
+        Y = minY;
+        Width = maxX - minX;
+        Height = maxY - minY;
+    }
+
     public static implicit operator (float X, float Y, float Width, float Height)(Box box)
     {
         return (box.X, box.Y, box.Width, box.Height);
@@ -50,16 +66,6 @@ public struct Box
     {
         position = new Vector2(X, Y);
         size = new Vector2(Width, Height);
-    }
-
-    public static Box Bounding(Transform transform)
-    {
-        var (topLeft, bottomLeft, bottomRight, topRight) = Coordinates.GetPoints(transform);
-        var minX = MathF.Min(MathF.Min(MathF.Min(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
-        var maxX = MathF.Max(MathF.Max(MathF.Max(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
-        var minY = MathF.Min(MathF.Min(MathF.Min(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
-        var maxY = MathF.Max(MathF.Max(MathF.Max(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
-        return new Box(minX, minY, maxX - minX, maxY - minY);
     }
 
     public readonly Vector2 Position => new(X, Y);

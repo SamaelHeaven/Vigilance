@@ -77,4 +77,21 @@ public static class Precision
             return false;
         return AreEqual(a.Value, b.Value, epsilon);
     }
+
+    public static bool AreEqual(Quad a, Quad b, float epsilon = DefaultFloatEpsilon)
+    {
+        return AreEqual(a.TopLeft, b.TopLeft, epsilon)
+            && AreEqual(a.BottomLeft, b.BottomLeft, epsilon)
+            && AreEqual(a.BottomRight, b.BottomRight, epsilon)
+            && AreEqual(a.TopRight, b.TopRight, epsilon);
+    }
+
+    public static bool AreEqual(Quad? a, Quad? b, float epsilon = DefaultFloatEpsilon)
+    {
+        if (a is null && b is null)
+            return true;
+        if (a is null || b is null)
+            return false;
+        return AreEqual(a.Value, b.Value, epsilon);
+    }
 }

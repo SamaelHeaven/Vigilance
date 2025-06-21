@@ -20,6 +20,7 @@
     <ItemGroup>
         <PackageReference Include="Box2D.NET.Release" Version="3.0.0"/>
         <PackageReference Include="Flecs.NET.Release" Version="4.0.3"/>
+        <PackageReference Include="FlexLayoutSharp" Version="1.0.0"/>
         <PackageReference Include="FreeTypeSharp" Version="3.0.0"/>
         <PackageReference Include="Raylib-cs" Version="7.0.1"/>
     </ItemGroup>

@@ -68,6 +68,11 @@ public static unsafe class Collision
         }
     }
 
+    public static bool CheckPointQuad(Vector2 point, Quad quad)
+    {
+        return Raylib.CheckCollisionPointPoly(point, (System.Numerics.Vector2*)&quad, quad.Count);
+    }
+
     public static bool CheckLines(Vector2 start1, Vector2 end1, Vector2 start2, Vector2 end2)
     {
         return CheckLines(start1, end1, start2, end2, out _);
