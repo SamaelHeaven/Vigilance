@@ -420,6 +420,20 @@ public abstract class UIElement
         set => Scale = new Vector2(Scale.X, value);
     }
 
+    public Vector2 Skew { get; set; }
+
+    public float SkewX
+    {
+        get => Skew.X;
+        set => Skew = new Vector2(value, Skew.Y);
+    }
+
+    public float SkewY
+    {
+        get => Skew.Y;
+        set => Skew = new Vector2(Skew.X, value);
+    }
+
     public float Rotation { get; set; } = 0;
 
     public Dimensions PivotPoint { get; set; } = new();
@@ -565,6 +579,7 @@ public abstract class UIElement
         graphics.PushMatrix();
         graphics.Translate(transform.Position + offset);
         graphics.Scale(transform.Scale);
+        graphics.Skew(Skew);
         graphics.Translate(-offset);
         graphics.Rotate(transform.Rotation, transform.PivotPoint + position + size * 0.5f);
         var matrix = graphics.GetMatrix();

@@ -124,6 +124,16 @@ public sealed unsafe class Graphics
         MultiplyMatrix(Matrix3x2.CreateScale(scale.X, scale.Y));
     }
 
+    public void Skew(float v1, float? v2 = null)
+    {
+        Skew(new Vector2(v1, v2 ?? v1));
+    }
+
+    public void Skew(Vector2 skew)
+    {
+        MultiplyMatrix(Matrix3x2.CreateSkew(skew.X, skew.Y));
+    }
+
     public void Transform(Transform transform)
     {
         var rotation = transform.Rotation;
