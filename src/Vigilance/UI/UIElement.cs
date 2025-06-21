@@ -470,9 +470,9 @@ public abstract class UIElement
     public virtual void Update(Entity entity)
     {
         var e = new UIEvent { Entity = entity, Element = this };
-        OnUpdateEvent?.Invoke(e);
         var oldMouseInside = MouseInside;
         MouseInside = Visible && Collision.CheckPointQuad(Mouse.Position, LayoutBounds);
+        OnUpdateEvent?.Invoke(e);
         switch (oldMouseInside)
         {
             case false when MouseInside:
