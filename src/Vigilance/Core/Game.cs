@@ -486,11 +486,19 @@ public sealed unsafe class Game
     private void InitializeWindow()
     {
         Raylib.SetConfigFlags(GetConfigFlags());
-        Raylib.InitWindow(
-            (int)(_config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.X : _config.ScreenSize.X),
-            (int)(_config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.Y : _config.ScreenSize.Y),
-            _config.Title
+        var width = (int)(
+            _config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.X : _config.ScreenSize.X
         );
+        var height = (int)(
+            _config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.Y : _config.ScreenSize.Y
+        );
+        Raylib.InitWindow(0, 0, _config.Title);
+        if (Platform.Desktop.IsCurrent())
+        {
+            Raylib.SetWindowPosition((Raylib.GetScreenWidth() - width) / 2, (Raylib.GetScreenHeight() - height) / 2);
+            Raylib.SetWindowSize(width, height);
+        }
+
         if (Platform.Desktop.IsCurrent() && _config.MinSize.HasValue)
             Raylib.SetWindowMinSize((int)_config.MinSize.Value.X, (int)_config.MinSize.Value.Y);
         if (Platform.Desktop.IsCurrent() && _config.MaxSize.HasValue)
@@ -499,7 +507,7 @@ public sealed unsafe class Game
             Maximize();
         if (_config.Fullscreen)
             ToggleFullscreen();
-        if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon is null)
+        if (!Platform.Desktop.IsCurrent() && OperatingSystem.IsMacOS() && _config.Icon is null)
             return;
         var image = _config.Icon!.Invoke().Copy();
         image.Format = ImageFormat.UncompressedR8G8B8A8;

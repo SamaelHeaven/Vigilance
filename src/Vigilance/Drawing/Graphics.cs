@@ -1175,12 +1175,28 @@ public sealed unsafe class Graphics
                 Raylib.EndScissorMode();
             CurrentClip = clip;
             if (clip.HasValue)
-                Raylib.BeginScissorMode(
-                    (int)clip.Value.X.Round(),
-                    (int)clip.Value.Y.Round(),
-                    (int)clip.Value.Width.Round(),
-                    (int)clip.Value.Height.Round()
-                );
+            {
+                if (OperatingSystem.IsMacOS() && _buffer is null && Game.Fullscreen)
+                {
+                    DrawRenderBatchActive();
+                    Rlgl.EnableScissorTest();
+                    Rlgl.Scissor(
+                        (int)clip.Value.X.Round(),
+                        (int)(Game.ScreenHeight - (clip.Value.Y + clip.Value.Height)).Round(),
+                        (int)clip.Value.Width.Round(),
+                        (int)clip.Value.Height.Round()
+                    );
+                }
+                else
+                {
+                    Raylib.BeginScissorMode(
+                        (int)clip.Value.X.Round(),
+                        (int)clip.Value.Y.Round(),
+                        (int)clip.Value.Width.Round(),
+                        (int)clip.Value.Height.Round()
+                    );
+                }
+            }
         }
 
         var matrix3X2 = GetMatrix();
