@@ -18,7 +18,7 @@ public sealed unsafe class Font
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
 
-    public Font(ReadOnlySpan<byte> bytes, int? quality = null, string? charset = null)
+    public Font(IEnumerable<byte> bytes, int? quality = null, string? charset = null)
     {
         Game.EnsureRunning();
         Quality = quality ?? Game.DefaultFontQuality;
@@ -117,17 +117,18 @@ public sealed unsafe class Font
         }
     }
 
-    private List<Glyph> LoadGlyphs(ReadOnlySpan<byte> bytes)
+    private List<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
     {
-        _buffer = Marshal.AllocHGlobal(bytes.Length);
-        fixed (byte* bytesBuffer = bytes)
+        var span = bytes.AsSpan();
+        _buffer = Marshal.AllocHGlobal(span.Length);
+        fixed (byte* bytesBuffer = span)
         {
-            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, bytes.Length, bytes.Length);
+            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, span.Length, span.Length);
         }
 
         fixed (FT_FaceRec_** face = &_face)
         {
-            FtEnsureOk(FT.FT_New_Memory_Face(FtLibrary.Native, (byte*)_buffer, bytes.Length, 0, face));
+            FtEnsureOk(FT.FT_New_Memory_Face(FtLibrary.Native, (byte*)_buffer, span.Length, 0, face));
         }
 
         FtEnsureOk(FT.FT_Set_Char_Size(_face, 0, Quality * 64, 0, 0));

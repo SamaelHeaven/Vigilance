@@ -10,8 +10,6 @@ public static class EnumerableExtensions
         {
             T[] array => array,
             List<T> list => CollectionsMarshal.AsSpan(list),
-            Span<T> span => span,
-            ReadOnlySpan<T> span => span,
             _ => enumerable.ToArray(),
         };
     }

@@ -13,14 +13,15 @@ public sealed class Sound
     private float _pitch = 1;
     private float _volume = 1;
 
-    public unsafe Sound(string fileType, ReadOnlySpan<byte> bytes, int? maxAliases = null)
+    public unsafe Sound(string fileType, IEnumerable<byte> bytes, int? maxAliases = null)
     {
         Game.EnsureRunning();
         MaxAliases = System.Math.Max(maxAliases ?? Game.DefaultSoundMaxAliases, 1);
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
-        fixed (byte* bytesBuffer = bytes)
+        var span = bytes.AsSpan();
+        fixed (byte* bytesBuffer = span)
         {
-            var wave = Raylib.LoadWaveFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, bytes.Length);
+            var wave = Raylib.LoadWaveFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, span.Length);
             _sound = Raylib.LoadSoundFromWave(wave);
             Raylib.UnloadWave(wave);
         }
