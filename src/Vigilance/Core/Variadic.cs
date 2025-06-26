@@ -16,7 +16,7 @@ public static partial class Variadic
             return LinuxX64FormatString(format, args);
         var byteLength = VsnPrintf(nint.Zero, nuint.Zero, format, args) + 1;
         if (byteLength <= 1)
-            return string.Empty;
+            return "";
         var buffer = Marshal.AllocHGlobal(byteLength);
         VsPrintf(buffer, format, args);
         var result = Marshal.PtrToStringUTF8(buffer) ?? "";
@@ -30,9 +30,7 @@ public static partial class Variadic
         try
         {
             var count = VasPrintfApple(ref buffer, format, args);
-            if (count == -1)
-                return string.Empty;
-            return Marshal.PtrToStringUTF8(buffer) ?? string.Empty;
+            return count == -1 ? "" : Marshal.PtrToStringUTF8(buffer) ?? "";
         }
         finally
         {
@@ -66,14 +64,15 @@ public static partial class Variadic
         return -1;
     }
 
-    private static void VsPrintf(nint buffer, nint format, nint args)
+    private static int VsPrintf(nint buffer, nint format, nint args)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            VsPrintfWindows(buffer, format, args);
+            return VsPrintfWindows(buffer, format, args);
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            VsPrintfLinux(buffer, format, args);
+            return VsPrintfLinux(buffer, format, args);
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")))
-            VsPrintfLinux(buffer, format, args);
+            return VsPrintfLinux(buffer, format, args);
+        return -1;
     }
 
     [LibraryImport(LibSystem, EntryPoint = "vasprintf")]
@@ -83,7 +82,7 @@ public static partial class Variadic
     private static partial int VsPrintfLinux(nint buffer, nint format, nint args);
 
     [LibraryImport(Msvcrt, EntryPoint = "vsprintf")]
-    private static partial void VsPrintfWindows(nint buffer, nint format, nint args);
+    private static partial int VsPrintfWindows(nint buffer, nint format, nint args);
 
     [LibraryImport(Libc, EntryPoint = "vsnprintf")]
     private static partial int VsnPrintfLinux(nint buffer, nuint size, nint format, nint args);
