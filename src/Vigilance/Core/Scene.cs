@@ -60,7 +60,7 @@ public sealed unsafe class Scene
 
     public bool Deferred => _world.IsDeferred();
 
-    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
     {
         var scene = _context;

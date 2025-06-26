@@ -70,7 +70,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         }
     }
 
-    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void OnFetchComplete(EmscriptenFetch* fetch)
     {
         var id = fetch->UserData;

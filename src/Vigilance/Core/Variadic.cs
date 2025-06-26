@@ -64,13 +64,15 @@ public static partial class Variadic
         return -1;
     }
 
+    // ReSharper disable once UnusedMethodReturnValue.Local
     private static int VsPrintf(nint buffer, nint format, nint args)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return VsPrintfWindows(buffer, format, args);
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            return VsPrintfLinux(buffer, format, args);
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID")))
+        if (
+            RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+            || RuntimeInformation.IsOSPlatform(OSPlatform.Create("ANDROID"))
+        )
             return VsPrintfLinux(buffer, format, args);
         return -1;
     }

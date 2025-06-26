@@ -632,13 +632,13 @@ public sealed unsafe class Game
         Environment.Exit(0);
     }
 
-    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void UnmanagedFrame()
     {
         GetGame().Frame();
     }
 
-    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void UnmanagedLog(TraceLogLevel logLevel, sbyte* format, nint args)
     {
         var message = Variadic.FormatString((nint)format, args);
