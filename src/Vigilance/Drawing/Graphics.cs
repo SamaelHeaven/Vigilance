@@ -1184,6 +1184,7 @@ public sealed unsafe class Graphics
         Rlgl.PushMatrix();
         Rlgl.Translatef(offset.X, offset.Y, 0);
         Rlgl.Scalef(scale.X, scale.Y, 1);
+        Rlgl.Translatef(0.375f, 0.375f, 0);
         if (camera is not null)
             matrix3X2 *= camera.Matrix;
         var matrix4X4 = new Matrix4x4(
