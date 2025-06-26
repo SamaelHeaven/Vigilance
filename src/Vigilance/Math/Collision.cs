@@ -1,4 +1,5 @@
 using Raylib_cs;
+using Vigilance.Core;
 
 namespace Vigilance.Math;
 
@@ -60,11 +61,12 @@ public static unsafe class Collision
         return Raylib.CheckCollisionPointLine(point, start, end, threshold);
     }
 
-    public static bool CheckPointPolygon(Vector2 point, IReadOnlyList<Vector2> polygon)
+    public static bool CheckPointPolygon(Vector2 point, IEnumerable<Vector2> polygon)
     {
-        fixed (Vector2* polygonBuffer = polygon as Vector2[] ?? polygon.ToArray())
+        var span = polygon.AsSpan();
+        fixed (Vector2* polygonBuffer = span)
         {
-            return Raylib.CheckCollisionPointPoly(point, (System.Numerics.Vector2*)polygonBuffer, polygon.Count);
+            return Raylib.CheckCollisionPointPoly(point, (System.Numerics.Vector2*)polygonBuffer, span.Length);
         }
     }
 
