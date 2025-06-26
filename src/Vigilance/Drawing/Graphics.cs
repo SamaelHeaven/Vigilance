@@ -11,8 +11,8 @@ public sealed unsafe class Graphics
 {
     private static WritableTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
-    private readonly WritableTexture? _buffer;
     private readonly Stack<Matrix3x2> _matrixStack = new();
+    private WritableTexture? _buffer;
     private Box? _clip = null;
     private bool _drawing = false;
     private Matrix3x2 _matrix = Matrix3x2.Identity;
@@ -1150,8 +1150,8 @@ public sealed unsafe class Graphics
         if (_drawing)
             throw new InvalidOperationException("Cannot begin drawing while already drawing.");
         _drawing = true;
-        var offset = Renderer.Offset;
-        var scale = Renderer.Scale;
+        var offset = _buffer is null ? Renderer.Offset : 0;
+        var scale = _buffer?.Scale ?? Renderer.Scale;
         if (_currentBuffer != _buffer)
         {
             if (_currentBuffer is null)
@@ -1220,6 +1220,11 @@ public sealed unsafe class Graphics
     #endregion
 
     #region Internal
+
+    internal void SetBuffer(WritableTexture? buffer)
+    {
+        _buffer = buffer;
+    }
 
     internal static bool IsBufferCurrent(WritableTexture? buffer)
     {

@@ -7,7 +7,7 @@ namespace Vigilance.Drawing;
 public sealed class Renderer
 {
     private static Renderer? _renderer;
-    private readonly WritableTexture? _buffer;
+    private WritableTexture? _buffer;
     private readonly Graphics _graphics;
     private Vector2 _offset;
     private Vector2 _scale;
@@ -22,9 +22,7 @@ public sealed class Renderer
     }
 
     public static Graphics Graphics => GetRenderer()._graphics;
-
-    public static WritableTexture? Buffer => GetRenderer()._buffer;
-
+    
     public static Vector2 Offset
     {
         get
@@ -78,6 +76,17 @@ public sealed class Renderer
                 _ => throw new ArgumentOutOfRangeException(),
             }
         ).Ceil();
+        if (!OperatingSystem.IsMacOS() || Game.RenderingMode.ModeType != RenderingModeType.Screen)
+            return;
+        if (Game.Fullscreen)
+        {
+            renderer._buffer ??= new WritableTexture(Game.Size);
+            renderer._graphics.SetBuffer(renderer._buffer);
+            return;
+        }
+
+        renderer._buffer = null;
+        renderer._graphics.SetBuffer(renderer._buffer);
     }
 
     internal static void EndDrawing()
@@ -94,20 +103,20 @@ public sealed class Renderer
         var background = Game.Background.RColor;
         var mode = Game.RenderingMode;
         Graphics.Reset();
-        if (mode.ModeType == RenderingModeType.Buffer)
-        {
-            var texture = renderer._buffer!.Texture.Texture2D;
-            var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
-            var dest = new Raylib_cs.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
-            Raylib.SetTextureFilter(texture, (TextureFilter)mode.Interpolation);
-            Raylib.DrawTexturePro(texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
-        }
-        else
+        if (renderer._buffer is null)
         {
             Raylib.DrawRectangle(0, 0, offsetX, screenHeight, background);
             Raylib.DrawRectangle(screenWidth - offsetX, 0, offsetX, screenHeight, background);
             Raylib.DrawRectangle(0, 0, screenWidth, offsetY, background);
             Raylib.DrawRectangle(0, screenHeight - offsetY, screenWidth, offsetY, background);
+        }
+        else
+        {
+            var texture = renderer._buffer.Texture.Texture2D;
+            var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
+            var dest = new Raylib_cs.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
+            Raylib.SetTextureFilter(texture, (TextureFilter)mode.Interpolation);
+            Raylib.DrawTexturePro(texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
         }
 
         Graphics.DrawCurrentBuffer();
