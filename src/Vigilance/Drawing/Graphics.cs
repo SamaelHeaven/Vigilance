@@ -495,12 +495,13 @@ public sealed unsafe class Graphics
 
     public void FillCustomPolygon(IReadOnlyList<Vector2> points, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent || points.Count < 3)
+        var count = points.Count;
+        if (color == Color.Transparent || count < 3)
             return;
         BeginDrawing(camera);
         fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
         {
-            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, points.Count, color.RColor);
+            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, count, color.RColor);
         }
 
         EndDrawing();
@@ -513,13 +514,14 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0 || points.Count < 3)
+        var count = points.Count;
+        if (color == Color.Transparent || strokeWidth <= 0 || count < 3)
             return;
         BeginDrawing(camera);
-        for (var i = 0; i < points.Count; i++)
+        for (var i = 0; i < count; i++)
         {
             var start = points[i];
-            var end = points[(i + 1) % points.Count];
+            var end = points[(i + 1) % count];
             Raylib.DrawLineEx(start, end, strokeWidth, color.RColor);
             Raylib.DrawCircleV(start, strokeWidth * 0.5f, color.RColor);
         }
