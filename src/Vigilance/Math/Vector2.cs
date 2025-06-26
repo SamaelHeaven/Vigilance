@@ -55,12 +55,17 @@ public struct Vector2
 
     public override string ToString()
     {
-        return $"{{ X: {X}, Y: {Y} }}";
+        return $"<{X}, {Y}>";
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is Vector2 v && X.Equals(v.X) && Y.Equals(v.Y);
+        return obj is Vector2 v && Equals(v);
+    }
+
+    public bool Equals(Vector2 other)
+    {
+        return X.Equals(other.X) && Y.Equals(other.Y);
     }
 
     public static bool operator ==(Vector2 a, Vector2 b)
@@ -213,12 +218,22 @@ public struct Vector2
 
     public readonly Vector2 Round()
     {
-        return new Vector2(MathF.Round(X), MathF.Round(Y));
+        return new Vector2(X.Round(), Y.Round());
+    }
+
+    public readonly Vector2 Floor()
+    {
+        return new Vector2(X.Floor(), Y.Floor());
+    }
+
+    public readonly Vector2 Ceil()
+    {
+        return new Vector2(X.Ceil(), Y.Ceil());
     }
 
     public readonly Vector2 Abs()
     {
-        return new Vector2(MathF.Abs(X), MathF.Abs(Y));
+        return new Vector2(X.Abs(), Y.Abs());
     }
 
     public readonly Vector2 Normalize()

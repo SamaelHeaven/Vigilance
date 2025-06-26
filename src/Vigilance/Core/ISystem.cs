@@ -1,6 +1,6 @@
 namespace Vigilance.Core;
 
-public delegate IReadOnlyCollection<ISystem> GetSystemsDelegate();
+public delegate IEnumerable<ISystem> SystemsFunc();
 
 public interface ISystem
 {

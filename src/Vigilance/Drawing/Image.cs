@@ -1,4 +1,4 @@
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -6,21 +6,22 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Image
 {
-    internal Raylib_cs.Image RImage;
+    internal Raylib_cs.BleedingEdge.Image RImage;
 
-    internal Image(Raylib_cs.Image image)
+    internal Image(Raylib_cs.BleedingEdge.Image image)
     {
         Game.EnsureRunning();
         RImage = image;
     }
 
-    public Image(string fileType, ReadOnlySpan<byte> bytes)
+    public Image(string fileType, IEnumerable<byte> bytes)
     {
         Game.EnsureRunning();
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
-        fixed (byte* bytesBuffer = bytes)
+        var span = bytes.AsSpan();
+        fixed (byte* bytesBuffer = span)
         {
-            RImage = Raylib.LoadImageFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, bytes.Length);
+            RImage = Raylib.LoadImageFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, span.Length);
         }
     }
 
@@ -111,7 +112,7 @@ public sealed unsafe class Image
 
     public Image Crop(Vector2 position, Vector2 size)
     {
-        Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(position, size));
+        Raylib.ImageCrop(ref RImage, new Raylib_cs.BleedingEdge.Rectangle(position, size));
         return this;
     }
 
@@ -122,7 +123,7 @@ public sealed unsafe class Image
 
     public Image Resize(Vector2 size, Interpolation? interpolation = null)
     {
-        switch (interpolation ?? Game.DefaultInterpolation)
+        switch (interpolation ?? Interpolation.Nearest)
         {
             case Interpolation.Nearest:
                 Raylib.ImageResizeNN(ref RImage, (int)size.X, (int)size.Y);
@@ -149,7 +150,8 @@ public sealed unsafe class Image
 
     public Image KernelConvolution(float[] kernel)
     {
-        Raylib.ImageKernelConvolution(ref RImage, kernel);
+        var span = kernel.AsSpan();
+        Raylib.ImageKernelConvolution(ref RImage, span, kernel.Length);
         return this;
     }
 

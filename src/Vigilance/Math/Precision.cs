@@ -7,7 +7,7 @@ public static class Precision
 
     public static bool AreEqual(float a, float b, float epsilon = DefaultFloatEpsilon)
     {
-        return MathF.Abs(a - b) <= epsilon;
+        return (a - b).Abs() <= epsilon;
     }
 
     public static bool AreEqual(float? a, float? b, float epsilon = DefaultFloatEpsilon)
@@ -70,6 +70,23 @@ public static class Precision
     }
 
     public static bool AreEqual(Transform? a, Transform? b, float epsilon = DefaultFloatEpsilon)
+    {
+        if (a is null && b is null)
+            return true;
+        if (a is null || b is null)
+            return false;
+        return AreEqual(a.Value, b.Value, epsilon);
+    }
+
+    public static bool AreEqual(Quad a, Quad b, float epsilon = DefaultFloatEpsilon)
+    {
+        return AreEqual(a.TopLeft, b.TopLeft, epsilon)
+            && AreEqual(a.BottomLeft, b.BottomLeft, epsilon)
+            && AreEqual(a.BottomRight, b.BottomRight, epsilon)
+            && AreEqual(a.TopRight, b.TopRight, epsilon);
+    }
+
+    public static bool AreEqual(Quad? a, Quad? b, float epsilon = DefaultFloatEpsilon)
     {
         if (a is null && b is null)
             return true;

@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using FreeTypeSharp;
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -8,6 +8,8 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Font
 {
+    private const int AtlasSpacing = 4;
+    private const int AtlasNbCols = 10;
     private static readonly FreeTypeLibrary FtLibrary = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
     private readonly Dictionary<int, (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
@@ -16,7 +18,7 @@ public sealed unsafe class Font
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
 
-    public Font(ReadOnlySpan<byte> bytes, int? quality = null, string? charset = null)
+    public Font(IEnumerable<byte> bytes, int? quality = null, string? charset = null)
     {
         Game.EnsureRunning();
         Quality = quality ?? Game.DefaultFontQuality;
@@ -34,15 +36,8 @@ public sealed unsafe class Font
     {
         var (spacingX, spacingY) = spacing ?? Game.DefaultTextSpacing;
         var size = new Vector2(0, fontSize + text.Count(c => c == '\n') * (fontSize + spacingY));
-        HandleText(
-            info =>
-            {
-                size.X = MathF.Max(size.X, info.Dest.Position.X + info.Dest.Size.X);
-            },
-            text,
-            fontSize,
-            (spacingX, spacingY)
-        );
+        foreach (var (_, dest) in GetTextBounds(text, fontSize, new Vector2(spacingX, spacingY)))
+            size.X = MathF.Max(size.X, dest.Position.X + dest.Size.X);
         return size;
     }
 
@@ -69,19 +64,17 @@ public sealed unsafe class Font
         return stroke.GlyphInfos.AsReadOnly();
     }
 
-    public void HandleText(
-        Action<(Box Source, Box Dest)> action,
+    public IEnumerable<(Box Source, Box Dest)> GetTextBounds(
         string text,
         float? fontSize,
         Vector2? spacing,
         IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
-        HandleText(action, text, fontSize ?? Game.DefaultFontSize, spacing ?? Game.DefaultTextSpacing, glyphInfos);
+        return GetTextBounds(text, fontSize ?? Game.DefaultFontSize, spacing ?? Game.DefaultTextSpacing, glyphInfos);
     }
 
-    public void HandleText(
-        Action<(Box Source, Box Dest)> action,
+    public IEnumerable<(Box Source, Box Dest)> GetTextBounds(
         string text,
         float fontSize,
         Vector2 spacing,
@@ -98,6 +91,9 @@ public sealed unsafe class Font
                     position.X = 0;
                     position.Y += fontSize + spacing.Y;
                     continue;
+                case '\t':
+                    position.X += (_spaceSize / aspectRatio + spacing.X) * 4;
+                    continue;
                 case ' ':
                     position.X += _spaceSize / aspectRatio + spacing.X;
                     continue;
@@ -105,26 +101,34 @@ public sealed unsafe class Font
 
             if (!(glyphInfos ?? _glyphInfos).TryGetValue(c, out var glyph))
                 continue;
-            var sourcePosition = new Vector2(glyph.X, glyph.Y);
-            var sourceSize = new Vector2(glyph.Width, glyph.Height);
-            var destPosition = position + new Vector2(glyph.OffsetX, glyph.OffsetY) / aspectRatio;
+            var atlasSpacing = glyph.Stroke == 0 ? 0 : AtlasSpacing;
+            var halfAtlasSpacing = atlasSpacing * 0.5f;
+            var sourcePosition = new Vector2(glyph.X, glyph.Y) - halfAtlasSpacing;
+            var sourceSize = new Vector2(glyph.Width, glyph.Height) + atlasSpacing;
+            var destPosition =
+                position
+                + new Vector2(
+                    glyph.OffsetX - glyph.Stroke - halfAtlasSpacing,
+                    glyph.OffsetY - glyph.Stroke - halfAtlasSpacing
+                ) / aspectRatio;
             var destSize = sourceSize / aspectRatio;
-            action.Invoke((new Box(sourcePosition, sourceSize), new Box(destPosition, destSize)));
+            yield return (new Box(sourcePosition, sourceSize), new Box(destPosition, destSize));
             position.X += glyph.Advance / aspectRatio + spacing.X;
         }
     }
 
-    private List<Glyph> LoadGlyphs(ReadOnlySpan<byte> bytes)
+    private List<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
     {
-        _buffer = Marshal.AllocHGlobal(bytes.Length);
-        fixed (byte* bytesBuffer = bytes)
+        var span = bytes.AsSpan();
+        _buffer = Marshal.AllocHGlobal(span.Length);
+        fixed (byte* bytesBuffer = span)
         {
-            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, bytes.Length, bytes.Length);
+            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, span.Length, span.Length);
         }
 
         fixed (FT_FaceRec_** face = &_face)
         {
-            FtEnsureOk(FT.FT_New_Memory_Face(FtLibrary.Native, (byte*)_buffer, bytes.Length, 0, face));
+            FtEnsureOk(FT.FT_New_Memory_Face(FtLibrary.Native, (byte*)_buffer, span.Length, 0, face));
         }
 
         FtEnsureOk(FT.FT_Set_Char_Size(_face, 0, Quality * 64, 0, 0));
@@ -135,22 +139,20 @@ public sealed unsafe class Font
             FtEnsureOk(FT.FT_Stroker_New(FtLibrary.Native, stroke));
         }
 
-        return Charset.Select(c => LoadGlyph(c, false)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
+        return Charset.Select(c => LoadGlyph(c, null)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
     }
 
     private Texture DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
     {
-        const int spacing = 2;
-        const int nbCols = 10;
         var colSize = glyphs.Select(glyph => glyph.Width).Prepend(0).Max();
         var rowSize = glyphs.Select(glyph => glyph.Height).Prepend(0).Max();
-        var nbRows = (int)MathF.Ceiling(glyphs.Count / (float)nbCols);
-        var width = nbCols * (colSize + spacing) + spacing;
-        var height = nbRows * (rowSize + spacing) + spacing;
+        var nbRows = (int)(glyphs.Count / (float)AtlasNbCols).Ceil();
+        var width = AtlasNbCols * (colSize + AtlasSpacing) + AtlasSpacing;
+        var height = nbRows * (rowSize + AtlasSpacing) + AtlasSpacing;
         var pixels = new byte[width * height * 2];
         var maxAscent = glyphs.Select(glyph => glyph.BearerY).Prepend(0).Max();
-        var x = spacing;
-        var y = spacing;
+        var x = AtlasSpacing;
+        var y = AtlasSpacing;
         var offset = 0;
         glyphInfos ??= _glyphInfos;
         foreach (var glyph in glyphs)
@@ -178,14 +180,15 @@ public sealed unsafe class Font
                 glyph.Height,
                 glyph.Advance,
                 glyph.BearerX,
-                maxAscent - glyph.BearerY
+                maxAscent - glyph.BearerY,
+                glyph.Stroke
             );
-            x += colSize + spacing;
+            x += colSize + AtlasSpacing;
             offset++;
-            if (offset != nbCols)
+            if (offset != AtlasNbCols)
                 continue;
-            x = spacing;
-            y += rowSize + spacing;
+            x = AtlasSpacing;
+            y += rowSize + AtlasSpacing;
             offset = 0;
         }
 
@@ -203,9 +206,9 @@ public sealed unsafe class Font
         }
     }
 
-    private Glyph? LoadGlyph(char c, bool stroke)
+    private Glyph? LoadGlyph(char c, int? stroke)
     {
-        if (!stroke)
+        if (!stroke.HasValue)
         {
             var error = FT.FT_Load_Char(_face, c, FT_LOAD.FT_LOAD_RENDER);
             if (error != FT_Error.FT_Err_Ok)
@@ -213,7 +216,7 @@ public sealed unsafe class Font
         }
 
         var bitmap = _face->glyph->bitmap;
-        if (stroke)
+        if (stroke.HasValue)
         {
             var index = FT.FT_Get_Char_Index(_face, c);
             FT.FT_Load_Glyph(_face, index, FT_LOAD.FT_LOAD_DEFAULT);
@@ -236,7 +239,8 @@ public sealed unsafe class Font
             (int)bitmap.rows,
             _face->glyph->advance.x.ToInt32() >> 6,
             _face->glyph->bitmap_left,
-            _face->glyph->bitmap_top
+            _face->glyph->bitmap_top,
+            stroke ?? 0
         );
     }
 
@@ -252,7 +256,11 @@ public sealed unsafe class Font
             FT_Stroker_LineJoin_.FT_STROKER_LINEJOIN_ROUND,
             0
         );
-        var glyphs = Charset.Select(c => LoadGlyph(c, true)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
+        var glyphs = Charset
+            .Select(c => LoadGlyph(c, strokeWidth))
+            .Where(g => g.HasValue)
+            .Select(g => g!.Value)
+            .ToList();
         var glyphInfos = new Dictionary<char, GlyphInfo>();
         var atlas = DrawAtlas(glyphs, glyphInfos);
         var result = (atlas, glyphInfos);

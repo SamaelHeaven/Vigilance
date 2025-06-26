@@ -11,4 +11,29 @@ public static class FloatExtensions
     {
         return radians * (180 / MathF.PI);
     }
+
+    public static float Clamp(this float value, float min, float max)
+    {
+        return MathF.Min(MathF.Max(value, min), max);
+    }
+
+    public static float Round(this float value)
+    {
+        return MathF.Round(value);
+    }
+
+    public static float Floor(this float value)
+    {
+        return MathF.Floor(value);
+    }
+
+    public static float Ceil(this float value)
+    {
+        return MathF.Ceiling(value);
+    }
+
+    public static float Abs(this float value)
+    {
+        return MathF.Abs(value);
+    }
 }

@@ -1,4 +1,5 @@
 using Vigilance.Core;
+using Vigilance.Math;
 
 namespace Vigilance.Systems;
 
@@ -8,12 +9,12 @@ public sealed class YSortSystem(float offset = 0) : ISystem
 
     public void Configure(Scene scene)
     {
-        scene.OnRenderStart(() =>
+        scene.OnRenderBegin(() =>
         {
             scene.Each(
-                (Entity entity, ref YSort ySort) =>
+                (Entity entity, YSort ySort) =>
                 {
-                    entity.ZIndex = (int)MathF.Round(entity.WorldPosition.Y + Offset + ySort.Offset);
+                    entity.ZIndex = (int)(entity.WorldPosition.Y + Offset + ySort.Offset).Round();
                 }
             );
         });

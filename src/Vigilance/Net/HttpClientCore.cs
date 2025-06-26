@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-
 namespace Vigilance.Net;
 
 internal sealed class HttpClientCore : IHttpClient

@@ -9,18 +9,43 @@ public struct Transform
 
     public Transform() { }
 
-    public override string ToString()
+    public Transform(Vector2 position)
     {
-        return $"{{\n  Position: {Position}\n  Scale: {Scale}\n  Rotation: {Rotation}\n  PivotPoint: {PivotPoint}\n}}";
+        Position = position;
+    }
+
+    public Transform(Vector2 position, Vector2 scale)
+    {
+        Position = position;
+        Scale = scale;
+    }
+
+    public Transform(Vector2 position, Vector2 scale, float rotation)
+    {
+        Position = position;
+        Scale = scale;
+        Rotation = rotation;
+    }
+
+    public Transform(Vector2 position, Vector2 scale, float rotation, Vector2 pivotPoint)
+    {
+        Position = position;
+        Scale = scale;
+        Rotation = rotation;
+        PivotPoint = pivotPoint;
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is Transform t
-            && Position.Equals(t.Position)
-            && Scale.Equals(t.Scale)
-            && Rotation.Equals(t.Rotation)
-            && PivotPoint.Equals(t.PivotPoint);
+        return obj is Transform t && Equals(t);
+    }
+
+    public bool Equals(Transform other)
+    {
+        return Position.Equals(other.Position)
+            && Scale.Equals(other.Scale)
+            && Rotation.Equals(other.Rotation)
+            && PivotPoint.Equals(other.PivotPoint);
     }
 
     public static bool operator ==(Transform a, Transform b)

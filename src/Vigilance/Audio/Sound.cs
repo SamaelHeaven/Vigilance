@@ -1,4 +1,4 @@
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -7,20 +7,21 @@ namespace Vigilance.Audio;
 public sealed class Sound
 {
     private static readonly List<Sound> Sounds = [];
-    private readonly List<(Raylib_cs.Sound Sound, double LastUsed)> _aliases = [];
-    private readonly Raylib_cs.Sound _sound;
+    private readonly List<(Raylib_cs.BleedingEdge.Sound Sound, double LastUsed)> _aliases = [];
+    private readonly Raylib_cs.BleedingEdge.Sound _sound;
     private float _pan = 0.5f;
     private float _pitch = 1;
     private float _volume = 1;
 
-    public unsafe Sound(string fileType, ReadOnlySpan<byte> bytes, int? maxAliases = null)
+    public unsafe Sound(string fileType, IEnumerable<byte> bytes, int? maxAliases = null)
     {
         Game.EnsureRunning();
         MaxAliases = System.Math.Max(maxAliases ?? Game.DefaultSoundMaxAliases, 1);
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
-        fixed (byte* bytesBuffer = bytes)
+        var span = bytes.AsSpan();
+        fixed (byte* bytesBuffer = span)
         {
-            var wave = Raylib.LoadWaveFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, bytes.Length);
+            var wave = Raylib.LoadWaveFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, span.Length);
             _sound = Raylib.LoadSoundFromWave(wave);
             Raylib.UnloadWave(wave);
         }
@@ -96,7 +97,7 @@ public sealed class Sound
 
     public Sound Play()
     {
-        Raylib_cs.Sound alias;
+        Raylib_cs.BleedingEdge.Sound alias;
         var now = Time.Elapsed.TotalSeconds;
         var index = _aliases.FindIndex(a => !Raylib.IsSoundPlaying(a.Sound));
         if (index != -1)

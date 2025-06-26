@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Exception = System.Exception;
 
 namespace Vigilance.Drawing;
@@ -37,7 +37,7 @@ public struct Color
     public byte B { get; set; }
     public byte A { get; set; }
 
-    internal Color(Raylib_cs.Color color)
+    internal Color(Raylib_cs.BleedingEdge.Color color)
         : this(color.R, color.G, color.B, color.A) { }
 
     public Color(byte r, byte g, byte b, byte a = 255)
@@ -116,11 +116,11 @@ public struct Color
         a = A;
     }
 
-    internal Raylib_cs.Color RColor => new(R, G, B, A);
+    internal Raylib_cs.BleedingEdge.Color RColor => new(R, G, B, A);
 
     public override string ToString()
     {
-        return $"{{ R: {R}, G: {G}, B: {B}, A: {A} }}";
+        return $"[R={R}, G={G}, B={B}, A={A}]";
     }
 
     public string ToHex()
@@ -135,7 +135,12 @@ public struct Color
 
     public override bool Equals(object? obj)
     {
-        return obj is Color c && c.R == R && c.G == G && c.B == B && c.A == A;
+        return obj is Color c && Equals(c);
+    }
+
+    public bool Equals(Color other)
+    {
+        return R == other.R && G == other.G && B == other.B && A == other.A;
     }
 
     public static bool operator ==(Color a, Color b)

@@ -18,6 +18,22 @@ public struct Box
     public Box(Vector2 position, Vector2 size)
         : this(position.X, position.Y, size.X, size.Y) { }
 
+    public Box(Transform transform)
+        : this(new Quad(transform)) { }
+
+    public Box(Quad quad)
+    {
+        var (topLeft, bottomLeft, bottomRight, topRight) = quad;
+        var minX = MathF.Min(MathF.Min(MathF.Min(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
+        var maxX = MathF.Max(MathF.Max(MathF.Max(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
+        var minY = MathF.Min(MathF.Min(MathF.Min(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
+        var maxY = MathF.Max(MathF.Max(MathF.Max(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
+        X = minX;
+        Y = minY;
+        Width = maxX - minX;
+        Height = maxY - minY;
+    }
+
     public static implicit operator (float X, float Y, float Width, float Height)(Box box)
     {
         return (box.X, box.Y, box.Width, box.Height);
@@ -52,16 +68,6 @@ public struct Box
         size = new Vector2(Width, Height);
     }
 
-    public static Box Bounding(Transform transform)
-    {
-        var (topLeft, bottomLeft, bottomRight, topRight) = Coordinates.GetPoints(transform);
-        var minX = MathF.Min(MathF.Min(MathF.Min(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
-        var maxX = MathF.Max(MathF.Max(MathF.Max(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
-        var minY = MathF.Min(MathF.Min(MathF.Min(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
-        var maxY = MathF.Max(MathF.Max(MathF.Max(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
-        return new Box(minX, minY, maxX - minX, maxY - minY);
-    }
-
     public readonly Vector2 Position => new(X, Y);
 
     public readonly Vector2 Size => new(Width, Height);
@@ -70,12 +76,12 @@ public struct Box
 
     public override bool Equals(object? obj)
     {
-        if (obj is Box boundingBox)
-            return X.Equals(boundingBox.X)
-                && Y.Equals(boundingBox.Y)
-                && Width.Equals(boundingBox.Width)
-                && Height.Equals(boundingBox.Height);
-        return base.Equals(obj);
+        return obj is Box other && Equals(other);
+    }
+
+    public bool Equals(Box other)
+    {
+        return X.Equals(other.X) && Y.Equals(other.Y) && Width.Equals(other.Width) && Height.Equals(other.Height);
     }
 
     public static bool operator ==(Box a, Box b)
@@ -95,6 +101,6 @@ public struct Box
 
     public override string ToString()
     {
-        return $"{{ X: {X}, Y: {Y}, Width: {Width}, Height: {Height} }}";
+        return $"[X={X}, Y={Y}, W={Width}, H={Height}]";
     }
 }

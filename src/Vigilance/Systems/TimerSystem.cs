@@ -10,7 +10,7 @@ public sealed class TimerSystem : ISystem
         scene.OnUpdate(() =>
         {
             var step = Time.Delta;
-            scene.Each((ref Timer timer) => timer.Update(step));
+            scene.Each((Timer timer) => timer.Update(step));
         });
     }
 }

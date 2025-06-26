@@ -16,5 +16,5 @@ public sealed class CustomPolygon
     public Color Fill { get; set; } = Color.White;
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
-    public GetCameraDelegate? Camera { get; set; } = Core.Camera.DefaultDelegate;
+    public CameraFunc? Camera { get; set; } = Core.Camera.Default;
 }

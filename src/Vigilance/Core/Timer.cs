@@ -29,6 +29,11 @@ public sealed class Timer
     public event Action? OnComplete;
     public event Action? OnRepeat;
 
+    public void Update()
+    {
+        Update(Time.Delta);
+    }
+
     public void Update(TimeSpan step)
     {
         if (Paused || (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount))

@@ -1,4 +1,4 @@
-﻿using Raylib_cs;
+﻿using Raylib_cs.BleedingEdge;
 
 namespace Vigilance.Input;
 
@@ -88,7 +88,7 @@ public enum Key
     RightControl = KeyboardKey.RightControl,
     RightAlt = KeyboardKey.RightAlt,
     RightSuper = KeyboardKey.RightSuper,
-    KeyboardMenu = KeyboardKey.KeyboardMenu,
+    KeyboardMenu = KeyboardKey.Menu,
     LeftBracket = KeyboardKey.LeftBracket,
     Backslash = KeyboardKey.Backslash,
     RightBracket = KeyboardKey.RightBracket,

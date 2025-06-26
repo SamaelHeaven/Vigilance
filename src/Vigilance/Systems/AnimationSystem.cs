@@ -7,35 +7,32 @@ public sealed class AnimationSystem : ISystem
 {
     public void Configure(Scene scene)
     {
-        scene.OnFixedUpdate(() =>
+        scene.OnUpdate(() =>
         {
-            var step = Time.FixedDelta;
+            var step = Time.Delta;
             scene.Each(
-                (ref Animation animation) =>
+                (Animation animation) =>
                 {
                     animation.Update(step);
                 }
             );
 
             scene.Each(
-                (ref AnimationController controller) =>
-                {
-                    controller.Animation.Update(step);
-                }
-            );
-        });
-
-        scene.OnRenderStart(() =>
-        {
-            scene.Each(
-                static (ref Animation animation, ref Sprite sprite) =>
+                (Animation animation, Sprite sprite) =>
                 {
                     animation.UpdateSprite(sprite);
                 }
             );
 
             scene.Each(
-                static (ref AnimationController controller, ref Sprite sprite) =>
+                (AnimationController controller) =>
+                {
+                    controller.Animation.Update(step);
+                }
+            );
+
+            scene.Each(
+                (AnimationController controller, Sprite sprite) =>
                 {
                     controller.Animation.UpdateSprite(sprite);
                 }

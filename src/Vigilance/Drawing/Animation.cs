@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Immutable;
+using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
@@ -76,6 +77,11 @@ public sealed class Animation : IEnumerable<AnimationFrame>
 
     public event Action? OnComplete;
     public event Action? OnRepeat;
+
+    public void Update()
+    {
+        Update(Time.Delta);
+    }
 
     public void Update(TimeSpan step)
     {

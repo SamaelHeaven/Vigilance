@@ -1,7 +1,6 @@
 #pragma warning disable CS9084
 
 using Flecs.NET.Core;
-using Vigilance.Events;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
@@ -52,7 +51,7 @@ public unsafe struct Entity
         set
         {
             if (!Precision.AreEqual(Position, value))
-                Set(new Position { Value = value });
+                Set(new Position { Value = value }, false);
         }
     }
 
@@ -62,7 +61,7 @@ public unsafe struct Entity
         set
         {
             if (!Precision.AreEqual(Scale, value))
-                Set(new Scale { Value = value });
+                Set(new Scale { Value = value }, false);
         }
     }
 
@@ -72,7 +71,7 @@ public unsafe struct Entity
         set
         {
             if (!Precision.AreEqual(Rotation, value))
-                Set(new Rotation { Value = value });
+                Set(new Rotation { Value = value }, false);
         }
     }
 
@@ -82,7 +81,7 @@ public unsafe struct Entity
         set
         {
             if (!Precision.AreEqual(PivotPoint, value))
-                Set(new PivotPoint { Value = value });
+                Set(new PivotPoint { Value = value }, false);
         }
     }
 
@@ -92,7 +91,7 @@ public unsafe struct Entity
         set
         {
             if (ZIndex != value)
-                Set(new ZIndex { Value = value });
+                Set(new ZIndex { Value = value }, false);
         }
     }
 
@@ -162,6 +161,8 @@ public unsafe struct Entity
         }
     }
 
+    public Components Components => _entity.Has<Components>() ? _entity.Get<Components>() : Components.Empty;
+
     public static bool operator ==(Entity a, Entity b)
     {
         return a.Equals(b);
@@ -174,7 +175,12 @@ public unsafe struct Entity
 
     public override bool Equals(object? obj)
     {
-        return obj is Entity entity && _entity == entity._entity;
+        return obj is Entity entity && Equals(entity);
+    }
+
+    public bool Equals(Entity other)
+    {
+        return _entity == other._entity;
     }
 
     public override int GetHashCode()
@@ -236,20 +242,37 @@ public unsafe struct Entity
         return ref this;
     }
 
-    public ref T Get<T>()
+    public T Get<T>()
     {
-        return ref _entity.GetMut<T>();
+        return _entity.Get<T>();
     }
 
     public ref Entity Set<T>(T data)
     {
-        Set(ref data);
+        Set(data, true);
         return ref this;
     }
 
     public ref Entity Set<T>(ref T data)
     {
+        Set(data, true);
+        return ref this;
+    }
+
+    private ref Entity Set<T>(T data, bool updateComponents)
+    {
+        Set(ref data, updateComponents);
+        return ref this;
+    }
+
+    private ref Entity Set<T>(ref T data, bool updateComponents)
+    {
+        var type = typeof(T);
+        if (type == typeof(Components))
+            throw new InvalidOperationException("Components cannot be set.");
         var hadT = _entity.Has<T>();
+        if (updateComponents)
+            Scene.DeferSetComponent(_entity, type, data);
         _entity.Set(ref data);
         if (hadT)
             _entity.CsWorld().Event<SetEvent>().Id<T>().Entity(_entity).Enqueue();
@@ -260,6 +283,10 @@ public unsafe struct Entity
 
     public ref Entity Remove<T>()
     {
+        var type = typeof(T);
+        if (type == typeof(Components))
+            throw new InvalidOperationException("Components cannot be removed.");
+        Scene.DeferRemoveComponent(_entity, type);
         _entity.Remove<T>();
         return ref this;
     }
@@ -286,7 +313,7 @@ public unsafe struct Entity
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
-    public ref Entity Children(EntityAction action)
+    public ref Entity Children(Action<Entity> action)
     {
         var scene = Scene;
         scene.DeferBegin();
@@ -297,35 +324,435 @@ public unsafe struct Entity
 
     #region Traverse
 
-    public ref Entity Traverse(EntityAction action)
+    public ref Entity Traverse(Action<Entity> action)
     {
-        action(this);
+        action.Invoke(this);
         Children(child => child.Traverse(action));
         return ref this;
     }
 
-    public ref Entity Traverse<T>(EntityAction action)
+    public ref Entity Traverse<T>(Action<Entity> action)
     {
         if (Has<T>())
-            action(this);
+            action.Invoke(this);
         Children(child => child.Traverse<T>(action));
         return ref this;
     }
 
-    public ref Entity Traverse<T>(RefAction<T> action)
+    public ref Entity Traverse<T>(Action<T> action)
     {
         if (Has<T>())
-            action(ref Get<T>());
+            action.Invoke(Get<T>());
         Children(child => child.Traverse(action));
         return ref this;
     }
 
-    public ref Entity Traverse<T>(EntityAction<T> action)
+    public ref Entity Traverse<T>(Action<Entity, T> action)
     {
         if (Has<T>())
-            action(this, ref Get<T>());
+            action.Invoke(this, Get<T>());
         Children(child => child.Traverse(action));
         return ref this;
+    }
+
+    #endregion
+
+    #region TryGet
+
+    public bool TryGet<T0>(out T0 t)
+    {
+        var result = Has<T0>();
+        t = default!;
+        if (result)
+            t = Get<T0>();
+        return result;
+    }
+
+    public bool TryGet<T0, T1>(out T0 t0, out T1 t1)
+    {
+        t0 = default!;
+        t1 = default!;
+        return TryGet(out t0) && TryGet(out t1);
+    }
+
+    public bool TryGet<T0, T1, T2>(out T0 t0, out T1 t1, out T2 t2)
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        return TryGet(out t0) && TryGet(out t1) && TryGet(out t2);
+    }
+
+    public bool TryGet<T0, T1, T2, T3>(out T0 t0, out T1 t1, out T2 t2, out T3 t3)
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        return TryGet(out t0) && TryGet(out t1) && TryGet(out t2) && TryGet(out t3);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4>(out T0 t0, out T1 t1, out T2 t2, out T3 t3, out T4 t4)
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        return TryGet(out t0) && TryGet(out t1) && TryGet(out t2) && TryGet(out t3) && TryGet(out t4);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4, T5>(out T0 t0, out T1 t1, out T2 t2, out T3 t3, out T4 t4, out T5 t5)
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        t5 = default!;
+        return TryGet(out t0) && TryGet(out t1) && TryGet(out t2) && TryGet(out t3) && TryGet(out t4) && TryGet(out t5);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4, T5, T6>(
+        out T0 t0,
+        out T1 t1,
+        out T2 t2,
+        out T3 t3,
+        out T4 t4,
+        out T5 t5,
+        out T6 t6
+    )
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        t5 = default!;
+        t6 = default!;
+        return TryGet(out t0)
+            && TryGet(out t1)
+            && TryGet(out t2)
+            && TryGet(out t3)
+            && TryGet(out t4)
+            && TryGet(out t5)
+            && TryGet(out t6);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7>(
+        out T0 t0,
+        out T1 t1,
+        out T2 t2,
+        out T3 t3,
+        out T4 t4,
+        out T5 t5,
+        out T6 t6,
+        out T7 t7
+    )
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        t5 = default!;
+        t6 = default!;
+        t7 = default!;
+        return TryGet(out t0)
+            && TryGet(out t1)
+            && TryGet(out t2)
+            && TryGet(out t3)
+            && TryGet(out t4)
+            && TryGet(out t5)
+            && TryGet(out t6)
+            && TryGet(out t7);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
+        out T0 t0,
+        out T1 t1,
+        out T2 t2,
+        out T3 t3,
+        out T4 t4,
+        out T5 t5,
+        out T6 t6,
+        out T7 t7,
+        out T8 t8
+    )
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        t5 = default!;
+        t6 = default!;
+        t7 = default!;
+        t8 = default!;
+        return TryGet(out t0)
+            && TryGet(out t1)
+            && TryGet(out t2)
+            && TryGet(out t3)
+            && TryGet(out t4)
+            && TryGet(out t5)
+            && TryGet(out t6)
+            && TryGet(out t7)
+            && TryGet(out t8);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+        out T0 t0,
+        out T1 t1,
+        out T2 t2,
+        out T3 t3,
+        out T4 t4,
+        out T5 t5,
+        out T6 t6,
+        out T7 t7,
+        out T8 t8,
+        out T9 t9
+    )
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        t5 = default!;
+        t6 = default!;
+        t7 = default!;
+        t8 = default!;
+        t9 = default!;
+        return TryGet(out t0)
+            && TryGet(out t1)
+            && TryGet(out t2)
+            && TryGet(out t3)
+            && TryGet(out t4)
+            && TryGet(out t5)
+            && TryGet(out t6)
+            && TryGet(out t7)
+            && TryGet(out t8)
+            && TryGet(out t9);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+        out T0 t0,
+        out T1 t1,
+        out T2 t2,
+        out T3 t3,
+        out T4 t4,
+        out T5 t5,
+        out T6 t6,
+        out T7 t7,
+        out T8 t8,
+        out T9 t9,
+        out T10 t10
+    )
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        t5 = default!;
+        t6 = default!;
+        t7 = default!;
+        t8 = default!;
+        t9 = default!;
+        t10 = default!;
+        return TryGet(out t0)
+            && TryGet(out t1)
+            && TryGet(out t2)
+            && TryGet(out t3)
+            && TryGet(out t4)
+            && TryGet(out t5)
+            && TryGet(out t6)
+            && TryGet(out t7)
+            && TryGet(out t8)
+            && TryGet(out t9)
+            && TryGet(out t10);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
+        out T0 t0,
+        out T1 t1,
+        out T2 t2,
+        out T3 t3,
+        out T4 t4,
+        out T5 t5,
+        out T6 t6,
+        out T7 t7,
+        out T8 t8,
+        out T9 t9,
+        out T10 t10,
+        out T11 t11
+    )
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        t5 = default!;
+        t6 = default!;
+        t7 = default!;
+        t8 = default!;
+        t9 = default!;
+        t10 = default!;
+        t11 = default!;
+        return TryGet(out t0)
+            && TryGet(out t1)
+            && TryGet(out t2)
+            && TryGet(out t3)
+            && TryGet(out t4)
+            && TryGet(out t5)
+            && TryGet(out t6)
+            && TryGet(out t7)
+            && TryGet(out t8)
+            && TryGet(out t9)
+            && TryGet(out t10)
+            && TryGet(out t11);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
+        out T0 t0,
+        out T1 t1,
+        out T2 t2,
+        out T3 t3,
+        out T4 t4,
+        out T5 t5,
+        out T6 t6,
+        out T7 t7,
+        out T8 t8,
+        out T9 t9,
+        out T10 t10,
+        out T11 t11,
+        out T12 t12
+    )
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        t5 = default!;
+        t6 = default!;
+        t7 = default!;
+        t8 = default!;
+        t9 = default!;
+        t10 = default!;
+        t11 = default!;
+        t12 = default!;
+        return TryGet(out t0)
+            && TryGet(out t1)
+            && TryGet(out t2)
+            && TryGet(out t3)
+            && TryGet(out t4)
+            && TryGet(out t5)
+            && TryGet(out t6)
+            && TryGet(out t7)
+            && TryGet(out t8)
+            && TryGet(out t9)
+            && TryGet(out t10)
+            && TryGet(out t11)
+            && TryGet(out t12);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
+        out T0 t0,
+        out T1 t1,
+        out T2 t2,
+        out T3 t3,
+        out T4 t4,
+        out T5 t5,
+        out T6 t6,
+        out T7 t7,
+        out T8 t8,
+        out T9 t9,
+        out T10 t10,
+        out T11 t11,
+        out T12 t12,
+        out T13 t13
+    )
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        t5 = default!;
+        t6 = default!;
+        t7 = default!;
+        t8 = default!;
+        t9 = default!;
+        t10 = default!;
+        t11 = default!;
+        t12 = default!;
+        t13 = default!;
+        return TryGet(out t0)
+            && TryGet(out t1)
+            && TryGet(out t2)
+            && TryGet(out t3)
+            && TryGet(out t4)
+            && TryGet(out t5)
+            && TryGet(out t6)
+            && TryGet(out t7)
+            && TryGet(out t8)
+            && TryGet(out t9)
+            && TryGet(out t10)
+            && TryGet(out t11)
+            && TryGet(out t12)
+            && TryGet(out t13);
+    }
+
+    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
+        out T0 t0,
+        out T1 t1,
+        out T2 t2,
+        out T3 t3,
+        out T4 t4,
+        out T5 t5,
+        out T6 t6,
+        out T7 t7,
+        out T8 t8,
+        out T9 t9,
+        out T10 t10,
+        out T11 t11,
+        out T12 t12,
+        out T13 t13,
+        out T14 t14
+    )
+    {
+        t0 = default!;
+        t1 = default!;
+        t2 = default!;
+        t3 = default!;
+        t4 = default!;
+        t5 = default!;
+        t6 = default!;
+        t7 = default!;
+        t8 = default!;
+        t9 = default!;
+        t10 = default!;
+        t11 = default!;
+        t12 = default!;
+        t13 = default!;
+        t14 = default!;
+        return TryGet(out t0)
+            && TryGet(out t1)
+            && TryGet(out t2)
+            && TryGet(out t3)
+            && TryGet(out t4)
+            && TryGet(out t5)
+            && TryGet(out t6)
+            && TryGet(out t7)
+            && TryGet(out t8)
+            && TryGet(out t9)
+            && TryGet(out t10)
+            && TryGet(out t11)
+            && TryGet(out t12)
+            && TryGet(out t13)
+            && TryGet(out t14);
     }
 
     #endregion

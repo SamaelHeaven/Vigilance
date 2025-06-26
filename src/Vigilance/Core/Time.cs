@@ -1,4 +1,4 @@
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 
 namespace Vigilance.Core;
 
@@ -82,7 +82,10 @@ public sealed class Time
     internal static void Update()
     {
         var time = GetTime();
-        var fpsTarget = Game.FpsTarget;
+        var fpsTarget =
+            Game.FpsTarget < 1 && Game.Config.Vsync && Game.Minimized
+                ? Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor())
+                : Game.FpsTarget;
         var target = fpsTarget < 1 ? 0 : 1.0 / fpsTarget;
         var wait = target - (Elapsed - time._last).TotalSeconds;
         if (wait > 0 && wait <= target)

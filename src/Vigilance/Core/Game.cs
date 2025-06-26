@@ -2,12 +2,14 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Logging;
 using Vigilance.Math;
+using Color = Vigilance.Drawing.Color;
 using Font = Vigilance.Drawing.Font;
+using Image = Vigilance.Drawing.Image;
 using Music = Vigilance.Audio.Music;
 using Sound = Vigilance.Audio.Sound;
 
@@ -19,6 +21,7 @@ public sealed unsafe class Game
     private readonly ConcurrentStack<Action> _actions = [];
     private GameConfig _config = null!;
     private Font _defaultFont = null!;
+    private GameConfig _launchConfig = null!;
     private Box _previousScreen;
     private bool _quit;
     private bool _resetScreen;
@@ -132,8 +135,6 @@ public sealed unsafe class Game
         }
     }
 
-    public static float Scale => MathF.Max(1, GetGame()._config.Scale);
-
     public static Scene Scene
     {
         get => GetGame()._scene;
@@ -184,16 +185,20 @@ public sealed unsafe class Game
             var game = GetGame();
             if (value < 1)
                 value = 0;
+            if (value == FpsTarget)
+                return;
             game._config.FpsTarget = value;
             Raylib.SetTargetFPS(value);
         }
     }
 
+    public static RenderingMode RenderingMode => GetGame()._config.RenderingMode;
+
+    public static Color Background => GetGame()._config.Background;
+
     public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis;
 
     public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis;
-
-    public static Interpolation DefaultInterpolation => GetGame()._config.DefaultInterpolation;
 
     public static Vector2 DefaultTextSpacing => GetGame()._config.DefaultTextSpacing;
 
@@ -291,7 +296,9 @@ public sealed unsafe class Game
         }
     }
 
-    internal static GetSystemsDelegate Systems => GetGame()._config.Systems;
+    public static GameConfig Config => GetGame()._launchConfig.Clone();
+
+    internal static SystemsFunc Systems => GetGame()._config.Systems;
 
     public static void OpenUrl(string url)
     {
@@ -317,12 +324,12 @@ public sealed unsafe class Game
         game._actions.Push(action);
     }
 
-    public static void Log<T>(T value)
+    public static void Log(object? value)
     {
         Log(value is Exception ? LogLevel.Error : LogLevel.Info, value);
     }
 
-    public static void Log<T>(LogLevel level, T value)
+    public static void Log(LogLevel level, object? value)
     {
         var game = GetGame();
         if (game._config.LogLevel > level)
@@ -368,6 +375,24 @@ public sealed unsafe class Game
             Raylib.SetWindowFocused();
     }
 
+    public static Image Screenshot()
+    {
+        var width = ScreenWidth;
+        var height = ScreenHeight;
+        Graphics.Reset();
+        Graphics.DrawCurrentBuffer();
+        var data = Rlgl.ReadScreenPixels(ScreenWidth, ScreenHeight);
+        var rImage = new Raylib_cs.BleedingEdge.Image
+        {
+            Data = data,
+            Width = width,
+            Height = height,
+            Mipmaps = 1,
+            Format = PixelFormat.UncompressedR8G8B8A8,
+        };
+        return new Image(rImage);
+    }
+
     public static void ToggleFullscreen()
     {
         var game = GetGame();
@@ -397,8 +422,8 @@ public sealed unsafe class Game
         EnsureNotRunning();
         Running = true;
         var game = GetGame();
-        config = config.Clone();
-        game._config = config;
+        game._launchConfig = config.Clone();
+        game._config = config.Clone();
         game._scene = scene;
         InitializeCultureInfo();
         game.InitializeLogging();
@@ -461,11 +486,23 @@ public sealed unsafe class Game
     private void InitializeWindow()
     {
         Raylib.SetConfigFlags(GetConfigFlags());
-        Raylib.InitWindow(
-            (int)(_config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.X : _config.ScreenSize.X),
-            (int)(_config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.Y : _config.ScreenSize.Y),
-            _config.Title
+        var width = (int)(
+            _config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.X : _config.ScreenSize.X
         );
+        var height = (int)(
+            _config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.Y : _config.ScreenSize.Y
+        );
+        if (Platform.Desktop.IsCurrent())
+        {
+            Raylib.InitWindow(0, 0, _config.Title);
+            Raylib.SetWindowPosition((Raylib.GetScreenWidth() - width) / 2, (Raylib.GetScreenHeight() - height) / 2);
+            Raylib.SetWindowSize(width, height);
+        }
+        else
+        {
+            Raylib.InitWindow(width, height, _config.Title);
+        }
+
         if (Platform.Desktop.IsCurrent() && _config.MinSize.HasValue)
             Raylib.SetWindowMinSize((int)_config.MinSize.Value.X, (int)_config.MinSize.Value.Y);
         if (Platform.Desktop.IsCurrent() && _config.MaxSize.HasValue)
@@ -483,7 +520,6 @@ public sealed unsafe class Game
 
     private static void InitializeAudio()
     {
-        Raylib.SetAudioStreamBufferSizeDefault(8192);
         if (!OperatingSystem.IsWindows())
         {
             Raylib.InitAudioDevice();
@@ -519,8 +555,9 @@ public sealed unsafe class Game
         UpdateSize();
         UpdateActions();
         UpdateFullscreen();
+        Renderer.BeginDrawing();
         _scene.Update();
-        Renderer.Update();
+        Renderer.EndDrawing();
         Raylib.PollInputEvents();
     }
 
@@ -554,13 +591,15 @@ public sealed unsafe class Game
     {
         ConfigFlags flags = 0;
         if (_config.Resizable)
-            flags |= ConfigFlags.ResizableWindow;
+            flags |= ConfigFlags.WindowResizable;
         if (!_config.Decorated)
-            flags |= ConfigFlags.UndecoratedWindow;
+            flags |= ConfigFlags.WindowUndecorated;
         if (_config.Vsync)
             flags |= ConfigFlags.VSyncHint;
         if (_config.RunMinimized)
-            flags |= ConfigFlags.AlwaysRunWindow;
+            flags |= ConfigFlags.WindowAlwaysRun;
+        if (_config.Msaa4X)
+            flags |= ConfigFlags.Msaa4XHint;
         return flags;
     }
 
@@ -579,9 +618,9 @@ public sealed unsafe class Game
     }
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static void UnmanagedLog(int logLevel, sbyte* format, sbyte* args)
+    private static void UnmanagedLog(TraceLogLevel logLevel, sbyte* format, nint args)
     {
-        var message = Raylib_cs.Logging.GetLogMessage((nint)format, (nint)args);
+        var message = Variadic.FormatString((nint)format, args);
         Log((LogLevel)logLevel, message);
     }
 }

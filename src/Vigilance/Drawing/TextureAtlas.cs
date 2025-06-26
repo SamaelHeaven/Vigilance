@@ -41,7 +41,7 @@ public sealed class TextureAtlas : IEnumerable<Box>
 
     public int Cols => (int)(TextureWidth / (RegionWidth + Spacing));
 
-    public int Rows => (int)MathF.Ceiling(Count / (float)Cols);
+    public int Rows => (int)(Count / (float)Cols).Ceil();
 
     public Vector2 TextureSize => Texture.Size;
 

@@ -28,13 +28,13 @@ public sealed class InputAxis
                     NegativeKeys.Any(Keyboard.IsKeyDown)
                     || Gamepads.Any(gamepad =>
                         NegativeGamepadButtons.Any(gamepad.IsButtonDown)
-                        || GamepadAxes.Any(axis => (int)MathF.Round(gamepad.GetAxis(axis) - DeadZone) <= -1)
+                        || GamepadAxes.Any(axis => (int)(gamepad.GetAxis(axis) - DeadZone).Round() <= -1)
                     );
                 var positive =
                     PositiveKeys.Any(Keyboard.IsKeyDown)
                     || Gamepads.Any(gamepad =>
                         PositiveGamepadButtons.Any(gamepad.IsButtonDown)
-                        || GamepadAxes.Any(axis => (int)MathF.Round(gamepad.GetAxis(axis) + DeadZone) >= 1)
+                        || GamepadAxes.Any(axis => (int)(gamepad.GetAxis(axis) + DeadZone).Round() >= 1)
                     );
                 if (negative && !positive)
                     return -1;
