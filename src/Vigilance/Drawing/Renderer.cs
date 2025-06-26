@@ -23,23 +23,9 @@ public sealed class Renderer
 
     public static Graphics Graphics => GetRenderer()._graphics;
 
-    public static Vector2 Offset
-    {
-        get
-        {
-            var renderer = GetRenderer();
-            return Game.RenderingMode.ModeType == RenderingModeType.Buffer ? Vector2.Zero : renderer._offset;
-        }
-    }
+    public static Vector2 Offset => GetRenderer()._offset;
 
-    public static Vector2 Scale
-    {
-        get
-        {
-            var renderer = GetRenderer();
-            return Game.RenderingMode.ModeType == RenderingModeType.Buffer ? renderer._buffer!.Scale : renderer._scale;
-        }
-    }
+    public static Vector2 Scale => GetRenderer()._scale;
 
     internal static void BeginDrawing()
     {
