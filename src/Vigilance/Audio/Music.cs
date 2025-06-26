@@ -14,17 +14,18 @@ public sealed class Music
     private float _pitch = 1;
     private float _volume = 1;
 
-    public unsafe Music(string fileType, ReadOnlySpan<byte> bytes)
+    public unsafe Music(string fileType, IEnumerable<byte> bytes)
     {
         Game.EnsureRunning();
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
-        _buffer = Marshal.AllocHGlobal(bytes.Length);
-        fixed (byte* bytesBuffer = bytes)
+        var span = bytes.AsSpan();
+        _buffer = Marshal.AllocHGlobal(span.Length);
+        fixed (byte* bytesBuffer = span)
         {
-            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, bytes.Length, bytes.Length);
+            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, span.Length, span.Length);
         }
 
-        _music = Raylib.LoadMusicStreamFromMemory(fileTypeBuffer.AsPointer(), (byte*)_buffer, bytes.Length);
+        _music = Raylib.LoadMusicStreamFromMemory(fileTypeBuffer.AsPointer(), (byte*)_buffer, span.Length);
     }
 
     public float Volume

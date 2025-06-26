@@ -493,33 +493,35 @@ public sealed unsafe class Graphics
         PopMatrix();
     }
 
-    public void FillCustomPolygon(IReadOnlyList<Vector2> points, Color color, Camera? camera = null)
+    public void FillCustomPolygon(IEnumerable<Vector2> points, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent || points.Count < 3)
+        var span = points.AsSpan();
+        if (color == Color.Transparent || span.Length < 3)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        fixed (Vector2* pointsBuffer = span)
         {
-            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, points.Count, color.RColor);
+            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, span.Length, color.RColor);
         }
 
         EndDrawing();
     }
 
     public void StrokeCustomPolygon(
-        IReadOnlyList<Vector2> points,
+        IEnumerable<Vector2> points,
         Color color,
         float strokeWidth = 1,
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0 || points.Count < 3)
+        var span = points.AsSpan();
+        if (color == Color.Transparent || strokeWidth <= 0 || span.Length < 3)
             return;
         BeginDrawing(camera);
-        for (var i = 0; i < points.Count; i++)
+        for (var i = 0; i < span.Length; i++)
         {
-            var start = points[i];
-            var end = points[(i + 1) % points.Count];
+            var start = span[i];
+            var end = span[(i + 1) % span.Length];
             Raylib.DrawLineEx(start, end, strokeWidth, color.RColor);
             Raylib.DrawCircleV(start, strokeWidth * 0.5f, color.RColor);
         }
@@ -963,81 +965,76 @@ public sealed unsafe class Graphics
 
     #region Spline
 
-    public void DrawSplineLinear(IReadOnlyList<Vector2> points, Color color, float thick = 1, Camera? camera = null)
+    public void DrawSplineLinear(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var count = points.Count;
-        if (color == Color.Transparent || count < 2 || thick <= 0)
+        var span = points.AsSpan();
+        if (color == Color.Transparent || span.Length < 2 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        fixed (Vector2* pointsBuffer = span)
         {
-            Raylib.DrawSplineLinear((System.Numerics.Vector2*)pointsBuffer, count, thick, color.RColor);
+            Raylib.DrawSplineLinear((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
         }
 
         EndDrawing();
     }
 
-    public void DrawSplineBasis(IReadOnlyList<Vector2> points, Color color, float thick = 1, Camera? camera = null)
+    public void DrawSplineBasis(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var count = points.Count;
-        if (color == Color.Transparent || count < 4 || thick <= 0)
+        var span = points.AsSpan();
+        if (color == Color.Transparent || span.Length < 4 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        fixed (Vector2* pointsBuffer = span)
         {
-            Raylib.DrawSplineBasis((System.Numerics.Vector2*)pointsBuffer, count, thick, color.RColor);
+            Raylib.DrawSplineBasis((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
         }
 
         EndDrawing();
     }
 
-    public void DrawSplineCatmullRom(IReadOnlyList<Vector2> points, Color color, float thick = 1, Camera? camera = null)
+    public void DrawSplineCatmullRom(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var count = points.Count;
-        if (color == Color.Transparent || count < 4 || thick <= 0)
+        var span = points.AsSpan();
+        if (color == Color.Transparent || span.Length < 4 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        fixed (Vector2* pointsBuffer = span)
         {
-            Raylib.DrawSplineCatmullRom((System.Numerics.Vector2*)pointsBuffer, count, thick, color.RColor);
+            Raylib.DrawSplineCatmullRom((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
         }
 
         EndDrawing();
     }
 
     public void DrawSplineBezierQuadratic(
-        IReadOnlyList<Vector2> points,
+        IEnumerable<Vector2> points,
         Color color,
         float thick = 1,
         Camera? camera = null
     )
     {
-        var count = points.Count;
-        if (color == Color.Transparent || count < 3 || thick <= 0)
+        var span = points.AsSpan();
+        if (color == Color.Transparent || span.Length < 3 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        fixed (Vector2* pointsBuffer = span)
         {
-            Raylib.DrawSplineBezierQuadratic((System.Numerics.Vector2*)pointsBuffer, count, thick, color.RColor);
+            Raylib.DrawSplineBezierQuadratic((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
         }
 
         EndDrawing();
     }
 
-    public void DrawSplineBezierCubic(
-        IReadOnlyList<Vector2> points,
-        Color color,
-        float thick = 1,
-        Camera? camera = null
-    )
+    public void DrawSplineBezierCubic(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var count = points.Count;
-        if (color == Color.Transparent || count < 4 || thick <= 0)
+        var span = points.AsSpan();
+        if (color == Color.Transparent || span.Length < 4 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = points as Vector2[] ?? points.ToArray())
+        fixed (Vector2* pointsBuffer = span)
         {
-            Raylib.DrawSplineBezierCubic((System.Numerics.Vector2*)pointsBuffer, count, thick, color.RColor);
+            Raylib.DrawSplineBezierCubic((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
         }
 
         EndDrawing();
@@ -1224,7 +1221,7 @@ public sealed unsafe class Graphics
 
     #region Internal
 
-    internal static bool IsCurrentBuffer(WritableTexture? buffer)
+    internal static bool IsBufferCurrent(WritableTexture? buffer)
     {
         return _currentBuffer == buffer;
     }

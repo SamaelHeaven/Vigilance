@@ -36,11 +36,11 @@ public sealed class WritableTexture
 
     public Vector2 ScaledSize => new(ScaledWidth, ScaledHeight);
 
-    public void Update(ReadOnlySpan<Color> pixels)
+    public void Update(IEnumerable<Color> pixels)
     {
-        if (Graphics.IsCurrentBuffer(this))
+        if (Graphics.IsBufferCurrent(this))
             Graphics.DrawCurrentBuffer();
-        Raylib.UpdateTexture(RenderTexture2D.Texture, pixels);
+        Raylib.UpdateTexture(RenderTexture2D.Texture, pixels.AsSpan());
     }
 
     public static implicit operator Texture(WritableTexture writableTexture)
@@ -62,9 +62,6 @@ public sealed class WritableTexture
 
     ~WritableTexture()
     {
-        Game.Defer(() =>
-        {
-            Raylib.UnloadRenderTexture(RenderTexture2D);
-        });
+        Game.Defer(() => Raylib.UnloadRenderTexture(RenderTexture2D));
     }
 }

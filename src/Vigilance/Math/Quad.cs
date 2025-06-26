@@ -59,6 +59,11 @@ public struct Quad : IReadOnlyList<Vector2>
         return new Quad(quad.TopLeft, quad.BottomLeft, quad.BottomRight, quad.TopRight);
     }
 
+    public static unsafe implicit operator ReadOnlySpan<Vector2>(Quad quad)
+    {
+        return new ReadOnlySpan<Vector2>(&quad, quad.Count);
+    }
+
     public void Deconstruct(out Vector2 topLeft, out Vector2 bottomLeft, out Vector2 bottomRight, out Vector2 topRight)
     {
         topLeft = TopLeft;

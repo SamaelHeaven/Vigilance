@@ -17,22 +17,24 @@ public sealed unsafe class Texture
         _owner = owner;
     }
 
-    public Texture(string fileType, ReadOnlySpan<byte> bytes)
+    public Texture(string fileType, IEnumerable<byte> bytes)
     {
         Game.EnsureRunning();
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
-        fixed (byte* bytesBuffer = bytes)
+        var span = bytes.AsSpan();
+        fixed (byte* bytesBuffer = span)
         {
-            var image = Raylib.LoadImageFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, bytes.Length);
+            var image = Raylib.LoadImageFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, span.Length);
             Texture2D = Raylib.LoadTextureFromImage(image);
             Raylib.UnloadImage(image);
         }
     }
 
-    public Texture(ReadOnlySpan<Color> pixels, int width, int height)
+    public Texture(IEnumerable<Color> pixels, int width, int height)
     {
         Game.EnsureRunning();
-        if (pixels.Length != width * height)
+        var span = pixels.AsSpan();
+        if (span.Length != width * height)
             throw new ArgumentException("Pixels length must be equal to width * height.");
         var result = new Texture2D
         {
@@ -41,7 +43,7 @@ public sealed unsafe class Texture
             Format = PixelFormat.UncompressedR8G8B8A8,
             Mipmaps = 1,
         };
-        fixed (Color* pixelsBuffer = pixels)
+        fixed (Color* pixelsBuffer = span)
         {
             result.Id = Rlgl.LoadTexture(pixelsBuffer, result.Width, result.Height, result.Format, result.Mipmaps);
         }
@@ -49,7 +51,7 @@ public sealed unsafe class Texture
         Texture2D = result;
     }
 
-    public static Texture Empty => _empty ??= new Texture(stackalloc Color[1] { Color.Transparent }, 1, 1);
+    public static Texture Empty => _empty ??= new Texture([Color.Transparent], 1, 1);
 
     public uint Id => Texture2D.Id;
 
@@ -63,7 +65,7 @@ public sealed unsafe class Texture
 
     public Image ToImage()
     {
-        if (_owner is WritableTexture buffer && Graphics.IsCurrentBuffer(buffer))
+        if (_owner is WritableTexture buffer && Graphics.IsBufferCurrent(buffer))
             Graphics.DrawCurrentBuffer();
         var image = Raylib.LoadImageFromTexture(Texture2D);
         if (Writable)
@@ -81,9 +83,6 @@ public sealed unsafe class Texture
     {
         if (_owner is not null)
             return;
-        Game.Defer(() =>
-        {
-            Raylib.UnloadTexture(Texture2D);
-        });
+        Game.Defer(() => Raylib.UnloadTexture(Texture2D));
     }
 }

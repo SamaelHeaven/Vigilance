@@ -492,11 +492,15 @@ public sealed unsafe class Game
         var height = (int)(
             _config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.Y : _config.ScreenSize.Y
         );
-        Raylib.InitWindow(0, 0, _config.Title);
         if (Platform.Desktop.IsCurrent())
         {
+            Raylib.InitWindow(0, 0, _config.Title);
             Raylib.SetWindowPosition((Raylib.GetScreenWidth() - width) / 2, (Raylib.GetScreenHeight() - height) / 2);
             Raylib.SetWindowSize(width, height);
+        }
+        else
+        {
+            Raylib.InitWindow(width, height, _config.Title);
         }
 
         if (Platform.Desktop.IsCurrent() && _config.MinSize.HasValue)

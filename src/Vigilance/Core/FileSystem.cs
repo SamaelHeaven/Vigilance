@@ -139,13 +139,14 @@ public static unsafe partial class FileSystem
         return ms.ToArray();
     }
 
-    public static bool WriteBytes(string path, ReadOnlySpan<byte> bytes)
+    public static bool WriteBytes(string path, IEnumerable<byte> bytes)
     {
         path = FormatPath(path);
+        var span = bytes.AsSpan();
         using var pathBuffer = path.ToUtf8Buffer();
-        fixed (byte* byteBuffer = bytes)
+        fixed (byte* byteBuffer = span)
         {
-            return Raylib.SaveFileData(pathBuffer.AsPointer(), byteBuffer, bytes.Length);
+            return Raylib.SaveFileData(pathBuffer.AsPointer(), byteBuffer, span.Length);
         }
     }
 
