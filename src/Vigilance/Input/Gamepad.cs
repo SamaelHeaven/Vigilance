@@ -1,4 +1,4 @@
-﻿using Raylib_cs;
+﻿using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 
 namespace Vigilance.Input;
@@ -154,7 +154,7 @@ public sealed class Gamepad
             Platform.Web => JSEngine.Eval(
                 $"navigator.getGamepads()[{id}]?.buttons[{button.GetJSValue()}]?.pressed ?? false"
             ),
-            _ => Raylib.IsGamepadButtonDown(id, (Raylib_cs.GamepadButton)button),
+            _ => Raylib.IsGamepadButtonDown(id, (Raylib_cs.BleedingEdge.GamepadButton)button),
         };
     }
 
@@ -163,7 +163,7 @@ public sealed class Gamepad
         return Game.Platform switch
         {
             Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{id}]?.axes[{axis.GetJSValue()}] ?? 0"),
-            _ => Raylib.GetGamepadAxisMovement(id, (Raylib_cs.GamepadAxis)axis),
+            _ => Raylib.GetGamepadAxisMovement(id, (Raylib_cs.BleedingEdge.GamepadAxis)axis),
         };
     }
 }

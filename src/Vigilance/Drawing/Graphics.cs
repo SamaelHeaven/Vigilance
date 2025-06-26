@@ -1,5 +1,5 @@
 using System.Numerics;
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 using Transform = Vigilance.Math.Transform;
@@ -201,7 +201,7 @@ public sealed unsafe class Graphics
         if (color == Color.Transparent)
             return;
         BeginDrawing(camera);
-        Raylib.DrawRectangleRec(new Raylib_cs.Rectangle(position, size), color.RColor);
+        Raylib.DrawRectangleRec(new Raylib_cs.BleedingEdge.Rectangle(position, size), color.RColor);
         EndDrawing();
     }
 
@@ -234,7 +234,7 @@ public sealed unsafe class Graphics
         if (color == Color.Transparent || strokeWidth <= 0)
             return;
         BeginDrawing(camera);
-        Raylib.DrawRectangleLinesEx(new Raylib_cs.Rectangle(position, size), strokeWidth, color.RColor);
+        Raylib.DrawRectangleLinesEx(new Raylib_cs.BleedingEdge.Rectangle(position, size), strokeWidth, color.RColor);
         EndDrawing();
     }
 
@@ -267,7 +267,7 @@ public sealed unsafe class Graphics
         if (color == Color.Transparent)
             return;
         BeginDrawing(camera);
-        Raylib.DrawRectangleRounded(new Raylib_cs.Rectangle(position, size), roundness, 0, color.RColor);
+        Raylib.DrawRectangleRounded(new Raylib_cs.BleedingEdge.Rectangle(position, size), roundness, 0, color.RColor);
         EndDrawing();
     }
 
@@ -309,7 +309,7 @@ public sealed unsafe class Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRoundedLinesEx(
-            new Raylib_cs.Rectangle(position, size),
+            new Raylib_cs.BleedingEdge.Rectangle(position, size),
             roundness,
             0,
             strokeWidth,
@@ -724,8 +724,8 @@ public sealed unsafe class Graphics
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing))
             Raylib.DrawTexturePro(
                 font.Atlas.Texture2D,
-                new Raylib_cs.Rectangle(source.Position, source.Size),
-                new Raylib_cs.Rectangle(dest.Position + position, dest.Size),
+                new Raylib_cs.BleedingEdge.Rectangle(source.Position, source.Size),
+                new Raylib_cs.BleedingEdge.Rectangle(dest.Position + position, dest.Size),
                 new Vector2(),
                 0,
                 rColor
@@ -771,8 +771,8 @@ public sealed unsafe class Graphics
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, glyphInfos))
             Raylib.DrawTexturePro(
                 atlas.Texture2D,
-                new Raylib_cs.Rectangle(source.Position, source.Size),
-                new Raylib_cs.Rectangle(dest.Position + position, dest.Size),
+                new Raylib_cs.BleedingEdge.Rectangle(source.Position, source.Size),
+                new Raylib_cs.BleedingEdge.Rectangle(dest.Position + position, dest.Size),
                 new Vector2(),
                 0,
                 rColor
@@ -873,13 +873,13 @@ public sealed unsafe class Graphics
     {
         Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
         BeginDrawing(camera);
-        var rSource = new Raylib_cs.Rectangle(
+        var rSource = new Raylib_cs.BleedingEdge.Rectangle(
             source.X,
             source.Y,
             source.Width,
             texture.Writable ? -source.Height : source.Height
         );
-        var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
+        var rDest = new Raylib_cs.BleedingEdge.Rectangle(dest.Position, dest.Size);
         Raylib.DrawTexturePro(texture.Texture2D, rSource, rDest, Vector2.Zero, 0, (tint ?? Color.White).RColor);
         EndDrawing();
     }
@@ -1172,14 +1172,12 @@ public sealed unsafe class Graphics
                 Raylib.EndScissorMode();
             _currentClip = clip;
             if (clip.HasValue)
-            {
                 Raylib.BeginScissorMode(
                     (int)clip.Value.X.Round(),
                     (int)clip.Value.Y.Round(),
                     (int)clip.Value.Width.Round(),
                     (int)clip.Value.Height.Round()
                 );
-            }
         }
 
         var matrix3X2 = GetMatrix();

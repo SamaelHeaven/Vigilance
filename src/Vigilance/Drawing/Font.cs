@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using FreeTypeSharp;
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 

@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 
 namespace Vigilance.Input;

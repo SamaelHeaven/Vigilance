@@ -1,4 +1,4 @@
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -6,9 +6,9 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Image
 {
-    internal Raylib_cs.Image RImage;
+    internal Raylib_cs.BleedingEdge.Image RImage;
 
-    internal Image(Raylib_cs.Image image)
+    internal Image(Raylib_cs.BleedingEdge.Image image)
     {
         Game.EnsureRunning();
         RImage = image;
@@ -112,7 +112,7 @@ public sealed unsafe class Image
 
     public Image Crop(Vector2 position, Vector2 size)
     {
-        Raylib.ImageCrop(ref RImage, new Raylib_cs.Rectangle(position, size));
+        Raylib.ImageCrop(ref RImage, new Raylib_cs.BleedingEdge.Rectangle(position, size));
         return this;
     }
 
@@ -150,7 +150,8 @@ public sealed unsafe class Image
 
     public Image KernelConvolution(float[] kernel)
     {
-        Raylib.ImageKernelConvolution(ref RImage, kernel);
+        var span = kernel.AsSpan();
+        Raylib.ImageKernelConvolution(ref RImage, span, kernel.Length);
         return this;
     }
 

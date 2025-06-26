@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Text.Json;
 
 namespace Vigilance.Core;
 
@@ -91,13 +90,5 @@ public readonly struct JSResult
     public override string ToString()
     {
         return Value;
-    }
-}
-
-public static class StringExtensions
-{
-    public static string ToJson(this string str)
-    {
-        return $"\"{JsonEncodedText.Encode(str)}\"";
     }
 }

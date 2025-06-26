@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 
 namespace Vigilance.Core;
 
@@ -17,11 +17,12 @@ public static unsafe partial class FileSystem
     }
 
     public static string ApplicationDirectory { get; } =
-        FormatPath(Utf8StringUtils.GetUTF8String(Raylib.GetApplicationDirectory()));
+        FormatPath(Marshal.PtrToStringUTF8((nint)Raylib.GetApplicationDirectory()) ?? "");
 
     public static string WorkingNamespace { get; set; } = "";
 
-    public static string WorkingDirectory => FormatPath(Utf8StringUtils.GetUTF8String(Raylib.GetWorkingDirectory()));
+    public static string WorkingDirectory =>
+        FormatPath(Marshal.PtrToStringUTF8((nint)Raylib.GetWorkingDirectory()) ?? "");
 
     public static string[] DroppedFiles => !Raylib.IsFileDropped() ? Array.Empty<string>() : Raylib.GetDroppedFiles();
 
@@ -77,7 +78,7 @@ public static unsafe partial class FileSystem
         path = FormatPath(path);
         return !FileExists(path)
             ? DateTime.MinValue
-            : DateTimeOffset.FromUnixTimeSeconds(Raylib.GetFileModTime(path)).UtcDateTime;
+            : DateTimeOffset.FromUnixTimeSeconds(GetFileModTime(path)).UtcDateTime;
     }
 
     public static int GetFileSize(string path)
@@ -96,7 +97,7 @@ public static unsafe partial class FileSystem
             return "";
         using var buffer = path.ToUtf8Buffer();
         var bytes = Raylib.LoadFileText(buffer.AsPointer());
-        var result = Utf8StringUtils.GetUTF8String(bytes);
+        var result = Marshal.PtrToStringUTF8((nint)bytes) ?? "";
         Raylib.UnloadFileText(bytes);
         return result;
     }
@@ -119,8 +120,7 @@ public static unsafe partial class FileSystem
         path = FormatPath(path);
         if (!FileExists(path))
             return Array.Empty<byte>();
-        var bytesRead = 0;
-        var data = Raylib.LoadFileData(path, ref bytesRead);
+        var data = Raylib.LoadFileData(path, out var bytesRead);
         var bytes = new byte[bytesRead];
         Marshal.Copy((nint)data, bytes, 0, bytesRead);
         Raylib.UnloadFileData(data);
@@ -158,11 +158,14 @@ public static unsafe partial class FileSystem
         var count = filePathList.Count;
         var result = new string[count];
         for (var i = 0; i < count; i++)
-            result[i] = FormatPath(Utf8StringUtils.GetUTF8String((sbyte*)filePathList.Paths[i]));
+            result[i] = FormatPath(Marshal.PtrToStringUTF8((nint)filePathList.Paths[i]) ?? "");
         Raylib.UnloadDirectoryFiles(filePathList);
         return result;
     }
 
     [GeneratedRegex(@"(\/{2,})")]
     private static partial Regex DuplicatedSlashRegex();
+
+    [LibraryImport("raylib", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial long GetFileModTime(string path);
 }

@@ -1,4 +1,4 @@
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -7,8 +7,8 @@ namespace Vigilance.Drawing;
 public sealed class Renderer
 {
     private static Renderer? _renderer;
-    private WritableTexture? _buffer;
     private readonly Graphics _graphics;
+    private WritableTexture? _buffer;
     private Vector2 _offset;
     private Vector2 _scale;
 
@@ -99,10 +99,10 @@ public sealed class Renderer
         else
         {
             var texture = renderer._buffer.Texture.Texture2D;
-            var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
-            var dest = new Raylib_cs.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
+            var source = new Raylib_cs.BleedingEdge.Rectangle(0, 0, texture.Width, -texture.Height);
+            var dest = new Raylib_cs.BleedingEdge.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
             Raylib.SetTextureFilter(texture, (TextureFilter)mode.Interpolation);
-            Raylib.DrawTexturePro(texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
+            Raylib.DrawTexturePro(texture, source, dest, Vector2.Zero, 0, Raylib_cs.BleedingEdge.Color.White);
         }
 
         Graphics.DrawCurrentBuffer();

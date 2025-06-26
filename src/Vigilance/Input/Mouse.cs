@@ -1,4 +1,4 @@
-﻿using Raylib_cs;
+﻿using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 using Vector2 = Vigilance.Math.Vector2;
@@ -141,7 +141,7 @@ public sealed class Mouse
         _scroll = Raylib.GetMouseWheelMoveV();
         _currentButtons.Clear();
         foreach (var button in ButtonValues)
-            if (Raylib.IsMouseButtonDown((Raylib_cs.MouseButton)button))
+            if (Raylib.IsMouseButtonDown((Raylib_cs.BleedingEdge.MouseButton)button))
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
         _pressedButtons.AddRange(_currentButtons);

@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Exception = System.Exception;
 
 namespace Vigilance.Drawing;
@@ -37,7 +37,7 @@ public struct Color
     public byte B { get; set; }
     public byte A { get; set; }
 
-    internal Color(Raylib_cs.Color color)
+    internal Color(Raylib_cs.BleedingEdge.Color color)
         : this(color.R, color.G, color.B, color.A) { }
 
     public Color(byte r, byte g, byte b, byte a = 255)
@@ -116,7 +116,7 @@ public struct Color
         a = A;
     }
 
-    internal Raylib_cs.Color RColor => new(R, G, B, A);
+    internal Raylib_cs.BleedingEdge.Color RColor => new(R, G, B, A);
 
     public override string ToString()
     {

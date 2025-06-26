@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Raylib_cs;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Logging;
@@ -382,7 +382,7 @@ public sealed unsafe class Game
         Graphics.Reset();
         Graphics.DrawCurrentBuffer();
         var data = Rlgl.ReadScreenPixels(ScreenWidth, ScreenHeight);
-        var rImage = new Raylib_cs.Image
+        var rImage = new Raylib_cs.BleedingEdge.Image
         {
             Data = data,
             Width = width,
@@ -520,7 +520,6 @@ public sealed unsafe class Game
 
     private static void InitializeAudio()
     {
-        Raylib.SetAudioStreamBufferSizeDefault(8192);
         if (!OperatingSystem.IsWindows())
         {
             Raylib.InitAudioDevice();
@@ -592,15 +591,15 @@ public sealed unsafe class Game
     {
         ConfigFlags flags = 0;
         if (_config.Resizable)
-            flags |= ConfigFlags.ResizableWindow;
+            flags |= ConfigFlags.WindowResizable;
         if (!_config.Decorated)
-            flags |= ConfigFlags.UndecoratedWindow;
+            flags |= ConfigFlags.WindowUndecorated;
         if (_config.Vsync)
             flags |= ConfigFlags.VSyncHint;
         if (_config.RunMinimized)
-            flags |= ConfigFlags.AlwaysRunWindow;
+            flags |= ConfigFlags.WindowAlwaysRun;
         if (_config.Msaa4X)
-            flags |= ConfigFlags.Msaa4xHint;
+            flags |= ConfigFlags.Msaa4XHint;
         return flags;
     }
 
@@ -619,9 +618,9 @@ public sealed unsafe class Game
     }
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
-    private static void UnmanagedLog(int logLevel, sbyte* format, sbyte* args)
+    private static void UnmanagedLog(TraceLogLevel logLevel, sbyte* format, nint args)
     {
-        var message = Raylib_cs.Logging.GetLogMessage((nint)format, (nint)args);
+        var message = Variadic.FormatString((nint)format, args);
         Log((LogLevel)logLevel, message);
     }
 }
