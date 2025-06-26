@@ -1180,32 +1180,33 @@ public sealed unsafe class Graphics
                 );
         }
 
-        var matrix3X2 = GetMatrix();
+        var matrix = GetMatrix();
         Rlgl.PushMatrix();
         Rlgl.Translatef(offset.X, offset.Y, 0);
         Rlgl.Scalef(scale.X, scale.Y, 1);
         Rlgl.Translatef(0.375f, 0.375f, 0);
         if (camera is not null)
-            matrix3X2 *= camera.Matrix;
-        var matrix4X4 = new Matrix4x4(
-            matrix3X2.M11,
-            matrix3X2.M12,
-            0,
-            0,
-            matrix3X2.M21,
-            matrix3X2.M22,
-            0,
-            0,
-            0,
-            0,
-            1,
-            0,
-            matrix3X2.M31,
-            matrix3X2.M32,
-            0,
-            1
+            matrix *= camera.Matrix;
+        Rlgl.MultMatrixf(
+            new Matrix4x4(
+                matrix.M11,
+                matrix.M12,
+                0,
+                0,
+                matrix.M21,
+                matrix.M22,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                matrix.M31,
+                matrix.M32,
+                0,
+                1
+            )
         );
-        Rlgl.MultMatrixf(&matrix4X4.M11);
     }
 
     public void EndDrawing()
