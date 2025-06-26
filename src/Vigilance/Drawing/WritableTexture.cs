@@ -38,8 +38,8 @@ public sealed class WritableTexture
 
     public void Update(ReadOnlySpan<Color> pixels)
     {
-        if (Graphics.CurrentBuffer == this)
-            Graphics.DrawRenderBatchActive();
+        if (Graphics.IsCurrentBuffer(this))
+            Graphics.DrawCurrentBuffer();
         Raylib.UpdateTexture(RenderTexture2D.Texture, pixels);
     }
 

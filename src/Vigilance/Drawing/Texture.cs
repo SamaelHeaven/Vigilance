@@ -63,9 +63,8 @@ public sealed unsafe class Texture
 
     public Image ToImage()
     {
-        var buffer = Graphics.CurrentBuffer;
-        if (_owner is not null && buffer == _owner)
-            Graphics.DrawRenderBatchActive();
+        if (_owner is WritableTexture buffer && Graphics.IsCurrentBuffer(buffer))
+            Graphics.DrawCurrentBuffer();
         var image = Raylib.LoadImageFromTexture(Texture2D);
         if (Writable)
             Raylib.ImageFlipVertical(ref image);

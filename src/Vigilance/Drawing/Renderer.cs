@@ -110,7 +110,7 @@ public sealed class Renderer
             Raylib.DrawRectangle(0, screenHeight - offsetY, screenWidth, offsetY, background);
         }
 
-        Graphics.DrawRenderBatchActive();
+        Graphics.DrawCurrentBuffer();
         Raylib.SwapScreenBuffer();
     }
 

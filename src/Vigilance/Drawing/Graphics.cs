@@ -9,8 +9,8 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Graphics
 {
-    internal static WritableTexture? CurrentBuffer = null;
-    internal static Box? CurrentClip = null;
+    private static WritableTexture? _currentBuffer = null;
+    private static Box? _currentClip = null;
     private readonly WritableTexture? _buffer;
     private readonly Stack<Matrix3x2> _matrixStack = new();
     private Box? _clip = null;
@@ -610,7 +610,7 @@ public sealed unsafe class Graphics
         var changeLineWidth = !Precision.AreEqual(lineWidth, strokeWidth);
         if (changeLineWidth)
         {
-            DrawRenderBatchActive();
+            DrawCurrentBuffer();
             Rlgl.SetLineWidth(strokeWidth);
         }
 
@@ -619,7 +619,7 @@ public sealed unsafe class Graphics
         EndDrawing();
         if (!changeLineWidth)
             return;
-        DrawRenderBatchActive();
+        DrawCurrentBuffer();
         Rlgl.SetLineWidth(lineWidth);
     }
 
@@ -1155,13 +1155,13 @@ public sealed unsafe class Graphics
         _drawing = true;
         var offset = Renderer.Offset;
         var scale = Renderer.Scale;
-        if (CurrentBuffer != _buffer)
+        if (_currentBuffer != _buffer)
         {
-            if (CurrentBuffer is null)
-                DrawRenderBatchActive();
+            if (_currentBuffer is null)
+                DrawCurrentBuffer();
             else
                 Raylib.EndTextureMode();
-            CurrentBuffer = _buffer;
+            _currentBuffer = _buffer;
             if (_buffer is not null)
                 Raylib.BeginTextureMode(_buffer.RenderTexture2D);
         }
@@ -1169,33 +1169,19 @@ public sealed unsafe class Graphics
         var clip = _clip;
         if (clip is not null)
             clip = new Box(clip.Value.Position * scale + offset, clip.Value.Size * scale);
-        if (!Precision.AreEqual(CurrentClip, clip))
+        if (!Precision.AreEqual(_currentClip, clip))
         {
-            if (CurrentClip.HasValue)
+            if (_currentClip.HasValue)
                 Raylib.EndScissorMode();
-            CurrentClip = clip;
+            _currentClip = clip;
             if (clip.HasValue)
             {
-                if (OperatingSystem.IsMacOS() && _buffer is null && Game.Fullscreen)
-                {
-                    DrawRenderBatchActive();
-                    Rlgl.EnableScissorTest();
-                    Rlgl.Scissor(
-                        (int)clip.Value.X.Round(),
-                        (int)(Game.ScreenHeight - (clip.Value.Y + clip.Value.Height)).Round(),
-                        (int)clip.Value.Width.Round(),
-                        (int)clip.Value.Height.Round()
-                    );
-                }
-                else
-                {
-                    Raylib.BeginScissorMode(
-                        (int)clip.Value.X.Round(),
-                        (int)clip.Value.Y.Round(),
-                        (int)clip.Value.Width.Round(),
-                        (int)clip.Value.Height.Round()
-                    );
-                }
+                Raylib.BeginScissorMode(
+                    (int)clip.Value.X.Round(),
+                    (int)clip.Value.Y.Round(),
+                    (int)clip.Value.Width.Round(),
+                    (int)clip.Value.Height.Round()
+                );
             }
         }
 
@@ -1238,21 +1224,26 @@ public sealed unsafe class Graphics
 
     #region Internal
 
+    internal static bool IsCurrentBuffer(WritableTexture? buffer)
+    {
+        return _currentBuffer == buffer;
+    }
+    
     internal static void Reset()
     {
-        if (CurrentBuffer is not null)
+        if (_currentBuffer is not null)
         {
             Raylib.EndTextureMode();
-            CurrentBuffer = null;
+            _currentBuffer = null;
         }
 
-        if (!CurrentClip.HasValue)
+        if (!_currentClip.HasValue)
             return;
         Raylib.EndScissorMode();
-        CurrentClip = null;
+        _currentClip = null;
     }
 
-    internal static void DrawRenderBatchActive()
+    internal static void DrawCurrentBuffer()
     {
         Rlgl.DrawRenderBatchActive();
     }

@@ -380,7 +380,7 @@ public sealed unsafe class Game
         var width = ScreenWidth;
         var height = ScreenHeight;
         Graphics.Reset();
-        Graphics.DrawRenderBatchActive();
+        Graphics.DrawCurrentBuffer();
         var data = Rlgl.ReadScreenPixels(ScreenWidth, ScreenHeight);
         var rImage = new Raylib_cs.Image
         {
@@ -507,7 +507,7 @@ public sealed unsafe class Game
             Maximize();
         if (_config.Fullscreen)
             ToggleFullscreen();
-        if (!Platform.Desktop.IsCurrent() && OperatingSystem.IsMacOS() && _config.Icon is null)
+        if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon is null)
             return;
         var image = _config.Icon!.Invoke().Copy();
         image.Format = ImageFormat.UncompressedR8G8B8A8;
