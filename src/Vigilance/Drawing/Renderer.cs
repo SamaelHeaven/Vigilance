@@ -22,7 +22,7 @@ public sealed class Renderer
     }
 
     public static Graphics Graphics => GetRenderer()._graphics;
-    
+
     public static Vector2 Offset
     {
         get

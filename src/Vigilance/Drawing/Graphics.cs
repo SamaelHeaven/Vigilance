@@ -1230,7 +1230,7 @@ public sealed unsafe class Graphics
     {
         return _currentBuffer == buffer;
     }
-    
+
     internal static void Reset()
     {
         if (_currentBuffer is not null)
