@@ -2,5 +2,5 @@ namespace Vigilance.Net;
 
 internal interface IHttpClient
 {
-    public void Fetch(HttpRequest request);
+    void Fetch(HttpRequest request);
 }

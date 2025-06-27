@@ -4,5 +4,5 @@ public delegate IEnumerable<ISystem> SystemsFunc();
 
 public interface ISystem
 {
-    public void Configure(Scene scene);
+    void Configure(Scene scene);
 }
