@@ -366,6 +366,13 @@ public sealed unsafe class Game
             Raylib.MinimizeWindow();
     }
 
+    public static void Restore()
+    {
+        EnsureRunning();
+        if (Platform.Desktop.IsCurrent() && (Maximized || Minimized))
+            Raylib.RestoreWindow();
+    }
+
     public static void Focus()
     {
         EnsureRunning();
@@ -402,6 +409,8 @@ public sealed unsafe class Game
         }
         else if (Platform.Desktop.IsCurrent())
         {
+            var monitor = Raylib.GetCurrentMonitor();
+            var monitorSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
             if (Fullscreen)
             {
                 game._resetScreen = true;
@@ -409,11 +418,20 @@ public sealed unsafe class Game
             else
             {
                 game._previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
-                var monitor = Raylib.GetCurrentMonitor();
-                ScreenSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
+                if (OperatingSystem.IsMacOS() && !Raylib.IsWindowMaximized())
+                    Raylib.MaximizeWindow();
+                ScreenSize = monitorSize;
             }
 
-            Raylib.ToggleFullscreen();
+            var fullscreen = Fullscreen;
+            var screenSize = ScreenSize;
+            if (
+                !OperatingSystem.IsMacOS()
+                || fullscreen
+                || screenSize != monitorSize
+                || (Vector2)Raylib.GetWindowPosition() != Vector2.Zero
+            )
+                Raylib.ToggleFullscreen();
         }
     }
 
@@ -520,6 +538,7 @@ public sealed unsafe class Game
 
     private static void InitializeAudio()
     {
+        Raylib.SetAudioStreamBufferSizeDefault(8192);
         if (!OperatingSystem.IsWindows())
         {
             Raylib.InitAudioDevice();
@@ -566,6 +585,8 @@ public sealed unsafe class Game
         if (!_resetScreen)
             return;
         _resetScreen = false;
+        if (OperatingSystem.IsMacOS())
+            Raylib.SetWindowPosition(1, 1);
         Raylib.SetWindowPosition((int)_previousScreen.Position.X, (int)_previousScreen.Position.Y);
         ScreenSize = _previousScreen.Size;
     }
@@ -611,13 +632,13 @@ public sealed unsafe class Game
         Environment.Exit(0);
     }
 
-    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void UnmanagedFrame()
     {
         GetGame().Frame();
     }
 
-    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void UnmanagedLog(TraceLogLevel logLevel, sbyte* format, nint args)
     {
         var message = Variadic.FormatString((nint)format, args);

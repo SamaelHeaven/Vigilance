@@ -1,4 +1,5 @@
-﻿using Raylib_cs.BleedingEdge;
+﻿using System.Runtime.InteropServices;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 
 namespace Vigilance.Input;
@@ -136,14 +137,14 @@ public sealed class Gamepad
         };
     }
 
-    private string GetName()
+    private unsafe string GetName()
     {
         if (!Connected)
             return DefaultName;
         return Game.Platform switch
         {
             Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{Id}]?.id ?? {DefaultName.ToJson()}"),
-            _ => Raylib.GetGamepadName_(Id),
+            _ => Marshal.PtrToStringUTF8((nint)Raylib.GetGamepadName(Id)) ?? DefaultName,
         };
     }
 

@@ -8,7 +8,7 @@ public sealed class Renderer
 {
     private static Renderer? _renderer;
     private readonly Graphics _graphics;
-    private WritableTexture? _buffer;
+    private readonly WritableTexture? _buffer;
     private Vector2 _offset;
     private Vector2 _scale;
 
@@ -62,17 +62,6 @@ public sealed class Renderer
                 _ => throw new ArgumentOutOfRangeException(),
             }
         ).Ceil();
-        if (!OperatingSystem.IsMacOS() || Game.RenderingMode.ModeType != RenderingModeType.Screen)
-            return;
-        if (Game.Fullscreen)
-        {
-            renderer._buffer ??= new WritableTexture(Game.Size);
-            renderer._graphics.SetBuffer(renderer._buffer);
-            return;
-        }
-
-        renderer._buffer = null;
-        renderer._graphics.SetBuffer(renderer._buffer);
     }
 
     internal static void EndDrawing()
