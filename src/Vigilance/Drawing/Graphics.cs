@@ -11,8 +11,8 @@ public sealed unsafe class Graphics
 {
     private static WritableTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
-    private readonly Stack<Matrix3x2> _matrixStack = new();
     private readonly WritableTexture? _buffer;
+    private readonly Stack<Matrix3x2> _matrixStack = new();
     private Box? _clip = null;
     private bool _drawing = false;
     private Matrix3x2 _matrix = Matrix3x2.Identity;
@@ -50,11 +50,83 @@ public sealed unsafe class Graphics
 
     #endregion
 
+    #region Bounds
+
+    public Box GetBounds(Camera? camera = null, float offset = 0)
+    {
+        return GetBounds(GetMatrix(camera), offset);
+    }
+
+    public Box GetBounds(Matrix3x2 matrix, float offset = 0)
+    {
+        if (!Precision.AreEqual(offset, 0))
+        {
+            var scaleX = MathF.Sqrt(matrix.M11 * matrix.M11 + matrix.M12 * matrix.M12);
+            var scaleY = MathF.Sqrt(matrix.M21 * matrix.M21 + matrix.M22 * matrix.M22);
+            offset *= MathF.Max(scaleX, scaleY);
+        }
+
+        var clip = GetClip();
+        return new Box(
+            (clip?.Position ?? Vector2.Zero) - offset,
+            (clip?.Size ?? _buffer?.Size ?? Game.Size) + offset * 2
+        );
+    }
+
+    public bool IsBoxInBounds(float x, float y, float width, float height, Camera? camera, float offset = 0)
+    {
+        return IsBoxInBounds(new Box(x, y, width, height), camera, offset);
+    }
+
+    public bool IsBoxInBounds(Vector2 position, Vector2 size, Camera? camera, float offset = 0)
+    {
+        return IsBoxInBounds(new Box(position, size), camera, offset);
+    }
+
+    public bool IsBoxInBounds(Box box, Camera? camera, float offset = 0)
+    {
+        var matrix = GetMatrix(camera);
+        return Collision.CheckPolygonsSpan(box.Transform(matrix), (Quad)GetBounds(matrix, offset));
+    }
+
+    public bool IsPolygonInBounds(IEnumerable<Vector2> points, Camera? camera, float offset = 0)
+    {
+        return IsPolygonInBoundsSpan(points.AsSpan(), camera, offset);
+    }
+
+    public bool IsPolygonInBoundsSpan(ReadOnlySpan<Vector2> points, Camera? camera, float offset = 0)
+    {
+        var matrix = GetMatrix(camera);
+        if (points.Length > 64)
+        {
+            var transformedPoints = new Vector2[points.Length];
+            for (var i = 0; i < points.Length; i++)
+                transformedPoints[i] = points[i].Transform(matrix);
+            points = transformedPoints;
+        }
+        else
+        {
+            var transformedPoints = stackalloc Vector2[points.Length];
+            for (var i = 0; i < points.Length; i++)
+                transformedPoints[i] = points[i].Transform(matrix);
+            points = new ReadOnlySpan<Vector2>(transformedPoints, points.Length);
+        }
+
+        return Collision.CheckPolygonsSpan(points, (Quad)GetBounds(matrix, offset));
+    }
+
+    #endregion
+
     #region Matrix
 
     public Matrix3x2 GetMatrix()
     {
         return _matrixStack.Count == 0 ? _matrix : _matrixStack.Peek();
+    }
+
+    public Matrix3x2 GetMatrix(Camera? camera)
+    {
+        return camera is not null ? GetMatrix() * camera.Matrix : GetMatrix();
     }
 
     public void LoadIdentity()
@@ -198,7 +270,7 @@ public sealed unsafe class Graphics
 
     public void FillRectangle(Vector2 position, Vector2 size, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || !IsBoxInBounds(position, size, camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRec(new Raylib_cs.BleedingEdge.Rectangle(position, size), color.RColor);
@@ -231,7 +303,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
+        if (color == Color.Transparent || strokeWidth <= 0 || !IsBoxInBounds(position, size, camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleLinesEx(new Raylib_cs.BleedingEdge.Rectangle(position, size), strokeWidth, color.RColor);
@@ -264,7 +336,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || !IsBoxInBounds(position, size, camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRounded(new Raylib_cs.BleedingEdge.Rectangle(position, size), roundness, 0, color.RColor);
@@ -305,7 +377,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
+        if (color == Color.Transparent || strokeWidth <= 0 || !IsBoxInBounds(position, size, camera, strokeWidth))
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRoundedLinesEx(
@@ -323,10 +395,13 @@ public sealed unsafe class Graphics
         var camera = rectangle.Camera?.Invoke();
         var fill = rectangle.Fill;
         var stroke = rectangle.Stroke;
-        var roundness = rectangle.Roundness;
-        var strokeWidth = MathF.Max(0, rectangle.StrokeWidth);
+        var roundness = rectangle.Roundness.Abs();
         var position = transform.Position;
         var scale = transform.Scale.Abs();
+        var strokeWidth = MathF.Max(
+            0,
+            MathF.Min(MathF.Min(scale.X, scale.Y) * 0.5f - (roundness > 0 ? 0.375f : 0), rectangle.StrokeWidth)
+        );
         PushMatrix();
         Pivot(transform, true);
         if (roundness > 0)
@@ -356,7 +431,7 @@ public sealed unsafe class Graphics
 
     public void FillCircle(Vector2 center, float radius, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawCircleV(center, radius, color.RColor);
@@ -370,7 +445,11 @@ public sealed unsafe class Graphics
 
     public void StrokeCircle(Vector2 center, float radius, Color color, float strokeWidth = 1, Camera? camera = null)
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
+        if (
+            color == Color.Transparent
+            || strokeWidth <= 0
+            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
+        )
             return;
         BeginDrawing(camera);
         Raylib.DrawRing(center, radius - strokeWidth, radius + 1, 0, 360, 0, color.RColor);
@@ -399,7 +478,12 @@ public sealed unsafe class Graphics
 
     public void FillTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color, Camera? camera = null)
     {
-        FillCustomPolygon([v1, v2, v3], color, camera);
+        var points = stackalloc Vector2[3];
+        points[0] = v1;
+        points[1] = v2;
+        points[2] = v3;
+        var span = new ReadOnlySpan<Vector2>(points, 3);
+        FillCustomPolygonSpan(span, color, camera);
     }
 
     public void StrokeTriangle(
@@ -411,22 +495,33 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        StrokeCustomPolygon([v1, v2, v3], color, strokeWidth, camera);
+        var points = stackalloc Vector2[3];
+        points[0] = v1;
+        points[1] = v2;
+        points[2] = v3;
+        var span = new ReadOnlySpan<Vector2>(points, 3);
+        StrokeCustomPolygonSpan(span, color, strokeWidth, camera);
     }
 
     public void DrawTriangle(Transform transform, Triangle triangle)
     {
-        DrawCustomPolygon(
-            transform,
-            new CustomPolygon
-            {
-                Points = [triangle.V1, triangle.V2, triangle.V3],
-                Fill = triangle.Fill,
-                Stroke = triangle.Stroke,
-                StrokeWidth = triangle.StrokeWidth,
-                Camera = triangle.Camera,
-            }
-        );
+        var camera = triangle.Camera?.Invoke();
+        var position = transform.Position;
+        var scale = transform.Scale;
+        var scaledPoints = Coordinates.Scale(triangle.Points.ToArray(), scale, position);
+        var fill = triangle.Fill;
+        var stroke = triangle.Stroke;
+        var strokeWidth = triangle.StrokeWidth;
+        PushMatrix();
+        Pivot(transform, false);
+        var points = stackalloc Vector2[3];
+        var i = 0;
+        foreach (var point in scaledPoints)
+            points[i++] = point;
+        var span = new ReadOnlySpan<Vector2>(points, 3);
+        FillCustomPolygonSpan(span, fill, camera);
+        StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+        PopMatrix();
     }
 
     #endregion
@@ -440,7 +535,7 @@ public sealed unsafe class Graphics
 
     public void FillRegularPolygon(Vector2 center, int sides, float radius, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawPoly(center, sides, radius, 0, color.RColor);
@@ -469,10 +564,14 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
+        if (
+            color == Color.Transparent
+            || strokeWidth <= 0
+            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
+        )
             return;
         BeginDrawing(camera);
-        Raylib.DrawPolyLinesEx(center, sides, radius, 0, strokeWidth, color.RColor);
+        Raylib.DrawPolyLinesEx(center, sides, radius, 0, MathF.Min(radius, strokeWidth), color.RColor);
         EndDrawing();
     }
 
@@ -495,13 +594,17 @@ public sealed unsafe class Graphics
 
     public void FillCustomPolygon(IEnumerable<Vector2> points, Color color, Camera? camera = null)
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 3)
+        FillCustomPolygonSpan(points.AsSpan(), color, camera);
+    }
+
+    public void FillCustomPolygonSpan(ReadOnlySpan<Vector2> points, Color color, Camera? camera = null)
+    {
+        if (color == Color.Transparent || points.Length < 3 || !IsPolygonInBoundsSpan(points, camera))
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, span.Length, color.RColor);
+            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, points.Length, color.RColor);
         }
 
         EndDrawing();
@@ -514,14 +617,28 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || strokeWidth <= 0 || span.Length < 3)
+        StrokeCustomPolygonSpan(points.AsSpan(), color, strokeWidth, camera);
+    }
+
+    public void StrokeCustomPolygonSpan(
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float strokeWidth = 1,
+        Camera? camera = null
+    )
+    {
+        if (
+            color == Color.Transparent
+            || strokeWidth <= 0
+            || points.Length < 3
+            || !IsPolygonInBoundsSpan(points, camera, strokeWidth * 0.5f)
+        )
             return;
         BeginDrawing(camera);
-        for (var i = 0; i < span.Length; i++)
+        for (var i = 0; i < points.Length; i++)
         {
-            var start = span[i];
-            var end = span[(i + 1) % span.Length];
+            var start = points[i];
+            var end = points[(i + 1) % points.Length];
             Raylib.DrawLineEx(start, end, strokeWidth, color.RColor);
             Raylib.DrawCircleV(start, strokeWidth * 0.5f, color.RColor);
         }
@@ -534,14 +651,28 @@ public sealed unsafe class Graphics
         var camera = polygon.Camera?.Invoke();
         var position = transform.Position;
         var scale = transform.Scale;
-        var points = Coordinates.Scale(polygon.Points, scale, position);
+        var scaledPoints = Coordinates.Scale(polygon.Points, scale, position);
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
         PushMatrix();
         Pivot(transform, false);
-        FillCustomPolygon(points, fill, camera);
-        StrokeCustomPolygon(points, stroke, strokeWidth, camera);
+        ReadOnlySpan<Vector2> span;
+        if (polygon.Points.Count > 64)
+        {
+            span = scaledPoints.AsSpan();
+        }
+        else
+        {
+            var points = stackalloc Vector2[polygon.Points.Count];
+            var i = 0;
+            foreach (var point in scaledPoints)
+                points[i++] = point;
+            span = new ReadOnlySpan<Vector2>(points, polygon.Points.Count);
+        }
+
+        FillCustomPolygonSpan(span, fill, camera);
+        StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
         PopMatrix();
     }
 
@@ -573,7 +704,8 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent)
+        var radius = MathF.Max(innerRadius, outerRadius);
+        if (color == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawRing(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
@@ -606,7 +738,12 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
+        var radius = MathF.Max(innerRadius, outerRadius);
+        if (
+            color == Color.Transparent
+            || strokeWidth <= 0
+            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera, strokeWidth * 0.5f)
+        )
             return;
         var lineWidth = Rlgl.GetLineWidth();
         var changeLineWidth = !Precision.AreEqual(lineWidth, strokeWidth);
@@ -663,7 +800,11 @@ public sealed unsafe class Graphics
 
     public void DrawLine(Vector2 start, Vector2 end, Color color, float thick = 1, Camera? camera = null)
     {
-        if (color == Color.Transparent || thick <= 0)
+        if (
+            color == Color.Transparent
+            || thick <= 0
+            || !IsPolygonInBoundsSpan(new Quad(start, start, end, end), camera, thick * 0.5f)
+        )
             return;
         BeginDrawing(camera);
         Raylib.DrawLineEx(start, end, thick, color.RColor);
@@ -718,19 +859,8 @@ public sealed unsafe class Graphics
         if (text == "" || color == Color.Transparent)
             return;
         font ??= Game.DefaultFont;
-        Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
-        BeginDrawing(camera);
-        var rColor = color.RColor;
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing))
-            Raylib.DrawTexturePro(
-                font.Atlas.Texture2D,
-                new Raylib_cs.BleedingEdge.Rectangle(source.Position, source.Size),
-                new Raylib_cs.BleedingEdge.Rectangle(dest.Position + position, dest.Size),
-                new Vector2(),
-                0,
-                rColor
-            );
-        EndDrawing();
+            DrawTexture(font.Atlas, source, new Box(dest.Position + position, dest.Size), color, interpolation, camera);
     }
 
     public void StrokeText(
@@ -765,19 +895,8 @@ public sealed unsafe class Graphics
             return;
         font ??= Game.DefaultFont;
         var (atlas, glyphInfos) = font.GetStroke((int)strokeWidth.Round());
-        Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
-        BeginDrawing(camera);
-        var rColor = color.RColor;
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, glyphInfos))
-            Raylib.DrawTexturePro(
-                atlas.Texture2D,
-                new Raylib_cs.BleedingEdge.Rectangle(source.Position, source.Size),
-                new Raylib_cs.BleedingEdge.Rectangle(dest.Position + position, dest.Size),
-                new Vector2(),
-                0,
-                rColor
-            );
-        EndDrawing();
+            DrawTexture(atlas, source, new Box(dest.Position + position, dest.Size), color, interpolation, camera);
     }
 
     public void DrawText(Transform transform, Text text)
@@ -871,6 +990,8 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
+        if (!IsBoxInBounds(dest, camera))
+            return;
         Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
         BeginDrawing(camera);
         var rSource = new Raylib_cs.BleedingEdge.Rectangle(
@@ -939,12 +1060,10 @@ public sealed unsafe class Graphics
     {
         if (color == Color.Transparent || thick <= 0)
             return;
-        BeginDrawing(camera);
         for (var x = position.X; x <= position.X + size.X; x += cellSize)
-            Raylib.DrawLineEx(new Vector2(x, position.Y), new Vector2(x, position.Y + size.Y), thick, color.RColor);
+            DrawLine(new Vector2(x, position.Y), new Vector2(x, position.Y + size.Y), color, thick, camera);
         for (var y = position.Y; y <= position.Y + size.Y; y += cellSize)
-            Raylib.DrawLineEx(new Vector2(position.X, y), new Vector2(position.X + size.X, y), thick, color.RColor);
-        EndDrawing();
+            DrawLine(new Vector2(position.X, y), new Vector2(position.X + size.X, y), color, thick, camera);
     }
 
     public void DrawGrid(Transform transform, Grid grid)
@@ -967,13 +1086,17 @@ public sealed unsafe class Graphics
 
     public void DrawSplineLinear(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 2 || thick <= 0)
+        DrawSplineLinearSpan(points.AsSpan(), color, thick, camera);
+    }
+
+    public void DrawSplineLinearSpan(ReadOnlySpan<Vector2> points, Color color, float thick = 1, Camera? camera = null)
+    {
+        if (color == Color.Transparent || points.Length < 2 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawSplineLinear((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
+            Raylib.DrawSplineLinear((System.Numerics.Vector2*)pointsBuffer, points.Length, thick, color.RColor);
         }
 
         EndDrawing();
@@ -981,13 +1104,17 @@ public sealed unsafe class Graphics
 
     public void DrawSplineBasis(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 4 || thick <= 0)
+        DrawSplineBasisSpan(points.AsSpan(), color, thick, camera);
+    }
+
+    public void DrawSplineBasisSpan(ReadOnlySpan<Vector2> points, Color color, float thick = 1, Camera? camera = null)
+    {
+        if (color == Color.Transparent || points.Length < 4 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawSplineBasis((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
+            Raylib.DrawSplineBasis((System.Numerics.Vector2*)pointsBuffer, points.Length, thick, color.RColor);
         }
 
         EndDrawing();
@@ -995,13 +1122,22 @@ public sealed unsafe class Graphics
 
     public void DrawSplineCatmullRom(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 4 || thick <= 0)
+        DrawSplineCatmullRomSpan(points.AsSpan(), color, thick, camera);
+    }
+
+    public void DrawSplineCatmullRomSpan(
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || points.Length < 4 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawSplineCatmullRom((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
+            Raylib.DrawSplineCatmullRom((System.Numerics.Vector2*)pointsBuffer, points.Length, thick, color.RColor);
         }
 
         EndDrawing();
@@ -1014,13 +1150,27 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 3 || thick <= 0)
+        DrawSplineBezierQuadraticSpan(points.AsSpan(), color, thick, camera);
+    }
+
+    public void DrawSplineBezierQuadraticSpan(
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || points.Length < 3 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawSplineBezierQuadratic((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
+            Raylib.DrawSplineBezierQuadratic(
+                (System.Numerics.Vector2*)pointsBuffer,
+                points.Length,
+                thick,
+                color.RColor
+            );
         }
 
         EndDrawing();
@@ -1028,13 +1178,22 @@ public sealed unsafe class Graphics
 
     public void DrawSplineBezierCubic(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 4 || thick <= 0)
+        DrawSplineBezierCubicSpan(points.AsSpan(), color, thick, camera);
+    }
+
+    public void DrawSplineBezierCubicSpan(
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || points.Length < 4 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawSplineBezierCubic((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
+            Raylib.DrawSplineBezierCubic((System.Numerics.Vector2*)pointsBuffer, points.Length, thick, color.RColor);
         }
 
         EndDrawing();

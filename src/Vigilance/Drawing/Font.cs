@@ -12,7 +12,7 @@ public sealed unsafe class Font
     private const int AtlasNbCols = 10;
     private static readonly FreeTypeLibrary FtLibrary = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
-    private readonly Dictionary<int, (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
+    private readonly Dictionary<int, (Texture Atlas, IReadOnlyDictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
     private nint _buffer;
     private FT_FaceRec_* _face;
     private int _spaceSize;
@@ -43,8 +43,7 @@ public sealed unsafe class Font
 
     public Texture GetStrokeAtlas(int strokeWidth)
     {
-        var stroke = GetStroke(strokeWidth);
-        return stroke.Atlas;
+        return GetStroke(strokeWidth).Atlas;
     }
 
     public GlyphInfo GetGlyphInfo(char c)
@@ -54,14 +53,12 @@ public sealed unsafe class Font
 
     public GlyphInfo GetStrokeGlyphInfo(char c, int strokeWidth)
     {
-        var stroke = GetStroke(strokeWidth);
-        return stroke.GlyphInfos[c];
+        return GetStroke(strokeWidth).GlyphInfos[c];
     }
 
     public IReadOnlyDictionary<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
     {
-        var stroke = GetStroke(strokeWidth);
-        return stroke.GlyphInfos.AsReadOnly();
+        return GetStroke(strokeWidth).GlyphInfos;
     }
 
     public IEnumerable<(Box Source, Box Dest)> GetTextBounds(
@@ -115,6 +112,30 @@ public sealed unsafe class Font
             yield return (new Box(sourcePosition, sourceSize), new Box(destPosition, destSize));
             position.X += glyph.Advance / aspectRatio + spacing.X;
         }
+    }
+
+    public (Texture Atlas, IReadOnlyDictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
+    {
+        strokeWidth = System.Math.Clamp(strokeWidth, 0, 50);
+        if (_strokes.TryGetValue(strokeWidth, out var stroke))
+            return stroke;
+        FT.FT_Stroker_Set(
+            _stroker,
+            strokeWidth * 64,
+            FT_Stroker_LineCap_.FT_STROKER_LINECAP_ROUND,
+            FT_Stroker_LineJoin_.FT_STROKER_LINEJOIN_ROUND,
+            0
+        );
+        var glyphs = Charset
+            .Select(c => LoadGlyph(c, strokeWidth))
+            .Where(g => g.HasValue)
+            .Select(g => g!.Value)
+            .ToList();
+        var glyphInfos = new Dictionary<char, GlyphInfo>();
+        var atlas = DrawAtlas(glyphs, glyphInfos);
+        var result = (atlas, glyphInfos.AsReadOnly());
+        _strokes[strokeWidth] = result;
+        return result;
     }
 
     private List<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
@@ -242,30 +263,6 @@ public sealed unsafe class Font
             _face->glyph->bitmap_top,
             stroke ?? 0
         );
-    }
-
-    internal (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
-    {
-        strokeWidth = System.Math.Clamp(strokeWidth, 0, 50);
-        if (_strokes.TryGetValue(strokeWidth, out var stroke))
-            return stroke;
-        FT.FT_Stroker_Set(
-            _stroker,
-            strokeWidth * 64,
-            FT_Stroker_LineCap_.FT_STROKER_LINECAP_ROUND,
-            FT_Stroker_LineJoin_.FT_STROKER_LINEJOIN_ROUND,
-            0
-        );
-        var glyphs = Charset
-            .Select(c => LoadGlyph(c, strokeWidth))
-            .Where(g => g.HasValue)
-            .Select(g => g!.Value)
-            .ToList();
-        var glyphInfos = new Dictionary<char, GlyphInfo>();
-        var atlas = DrawAtlas(glyphs, glyphInfos);
-        var result = (atlas, glyphInfos);
-        _strokes[strokeWidth] = result;
-        return result;
     }
 
     private static void FtEnsureOk(FT_Error error)

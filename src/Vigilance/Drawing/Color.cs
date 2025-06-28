@@ -5,7 +5,7 @@ using Exception = System.Exception;
 namespace Vigilance.Drawing;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Color
+public struct Color : IEquatable<Color>
 {
     public static Color White { get; } = new(255, 255, 255);
     public static Color Black { get; } = new(0, 0, 0);

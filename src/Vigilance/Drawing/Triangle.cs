@@ -21,4 +21,14 @@ public sealed class Triangle
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 1;
     public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+
+    public IEnumerable<Vector2> Points
+    {
+        get
+        {
+            yield return V1;
+            yield return V2;
+            yield return V3;
+        }
+    }
 }

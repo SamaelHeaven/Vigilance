@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace Vigilance.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Quad : IReadOnlyList<Vector2>
+public struct Quad : IReadOnlyList<Vector2>, IEquatable<Quad>
 {
     public Vector2 TopLeft { get; set; }
     public Vector2 BottomLeft { get; set; }
@@ -57,6 +57,11 @@ public struct Quad : IReadOnlyList<Vector2>
     )
     {
         return new Quad(quad.TopLeft, quad.BottomLeft, quad.BottomRight, quad.TopRight);
+    }
+
+    public static implicit operator Quad(Box box)
+    {
+        return new Quad(box);
     }
 
     public static unsafe implicit operator ReadOnlySpan<Vector2>(Quad quad)
@@ -188,6 +193,11 @@ public struct Quad : IReadOnlyList<Vector2>
             a.BottomRight / b.BottomRight,
             a.TopRight / b.TopRight
         );
+    }
+
+    public override string ToString()
+    {
+        return $"[{TopLeft}, {BottomLeft}, {BottomRight}, {TopRight}]";
     }
 
     public IEnumerator<Vector2> GetEnumerator()

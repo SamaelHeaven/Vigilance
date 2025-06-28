@@ -1,6 +1,8 @@
+using System.Numerics;
+
 namespace Vigilance.Math;
 
-public struct Box
+public struct Box : IEquatable<Box>
 {
     public float X { get; set; }
     public float Y { get; set; }
@@ -52,6 +54,33 @@ public struct Box
     public static implicit operator Box((Vector2 Position, Vector2 Size) box)
     {
         return new Box(box.Position, box.Size);
+    }
+
+    public Quad Transform(Matrix3x2 matrix)
+    {
+        var topLeft = new Vector2(X, Y).Transform(matrix);
+        var bottomLeft = new Vector2(X, Y + Height).Transform(matrix);
+        var bottomRight = new Vector2(X + Width, Y + Height).Transform(matrix);
+        var topRight = new Vector2(X + Width, Y).Transform(matrix);
+        return new Quad(topLeft, bottomLeft, bottomRight, topRight);
+    }
+
+    public Quad Transform(Matrix4x4 matrix)
+    {
+        var topLeft = new Vector2(X, Y).Transform(matrix);
+        var bottomLeft = new Vector2(X, Y + Height).Transform(matrix);
+        var bottomRight = new Vector2(X + Width, Y + Height).Transform(matrix);
+        var topRight = new Vector2(X + Width, Y).Transform(matrix);
+        return new Quad(topLeft, bottomLeft, bottomRight, topRight);
+    }
+
+    public Quad Transform(Quaternion quaternion)
+    {
+        var topLeft = new Vector2(X, Y).Transform(quaternion);
+        var bottomLeft = new Vector2(X, Y + Height).Transform(quaternion);
+        var bottomRight = new Vector2(X + Width, Y + Height).Transform(quaternion);
+        var topRight = new Vector2(X + Width, Y).Transform(quaternion);
+        return new Quad(topLeft, bottomLeft, bottomRight, topRight);
     }
 
     public void Deconstruct(out float x, out float y, out float width, out float height)

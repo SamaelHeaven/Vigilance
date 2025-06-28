@@ -5,7 +5,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public unsafe struct Entity
+public unsafe struct Entity : IEquatable<Entity>
 {
     public static Entity Null { get; } = new(Flecs.NET.Core.Entity.Null(), null!);
     public Scene Scene { get; }
