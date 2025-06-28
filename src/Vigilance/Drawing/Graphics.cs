@@ -97,7 +97,7 @@ public sealed unsafe class Graphics
     public bool IsPolygonInBoundsSpan(ReadOnlySpan<Vector2> points, Camera? camera, float offset = 0)
     {
         var matrix = GetMatrix(camera);
-        if (points.Length > 64)
+        if (points.Length > 128)
         {
             var transformedPoints = new Vector2[points.Length];
             for (var i = 0; i < points.Length; i++)
@@ -658,7 +658,7 @@ public sealed unsafe class Graphics
         PushMatrix();
         Pivot(transform, false);
         ReadOnlySpan<Vector2> span;
-        if (polygon.Points.Count > 64)
+        if (polygon.Points.Count > 128)
         {
             span = scaledPoints.AsSpan();
         }
