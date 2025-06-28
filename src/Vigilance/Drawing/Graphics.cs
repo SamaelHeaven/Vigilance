@@ -602,9 +602,9 @@ public sealed unsafe class Graphics
         var strokeWidth = circle.StrokeWidth;
         var position = transform.Position;
         var scale = transform.Scale;
+        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
         PushMatrix();
         Pivot(transform, false);
-        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
         FillCircle(position, radius, fill, camera);
         StrokeCircle(position, radius, stroke, strokeWidth, camera);
         PopMatrix();
@@ -619,9 +619,9 @@ public sealed unsafe class Graphics
         var strokeWidth = circle.StrokeWidth;
         var position = transform.Position;
         var scale = transform.Scale;
+        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
         PushMatrix();
         Pivot(transform, false);
-        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
         FillCircleGradient(position, radius, innerFill, outerFill, camera);
         StrokeCircle(position, radius, stroke, strokeWidth, camera);
         PopMatrix();
@@ -1067,9 +1067,9 @@ public sealed unsafe class Graphics
         var interpolation = text.Interpolation;
         var position = transform.Position;
         var scale = transform.Scale;
-        PushMatrix();
         fontSize *= (scale.X.Abs() + scale.Y.Abs()) * 0.5f;
         transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
+        PushMatrix();
         Pivot(transform, true);
         FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
         StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
