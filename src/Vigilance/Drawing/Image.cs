@@ -48,6 +48,54 @@ public sealed unsafe class Image
         set => Raylib.ImageFormat(ref RImage, (PixelFormat)value);
     }
 
+    public static Image GradientLinear(int width, int height, int direction, Color start, Color end)
+    {
+        var image = Raylib.GenImageGradientLinear(width, height, direction, start.RColor, end.RColor);
+        return new Image(image);
+    }
+
+    public static Image GradientRadial(int width, int height, float density, Color inner, Color outer)
+    {
+        var image = Raylib.GenImageGradientRadial(width, height, density, inner.RColor, outer.RColor);
+        return new Image(image);
+    }
+
+    public static Image GradientSquare(int width, int height, float density, Color inner, Color outer)
+    {
+        var image = Raylib.GenImageGradientSquare(width, height, density, inner.RColor, outer.RColor);
+        return new Image(image);
+    }
+
+    public static Image Checked(int width, int height, int checksX, int checksY, Color col1, Color col2)
+    {
+        var image = Raylib.GenImageChecked(width, height, checksX, checksY, col1.RColor, col2.RColor);
+        return new Image(image);
+    }
+
+    public static Image WhiteNoise(int width, int height, float factor)
+    {
+        var image = Raylib.GenImageWhiteNoise(width, height, factor);
+        return new Image(image);
+    }
+
+    public static Image PerlinNoise(int width, int height, int offsetX, int offsetY, float scale)
+    {
+        var image = Raylib.GenImagePerlinNoise(width, height, offsetX, offsetY, scale);
+        return new Image(image);
+    }
+
+    public static Image Cellular(int width, int height, int tileSize)
+    {
+        var image = Raylib.GenImageCellular(width, height, tileSize);
+        return new Image(image);
+    }
+
+    public static Image Text(int width, int height, string text)
+    {
+        var image = Raylib.GenImageText(width, height, text);
+        return new Image(image);
+    }
+
     public Texture ToTexture()
     {
         return new Texture(Raylib.LoadTextureFromImage(RImage));

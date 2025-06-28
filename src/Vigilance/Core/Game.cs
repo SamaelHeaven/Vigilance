@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Raylib_cs.BleedingEdge;
+using Raylib_cs.BleedingEdge.Interop;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Logging;
@@ -124,12 +125,12 @@ public sealed unsafe class Game
         get
         {
             var game = GetGame();
-            return Enum.IsDefined(typeof(Viewport), game._config.Viewport) ? game._config.Viewport : Viewport.Fit;
+            return Enum.IsDefined(game._config.Viewport) ? game._config.Viewport : Viewport.Fit;
         }
         set
         {
             var game = GetGame();
-            if (!Enum.IsDefined(typeof(Viewport), value))
+            if (!Enum.IsDefined(value))
                 return;
             Defer(() => game._config.Viewport = value);
         }
@@ -215,7 +216,7 @@ public sealed unsafe class Game
         get
         {
             var game = GetGame();
-            return Enum.IsDefined(typeof(CacheType), game._config.DefaultAssetCacheType)
+            return Enum.IsDefined(game._config.DefaultAssetCacheType)
                 ? game._config.DefaultAssetCacheType
                 : CacheType.Weak;
         }
@@ -248,12 +249,12 @@ public sealed unsafe class Game
         get
         {
             var game = GetGame();
-            return Enum.IsDefined(typeof(LogLevel), game._config.LogLevel) ? game._config.LogLevel : LogLevel.All;
+            return Enum.IsDefined(game._config.LogLevel) ? game._config.LogLevel : LogLevel.All;
         }
         set
         {
             var game = GetGame();
-            if (!Enum.IsDefined(typeof(LogLevel), value))
+            if (!Enum.IsDefined(value))
                 return;
             game._config.LogLevel = value;
             Raylib.SetTraceLogLevel((TraceLogLevel)value);
@@ -641,7 +642,7 @@ public sealed unsafe class Game
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void UnmanagedLog(TraceLogLevel logLevel, sbyte* format, nint args)
     {
-        var message = Variadic.FormatString((nint)format, args);
+        var message = NativeStringFormatter.Format((nint)format, args);
         Log((LogLevel)logLevel, message);
     }
 }

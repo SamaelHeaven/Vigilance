@@ -28,8 +28,12 @@ public sealed unsafe class Graphics
     {
         if (entity.TryGet(out Rectangle rectangle))
             DrawRectangle(entity.WorldTransform, rectangle);
+        if (entity.TryGet(out RectangleGradient rectangleGradient))
+            DrawRectangleGradient(entity.WorldTransform, rectangleGradient);
         if (entity.TryGet(out Circle circle))
             DrawCircle(entity.WorldTransform, circle);
+        if (entity.TryGet(out CircleGradient circleGradient))
+            DrawCircleGradient(entity.WorldTransform, circleGradient);
         if (entity.TryGet(out Triangle triangle))
             DrawTriangle(entity.WorldTransform, triangle);
         if (entity.TryGet(out RegularPolygon regularPolygon))
@@ -277,6 +281,79 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
+    public void FillRectangleGradient(
+        float x,
+        float y,
+        float width,
+        float height,
+        Color topLeftColor,
+        Color bottomLeftColor,
+        Color bottomRightColor,
+        Color topRightColor,
+        Camera? camera = null
+    )
+    {
+        FillRectangleGradient(
+            new Vector2(x, y),
+            new Vector2(width, height),
+            topLeftColor,
+            bottomLeftColor,
+            bottomRightColor,
+            topRightColor,
+            camera
+        );
+    }
+
+    public void FillRectangleGradient(
+        Box box,
+        Color topLeftColor,
+        Color bottomLeftColor,
+        Color bottomRightColor,
+        Color topRightColor,
+        Camera? camera = null
+    )
+    {
+        FillRectangleGradient(
+            box.Position,
+            box.Size,
+            topLeftColor,
+            bottomLeftColor,
+            bottomRightColor,
+            topRightColor,
+            camera
+        );
+    }
+
+    public void FillRectangleGradient(
+        Vector2 position,
+        Vector2 size,
+        Color topLeftColor,
+        Color bottomLeftColor,
+        Color bottomRightColor,
+        Color topRightColor,
+        Camera? camera = null
+    )
+    {
+        if (
+            (
+                topLeftColor == Color.Transparent
+                && bottomLeftColor == Color.Transparent
+                && bottomRightColor == Color.Transparent
+                && topRightColor == Color.Transparent
+            ) || !IsBoxInBounds(position, size, camera)
+        )
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawRectangleGradientEx(
+            new Raylib_cs.BleedingEdge.Rectangle(position, size),
+            topLeftColor.RColor,
+            bottomLeftColor.RColor,
+            bottomRightColor.RColor,
+            topRightColor.RColor
+        );
+        EndDrawing();
+    }
+
     public void StrokeRectangle(
         float x,
         float y,
@@ -420,6 +497,32 @@ public sealed unsafe class Graphics
         PopMatrix();
     }
 
+    public void DrawRectangleGradient(Transform transform, RectangleGradient rectangle)
+    {
+        var camera = rectangle.Camera?.Invoke();
+        var topLeftFill = rectangle.TopLeftFill;
+        var bottomLeftFill = rectangle.BottomLeftFill;
+        var bottomRightFill = rectangle.BottomRightFill;
+        var topRightFill = rectangle.TopRightFill;
+        var stroke = rectangle.Stroke;
+        var position = transform.Position;
+        var scale = transform.Scale.Abs();
+        var strokeWidth = MathF.Max(0, MathF.Min(MathF.Min(scale.X, scale.Y) * 0.5f, rectangle.StrokeWidth));
+        PushMatrix();
+        Pivot(transform, true);
+        FillRectangleGradient(
+            position + strokeWidth,
+            scale - strokeWidth * 2,
+            topLeftFill,
+            bottomLeftFill,
+            bottomRightFill,
+            topRightFill,
+            camera
+        );
+        StrokeRectangle(position, scale, stroke, strokeWidth, camera);
+        PopMatrix();
+    }
+
     #endregion
 
     #region Circle
@@ -435,6 +538,41 @@ public sealed unsafe class Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawCircleV(center, radius, color.RColor);
+        EndDrawing();
+    }
+
+    public void FillCircleGradient(
+        Vector2 center,
+        float radius,
+        Color innerColor,
+        Color outerColor,
+        Camera? camera = null
+    )
+    {
+        if (
+            (innerColor == Color.Transparent && outerColor == Color.Transparent)
+            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
+        )
+            return;
+        BeginDrawing(camera);
+        Rlgl.Begin(RlglEnum.Triangles);
+        for (var i = 0; i < 360; i += 10)
+        {
+            Rlgl.Color4ub(innerColor.R, innerColor.G, innerColor.B, innerColor.A);
+            Rlgl.Vertex2f(center.X, center.Y);
+            Rlgl.Color4ub(outerColor.R, outerColor.G, outerColor.B, outerColor.A);
+            Rlgl.Vertex2f(
+                center.X + MathF.Cos((i + 10f).DegToRad()) * radius,
+                center.Y + MathF.Sin((i + 10f).DegToRad()) * radius
+            );
+            Rlgl.Color4ub(outerColor.R, outerColor.G, outerColor.B, outerColor.A);
+            Rlgl.Vertex2f(
+                center.X + MathF.Cos(((float)i).DegToRad()) * radius,
+                center.Y + MathF.Sin(((float)i).DegToRad()) * radius
+            );
+        }
+
+        Rlgl.End();
         EndDrawing();
     }
 
@@ -468,6 +606,23 @@ public sealed unsafe class Graphics
         Pivot(transform, false);
         var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
         FillCircle(position, radius, fill, camera);
+        StrokeCircle(position, radius, stroke, strokeWidth, camera);
+        PopMatrix();
+    }
+
+    public void DrawCircleGradient(Transform transform, CircleGradient circle)
+    {
+        var camera = circle.Camera?.Invoke();
+        var innerFill = circle.InnerFill;
+        var outerFill = circle.OuterFill;
+        var stroke = circle.Stroke;
+        var strokeWidth = circle.StrokeWidth;
+        var position = transform.Position;
+        var scale = transform.Scale;
+        PushMatrix();
+        Pivot(transform, false);
+        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
+        FillCircleGradient(position, radius, innerFill, outerFill, camera);
         StrokeCircle(position, radius, stroke, strokeWidth, camera);
         PopMatrix();
     }
