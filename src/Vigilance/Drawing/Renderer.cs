@@ -7,8 +7,8 @@ namespace Vigilance.Drawing;
 public sealed class Renderer
 {
     private static Renderer? _renderer;
-    private readonly Graphics _graphics;
     private readonly WritableTexture? _buffer;
+    private readonly Graphics _graphics;
     private Vector2 _offset;
     private Vector2 _scale;
 
