@@ -7,26 +7,37 @@ public struct Unit
     public UnitType Type { get; set; }
     public float Value { get; set; }
 
-    public static Unit Auto => new() { Type = UnitType.Auto };
-    public static Unit Zero => new() { Type = UnitType.Fixed };
-    public static Unit NaN => new() { Type = UnitType.Fixed, Value = float.NaN };
-    public static Unit Full => new() { Type = UnitType.Percent, Value = 100 };
-    public static Unit Half => new() { Type = UnitType.Percent, Value = 50 };
-    public static Unit Undefined => new() { Type = UnitType.Undefined };
+    public static Unit Auto => new(UnitType.Auto);
+    public static Unit Zero => new(UnitType.Fixed);
+    public static Unit NaN => new(UnitType.Fixed, float.NaN);
+    public static Unit Full => new(UnitType.Percent, 100);
+    public static Unit Half => new(UnitType.Percent, 50);
+    public static Unit Undefined => new(UnitType.Undefined);
 
     public static Unit Fixed(float value)
     {
-        return new Unit { Type = UnitType.Fixed, Value = value };
+        return new Unit(UnitType.Fixed, value);
     }
 
     public static Unit Percent(float value)
     {
-        return new Unit { Type = UnitType.Percent, Value = value };
+        return new Unit(UnitType.Percent, value);
     }
 
     public static implicit operator Unit(float value)
     {
         return Fixed(value);
+    }
+
+    public static Unit operator -(Unit unit)
+    {
+        return new Unit(unit.Type, -unit.Value);
+    }
+
+    public Unit(UnitType type, float value = 0)
+    {
+        Type = type;
+        Value = value;
     }
 
     public float Calculate(float size)
@@ -48,7 +59,7 @@ public struct Unit
             FlexLayoutSharp.Unit.Point => UnitType.Fixed,
             _ => UnitType.Undefined,
         };
-        return new Unit { Type = type, Value = value.value };
+        return new Unit(type, value.value);
     }
 
     internal static void SetUnit(Unit value, Action setAuto, Action<float> setFixed, Action<float> setPercent)
