@@ -7,11 +7,12 @@ public struct Unit
     public UnitType Type { get; set; }
     public float Value { get; set; }
 
-    public static Unit Auto { get; } = new() { Type = UnitType.Auto };
-
-    public static Unit Zero { get; } = new() { Type = UnitType.Fixed };
-
-    public static Unit Full { get; } = new() { Type = UnitType.Percent, Value = 100 };
+    public static Unit Auto => new() { Type = UnitType.Auto };
+    public static Unit Zero => new() { Type = UnitType.Fixed };
+    public static Unit NaN => new() { Type = UnitType.Fixed, Value = float.NaN };
+    public static Unit Full => new() { Type = UnitType.Percent, Value = 100 };
+    public static Unit Half => new() { Type = UnitType.Percent, Value = 50 };
+    public static Unit Undefined => new() { Type = UnitType.Undefined };
 
     public static Unit Fixed(float value)
     {
