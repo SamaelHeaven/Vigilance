@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Numerics;
 using Vigilance.Core;
 using Vigilance.Drawing;
@@ -49,7 +50,7 @@ public static class Coordinates
                 return coordinates;
             }
             default:
-                throw new ArgumentOutOfRangeException(nameof(viewport));
+                throw new InvalidEnumArgumentException(nameof(viewport), (int)viewport!, typeof(Viewport));
         }
     }
 
@@ -89,7 +90,7 @@ public static class Coordinates
                 return coordinates;
             }
             default:
-                throw new ArgumentOutOfRangeException(nameof(viewport));
+                throw new InvalidEnumArgumentException(nameof(viewport), (int)viewport!, typeof(Viewport));
         }
     }
 

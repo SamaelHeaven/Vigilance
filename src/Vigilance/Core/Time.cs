@@ -89,13 +89,23 @@ public sealed class Time
         var target = fpsTarget < 1 ? 0 : 1.0 / fpsTarget;
         var wait = target - (Elapsed - time._last).TotalSeconds;
         if (wait > 0 && wait <= target)
-            Raylib.WaitTime(wait);
+            Sleep(wait);
         var elapsed = Elapsed;
         time._delta = elapsed - time._last;
         time._last = elapsed;
         while (time._fpsHistory.Count >= FpsHistorySize)
             time._fpsHistory.Dequeue();
         time._fpsHistory.Enqueue(CurrentFps);
+    }
+
+    public static void Sleep(TimeSpan duration)
+    {
+        Sleep(duration.TotalSeconds);
+    }
+
+    public static void Sleep(double seconds)
+    {
+        Raylib.WaitTime(seconds);
     }
 
     internal static void Restart()

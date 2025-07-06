@@ -122,18 +122,8 @@ public sealed unsafe class Game
 
     public static Viewport Viewport
     {
-        get
-        {
-            var game = GetGame();
-            return Enum.IsDefined(game._config.Viewport) ? game._config.Viewport : Viewport.Fit;
-        }
-        set
-        {
-            var game = GetGame();
-            if (!Enum.IsDefined(value))
-                return;
-            Defer(() => game._config.Viewport = value);
-        }
+        get => GetGame()._config.Viewport;
+        set => Defer(() => GetGame()._config.Viewport = value);
     }
 
     public static Scene Scene
@@ -195,34 +185,65 @@ public sealed unsafe class Game
 
     public static RenderingMode RenderingMode => GetGame()._config.RenderingMode;
 
-    public static Color Background => GetGame()._config.Background;
+    public static Color Background
+    {
+        get => GetGame()._config.Background;
+        set => GetGame()._config.Background = value;
+    }
 
-    public static InputAxis HorizontalInputAxis => GetGame()._config.HorizontalInputAxis;
+    public static InputAxis HorizontalInputAxis
+    {
+        get => GetGame()._config.HorizontalInputAxis;
+        set => GetGame()._config.HorizontalInputAxis = value;
+    }
 
-    public static InputAxis VerticalInputAxis => GetGame()._config.VerticalInputAxis;
+    public static InputAxis VerticalInputAxis
+    {
+        get => GetGame()._config.VerticalInputAxis;
+        set => GetGame()._config.VerticalInputAxis = value;
+    }
 
-    public static Vector2 DefaultTextSpacing => GetGame()._config.DefaultTextSpacing;
+    public static Vector2 DefaultTextSpacing
+    {
+        get => GetGame()._config.DefaultTextSpacing;
+        set => GetGame()._config.DefaultTextSpacing = value;
+    }
 
-    public static int DefaultFontQuality => GetGame()._config.DefaultFontQuality;
+    public static int DefaultFontQuality
+    {
+        get => GetGame()._config.DefaultFontQuality;
+        set => GetGame()._config.DefaultFontQuality = value;
+    }
 
-    public static float DefaultFontSize => GetGame()._config.DefaultFontSize;
+    public static float DefaultFontSize
+    {
+        get => GetGame()._config.DefaultFontSize;
+        set => GetGame()._config.DefaultFontSize = value;
+    }
 
-    public static Font DefaultFont => GetGame()._defaultFont;
+    public static Font DefaultFont
+    {
+        get => GetGame()._defaultFont;
+        set => GetGame()._defaultFont = value;
+    }
 
-    public static string DefaultFontCharset => GetGame()._config.DefaultFontCharset;
+    public static string DefaultFontCharset
+    {
+        get => GetGame()._config.DefaultFontCharset;
+        set => GetGame()._config.DefaultFontCharset = value;
+    }
 
     public static CacheType DefaultAssetCacheType
     {
-        get
-        {
-            var game = GetGame();
-            return Enum.IsDefined(game._config.DefaultAssetCacheType)
-                ? game._config.DefaultAssetCacheType
-                : CacheType.Weak;
-        }
+        get => GetGame()._config.DefaultAssetCacheType;
+        set => GetGame()._config.DefaultAssetCacheType = value;
     }
 
-    public static int DefaultSoundMaxAliases => System.Math.Max(GetGame()._config.DefaultSoundMaxAliases, 1);
+    public static int DefaultSoundMaxAliases
+    {
+        get => GetGame()._config.DefaultSoundMaxAliases;
+        set => GetGame()._config.DefaultSoundMaxAliases = value;
+    }
 
     public static float MasterVolume
     {
@@ -246,18 +267,12 @@ public sealed unsafe class Game
 
     public static LogLevel LogLevel
     {
-        get
-        {
-            var game = GetGame();
-            return Enum.IsDefined(game._config.LogLevel) ? game._config.LogLevel : LogLevel.All;
-        }
+        get => GetGame()._config.LogLevel;
         set
         {
             var game = GetGame();
-            if (!Enum.IsDefined(value))
-                return;
             game._config.LogLevel = value;
-            Raylib.SetTraceLogLevel((TraceLogLevel)value);
+            Raylib.SetTraceLogLevel((TraceLogLevel)game._config.LogLevel);
         }
     }
 
@@ -297,7 +312,7 @@ public sealed unsafe class Game
         }
     }
 
-    public static GameConfig Config => GetGame()._launchConfig.Clone();
+    public static GameConfig Config => GetGame()._launchConfig.ShallowClone();
 
     internal static SystemsFunc Systems => GetGame()._config.Systems;
 
@@ -441,8 +456,8 @@ public sealed unsafe class Game
         EnsureNotRunning();
         Running = true;
         var game = GetGame();
-        game._launchConfig = config.Clone();
-        game._config = config.Clone();
+        game._launchConfig = config.ShallowClone();
+        game._config = config.ShallowClone();
         game._scene = scene;
         InitializeCultureInfo();
         game.InitializeLogging();

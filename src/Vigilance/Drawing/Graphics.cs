@@ -467,6 +467,21 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
+    public void DrawRectangle(float x, float y, float width, float height, Rectangle rectangle)
+    {
+        DrawRectangle(new Vector2(x, y), new Vector2(width, height), rectangle);
+    }
+
+    public void DrawRectangle(Vector2 position, Vector2 size, Rectangle rectangle)
+    {
+        DrawRectangle(new Transform(position + size * 0.5f, size), rectangle);
+    }
+
+    public void DrawRectangle(Box box, Rectangle rectangle)
+    {
+        DrawRectangle(box.Position, box.Size, rectangle);
+    }
+
     public void DrawRectangle(Transform transform, Rectangle rectangle)
     {
         var camera = rectangle.Camera?.Invoke();
@@ -495,6 +510,21 @@ public sealed unsafe class Graphics
         }
 
         PopMatrix();
+    }
+
+    public void DrawRectangleGradient(float x, float y, float width, float height, RectangleGradient rectangle)
+    {
+        DrawRectangleGradient(new Vector2(x, y), new Vector2(width, height), rectangle);
+    }
+
+    public void DrawRectangleGradient(Vector2 position, Vector2 size, RectangleGradient rectangle)
+    {
+        DrawRectangleGradient(new Transform(position + size * 0.5f, size), rectangle);
+    }
+
+    public void DrawRectangleGradient(Box box, RectangleGradient rectangle)
+    {
+        DrawRectangleGradient(box.Position, box.Size, rectangle);
     }
 
     public void DrawRectangleGradient(Transform transform, RectangleGradient rectangle)
@@ -1054,6 +1084,16 @@ public sealed unsafe class Graphics
             DrawTexture(atlas, source, new Box(dest.Position + position, dest.Size), color, interpolation, camera);
     }
 
+    public void DrawText(float x, float y, Text text)
+    {
+        DrawText(new Vector2(x, y), text);
+    }
+
+    public void DrawText(Vector2 position, Text text)
+    {
+        DrawText(new Transform(position + text.Size * 0.5f), text);
+    }
+
     public void DrawText(Transform transform, Text text)
     {
         var camera = text.Camera?.Invoke();
@@ -1068,7 +1108,7 @@ public sealed unsafe class Graphics
         var position = transform.Position;
         var scale = transform.Scale;
         fontSize *= (scale.X.Abs() + scale.Y.Abs()) * 0.5f;
-        transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
+        transform.Scale = text.Size;
         PushMatrix();
         Pivot(transform, true);
         FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
@@ -1158,6 +1198,21 @@ public sealed unsafe class Graphics
         var rDest = new Raylib_cs.BleedingEdge.Rectangle(dest.Position, dest.Size);
         Raylib.DrawTexturePro(texture.Texture2D, rSource, rDest, Vector2.Zero, 0, (tint ?? Color.White).RColor);
         EndDrawing();
+    }
+
+    public void DrawSprite(float x, float y, float width, float height, Sprite sprite)
+    {
+        DrawSprite(new Vector2(x, y), new Vector2(width, height), sprite);
+    }
+
+    public void DrawSprite(Vector2 position, Vector2 size, Sprite sprite)
+    {
+        DrawSprite(new Transform(position + size * 0.5f, size), sprite);
+    }
+
+    public void DrawSprite(Box box, Sprite sprite)
+    {
+        DrawSprite(box.Position, box.Size, sprite);
     }
 
     public void DrawSprite(Transform transform, Sprite sprite)

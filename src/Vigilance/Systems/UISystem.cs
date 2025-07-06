@@ -14,6 +14,7 @@ public sealed class UISystem : ISystem
         {
             foreach (var element in entity.Components.OfType<UIElement>())
             {
+                element.CalculateLayout();
                 element.Update(entity);
                 element.Render(entity.WorldTransform, Graphics);
             }

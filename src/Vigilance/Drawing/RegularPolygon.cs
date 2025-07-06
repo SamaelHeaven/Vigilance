@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class RegularPolygon
+public sealed class RegularPolygon : IFullCloneable
 {
     public RegularPolygon() { }
 

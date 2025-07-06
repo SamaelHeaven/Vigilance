@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class Sprite
+public sealed class Sprite : IFullCloneable
 {
     public Sprite() { }
 

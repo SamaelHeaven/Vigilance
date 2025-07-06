@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
@@ -40,12 +41,17 @@ public sealed class Renderer
         var scaleY = screenHeight / height;
         var minScale = MathF.Min(scaleX, scaleY);
         var maxScale = MathF.Max(scaleX, scaleY);
-        renderer._scale = Game.Viewport switch
+        var viewport = Game.Viewport;
+        renderer._scale = viewport switch
         {
             Viewport.Fit => new Vector2(minScale),
             Viewport.Stretch => new Vector2(scaleX, scaleY),
             Viewport.Crop => new Vector2(maxScale),
-            _ => throw new ArgumentOutOfRangeException(),
+            _ => throw new InvalidEnumArgumentException(
+                $"{nameof(Game)}.{nameof(Game.Viewport)}",
+                (int)viewport,
+                typeof(Viewport)
+            ),
         };
         renderer._offset = (
             Game.Viewport switch
@@ -59,7 +65,11 @@ public sealed class Renderer
                     (screenWidth - width * maxScale) * 0.5f,
                     (screenHeight - height * maxScale) * 0.5f
                 ),
-                _ => throw new ArgumentOutOfRangeException(),
+                _ => throw new InvalidEnumArgumentException(
+                    $"{nameof(Game)}.{nameof(Game.Viewport)}",
+                    (int)viewport,
+                    typeof(Viewport)
+                ),
             }
         ).Ceil();
     }

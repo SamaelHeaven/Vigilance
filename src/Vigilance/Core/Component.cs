@@ -1,19 +1,32 @@
 namespace Vigilance.Core;
 
-public interface IComponent
+public readonly struct Component(Type type, object? data = null) : IEquatable<Component>
 {
-    void Update(Entity entity);
+    public Type Type { get; } = type;
+    public object? Data { get; } = data;
 
-    void FixedUpdate(Entity entity);
+    public override bool Equals(object? obj)
+    {
+        return obj is Component c && Equals(c);
+    }
 
-    void Render(Entity entity);
-}
+    public bool Equals(Component other)
+    {
+        return Type == other.Type;
+    }
 
-public abstract class Component : IComponent
-{
-    public virtual void Update(Entity entity) { }
+    public static bool operator ==(Component a, Component b)
+    {
+        return a.Equals(b);
+    }
 
-    public virtual void FixedUpdate(Entity entity) { }
+    public static bool operator !=(Component a, Component b)
+    {
+        return !a.Equals(b);
+    }
 
-    public virtual void Render(Entity entity) { }
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Type);
+    }
 }

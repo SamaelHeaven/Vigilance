@@ -9,3 +9,16 @@ public enum Direction
     LeftToRight = FlexDirection.Row,
     RightToLeft = FlexDirection.RowReverse,
 }
+
+public static class DirectionExtensions
+{
+    public static bool IsHorizontal(this Direction direction)
+    {
+        return direction is Direction.LeftToRight or Direction.RightToLeft;
+    }
+
+    public static bool IsVertical(this Direction direction)
+    {
+        return direction is Direction.TopToBottom or Direction.BottomToTop;
+    }
+}

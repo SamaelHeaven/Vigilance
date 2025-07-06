@@ -6,7 +6,7 @@ namespace Vigilance.UI;
 
 public class UISprite : UIContainer
 {
-    private readonly Sprite _sprite = new();
+    private Sprite _sprite = new();
 
     public UISprite() { }
 
@@ -51,10 +51,17 @@ public class UISprite : UIContainer
         set => _sprite.Interpolation = value;
     }
 
+    public override object DeepClone()
+    {
+        var result = (UISprite)base.DeepClone();
+        result._sprite = _sprite.DeepClone();
+        return result;
+    }
+
     public override void Render(Graphics graphics, CameraFunc? camera)
     {
         _sprite.Camera = camera;
-        graphics.DrawSprite(new Transform(LayoutPosition + LayoutSize * 0.5f, LayoutSize), _sprite);
+        graphics.DrawSprite(LayoutPosition, LayoutSize, _sprite);
         base.Render(graphics, camera);
     }
 }

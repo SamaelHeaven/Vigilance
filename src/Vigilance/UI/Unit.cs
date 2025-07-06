@@ -40,7 +40,7 @@ public struct Unit
         Value = value;
     }
 
-    public float Calculate(float size)
+    public readonly float Calculate(float size)
     {
         return Type switch
         {

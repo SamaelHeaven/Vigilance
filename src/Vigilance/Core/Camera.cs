@@ -27,4 +27,9 @@ public sealed class Camera
             return originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
         }
     }
+
+    public static implicit operator Camera?(CameraFunc? func)
+    {
+        return func?.Invoke();
+    }
 }

@@ -1,4 +1,5 @@
 ﻿using Raylib_cs.BleedingEdge;
+using Vigilance.Core;
 
 namespace Vigilance.Input;
 
@@ -93,4 +94,14 @@ public enum Key
     Backslash = KeyboardKey.Backslash,
     RightBracket = KeyboardKey.RightBracket,
     Grave = KeyboardKey.Grave,
+}
+
+public static class KeyExtensions
+{
+    public static string GetName(this Key key)
+    {
+        Game.EnsureRunning();
+        var name = Raylib.GetKeyName_((KeyboardKey)key).ToUpper();
+        return name == "" ? key.ToString() : name;
+    }
 }

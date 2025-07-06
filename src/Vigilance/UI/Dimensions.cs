@@ -39,7 +39,7 @@ public struct Dimensions
         return new Dimensions(value);
     }
 
-    public Vector2 Calculate(Vector2 layoutSize)
+    public readonly Vector2 Calculate(Vector2 layoutSize)
     {
         return new Vector2(X.Calculate(layoutSize.X), Y.Calculate(layoutSize.Y));
     }

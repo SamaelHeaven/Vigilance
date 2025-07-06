@@ -1,13 +1,12 @@
-using System.Collections;
 using FlexLayoutSharp;
 using Vigilance.Core;
 using Vigilance.Drawing;
 
 namespace Vigilance.UI;
 
-public class UIContainer : UIElement, IEnumerable<UIElement>
+public class UIContainer : UIElement
 {
-    private readonly LinkedList<UIElement> _children = new();
+    private LinkedList<UIElement> _children = new();
 
     public Direction Direction
     {
@@ -39,7 +38,7 @@ public class UIContainer : UIElement, IEnumerable<UIElement>
         set => Node.StyleSetFlexWrap((FlexLayoutSharp.Wrap)value);
     }
 
-    public int Count => _children.Count;
+    public int ChildCount => _children.Count;
 
     public UIContainer this[params IEnumerable<UIElement> elements]
     {
@@ -50,26 +49,29 @@ public class UIContainer : UIElement, IEnumerable<UIElement>
         }
     }
 
-    public IEnumerator<UIElement> GetEnumerator()
+    public IEnumerable<UIElement> Children
     {
-        for (var element = _children.First; element != null; element = element.Next)
-            yield return element.Value;
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
+        get
+        {
+            var element = _children.First;
+            while (element?.Value != null)
+            {
+                var next = element.Next;
+                yield return element.Value;
+                element = next;
+            }
+        }
     }
 
     public override void Render(Graphics graphics, CameraFunc? camera)
     {
-        foreach (var element in this)
+        foreach (var element in Children)
             element.Render(element.LayoutTransform, graphics, camera);
     }
 
     public override void Update(Entity entity)
     {
-        foreach (var element in this)
+        foreach (var element in Children)
             element.Update(entity);
         base.Update(entity);
     }
@@ -83,10 +85,10 @@ public class UIContainer : UIElement, IEnumerable<UIElement>
         where T : UIElement
     {
         selector ??= static _ => true;
-        foreach (var element in this)
+        foreach (var element in Children)
             if (element is T t && selector.Invoke(t))
                 return t;
-        foreach (var element in this)
+        foreach (var element in Children)
         {
             if (element is not UIContainer container)
                 continue;
@@ -107,10 +109,10 @@ public class UIContainer : UIElement, IEnumerable<UIElement>
         where T : UIElement
     {
         selector ??= static _ => true;
-        foreach (var element in this)
+        foreach (var element in Children)
             if (element is T t && selector(t))
                 yield return t;
-        foreach (var element in this)
+        foreach (var element in Children)
         {
             if (element is not UIContainer container)
                 continue;
@@ -156,10 +158,24 @@ public class UIContainer : UIElement, IEnumerable<UIElement>
         _children.Find(oldNode)!.Value = element;
     }
 
+    public void Clear()
+    {
+        foreach (var element in Children)
+            element.Remove();
+    }
+
+    public override object DeepClone()
+    {
+        var result = (UIContainer)base.DeepClone();
+        result._children = new LinkedList<UIElement>();
+        result.Add(_children.Select(el => el.DeepClone<UIElement>()));
+        return result;
+    }
+
     internal override void MarkReady()
     {
         base.MarkReady();
-        foreach (var element in this)
+        foreach (var element in _children)
             element.MarkReady();
     }
 

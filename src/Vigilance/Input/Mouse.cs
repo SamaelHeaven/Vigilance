@@ -139,6 +139,8 @@ public sealed class Mouse
     {
         _screenPosition = ((Vector2)Raylib.GetMousePosition()).Clamp(Vector2.Zero, Game.ScreenSize).Round();
         _scroll = Raylib.GetMouseWheelMoveV();
+        if (Platform.Web.IsCurrent())
+            _scroll.X = -_scroll.X;
         _currentButtons.Clear();
         foreach (var button in ButtonValues)
             if (Raylib.IsMouseButtonDown((Raylib_cs.BleedingEdge.MouseButton)button))

@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class Ring
+public sealed class Ring : IFullCloneable
 {
     public float InnerRadius { get; set; } = 0;
     public float OuterRadius { get; set; } = 0;

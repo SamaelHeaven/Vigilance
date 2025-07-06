@@ -97,9 +97,25 @@ public struct Box : IEquatable<Box>
         size = new Vector2(Width, Height);
     }
 
-    public readonly Vector2 Position => new(X, Y);
+    public Vector2 Position
+    {
+        readonly get => new(X, Y);
+        set
+        {
+            X = value.X;
+            Y = value.Y;
+        }
+    }
 
-    public readonly Vector2 Size => new(Width, Height);
+    public Vector2 Size
+    {
+        readonly get => new(Width, Height);
+        set
+        {
+            Width = value.X;
+            Height = value.Y;
+        }
+    }
 
     public readonly Vector2 Center => new(X + Width * 0.5f, Y + Height * 0.5f);
 

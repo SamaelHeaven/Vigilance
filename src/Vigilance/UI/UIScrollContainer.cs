@@ -1,0 +1,381 @@
+using System.ComponentModel;
+using Vigilance.Core;
+using Vigilance.Drawing;
+using Vigilance.Input;
+using Vigilance.Math;
+
+namespace Vigilance.UI;
+
+public class UIScrollContainer : UIContainer
+{
+    private Rectangle _scrollBarThumbRectangle = new();
+    private Rectangle _scrollBarTrackRectangle = new();
+
+    public UIScrollContainer()
+    {
+        Overflow = Overflow.Hidden;
+        ScrollBarTrackFill = Color.DarkGray;
+        ScrollBarThumbFill = Color.Gray;
+        ScrollBarThumbRoundness = 1;
+    }
+
+    public Vector2 ChildrenLayoutSize { get; private set; }
+
+    public Vector2 ScrollOffset { get; private set; }
+
+    public Quad RenderedHorizontalScrollBarTrackBounds { get; private set; }
+
+    public Quad RenderedVerticalScrollBarTrackBounds { get; private set; }
+
+    public Quad RenderedHorizontalScrollBarThumbBounds { get; private set; }
+
+    public Quad RenderedVerticalScrollBarThumbBounds { get; private set; }
+
+    public Vector2 MouseScrollForce { get; set; } = new(15);
+
+    public Vector2 ScrollBarSize { get; set; } = new(15);
+
+    public Insets ScrollBarThumbMargin { get; set; } = 2;
+
+    public Unit ScrollBarThumbMarginHorizontal
+    {
+        set
+        {
+            ScrollBarThumbMarginLeft = value;
+            ScrollBarThumbMarginRight = value;
+        }
+    }
+
+    public Unit ScrollBarThumbMarginVertical
+    {
+        set
+        {
+            ScrollBarThumbMarginTop = value;
+            ScrollBarThumbMarginBottom = value;
+        }
+    }
+
+    public Unit ScrollBarThumbMarginTop
+    {
+        get => ScrollBarThumbMargin.Top;
+        set
+        {
+            var margin = ScrollBarThumbMargin;
+            margin.Top = value;
+            ScrollBarThumbMargin = margin;
+        }
+    }
+
+    public Unit ScrollBarThumbMarginBottom
+    {
+        get => ScrollBarThumbMargin.Bottom;
+        set
+        {
+            var margin = ScrollBarThumbMargin;
+            margin.Bottom = value;
+            ScrollBarThumbMargin = margin;
+        }
+    }
+
+    public Unit ScrollBarThumbMarginLeft
+    {
+        get => ScrollBarThumbMargin.Left;
+        set
+        {
+            var margin = ScrollBarThumbMargin;
+            margin.Left = value;
+            ScrollBarThumbMargin = margin;
+        }
+    }
+
+    public Unit ScrollBarThumbMarginRight
+    {
+        get => ScrollBarThumbMargin.Right;
+        set
+        {
+            var margin = ScrollBarThumbMargin;
+            margin.Right = value;
+            ScrollBarThumbMargin = margin;
+        }
+    }
+
+    public ScrollBarVisibility HorizontalScrollBarVisibility { get; set; }
+
+    public ScrollBarVisibility VerticalScrollBarVisibility { get; set; }
+
+    public ScrollBarVisibility ScrollBarVisibility
+    {
+        set
+        {
+            HorizontalScrollBarVisibility = value;
+            VerticalScrollBarVisibility = value;
+        }
+    }
+
+    public bool IsHorizontalScrollBarVisible
+    {
+        get
+        {
+            return HorizontalScrollBarVisibility switch
+            {
+                ScrollBarVisibility.Visible => true,
+                ScrollBarVisibility.Hidden => false,
+                _ => ChildrenLayoutSize.X > LayoutSize.X,
+            };
+        }
+    }
+
+    public bool IsVerticalScrollBarVisible
+    {
+        get
+        {
+            return VerticalScrollBarVisibility switch
+            {
+                ScrollBarVisibility.Visible => true,
+                ScrollBarVisibility.Hidden => false,
+                _ => ChildrenLayoutSize.Y > LayoutSize.Y,
+            };
+        }
+    }
+
+    public Color ScrollBarTrackFill
+    {
+        get => _scrollBarTrackRectangle.Fill;
+        set => _scrollBarTrackRectangle.Fill = value;
+    }
+
+    public Color ScrollBarTrackStroke
+    {
+        get => _scrollBarTrackRectangle.Stroke;
+        set => _scrollBarTrackRectangle.Stroke = value;
+    }
+
+    public float ScrollBarTrackStrokeWidth
+    {
+        get => _scrollBarTrackRectangle.StrokeWidth;
+        set => _scrollBarTrackRectangle.StrokeWidth = value;
+    }
+
+    public float ScrollBarTrackRoundness
+    {
+        get => _scrollBarTrackRectangle.Roundness;
+        set => _scrollBarTrackRectangle.Roundness = value;
+    }
+
+    public Color ScrollBarThumbFill
+    {
+        get => _scrollBarThumbRectangle.Fill;
+        set => _scrollBarThumbRectangle.Fill = value;
+    }
+
+    public Color ScrollBarThumbStroke
+    {
+        get => _scrollBarThumbRectangle.Stroke;
+        set => _scrollBarThumbRectangle.Stroke = value;
+    }
+
+    public float ScrollBarThumbStrokeWidth
+    {
+        get => _scrollBarThumbRectangle.StrokeWidth;
+        set => _scrollBarThumbRectangle.StrokeWidth = value;
+    }
+
+    public float ScrollBarThumbRoundness
+    {
+        get => _scrollBarThumbRectangle.Roundness;
+        set => _scrollBarThumbRectangle.Roundness = value;
+    }
+
+    public override void Update(Entity entity)
+    {
+        if (!LayoutReady)
+        {
+            base.Update(entity);
+            return;
+        }
+
+        var offset = Vector2.Zero;
+        var size = Vector2.Zero;
+        var direction = Direction;
+        foreach (var element in Children)
+        {
+            if (element.Position == Position.Absolute)
+                break;
+            if (direction.IsVertical())
+            {
+                size.X = MathF.Max(size.X, element.LayoutPosition.X + element.LayoutWidth);
+                size.Y += element.LayoutHeight;
+            }
+            else
+            {
+                size.X += element.LayoutWidth;
+                size.Y = MathF.Max(size.Y, element.LayoutPosition.Y + element.LayoutHeight);
+            }
+        }
+
+        ChildrenLayoutSize = size;
+        var scroll = MouseInside ? Mouse.Scroll * MouseScrollForce : Vector2.Zero;
+        var horizontalVisible = IsHorizontalScrollBarVisible;
+        var verticalVisible = IsVerticalScrollBarVisible;
+        var minSize = -(
+            size
+            - LayoutSize
+            + new Vector2(verticalVisible ? ScrollBarSize.Y : 0, horizontalVisible ? ScrollBarSize.X : 0)
+        );
+        if (minSize.X < 0 && horizontalVisible)
+            offset.X =
+                direction == Direction.RightToLeft
+                    ? (ScrollOffset.X + scroll.X).Clamp(0, -minSize.X)
+                    : (ScrollOffset.X + scroll.X).Clamp(minSize.X, 0);
+        if (minSize.Y < 0 && verticalVisible)
+            offset.Y =
+                direction == Direction.BottomToTop
+                    ? (ScrollOffset.Y + scroll.Y).Clamp(0, -minSize.Y)
+                    : (ScrollOffset.Y + scroll.Y).Clamp(minSize.Y, 0);
+        ScrollOffset = offset;
+        base.Update(entity);
+    }
+
+    public override object DeepClone()
+    {
+        var result = (UIScrollContainer)base.DeepClone();
+        result._scrollBarTrackRectangle = _scrollBarTrackRectangle.DeepClone();
+        result._scrollBarThumbRectangle = _scrollBarThumbRectangle.DeepClone();
+        return result;
+    }
+
+    public override void Render(Graphics graphics, CameraFunc? camera)
+    {
+        var horizontalVisible = IsHorizontalScrollBarVisible;
+        var verticalVisible = IsVerticalScrollBarVisible;
+        var matrix = graphics.GetMatrix(camera);
+        const float trackOffset = 1;
+        Box box;
+        graphics.PushMatrix();
+        graphics.Translate(ScrollOffset);
+        base.Render(graphics, camera);
+        graphics.PopMatrix();
+        if (horizontalVisible)
+        {
+            box = GetScrollBarTrackBox(ScrollBarDirection.Horizontal);
+            box.X -= trackOffset;
+            box.Width += trackOffset * 2;
+            box.Height += trackOffset;
+            RenderScrollBarTrack(graphics, box, camera);
+            RenderedHorizontalScrollBarTrackBounds = box.Transform(matrix);
+        }
+
+        if (verticalVisible)
+        {
+            box = GetScrollBarTrackBox(ScrollBarDirection.Vertical);
+            box.Y -= trackOffset;
+            box.Height += trackOffset * 2;
+            box.Width += trackOffset;
+            RenderScrollBarTrack(graphics, box, camera);
+            RenderedVerticalScrollBarTrackBounds = box.Transform(matrix);
+        }
+
+        if (horizontalVisible)
+        {
+            box = GetScrollBarThumbBox(ScrollBarDirection.Horizontal);
+            RenderScrollBarThumb(graphics, box, camera);
+            RenderedHorizontalScrollBarThumbBounds = box.Transform(matrix);
+        }
+
+        if (!verticalVisible)
+            return;
+        box = GetScrollBarThumbBox(ScrollBarDirection.Vertical);
+        RenderScrollBarThumb(graphics, box, camera);
+        RenderedVerticalScrollBarThumbBounds = box.Transform(matrix);
+    }
+
+    public void ScrollTo(Vector2 offset)
+    {
+        ScrollOffset = -offset;
+    }
+
+    protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraFunc? camera)
+    {
+        _scrollBarTrackRectangle.Camera = camera;
+        graphics.DrawRectangle(box, _scrollBarTrackRectangle);
+    }
+
+    protected virtual void RenderScrollBarThumb(Graphics graphics, Box box, CameraFunc? camera)
+    {
+        _scrollBarThumbRectangle.Camera = camera;
+        graphics.DrawRectangle(box, _scrollBarThumbRectangle);
+    }
+
+    private Box GetScrollBarTrackBox(ScrollBarDirection direction)
+    {
+        var position = LayoutPosition;
+        var barSize = ScrollBarSize;
+        var size = LayoutSize;
+        return direction switch
+        {
+            ScrollBarDirection.Horizontal => new Box(
+                new Vector2(position.X, position.Y + size.Y - barSize.X),
+                new Vector2(size.X, barSize.X)
+            ),
+            ScrollBarDirection.Vertical => new Box(
+                new Vector2(position.X + size.X - barSize.Y, position.Y),
+                new Vector2(barSize.Y, size.Y)
+            ),
+            _ => throw new InvalidEnumArgumentException(nameof(direction), (int)direction, typeof(ScrollBarDirection)),
+        };
+    }
+
+    private Box GetScrollBarThumbBox(ScrollBarDirection direction)
+    {
+        var contentSize = ChildrenLayoutSize;
+        var position = LayoutPosition;
+        var barSize = ScrollBarSize;
+        var size = LayoutSize;
+        var topInset = MathF.Max(0, ScrollBarThumbMarginTop.Calculate(size.Y));
+        var rightInset = MathF.Max(0, ScrollBarThumbMarginRight.Calculate(size.X));
+        var bottomInset = MathF.Max(0, ScrollBarThumbMarginBottom.Calculate(size.Y));
+        var leftInset = MathF.Max(0, ScrollBarThumbMarginLeft.Calculate(size.X));
+        var scroll = ScrollOffset;
+        var thumbSize = Vector2.Zero;
+        var thumbOffset = Vector2.Zero;
+        var horizontalVisible = IsHorizontalScrollBarVisible;
+        var verticalVisible = IsVerticalScrollBarVisible;
+
+        {
+            size.X = MathF.Max(size.X - (verticalVisible ? barSize.Y : 0), 0);
+            var visibleRatio = size.X / MathF.Max(contentSize.X, 1f);
+            thumbSize.X = MathF.Min(visibleRatio * size.X, size.X);
+            var maxScroll = MathF.Max(contentSize.X - size.X + leftInset + rightInset, 1f);
+            thumbOffset.X = -scroll.X / maxScroll * (size.X - thumbSize.X);
+        }
+
+        size = LayoutSize;
+        {
+            size.Y = MathF.Max(size.Y - (horizontalVisible ? barSize.X : 0), 0);
+            var visibleRatio = size.Y / MathF.Max(contentSize.Y, 1f);
+            thumbSize.Y = MathF.Min(visibleRatio * size.Y, size.Y);
+            var maxScroll = MathF.Max(contentSize.Y - size.Y + topInset + bottomInset, 1f);
+            thumbOffset.Y = -scroll.Y / maxScroll * (size.Y - thumbSize.Y);
+        }
+
+        size = LayoutSize;
+        return direction switch
+        {
+            ScrollBarDirection.Horizontal => new Box(
+                new Vector2(position.X + thumbOffset.X + leftInset, position.Y + size.Y - barSize.X + topInset),
+                new Vector2(thumbSize.X - rightInset, barSize.X - topInset - bottomInset)
+            ),
+            ScrollBarDirection.Vertical => new Box(
+                new Vector2(position.X + size.X - barSize.Y + leftInset, position.Y + thumbOffset.Y + topInset),
+                new Vector2(barSize.Y - leftInset - rightInset, thumbSize.Y - bottomInset)
+            ),
+            _ => throw new InvalidEnumArgumentException(nameof(direction), (int)direction, typeof(ScrollBarDirection)),
+        };
+    }
+
+    private enum ScrollBarDirection
+    {
+        Horizontal,
+        Vertical,
+    }
+}

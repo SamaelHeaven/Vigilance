@@ -8,10 +8,10 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public abstract class UIElement
+public abstract class UIElement : IDeepCloneable
 {
-    internal readonly Node Node = Flex.CreateDefaultNode();
     private bool _click;
+    internal Node Node = Flex.CreateDefaultNode();
 
     protected UIElement()
     {
@@ -20,7 +20,7 @@ public abstract class UIElement
 
     public string Id { get; set; } = "";
 
-    public Tags Tags { get; } = new();
+    public Tags Tags { get; private set; } = new();
 
     public float LayoutLeft => Node.LayoutGetLeft();
 
@@ -58,9 +58,15 @@ public abstract class UIElement
     public Transform LayoutTransform =>
         new(Translate.Calculate(LayoutSize), Scale, Rotation, PivotPoint.Calculate(LayoutSize));
 
-    public bool LayoutOutside { get; private set; }
+    public bool RenderedOutside { get; private set; } = true;
 
-    public Quad LayoutBounds { get; private set; }
+    public Quad RenderedBounds { get; private set; }
+
+    public Matrix3x2 RenderedMatrix { get; private set; }
+
+    public CameraFunc? RenderedCamera { get; private set; }
+
+    public Box? RenderedClip { get; private set; }
 
     public bool LayoutReady { get; private set; }
 
@@ -115,7 +121,7 @@ public abstract class UIElement
     {
         get
         {
-            var visible = LayoutReady && Display != Display.None && !LayoutOutside;
+            var visible = LayoutReady && Display != Display.None && !RenderedOutside;
             return (Parent?.Visible ?? true) && visible;
         }
     }
@@ -450,6 +456,19 @@ public abstract class UIElement
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
+    public virtual object DeepClone()
+    {
+        var result = (UIElement)MemberwiseClone();
+        result._click = false;
+        result.LayoutReady = false;
+        result.Parent = null;
+        result.Node = Flex.CreateDefaultNode();
+        Flex.NodeCopyStyle(result.Node, Node);
+        result.Tags = new Tags();
+        result.Tags.UnionWith(Tags);
+        return result;
+    }
+
     public event Action<UIEvent>? OnUpdateEvent;
 
     public event Action<UIEvent>? OnMouseEnterEvent;
@@ -481,11 +500,17 @@ public abstract class UIElement
         return Parent?.Closest<T>(selector);
     }
 
+    public void CalculateLayout()
+    {
+        MarkReady();
+        Flex.CalculateLayout(Node, float.NaN, float.NaN, FlexLayoutSharp.Direction.LTR);
+    }
+
     public virtual void Update(Entity entity)
     {
         var e = new UIEvent { Entity = entity, Element = this };
         var oldMouseInside = MouseInside;
-        MouseInside = Visible && Collision.CheckPointQuad(Mouse.Position, LayoutBounds);
+        MouseInside = Visible && Collision.CheckPointQuad(Mouse.Position, RenderedBounds);
         OnUpdateEvent?.Invoke(e);
         switch (oldMouseInside)
         {
@@ -515,8 +540,6 @@ public abstract class UIElement
 
     public void Render(Transform transform, Graphics graphics)
     {
-        MarkReady();
-        Flex.CalculateLayout(Node, float.NaN, float.NaN, FlexLayoutSharp.Direction.LTR);
         graphics.PushMatrix();
         graphics.Translate(transform.Position);
         graphics.Scale(transform.Scale);
@@ -583,12 +606,14 @@ public abstract class UIElement
         graphics.Translate(-offset);
         graphics.Rotate(transform.Rotation, transform.PivotPoint + position + size * 0.5f);
         var matrix = graphics.GetMatrix();
+        RenderedMatrix = matrix;
         if (camera is not null)
             matrix *= camera.Invoke().Matrix;
-        LayoutBounds = new Quad(new Transform(offset, size)).Transform(matrix);
-        var layoutBox = new Box(LayoutBounds);
+        RenderedBounds = new Quad(new Transform(offset, size)).Transform(matrix);
+        RenderedCamera = camera;
+        var layoutBox = new Box(RenderedBounds);
         var oldClip = graphics.GetClip();
-        LayoutOutside = oldClip.HasValue && !Collision.CheckBoxes(oldClip.Value, layoutBox);
+        RenderedOutside = oldClip.HasValue && !Collision.CheckBoxes(oldClip.Value, layoutBox);
         var overflowHidden = Overflow == Overflow.Hidden;
         if (overflowHidden)
         {
@@ -598,6 +623,7 @@ public abstract class UIElement
             graphics.SetClip(newClip);
         }
 
+        RenderedClip = graphics.GetClip();
         Render(graphics, camera);
         if (overflowHidden)
             graphics.SetClip(oldClip);

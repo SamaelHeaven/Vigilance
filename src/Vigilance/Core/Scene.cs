@@ -358,7 +358,7 @@ public sealed unsafe class Scene
             components = entity.Get<Components>();
         }
 
-        var component = new ComponentEntry(type, data);
+        var component = new Component(type, data);
         components.Values.Remove(component);
         components.Values.Add(component);
     }
@@ -376,7 +376,7 @@ public sealed unsafe class Scene
             components = entity.Get<Components>();
         }
 
-        components.Values.Remove(new ComponentEntry(type));
+        components.Values.Remove(new Component(type));
     }
 
     ~Scene()

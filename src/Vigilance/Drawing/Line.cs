@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class Line
+public sealed class Line : IFullCloneable
 {
     public Vector2 Start { get; set; } = Vector2.Zero;
     public Vector2 End { get; set; } = Vector2.Zero;

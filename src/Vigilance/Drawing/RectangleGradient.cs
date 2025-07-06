@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class RectangleGradient
+public sealed class RectangleGradient : IFullCloneable
 {
     public Color TopLeftFill { get; set; } = Color.White;
     public Color BottomLeftFill { get; set; } = Color.White;

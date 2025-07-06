@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class CustomPolygon
+public sealed class CustomPolygon : IFullCloneable
 {
     public CustomPolygon() { }
 
@@ -17,4 +17,11 @@ public sealed class CustomPolygon
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
     public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+
+    public object DeepClone()
+    {
+        var result = this.ShallowClone();
+        result.Points = Points.ToArray();
+        return result;
+    }
 }
