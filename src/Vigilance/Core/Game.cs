@@ -363,7 +363,6 @@ public sealed unsafe class Game
             }
         else
             game._config.Logger.Log(level, message);
-
         if (level == LogLevel.Fatal)
             Environment.Exit(1);
     }
