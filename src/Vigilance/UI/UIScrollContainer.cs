@@ -384,30 +384,15 @@ public class UIScrollContainer : UIContainer
         var position = LayoutPosition;
         var barSize = ScrollBarSize;
         var size = LayoutSize;
-        var topInset = MathF.Max(
-            0,
-            (direction == ScrollBarDirection.Vertical ? ScrollBarThumbMarginTop : ScrollBarThumbMarginLeft).Calculate(
-                size.Y
-            )
-        );
-        var rightInset = MathF.Max(
-            0,
-            (
-                direction == ScrollBarDirection.Vertical ? ScrollBarThumbMarginRight : ScrollBarThumbMarginBottom
-            ).Calculate(size.X)
-        );
-        var bottomInset = MathF.Max(
-            0,
-            (
-                direction == ScrollBarDirection.Vertical ? ScrollBarThumbMarginBottom : ScrollBarThumbMarginRight
-            ).Calculate(size.Y)
-        );
-        var leftInset = MathF.Max(
-            0,
-            (direction == ScrollBarDirection.Vertical ? ScrollBarThumbMarginLeft : ScrollBarThumbMarginTop).Calculate(
-                size.X
-            )
-        );
+        var isVertical = direction == ScrollBarDirection.Vertical;
+        var marginTop = isVertical ? ScrollBarThumbMarginTop : ScrollBarThumbMarginLeft;
+        var marginRight = isVertical ? ScrollBarThumbMarginRight : ScrollBarThumbMarginBottom;
+        var marginBottom = isVertical ? ScrollBarThumbMarginBottom : ScrollBarThumbMarginRight;
+        var marginLeft = isVertical ? ScrollBarThumbMarginLeft : ScrollBarThumbMarginTop;
+        var topInset = MathF.Max(0, marginTop.Calculate(size.Y));
+        var rightInset = MathF.Max(0, marginRight.Calculate(size.X));
+        var bottomInset = MathF.Max(0, marginBottom.Calculate(size.Y));
+        var leftInset = MathF.Max(0, marginLeft.Calculate(size.X));
         var scroll = ScrollOffset;
         var thumbSize = Vector2.Zero;
         var thumbOffset = Vector2.Zero;
