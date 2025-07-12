@@ -10,6 +10,8 @@ public class UIScrollContainer : UIContainer
 {
     private Rectangle _scrollBarThumbRectangle = new();
     private Rectangle _scrollBarTrackRectangle = new();
+    private float? _thumbMouseDownX = null;
+    private float? _thumbMouseDownY = null;
 
     public UIScrollContainer()
     {
@@ -31,7 +33,7 @@ public class UIScrollContainer : UIContainer
 
     public Quad RenderedVerticalScrollBarThumbBounds { get; private set; }
 
-    public Vector2 MouseScrollForce { get; set; } = new(15);
+    public Vector2 MouseScrollForce { get; set; } = new(Platform.Web.IsCurrent() ? 10 : 20);
 
     public Vector2 ScrollBarSize { get; set; } = new(15);
 
@@ -186,6 +188,8 @@ public class UIScrollContainer : UIContainer
         set => _scrollBarThumbRectangle.Roundness = value;
     }
 
+    public bool MouseInsideNestedScrollContainer { get; set; }
+
     public override void Update(Entity entity)
     {
         if (!LayoutReady)
@@ -197,6 +201,9 @@ public class UIScrollContainer : UIContainer
         var offset = Vector2.Zero;
         var size = Vector2.Zero;
         var direction = Direction;
+        var mousePosition = Mouse.Position;
+        var mousePressed = Mouse.IsButtonPressed(MouseButton.Left);
+        var mouseReleased = Mouse.IsButtonReleased(MouseButton.Left);
         foreach (var element in Children)
         {
             if (element.Position == Position.Absolute)
@@ -214,7 +221,46 @@ public class UIScrollContainer : UIContainer
         }
 
         ChildrenLayoutSize = size;
-        var scroll = MouseInside ? Mouse.Scroll * MouseScrollForce : Vector2.Zero;
+        MouseInsideNestedScrollContainer = IsMouseInsideNestedScrollContainer(this);
+        var scroll = MouseInside && !MouseInsideNestedScrollContainer ? Mouse.Scroll * MouseScrollForce : Vector2.Zero;
+        if (_thumbMouseDownY.HasValue)
+        {
+            var deltaY = mousePosition.Y - _thumbMouseDownY.Value;
+            var trackBox = GetScrollBarTrackBox(ScrollBarDirection.Vertical);
+            var thumbBox = GetScrollBarThumbBox(ScrollBarDirection.Vertical);
+            var scrollableHeight = ChildrenLayoutSize.Y - LayoutSize.Y;
+            var trackMovableHeight = trackBox.Height - thumbBox.Height;
+            if (trackMovableHeight > 0)
+                scroll.Y = -(deltaY * scrollableHeight / trackMovableHeight);
+            _thumbMouseDownY = mousePosition.Y;
+        }
+
+        if (_thumbMouseDownX.HasValue)
+        {
+            var deltaX = mousePosition.X - _thumbMouseDownX.Value;
+            var trackBox = GetScrollBarTrackBox(ScrollBarDirection.Horizontal);
+            var thumbBox = GetScrollBarThumbBox(ScrollBarDirection.Horizontal);
+            var scrollableWidth = ChildrenLayoutSize.X - LayoutSize.X;
+            var trackMovableWidth = trackBox.Width - thumbBox.Width;
+            if (trackMovableWidth > 0)
+                scroll.X = -(deltaX * scrollableWidth / trackMovableWidth);
+            _thumbMouseDownX = mousePosition.X;
+        }
+
+        if (MouseInside && mousePressed)
+        {
+            if (Collision.CheckPointQuad(mousePosition, RenderedHorizontalScrollBarThumbBounds))
+                _thumbMouseDownX = mousePosition.X;
+            if (Collision.CheckPointQuad(mousePosition, RenderedVerticalScrollBarThumbBounds))
+                _thumbMouseDownY = mousePosition.Y;
+        }
+
+        if (mouseReleased)
+        {
+            _thumbMouseDownX = null;
+            _thumbMouseDownY = null;
+        }
+
         var horizontalVisible = IsHorizontalScrollBarVisible;
         var verticalVisible = IsVerticalScrollBarVisible;
         var minSize = -(
@@ -371,6 +417,21 @@ public class UIScrollContainer : UIContainer
             ),
             _ => throw new InvalidEnumArgumentException(nameof(direction), (int)direction, typeof(ScrollBarDirection)),
         };
+    }
+
+    private bool IsMouseInsideNestedScrollContainer(UIContainer container)
+    {
+        if (container != this && container is UIScrollContainer { MouseInside: true })
+            return true;
+        foreach (var child in container.Children)
+        {
+            if (child is not UIContainer childContainer)
+                continue;
+            if (IsMouseInsideNestedScrollContainer(childContainer))
+                return true;
+        }
+
+        return false;
     }
 
     private enum ScrollBarDirection

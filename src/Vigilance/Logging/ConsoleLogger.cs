@@ -6,13 +6,15 @@ public sealed class ConsoleLogger : ILogger
     {
         lock (Console.Out)
         {
+            Console.ResetColor();
             if (level is > LogLevel.All and < LogLevel.None)
             {
+                var color = level.GetConsoleColor();
                 Console.Write("[");
-                var color = Console.ForegroundColor;
-                Console.ForegroundColor = level.GetConsoleColor() ?? color;
+                if (color is not null)
+                    Console.ForegroundColor = color.Value;
                 Console.Write(level);
-                Console.ForegroundColor = color;
+                Console.ResetColor();
                 Console.Write("] ");
             }
 

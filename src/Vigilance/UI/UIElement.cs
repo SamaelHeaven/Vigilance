@@ -634,3 +634,13 @@ public abstract class UIElement : IDeepCloneable
 }
 
 public delegate Vector2 MeasureFunc(float width, MeasureMode widthMode, float height, MeasureMode heightMode);
+
+public static class UIElementExtensions
+{
+    public static T Ref<T>(this T self, out T element)
+        where T : UIElement
+    {
+        element = self;
+        return element;
+    }
+}

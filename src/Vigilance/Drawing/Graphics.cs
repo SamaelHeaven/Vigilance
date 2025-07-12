@@ -9,6 +9,7 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Graphics
 {
+    private const float PixelOffset = 0.375f;
     private static WritableTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
     private readonly WritableTexture? _buffer;
@@ -492,7 +493,7 @@ public sealed unsafe class Graphics
         var scale = transform.Scale.Abs();
         var strokeWidth = MathF.Max(
             0,
-            MathF.Min(MathF.Min(scale.X, scale.Y) * 0.5f - (roundness > 0 ? 0.375f : 0), rectangle.StrokeWidth)
+            MathF.Min(MathF.Min(scale.X, scale.Y) * 0.5f - (roundness > 0 ? PixelOffset : 0), rectangle.StrokeWidth)
         );
         PushMatrix();
         Pivot(transform, true);
@@ -1542,10 +1543,10 @@ public sealed unsafe class Graphics
             _currentClip = clip;
             if (clip.HasValue)
                 Raylib.BeginScissorMode(
-                    (int)clip.Value.X.Round(),
-                    (int)clip.Value.Y.Round(),
-                    (int)clip.Value.Width.Round(),
-                    (int)clip.Value.Height.Round()
+                    (int)(clip.Value.X + PixelOffset).Round(),
+                    (int)(clip.Value.Y + PixelOffset).Round(),
+                    (int)(clip.Value.Width + PixelOffset).Round(),
+                    (int)(clip.Value.Height + PixelOffset).Round()
                 );
         }
 
@@ -1553,7 +1554,7 @@ public sealed unsafe class Graphics
         Rlgl.PushMatrix();
         Rlgl.Translatef(offset.X, offset.Y, 0);
         Rlgl.Scalef(scale.X, scale.Y, 1);
-        Rlgl.Translatef(0.375f, 0.375f, 0);
+        Rlgl.Translatef(PixelOffset, PixelOffset, 0);
         if (camera is not null)
             matrix *= camera.Matrix;
         Rlgl.MultMatrixf(
