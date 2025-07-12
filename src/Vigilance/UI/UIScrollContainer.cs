@@ -33,11 +33,18 @@ public class UIScrollContainer : UIContainer
 
     public Quad RenderedVerticalScrollBarThumbBounds { get; private set; }
 
-    public Vector2 MouseScrollForce { get; set; } = new(Platform.Web.IsCurrent() ? 10 : 20);
+    public Vector2 MouseScrollForce { get; set; } = new(15);
 
-    public Vector2 ScrollBarSize { get; set; } = new(15);
+    public Vector2 ScrollBarSize { get; set; } = new(16);
 
-    public Insets ScrollBarThumbMargin { get; set; } = 2;
+    public Insets ScrollBarThumbMargin { get; set; } =
+        new()
+        {
+            Top = 1,
+            Bottom = 1,
+            Left = 2,
+            Right = 2,
+        };
 
     public Unit ScrollBarThumbMarginHorizontal
     {
@@ -377,10 +384,30 @@ public class UIScrollContainer : UIContainer
         var position = LayoutPosition;
         var barSize = ScrollBarSize;
         var size = LayoutSize;
-        var topInset = MathF.Max(0, ScrollBarThumbMarginTop.Calculate(size.Y));
-        var rightInset = MathF.Max(0, ScrollBarThumbMarginRight.Calculate(size.X));
-        var bottomInset = MathF.Max(0, ScrollBarThumbMarginBottom.Calculate(size.Y));
-        var leftInset = MathF.Max(0, ScrollBarThumbMarginLeft.Calculate(size.X));
+        var topInset = MathF.Max(
+            0,
+            (direction == ScrollBarDirection.Vertical ? ScrollBarThumbMarginTop : ScrollBarThumbMarginLeft).Calculate(
+                size.Y
+            )
+        );
+        var rightInset = MathF.Max(
+            0,
+            (
+                direction == ScrollBarDirection.Vertical ? ScrollBarThumbMarginRight : ScrollBarThumbMarginBottom
+            ).Calculate(size.X)
+        );
+        var bottomInset = MathF.Max(
+            0,
+            (
+                direction == ScrollBarDirection.Vertical ? ScrollBarThumbMarginBottom : ScrollBarThumbMarginRight
+            ).Calculate(size.Y)
+        );
+        var leftInset = MathF.Max(
+            0,
+            (direction == ScrollBarDirection.Vertical ? ScrollBarThumbMarginLeft : ScrollBarThumbMarginTop).Calculate(
+                size.X
+            )
+        );
         var scroll = ScrollOffset;
         var thumbSize = Vector2.Zero;
         var thumbOffset = Vector2.Zero;
