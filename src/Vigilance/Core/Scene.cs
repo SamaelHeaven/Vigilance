@@ -1,7 +1,10 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Flecs.NET.Bindings;
 using Flecs.NET.Core;
+using Flecs.NET.Utilities;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
@@ -22,7 +25,7 @@ public sealed unsafe class Scene
     )> _componentOperations = new();
 
     private readonly Dictionary<Type, object> _events = new();
-    private readonly SystemsFunc _systemsFunc;
+    private readonly GameSystemsFunc _systemsFunc;
     private Action? _deferredAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
@@ -34,18 +37,18 @@ public sealed unsafe class Scene
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
-    private ImmutableList<ISystem> _systems = ImmutableList<ISystem>.Empty;
+    private ImmutableList<IGameSystem> _systems = ImmutableList<IGameSystem>.Empty;
     private float _time;
     private Action? _updateAction;
     private World _world = World.Create();
 
-    public Scene(SystemsFunc? systems = null)
+    public Scene(GameSystemsFunc? systems = null)
     {
-        _systemsFunc = systems ?? Array.Empty<ISystem>;
+        _systemsFunc = systems ?? Array.Empty<IGameSystem>;
         _orderedQuery = BuildOrderedQuery();
     }
 
-    public IReadOnlyList<ISystem> Systems
+    public IReadOnlyList<IGameSystem> Systems
     {
         get
         {
@@ -89,7 +92,8 @@ public sealed unsafe class Scene
             if (current && _started)
                 Stop();
             _time = 0;
-            Each(entity => entity.Destroy());
+            foreach (var entity in Entities)
+                entity.Destroy();
             _initializeAction?.Invoke();
         }
     }
@@ -2125,6 +2129,1138 @@ public sealed unsafe class Scene
             }
         );
         DeferEnd();
+    }
+
+    #endregion
+
+    #region Enumerate
+
+    public IEnumerable<Entity> Entities => new EntityEnumerator(this);
+
+    public IEnumerable<T0> Components<T0>()
+    {
+        return new ComponentEnumerator<T0>(this);
+    }
+
+    public IEnumerable<(T0, T1)> Components<T0, T1>()
+    {
+        return new ComponentEnumerator<T0, T1>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2)> Components<T0, T1, T2>()
+    {
+        return new ComponentEnumerator<T0, T1, T2>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3)> Components<T0, T1, T2, T3>()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4)> Components<T0, T1, T2, T3, T4>()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4, T5)> Components<T0, T1, T2, T3, T4, T5>()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4, T5>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4, T5, T6)> Components<T0, T1, T2, T3, T4, T5, T6>()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7)> Components<T0, T1, T2, T3, T4, T5, T6, T7>()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8)> Components<T0, T1, T2, T3, T4, T5, T6, T7, T8>()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)> Components<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)> Components<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10
+    >()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)> Components<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10,
+        T11
+    >()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)> Components<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10,
+        T11,
+        T12
+    >()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)> Components<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10,
+        T11,
+        T12,
+        T13
+    >()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(this);
+    }
+
+    public IEnumerable<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)> Components<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10,
+        T11,
+        T12,
+        T13,
+        T14
+    >()
+    {
+        return new ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(this);
+    }
+
+    public IEnumerable<(Entity, T0)> Entries<T0>()
+    {
+        return new EntryEnumerator<T0>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1)> Entries<T0, T1>()
+    {
+        return new EntryEnumerator<T0, T1>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2)> Entries<T0, T1, T2>()
+    {
+        return new EntryEnumerator<T0, T1, T2>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3)> Entries<T0, T1, T2, T3>()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4)> Entries<T0, T1, T2, T3, T4>()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4, T5)> Entries<T0, T1, T2, T3, T4, T5>()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4, T5>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4, T5, T6)> Entries<T0, T1, T2, T3, T4, T5, T6>()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4, T5, T6>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4, T5, T6, T7)> Entries<T0, T1, T2, T3, T4, T5, T6, T7>()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8)> Entries<T0, T1, T2, T3, T4, T5, T6, T7, T8>()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9)> Entries<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9
+    >()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10)> Entries<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10
+    >()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11)> Entries<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10,
+        T11
+    >()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12)> Entries<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10,
+        T11,
+        T12
+    >()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13)> Entries<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10,
+        T11,
+        T12,
+        T13
+    >()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(this);
+    }
+
+    public IEnumerable<(Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14)> Entries<
+        T0,
+        T1,
+        T2,
+        T3,
+        T4,
+        T5,
+        T6,
+        T7,
+        T8,
+        T9,
+        T10,
+        T11,
+        T12,
+        T13,
+        T14
+    >()
+    {
+        return new EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(this);
+    }
+
+    #endregion
+
+    #region Enumerators
+
+    private abstract class QueryEnumerator<T, TQuery> : IEnumerator<T>, IEnumerable<T>
+        where TQuery : struct, IDisposable, IIterableBase
+    {
+        private int _index;
+        private flecs.ecs_iter_t _iter;
+        private TQuery? _query;
+
+        protected QueryEnumerator(Scene scene)
+        {
+            Scene = scene;
+            Reset();
+        }
+
+        protected Entity CurrentEntity
+        {
+            get
+            {
+                if (!_query.HasValue)
+                    return Core.Entity.Null;
+                var entity = new Flecs.NET.Core.Entity(Scene._world, _iter.entities[_index]);
+                return new Entity(entity, Scene);
+            }
+        }
+
+        protected Scene Scene { get; }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            return this;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public bool MoveNext()
+        {
+            if (_index < _iter.count)
+            {
+                _index++;
+                if (_index < _iter.count)
+                    return true;
+            }
+
+            _index = 0;
+            fixed (flecs.ecs_iter_t* iter = &_iter)
+            {
+                return Utils.Bool(flecs.ecs_query_next(iter));
+            }
+        }
+
+        public void Reset()
+        {
+            if (!_query.HasValue)
+                Dispose();
+            Scene.DeferBegin();
+            var query = Query();
+            _query = query;
+            _iter = query.GetIter();
+            _index = 0;
+            fixed (flecs.ecs_iter_t* iter = &_iter)
+            {
+                Ecs.TableLock(iter);
+            }
+        }
+
+        public abstract T Current { get; }
+
+        object? IEnumerator.Current => Current;
+
+        public void Dispose()
+        {
+            if (!_query.HasValue)
+                return;
+            fixed (flecs.ecs_iter_t* iter = &_iter)
+            {
+                Ecs.TableUnlock(iter);
+            }
+
+            Scene.DeferEnd();
+            _query.Value.Dispose();
+            _query = null;
+            _iter = default;
+            _index = 0;
+        }
+
+        protected TField GetField<TField>(byte index)
+        {
+            fixed (flecs.ecs_iter_t* iter = &_iter)
+            {
+                var ptr = flecs.ecs_field_w_size(iter, Type<TField>.Size, index);
+                if (!RuntimeHelpers.IsReferenceOrContainsReferences<TField>())
+#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+                    return ((TField*)ptr)[_index];
+#pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+                var handle = GCHandle.FromIntPtr(*&((nint*)ptr)[_index]);
+                var box = (StrongBox<TField>)handle.Target!;
+                return box.Value!;
+            }
+        }
+
+        protected abstract TQuery Query();
+    }
+
+    private class EntityEnumerator : QueryEnumerator<Entity, Query<ZIndex>>
+    {
+        public EntityEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override Entity Current => CurrentEntity;
+
+        protected override Query<ZIndex> Query()
+        {
+            return Scene._world.QueryBuilder<ZIndex>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0> : QueryEnumerator<T0, Query<T0>>
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override T0 Current => GetField<T0>(0);
+
+        protected override Query<T0> Query()
+        {
+            return Scene._world.QueryBuilder<T0>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1> : QueryEnumerator<(T0, T1), Query<T0, T1>>
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1) Current => (GetField<T0>(0), GetField<T1>(1));
+
+        protected override Query<T0, T1> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2> : QueryEnumerator<(T0, T1, T2), Query<T0, T1, T2>>
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2) Current => (GetField<T0>(0), GetField<T1>(1), GetField<T2>(2));
+
+        protected override Query<T0, T1, T2> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3> : QueryEnumerator<(T0, T1, T2, T3), Query<T0, T1, T2, T3>>
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3) Current =>
+            (GetField<T0>(0), GetField<T1>(1), GetField<T2>(2), GetField<T3>(3));
+
+        protected override Query<T0, T1, T2, T3> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4>
+        : QueryEnumerator<(T0, T1, T2, T3, T4), Query<T0, T1, T2, T3, T4>>
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4) Current =>
+            (GetField<T0>(0), GetField<T1>(1), GetField<T2>(2), GetField<T3>(3), GetField<T4>(4));
+
+        protected override Query<T0, T1, T2, T3, T4> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4, T5>
+        : QueryEnumerator<(T0, T1, T2, T3, T4, T5), Query<T0, T1, T2, T3, T4, T5>>
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4, T5) Current =>
+            (GetField<T0>(0), GetField<T1>(1), GetField<T2>(2), GetField<T3>(3), GetField<T4>(4), GetField<T5>(5));
+
+        protected override Query<T0, T1, T2, T3, T4, T5> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6>
+        : QueryEnumerator<(T0, T1, T2, T3, T4, T5, T6), Query<T0, T1, T2, T3, T4, T5, T6>>
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4, T5, T6) Current =>
+            (
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7>
+        : QueryEnumerator<(T0, T1, T2, T3, T4, T5, T6, T7), Query<T0, T1, T2, T3, T4, T5, T6, T7>>
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4, T5, T6, T7) Current =>
+            (
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8>
+        : QueryEnumerator<(T0, T1, T2, T3, T4, T5, T6, T7, T8), Query<T0, T1, T2, T3, T4, T5, T6, T7, T8>>
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4, T5, T6, T7, T8) Current =>
+            (
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>
+        : QueryEnumerator<(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9), Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>>
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) Current =>
+            (
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
+        : QueryEnumerator<
+            (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
+        >
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) Current =>
+            (
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9),
+                GetField<T10>(10)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>
+        : QueryEnumerator<
+            (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>
+        >
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) Current =>
+            (
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9),
+                GetField<T10>(10),
+                GetField<T11>(11)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>
+        : QueryEnumerator<
+            (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>
+        >
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) Current =>
+            (
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9),
+                GetField<T10>(10),
+                GetField<T11>(11),
+                GetField<T12>(12)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>
+        : QueryEnumerator<
+            (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>
+        >
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) Current =>
+            (
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9),
+                GetField<T10>(10),
+                GetField<T11>(11),
+                GetField<T12>(12),
+                GetField<T13>(13)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>().Build();
+        }
+    }
+
+    private class ComponentEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>
+        : QueryEnumerator<
+            (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>
+        >
+    {
+        public ComponentEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) Current =>
+            (
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9),
+                GetField<T10>(10),
+                GetField<T11>(11),
+                GetField<T12>(12),
+                GetField<T13>(13),
+                GetField<T14>(14)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0> : QueryEnumerator<(Entity, T0), Query<T0>>
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0) Current => (CurrentEntity, GetField<T0>(0));
+
+        protected override Query<T0> Query()
+        {
+            return Scene._world.QueryBuilder<T0>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1> : QueryEnumerator<(Entity, T0, T1), Query<T0, T1>>
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1) Current => (CurrentEntity, GetField<T0>(0), GetField<T1>(1));
+
+        protected override Query<T0, T1> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2> : QueryEnumerator<(Entity, T0, T1, T2), Query<T0, T1, T2>>
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2) Current =>
+            (CurrentEntity, GetField<T0>(0), GetField<T1>(1), GetField<T2>(2));
+
+        protected override Query<T0, T1, T2> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3> : QueryEnumerator<(Entity, T0, T1, T2, T3), Query<T0, T1, T2, T3>>
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3) Current =>
+            (CurrentEntity, GetField<T0>(0), GetField<T1>(1), GetField<T2>(2), GetField<T3>(3));
+
+        protected override Query<T0, T1, T2, T3> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4>
+        : QueryEnumerator<(Entity, T0, T1, T2, T3, T4), Query<T0, T1, T2, T3, T4>>
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4) Current =>
+            (CurrentEntity, GetField<T0>(0), GetField<T1>(1), GetField<T2>(2), GetField<T3>(3), GetField<T4>(4));
+
+        protected override Query<T0, T1, T2, T3, T4> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4, T5>
+        : QueryEnumerator<(Entity, T0, T1, T2, T3, T4, T5), Query<T0, T1, T2, T3, T4, T5>>
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4, T5) Current =>
+            (
+                CurrentEntity,
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4, T5, T6>
+        : QueryEnumerator<(Entity, T0, T1, T2, T3, T4, T5, T6), Query<T0, T1, T2, T3, T4, T5, T6>>
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4, T5, T6) Current =>
+            (
+                CurrentEntity,
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7>
+        : QueryEnumerator<(Entity, T0, T1, T2, T3, T4, T5, T6, T7), Query<T0, T1, T2, T3, T4, T5, T6, T7>>
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4, T5, T6, T7) Current =>
+            (
+                CurrentEntity,
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8>
+        : QueryEnumerator<(Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8), Query<T0, T1, T2, T3, T4, T5, T6, T7, T8>>
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8) Current =>
+            (
+                CurrentEntity,
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>
+        : QueryEnumerator<
+            (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>
+        >
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9) Current =>
+            (
+                CurrentEntity,
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
+        : QueryEnumerator<
+            (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>
+        >
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) Current =>
+            (
+                CurrentEntity,
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9),
+                GetField<T10>(10)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>
+        : QueryEnumerator<
+            (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>
+        >
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11) Current =>
+            (
+                CurrentEntity,
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9),
+                GetField<T10>(10),
+                GetField<T11>(11)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>
+        : QueryEnumerator<
+            (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>
+        >
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12) Current =>
+            (
+                CurrentEntity,
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9),
+                GetField<T10>(10),
+                GetField<T11>(11),
+                GetField<T12>(12)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>
+        : QueryEnumerator<
+            (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>
+        >
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13) Current =>
+            (
+                CurrentEntity,
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9),
+                GetField<T10>(10),
+                GetField<T11>(11),
+                GetField<T12>(12),
+                GetField<T13>(13)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>().Build();
+        }
+    }
+
+    private class EntryEnumerator<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>
+        : QueryEnumerator<
+            (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14),
+            Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>
+        >
+    {
+        public EntryEnumerator(Scene scene)
+            : base(scene) { }
+
+        public override (Entity, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14) Current =>
+            (
+                CurrentEntity,
+                GetField<T0>(0),
+                GetField<T1>(1),
+                GetField<T2>(2),
+                GetField<T3>(3),
+                GetField<T4>(4),
+                GetField<T5>(5),
+                GetField<T6>(6),
+                GetField<T7>(7),
+                GetField<T8>(8),
+                GetField<T9>(9),
+                GetField<T10>(10),
+                GetField<T11>(11),
+                GetField<T12>(12),
+                GetField<T13>(13),
+                GetField<T14>(14)
+            );
+
+        protected override Query<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> Query()
+        {
+            return Scene._world.QueryBuilder<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>().Build();
+        }
     }
 
     #endregion

@@ -1,7 +1,13 @@
 #pragma warning disable CS9084
 
+using System.Collections;
+using Flecs.NET.Bindings;
 using Flecs.NET.Core;
+using Flecs.NET.Utilities;
 using Vigilance.Math;
+
+// ReSharper disable PossiblyImpureMethodCallOnReadonlyVariable
+#pragma warning disable CS8656 // Call to non-readonly member from a 'readonly' member results in an implicit copy.
 
 namespace Vigilance.Core;
 
@@ -18,15 +24,15 @@ public unsafe struct Entity : IEquatable<Entity>
         Scene = scene;
     }
 
-    public ulong Id => _entity.Id.Value;
+    public readonly ulong Id => _entity.Id.Value;
 
-    public string Name => _entity.Name();
+    public readonly string Name => _entity.Name();
 
-    public bool Valid => _entity.IsValid();
+    public readonly bool Valid => _entity.IsValid();
 
-    public Entity Parent => new(_entity.Parent(), null!);
+    public readonly Entity Parent => new(_entity.Parent(), null!);
 
-    public Transform Transform
+    public readonly Transform Transform
     {
         get =>
             new()
@@ -45,7 +51,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public Vector2 Position
+    public readonly Vector2 Position
     {
         get => Has<Position>() ? Get<Position>().Value : Vector2.Zero;
         set
@@ -55,7 +61,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public Vector2 Scale
+    public readonly Vector2 Scale
     {
         get => Has<Scale>() ? Get<Scale>().Value : Vector2.One;
         set
@@ -65,7 +71,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public float Rotation
+    public readonly float Rotation
     {
         get => Has<Rotation>() ? Get<Rotation>().Value : 0;
         set
@@ -75,7 +81,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public Vector2 PivotPoint
+    public readonly Vector2 PivotPoint
     {
         get => Has<PivotPoint>() ? Get<PivotPoint>().Value : Vector2.Zero;
         set
@@ -85,7 +91,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public int ZIndex
+    public readonly int ZIndex
     {
         get => Has<ZIndex>() ? Get<ZIndex>().Value : 0;
         set
@@ -95,7 +101,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public Transform WorldTransform
+    public readonly Transform WorldTransform
     {
         get
         {
@@ -106,7 +112,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public Vector2 WorldPosition
+    public readonly Vector2 WorldPosition
     {
         get
         {
@@ -117,7 +123,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public Vector2 WorldScale
+    public readonly Vector2 WorldScale
     {
         get
         {
@@ -128,7 +134,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public float WorldRotation
+    public readonly float WorldRotation
     {
         get
         {
@@ -139,7 +145,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public Vector2 WorldPivotPoint
+    public readonly Vector2 WorldPivotPoint
     {
         get
         {
@@ -150,7 +156,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public int WorldZIndex
+    public readonly int WorldZIndex
     {
         get
         {
@@ -161,7 +167,7 @@ public unsafe struct Entity : IEquatable<Entity>
         }
     }
 
-    public Components Components => _entity.Has<Components>() ? _entity.Get<Components>() : Components.Empty;
+    public readonly Components Components => _entity.Has<Components>() ? _entity.Get<Components>() : Components.Empty;
 
     public static bool operator ==(Entity a, Entity b)
     {
@@ -173,99 +179,99 @@ public unsafe struct Entity : IEquatable<Entity>
         return !(a == b);
     }
 
-    public override bool Equals(object? obj)
+    public override readonly bool Equals(object? obj)
     {
         return obj is Entity entity && Equals(entity);
     }
 
-    public bool Equals(Entity other)
+    public readonly bool Equals(Entity other)
     {
         return _entity == other._entity;
     }
 
-    public override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         return _entity.GetHashCode();
     }
 
-    public ref Entity SetTransform(Transform transform)
+    public readonly ref readonly Entity SetTransform(Transform transform)
     {
         Transform = transform;
         return ref this;
     }
 
-    public ref Entity SetPosition(float v1, float? v2 = null)
+    public readonly ref readonly Entity SetPosition(float v1, float? v2 = null)
     {
         Position = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
-    public ref Entity SetPosition(Vector2 position)
+    public readonly ref readonly Entity SetPosition(Vector2 position)
     {
         Position = position;
         return ref this;
     }
 
-    public ref Entity SetScale(float v1, float? v2 = null)
+    public readonly ref readonly Entity SetScale(float v1, float? v2 = null)
     {
         Scale = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
-    public ref Entity SetScale(Vector2 scale)
+    public readonly ref readonly Entity SetScale(Vector2 scale)
     {
         Scale = scale;
         return ref this;
     }
 
-    public ref Entity SetRotation(float rotation)
+    public readonly ref readonly Entity SetRotation(float rotation)
     {
         Rotation = rotation;
         return ref this;
     }
 
-    public ref Entity SetPivotPoint(float v1, float? v2 = null)
+    public readonly ref readonly Entity SetPivotPoint(float v1, float? v2 = null)
     {
         PivotPoint = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
-    public ref Entity SetPivotPoint(Vector2 pivotPoint)
+    public readonly ref readonly Entity SetPivotPoint(Vector2 pivotPoint)
     {
         PivotPoint = pivotPoint;
         return ref this;
     }
 
-    public ref Entity SetZIndex(int zIndex)
+    public readonly ref readonly Entity SetZIndex(int zIndex)
     {
         ZIndex = zIndex;
         return ref this;
     }
 
-    public T Get<T>()
+    public readonly T Get<T>()
     {
         return _entity.Get<T>();
     }
 
-    public ref Entity Set<T>(T data)
+    public readonly ref readonly Entity Set<T>(T data)
     {
         Set(data, true);
         return ref this;
     }
 
-    public ref Entity Set<T>(ref T data)
+    public readonly ref readonly Entity Set<T>(ref T data)
     {
         Set(data, true);
         return ref this;
     }
 
-    private ref Entity Set<T>(T data, bool updateComponents)
+    private ref readonly Entity Set<T>(T data, bool updateComponents)
     {
         Set(ref data, updateComponents);
         return ref this;
     }
 
-    private ref Entity Set<T>(ref T data, bool updateComponents)
+    private ref readonly Entity Set<T>(ref T data, bool updateComponents)
     {
         var type = typeof(T);
         if (type == typeof(Components))
@@ -281,7 +287,7 @@ public unsafe struct Entity : IEquatable<Entity>
         return ref this;
     }
 
-    public ref Entity Remove<T>()
+    public readonly ref readonly Entity Remove<T>()
     {
         var type = typeof(T);
         if (type == typeof(Components))
@@ -291,67 +297,66 @@ public unsafe struct Entity : IEquatable<Entity>
         return ref this;
     }
 
-    public void Destroy()
+    public readonly void Destroy()
     {
         _entity.Destruct();
     }
 
-    public ref Entity Scope(Action action)
+    public readonly ref readonly Entity Scope(Action action)
     {
+        Scene.DeferBegin();
         _entity.Scope(action);
+        Scene.DeferEnd();
         return ref this;
     }
 
-    public ref Entity ChildOf(Entity parent)
+    public readonly ref readonly Entity ChildOf(Entity parent)
     {
         _entity.ChildOf(parent._entity);
         return ref this;
     }
 
-    public bool IsChildOf(Entity parent)
+    public readonly bool IsChildOf(Entity parent)
     {
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
-    public ref Entity Children(Action<Entity> action)
-    {
-        var scene = Scene;
-        scene.DeferBegin();
-        _entity.Children(entity => action.Invoke(new Entity(entity, scene)));
-        scene.DeferEnd();
-        return ref this;
-    }
+    public readonly IEnumerable<Entity> Children => new ChildEnumerator(this);
 
     #region Traverse
 
-    public ref Entity Traverse(Action<Entity> action)
+    public readonly ref readonly Entity Traverse(Action<Entity> action)
     {
         action.Invoke(this);
-        Children(child => child.Traverse(action));
+        foreach (var child in Children)
+            child.Traverse(action);
         return ref this;
     }
 
-    public ref Entity Traverse<T>(Action<Entity> action)
+    public readonly ref readonly Entity Traverse<T>(Action<Entity> action)
     {
         if (Has<T>())
             action.Invoke(this);
-        Children(child => child.Traverse<T>(action));
+        foreach (var child in Children)
+            child.Traverse<T>(action);
         return ref this;
     }
 
-    public ref Entity Traverse<T>(Action<T> action)
+    public readonly ref readonly Entity Traverse<T>(Action<T> action)
     {
         if (Has<T>())
             action.Invoke(Get<T>());
-        Children(child => child.Traverse(action));
+        foreach (var child in Children)
+            child.Traverse(action);
         return ref this;
     }
 
-    public ref Entity Traverse<T>(Action<Entity, T> action)
+    public readonly ref readonly Entity Traverse<T>(Action<Entity, T> action)
     {
         if (Has<T>())
             action.Invoke(this, Get<T>());
-        Children(child => child.Traverse(action));
+        foreach (var child in Children)
+            child.Traverse(action);
         return ref this;
     }
 
@@ -359,7 +364,7 @@ public unsafe struct Entity : IEquatable<Entity>
 
     #region TryGet
 
-    public bool TryGet<T0>(out T0 t)
+    public readonly bool TryGet<T0>(out T0 t)
     {
         var result = Has<T0>();
         t = default!;
@@ -368,14 +373,14 @@ public unsafe struct Entity : IEquatable<Entity>
         return result;
     }
 
-    public bool TryGet<T0, T1>(out T0 t0, out T1 t1)
+    public readonly bool TryGet<T0, T1>(out T0 t0, out T1 t1)
     {
         t0 = default!;
         t1 = default!;
         return TryGet(out t0) && TryGet(out t1);
     }
 
-    public bool TryGet<T0, T1, T2>(out T0 t0, out T1 t1, out T2 t2)
+    public readonly bool TryGet<T0, T1, T2>(out T0 t0, out T1 t1, out T2 t2)
     {
         t0 = default!;
         t1 = default!;
@@ -383,7 +388,7 @@ public unsafe struct Entity : IEquatable<Entity>
         return TryGet(out t0) && TryGet(out t1) && TryGet(out t2);
     }
 
-    public bool TryGet<T0, T1, T2, T3>(out T0 t0, out T1 t1, out T2 t2, out T3 t3)
+    public readonly bool TryGet<T0, T1, T2, T3>(out T0 t0, out T1 t1, out T2 t2, out T3 t3)
     {
         t0 = default!;
         t1 = default!;
@@ -392,7 +397,7 @@ public unsafe struct Entity : IEquatable<Entity>
         return TryGet(out t0) && TryGet(out t1) && TryGet(out t2) && TryGet(out t3);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4>(out T0 t0, out T1 t1, out T2 t2, out T3 t3, out T4 t4)
+    public readonly bool TryGet<T0, T1, T2, T3, T4>(out T0 t0, out T1 t1, out T2 t2, out T3 t3, out T4 t4)
     {
         t0 = default!;
         t1 = default!;
@@ -402,7 +407,14 @@ public unsafe struct Entity : IEquatable<Entity>
         return TryGet(out t0) && TryGet(out t1) && TryGet(out t2) && TryGet(out t3) && TryGet(out t4);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4, T5>(out T0 t0, out T1 t1, out T2 t2, out T3 t3, out T4 t4, out T5 t5)
+    public readonly bool TryGet<T0, T1, T2, T3, T4, T5>(
+        out T0 t0,
+        out T1 t1,
+        out T2 t2,
+        out T3 t3,
+        out T4 t4,
+        out T5 t5
+    )
     {
         t0 = default!;
         t1 = default!;
@@ -413,7 +425,7 @@ public unsafe struct Entity : IEquatable<Entity>
         return TryGet(out t0) && TryGet(out t1) && TryGet(out t2) && TryGet(out t3) && TryGet(out t4) && TryGet(out t5);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6>(
+    public readonly bool TryGet<T0, T1, T2, T3, T4, T5, T6>(
         out T0 t0,
         out T1 t1,
         out T2 t2,
@@ -439,7 +451,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && TryGet(out t6);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7>(
+    public readonly bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7>(
         out T0 t0,
         out T1 t1,
         out T2 t2,
@@ -468,7 +480,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && TryGet(out t7);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
+    public readonly bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
         out T0 t0,
         out T1 t1,
         out T2 t2,
@@ -500,7 +512,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && TryGet(out t8);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
+    public readonly bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
         out T0 t0,
         out T1 t1,
         out T2 t2,
@@ -535,7 +547,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && TryGet(out t9);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
+    public readonly bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
         out T0 t0,
         out T1 t1,
         out T2 t2,
@@ -573,7 +585,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && TryGet(out t10);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
+    public readonly bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
         out T0 t0,
         out T1 t1,
         out T2 t2,
@@ -614,7 +626,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && TryGet(out t11);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
+    public readonly bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
         out T0 t0,
         out T1 t1,
         out T2 t2,
@@ -658,7 +670,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && TryGet(out t12);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
+    public readonly bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
         out T0 t0,
         out T1 t1,
         out T2 t2,
@@ -705,7 +717,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && TryGet(out t13);
     }
 
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
+    public readonly bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
         out T0 t0,
         out T1 t1,
         out T2 t2,
@@ -759,32 +771,32 @@ public unsafe struct Entity : IEquatable<Entity>
 
     #region Has
 
-    public bool Has<T0>()
+    public readonly bool Has<T0>()
     {
         return _entity.Has<T0>();
     }
 
-    public bool Has<T0, T1>()
+    public readonly bool Has<T0, T1>()
     {
         return _entity.Has<T0>() && _entity.Has<T1>();
     }
 
-    public bool Has<T0, T1, T2>()
+    public readonly bool Has<T0, T1, T2>()
     {
         return _entity.Has<T0>() && _entity.Has<T1>() && _entity.Has<T2>();
     }
 
-    public bool Has<T0, T1, T2, T3>()
+    public readonly bool Has<T0, T1, T2, T3>()
     {
         return _entity.Has<T0>() && _entity.Has<T1>() && _entity.Has<T2>() && _entity.Has<T3>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4>()
+    public readonly bool Has<T0, T1, T2, T3, T4>()
     {
         return _entity.Has<T0>() && _entity.Has<T1>() && _entity.Has<T2>() && _entity.Has<T3>() && _entity.Has<T4>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5>()
+    public readonly bool Has<T0, T1, T2, T3, T4, T5>()
     {
         return _entity.Has<T0>()
             && _entity.Has<T1>()
@@ -794,7 +806,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && _entity.Has<T5>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5, T6>()
+    public readonly bool Has<T0, T1, T2, T3, T4, T5, T6>()
     {
         return _entity.Has<T0>()
             && _entity.Has<T1>()
@@ -805,7 +817,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && _entity.Has<T6>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7>()
+    public readonly bool Has<T0, T1, T2, T3, T4, T5, T6, T7>()
     {
         return _entity.Has<T0>()
             && _entity.Has<T1>()
@@ -817,7 +829,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && _entity.Has<T7>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8>()
+    public readonly bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8>()
     {
         return _entity.Has<T0>()
             && _entity.Has<T1>()
@@ -830,7 +842,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && _entity.Has<T8>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>()
+    public readonly bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>()
     {
         return _entity.Has<T0>()
             && _entity.Has<T1>()
@@ -844,7 +856,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && _entity.Has<T9>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>()
+    public readonly bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>()
     {
         return _entity.Has<T0>()
             && _entity.Has<T1>()
@@ -859,7 +871,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && _entity.Has<T10>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>()
+    public readonly bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>()
     {
         return _entity.Has<T0>()
             && _entity.Has<T1>()
@@ -875,7 +887,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && _entity.Has<T11>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>()
+    public readonly bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>()
     {
         return _entity.Has<T0>()
             && _entity.Has<T1>()
@@ -892,7 +904,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && _entity.Has<T12>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>()
+    public readonly bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>()
     {
         return _entity.Has<T0>()
             && _entity.Has<T1>()
@@ -910,7 +922,7 @@ public unsafe struct Entity : IEquatable<Entity>
             && _entity.Has<T13>();
     }
 
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>()
+    public readonly bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>()
     {
         return _entity.Has<T0>()
             && _entity.Has<T1>()
@@ -930,4 +942,82 @@ public unsafe struct Entity : IEquatable<Entity>
     }
 
     #endregion
+
+    private class ChildEnumerator : IEnumerator<Entity>, IEnumerable<Entity>
+    {
+        private Entity _entity;
+        private int _index;
+        private flecs.ecs_iter_t _iter;
+
+        public ChildEnumerator(Entity entity)
+        {
+            _entity = entity;
+            Reset();
+        }
+
+        public IEnumerator<Entity> GetEnumerator()
+        {
+            return this;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        public bool MoveNext()
+        {
+            if (_index < _iter.count)
+            {
+                _index++;
+                if (_index < _iter.count)
+                    return true;
+            }
+
+            _index = 0;
+            fixed (flecs.ecs_iter_t* iter = &_iter)
+            {
+                return Utils.Bool(flecs.ecs_each_next(iter));
+            }
+        }
+
+        public void Reset()
+        {
+            _entity.Scene.DeferBegin();
+            _iter = flecs.ecs_each_id(_entity._entity.World, Ecs.Pair(flecs.EcsChildOf, _entity.Id));
+            _index = 0;
+            fixed (flecs.ecs_iter_t* iter = &_iter)
+            {
+                Ecs.TableLock(iter);
+            }
+        }
+
+        public Entity Current
+        {
+            get
+            {
+                if (_iter == default)
+                    return Null;
+                var entity = new Flecs.NET.Core.Entity(_entity._entity.World, _iter.entities[_index]);
+                return new Entity(entity, _entity.Scene);
+            }
+        }
+
+        object IEnumerator.Current => Current;
+
+        public void Dispose()
+        {
+            if (_iter == default)
+                return;
+            fixed (flecs.ecs_iter_t* iter = &_iter)
+            {
+                Ecs.TableUnlock(iter);
+            }
+
+            _entity.Scene.DeferEnd();
+            _entity = Null;
+            _iter = default;
+            _index = 0;
+        }
+    }
 }

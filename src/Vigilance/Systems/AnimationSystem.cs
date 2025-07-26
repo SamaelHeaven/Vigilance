@@ -3,40 +3,18 @@ using Vigilance.Drawing;
 
 namespace Vigilance.Systems;
 
-public sealed class AnimationSystem : ISystem
+public sealed class AnimationSystem : GameSystem
 {
-    public void Configure(Scene scene)
+    public override void Update()
     {
-        scene.OnUpdate(() =>
-        {
-            var step = Time.Delta;
-            scene.Each(
-                (Animation animation) =>
-                {
-                    animation.Update(step);
-                }
-            );
-
-            scene.Each(
-                (Animation animation, Sprite sprite) =>
-                {
-                    animation.UpdateSprite(sprite);
-                }
-            );
-
-            scene.Each(
-                (AnimationController controller) =>
-                {
-                    controller.Animation.Update(step);
-                }
-            );
-
-            scene.Each(
-                (AnimationController controller, Sprite sprite) =>
-                {
-                    controller.Animation.UpdateSprite(sprite);
-                }
-            );
-        });
+        var step = Time.Delta;
+        foreach (var animation in Scene.Components<Animation>())
+            animation.Update(step);
+        foreach (var (animation, sprite) in Scene.Components<Animation, Sprite>())
+            animation.UpdateSprite(sprite);
+        foreach (var controller in Scene.Components<AnimationController>())
+            controller.Animation.Update(step);
+        foreach (var (controller, sprite) in Scene.Components<AnimationController, Sprite>())
+            controller.Animation.UpdateSprite(sprite);
     }
 }

@@ -6,5 +6,9 @@ public interface IComponent
 
     void FixedUpdate(Entity entity) { }
 
+    void RenderBegin(Entity entity) { }
+
+    void RenderEnd(Entity entity) { }
+
     void Render(Entity entity) { }
 }

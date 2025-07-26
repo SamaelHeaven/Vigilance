@@ -314,7 +314,7 @@ public sealed unsafe class Game
 
     public static GameConfig Config => GetGame()._launchConfig.ShallowClone();
 
-    internal static SystemsFunc Systems => GetGame()._config.Systems;
+    internal static GameSystemsFunc Systems => GetGame()._config.Systems;
 
     public static void OpenUrl(string url)
     {

@@ -4,20 +4,17 @@ using Vigilance.UI;
 
 namespace Vigilance.Systems;
 
-public sealed class UISystem : ISystem
+public sealed class UISystem : GameSystem
 {
     public Graphics Graphics { get; set; } = Renderer.Graphics;
 
-    public void Configure(Scene scene)
+    public override void Render(Entity entity)
     {
-        scene.OnRender(entity =>
+        foreach (var element in entity.Components.OfType<UIElement>())
         {
-            foreach (var element in entity.Components.OfType<UIElement>())
-            {
-                element.CalculateLayout();
-                element.Update(entity);
-                element.Render(entity.WorldTransform, Graphics);
-            }
-        });
+            element.CalculateLayout();
+            element.Update(entity);
+            element.Render(entity.WorldTransform, Graphics);
+        }
     }
 }

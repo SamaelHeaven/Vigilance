@@ -37,7 +37,7 @@ public sealed class GameConfig : IShallowCloneable
     public Vector2 DefaultTextSpacing { get; set; } = new(0, 4);
     public int DefaultFontQuality { get; set; } = 128;
     public float DefaultFontSize { get; set; } = 16;
-    public SystemsFunc Systems { get; set; } = Array.Empty<ISystem>;
+    public GameSystemsFunc Systems { get; set; } = Array.Empty<IGameSystem>;
     public Action? QuitAction { get; set; } = null;
 
     public InputAxis HorizontalInputAxis { get; set; } =
