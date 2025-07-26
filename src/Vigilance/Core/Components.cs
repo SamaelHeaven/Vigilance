@@ -16,9 +16,7 @@ public readonly struct Components : IReadOnlyList<Component>
 
     public IEnumerable<T> OfType<T>()
     {
-        foreach (var component in Values)
-            if (component.Data is T t)
-                yield return t;
+        return new OfTypeEnumerator<T>(Values);
     }
 
     public IEnumerator<Component> GetEnumerator()
@@ -29,5 +27,52 @@ public readonly struct Components : IReadOnlyList<Component>
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
+    }
+
+    private class OfTypeEnumerator<T> : IEnumerator<T>, IEnumerable<T>
+    {
+        private readonly List<Component> _components;
+        private int _index = -1;
+
+        public OfTypeEnumerator(List<Component> components)
+        {
+            _components = components;
+        }
+
+        public T Current { get; private set; } = default!;
+
+        object IEnumerator.Current => Current!;
+
+        public bool MoveNext()
+        {
+            while (++_index < _components.Count)
+            {
+                var data = _components[_index].Data;
+                if (data is not T t)
+                    continue;
+                Current = t;
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            _index = -1;
+            Current = default!;
+        }
+
+        public void Dispose() { }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            return this;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 }
