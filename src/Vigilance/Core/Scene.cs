@@ -2480,6 +2480,8 @@ public sealed unsafe class Scene
 
         public bool MoveNext()
         {
+            if (!_query.HasValue)
+                return false;
             if (_index < _iter.count)
             {
                 _index++;
