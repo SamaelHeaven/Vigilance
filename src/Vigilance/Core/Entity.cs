@@ -416,6 +416,8 @@ public unsafe partial struct Entity : IEquatable<Entity>
 
         public void Reset()
         {
+            if (_iter != default)
+                Dispose();
             _entity.Scene.DeferBegin();
             _iter = flecs.ecs_each_id(_entity._entity.World, Ecs.Pair(flecs.EcsChildOf, _entity.Id));
             _index = 0;
