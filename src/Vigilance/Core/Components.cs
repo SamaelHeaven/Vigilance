@@ -14,9 +14,9 @@ public readonly struct Components : IReadOnlyList<Component>
 
     public Components() { }
 
-    public OfTypeEnumerable<T> OfType<T>()
+    public OfTypeEnumerator<T> OfType<T>()
     {
-        return new OfTypeEnumerable<T>(Values);
+        return new OfTypeEnumerator<T>(Values);
     }
 
     public IEnumerator<Component> GetEnumerator()
@@ -29,18 +29,22 @@ public readonly struct Components : IReadOnlyList<Component>
         return GetEnumerator();
     }
 
-    public readonly struct OfTypeEnumerable<T> : IEnumerable<T>
+    public struct OfTypeEnumerator<T> : IEnumerator<T>, IEnumerable<T>
     {
         private readonly List<Component> _components;
+        private int _index;
+        private T _current;
 
-        internal OfTypeEnumerable(List<Component> components)
+        internal OfTypeEnumerator(List<Component> components)
         {
             _components = components;
+            _index = -1;
+            _current = default!;
         }
 
-        public Enumerator GetEnumerator()
+        public OfTypeEnumerator<T> GetEnumerator()
         {
-            return new Enumerator(_components);
+            return this;
         }
 
         IEnumerator<T> IEnumerable<T>.GetEnumerator()
@@ -53,42 +57,29 @@ public readonly struct Components : IReadOnlyList<Component>
             return GetEnumerator();
         }
 
-        public struct Enumerator : IEnumerator<T>
+        public T Current => _current;
+
+        object IEnumerator.Current => _current!;
+
+        public bool MoveNext()
         {
-            private readonly List<Component> _components;
-            private int _index;
-            private T _current;
-
-            internal Enumerator(List<Component> components)
+            while (++_index < _components.Count)
             {
-                _components = components;
-                _index = -1;
-                _current = default!;
+                if (_components[_index].Data is not T t)
+                    continue;
+                _current = t;
+                return true;
             }
 
-            public T Current => _current;
-
-            object IEnumerator.Current => _current!;
-
-            public bool MoveNext()
-            {
-                while (++_index < _components.Count)
-                {
-                    if (_components[_index].Data is not T t)
-                        continue;
-                    _current = t;
-                    return true;
-                }
-
-                return false;
-            }
-
-            public void Reset()
-            {
-                throw new NotSupportedException();
-            }
-
-            public void Dispose() { }
+            return false;
         }
+
+        public void Reset()
+        {
+            _index = -1;
+            _current = default!;
+        }
+
+        public void Dispose() { }
     }
 }

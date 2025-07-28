@@ -136,7 +136,7 @@ public sealed class SceneGenerator : ISourceGenerator
                     : "(" + string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"GetField<T{n}>({n})")) + ")";
             var queryArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             sb.AppendLine(
-                QueryEnumerable("ComponentEnumerable", type, queryArgs, current, "Components", $"<{typeParams}>")
+                QueryEnumerable("ComponentEnumerator", type, queryArgs, current, "Components", $"<{typeParams}>")
             );
         }
 
@@ -152,7 +152,7 @@ public sealed class SceneGenerator : ISourceGenerator
             var type = $"(Entity, {typeParams})";
             var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"GetField<T{n}>({n})"));
             var current = $"(CurrentEntity, {getFields})";
-            sb.AppendLine(QueryEnumerable("EntryEnumerable", type, typeParams, current, "Entries", $"<{typeParams}>"));
+            sb.AppendLine(QueryEnumerable("EntryEnumerator", type, typeParams, current, "Entries", $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -168,18 +168,22 @@ public sealed class SceneGenerator : ISourceGenerator
     )
     {
         return $$"""
-                public readonly unsafe struct {{name}}{{typeParams}} : System.Collections.Generic.IEnumerable<{{type}}>
+                public unsafe struct {{name}}{{typeParams}} : System.Collections.Generic.IEnumerator<{{type}}>, System.Collections.Generic.IEnumerable<{{type}}>
                 {
-                    public Scene Scene { get; }
+                    private Scene _scene;
+                    private int _index;
+                    private Flecs.NET.Bindings.flecs.ecs_iter_t _iter;
+                    private Flecs.NET.Core.Query<{{queryTypeParams}}>? _query;
                 
                     internal {{name}}(Scene scene)
                     {
-                        Scene = scene;
+                        _scene = scene;
+                        Reset();
                     }
                     
-                    public Enumerator GetEnumerator()
+                    public {{name}}{{typeParams}} GetEnumerator()
                     {
-                        return new Enumerator(Scene);
+                        return this;
                     }
                     
                     System.Collections.Generic.IEnumerator<{{type}}> System.Collections.Generic.IEnumerable<{{type}}>.GetEnumerator()
@@ -192,98 +196,83 @@ public sealed class SceneGenerator : ISourceGenerator
                         return GetEnumerator();
                     }
                 
-                    public struct Enumerator : System.Collections.Generic.IEnumerator<{{type}}>
+                    private Entity CurrentEntity
                     {
-                        private int _index;
-                        private Flecs.NET.Bindings.flecs.ecs_iter_t _iter;
-                        private Flecs.NET.Core.Query<{{queryTypeParams}}>? _query;
-                
-                        public Scene Scene { get; }
-                
-                        internal Enumerator(Scene scene)
+                        get
                         {
-                            Scene = scene;
-                            Reset();
+                            if (!_query.HasValue)
+                                return Core.Entity.Null;
+                            var entity = new Flecs.NET.Core.Entity(_scene._world, _iter.entities[_index]);
+                            return new Entity(entity, _scene);
                         }
-                
-                        private Entity CurrentEntity
+                    }
+                    
+                    private TField GetField<TField>(byte index)
+                    {
+                        fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
                         {
-                            get
-                            {
-                                if (!_query.HasValue)
-                                    return Core.Entity.Null;
-                                var entity = new Flecs.NET.Core.Entity(Scene._world, _iter.entities[_index]);
-                                return new Entity(entity, Scene);
-                            }
-                        }
-                        
-                        private TField GetField<TField>(byte index)
-                        {
-                            fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
-                            {
-                                var ptr = Flecs.NET.Bindings.flecs.ecs_field_w_size(iter, Flecs.NET.Core.Type<TField>.Size, index);
-                                if (!System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<TField>())
+                            var ptr = Flecs.NET.Bindings.flecs.ecs_field_w_size(iter, Flecs.NET.Core.Type<TField>.Size, index);
+                            if (!System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<TField>())
             #pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-                                    return ((TField*)ptr)[_index];
+                                return ((TField*)ptr)[_index];
             #pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-                                var handle = System.Runtime.InteropServices.GCHandle.FromIntPtr(*&((nint*)ptr)[_index]);
-                                var box = (System.Runtime.CompilerServices.StrongBox<TField>)handle.Target!;
-                                return box.Value!;
-                            }
+                            var handle = System.Runtime.InteropServices.GCHandle.FromIntPtr(*&((nint*)ptr)[_index]);
+                            var box = (System.Runtime.CompilerServices.StrongBox<TField>)handle.Target!;
+                            return box.Value!;
                         }
-                
-                        public bool MoveNext()
+                    }
+
+                    public bool MoveNext()
+                    {
+                        if (!_query.HasValue)
+                            return false;
+                        if (_index < _iter.count)
                         {
-                            if (!_query.HasValue)
-                                return false;
+                            _index++;
                             if (_index < _iter.count)
-                            {
-                                _index++;
-                                if (_index < _iter.count)
-                                    return true;
-                            }
-                
-                            _index = 0;
-                            fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
-                            {
-                                return Flecs.NET.Utilities.Utils.Bool(Flecs.NET.Bindings.flecs.ecs_query_next(iter));
-                            }
+                                return true;
                         }
-                
-                        public void Reset()
+
+                        _index = 0;
+                        fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
                         {
-                            if (!_query.HasValue)
-                                Dispose();
-                            Scene.DeferBegin();
-                            var query = Scene._world.QueryBuilder<{{queryTypeParams}}>().Build();
-                            _query = query;
-                            _iter = query.GetIter();
-                            _index = 0;
-                            fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
-                            {
-                                Flecs.NET.Core.Ecs.TableLock(iter);
-                            }
+                            return Flecs.NET.Utilities.Utils.Bool(Flecs.NET.Bindings.flecs.ecs_query_next(iter));
                         }
-                
-                        public {{type}} Current => {{current}};
-                
-                        object System.Collections.IEnumerator.Current => Current;
-                
-                        public void Dispose()
+                    }
+
+                    public void Reset()
+                    {
+                        if (!_query.HasValue)
+                            Dispose();
+                        _scene.DeferBegin();
+                        var query = _scene._world.QueryBuilder<{{queryTypeParams}}>().Build();
+                        _query = query;
+                        _iter = query.GetIter();
+                        _index = 0;
+                        fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
                         {
-                            if (!_query.HasValue)
-                                return;
-                            fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
-                            {
-                                Flecs.NET.Core.Ecs.TableUnlock(iter);
-                            }
-                
-                            Scene.DeferEnd();
-                            _query.Value.Dispose();
-                            _query = null;
-                            _iter = default;
-                            _index = 0;
+                            Flecs.NET.Core.Ecs.TableLock(iter);
                         }
+                    }
+
+                    public {{type}} Current => {{current}};
+
+                    object System.Collections.IEnumerator.Current => Current;
+
+                    public void Dispose()
+                    {
+                        if (!_query.HasValue)
+                            return;
+                        fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
+                        {
+                            Flecs.NET.Core.Ecs.TableUnlock(iter);
+                        }
+
+                        _scene.DeferEnd();
+                        _query.Value.Dispose();
+                        _query = null;
+                        _iter = default;
+                        _index = 0;
                     }
                 }
                 

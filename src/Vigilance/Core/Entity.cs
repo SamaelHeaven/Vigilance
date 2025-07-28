@@ -321,7 +321,7 @@ public unsafe partial struct Entity : IEquatable<Entity>
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
-    public readonly IEnumerable<Entity> Children => new ChildEnumerator(this);
+    public readonly ChildEnumerator Children => new(this);
 
     #region Traverse
 
@@ -371,21 +371,26 @@ public unsafe partial struct Entity : IEquatable<Entity>
         return result;
     }
 
-    private class ChildEnumerator : IEnumerator<Entity>, IEnumerable<Entity>
+    public struct ChildEnumerator : IEnumerator<Entity>, IEnumerable<Entity>
     {
         private Entity _entity;
         private int _index;
         private flecs.ecs_iter_t _iter;
 
-        public ChildEnumerator(Entity entity)
+        internal ChildEnumerator(Entity entity)
         {
             _entity = entity;
             Reset();
         }
 
-        public IEnumerator<Entity> GetEnumerator()
+        public ChildEnumerator GetEnumerator()
         {
             return this;
+        }
+
+        IEnumerator<Entity> IEnumerable<Entity>.GetEnumerator()
+        {
+            return GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
