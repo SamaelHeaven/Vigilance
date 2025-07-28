@@ -24,6 +24,13 @@
     <PackageReference Include="Raylib-cs.BleedingEdge.Runtimes" Version="5.6.2-dev.60" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference
+      Include="..\Vigilance.Codegen\Vigilance.Codegen.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+    />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="Vigilance.props" Pack="true" PackagePath="build\Vigilance.props" />
     <None Include="$(MSBuildThisFileDirectory)..\..\README.MD" Pack="true" PackagePath="README.MD" />
     <None Include="$(LibsPath)\**\*" Pack="true" PackagePath="build\libs\" />

@@ -39,6 +39,16 @@ public readonly struct Components : IReadOnlyList<Component>
             _components = components;
         }
 
+        public IEnumerator<T> GetEnumerator()
+        {
+            return this;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
         public T Current { get; private set; } = default!;
 
         object IEnumerator.Current => Current!;
@@ -64,15 +74,5 @@ public readonly struct Components : IReadOnlyList<Component>
         }
 
         public void Dispose() { }
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            return this;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
     }
 }
