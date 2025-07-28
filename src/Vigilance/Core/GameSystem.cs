@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+
 namespace Vigilance.Core;
 
 public abstract class GameSystem : IGameSystem
@@ -7,15 +10,31 @@ public abstract class GameSystem : IGameSystem
     public void Configure(Scene scene)
     {
         Scene = scene;
-        scene.OnInitialize(Initialize);
-        scene.OnStart(Start);
-        scene.OnStop(Stop);
-        scene.OnUpdate(Update);
-        scene.OnFixedUpdate(FixedUpdate);
-        scene.OnRenderBegin(RenderBegin);
-        scene.OnRenderEnd(RenderEnd);
-        scene.OnRender(Render);
+        var type = GetType();
+        if (IsOverridden(type, nameof(Initialize)))
+            scene.OnInitialize(Initialize);
+        if (IsOverridden(type, nameof(Start)))
+            scene.OnStart(Start);
+        if (IsOverridden(type, nameof(Stop)))
+            scene.OnStop(Stop);
+        if (IsOverridden(type, nameof(Update)))
+            scene.OnUpdate(Update);
+        if (IsOverridden(type, nameof(FixedUpdate)))
+            scene.OnFixedUpdate(FixedUpdate);
+        if (IsOverridden(type, nameof(RenderBegin)))
+            scene.OnRenderBegin(RenderBegin);
+        if (IsOverridden(type, nameof(RenderEnd)))
+            scene.OnRenderEnd(RenderEnd);
+        if (IsOverridden(type, nameof(Render)))
+            scene.OnRender(Render);
         Configure();
+    }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2070")]
+    private static bool IsOverridden(Type type, string methodName)
+    {
+        var method = type.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        return method?.DeclaringType != typeof(GameSystem);
     }
 
     public virtual void Configure() { }
