@@ -21,8 +21,6 @@ public sealed class SceneGenerator : ISourceGenerator
 
             """
         );
-        Each(sb);
-        OrderedEach(sb);
         Entities(sb);
         Components(sb);
         Entries(sb);
@@ -30,96 +28,20 @@ public sealed class SceneGenerator : ISourceGenerator
         context.AddSource("Scene.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
-    private static void Each(StringBuilder sb)
-    {
-        sb.Region("Each");
-        for (var i = 0; i < 16; i++)
-        {
-            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var args = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"ref T{n} t{n}"));
-            var invokeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"t{n}"));
-            sb.AppendLine(
-                $$"""
-                    public void Each<{{typeParams}}>(System.Action<{{typeParams}}> action)
-                    {
-                        EnsureInitialized();
-                        DeferBegin();
-                        _world.Each(({{args}}) => action.Invoke({{invokeParams}}));
-                        DeferEnd();
-                    }
-                    
-                """
-            );
-            if (i == 15)
-                break;
-            sb.AppendLine(
-                $$"""
-                    public void Each<{{typeParams}}>(System.Action<Entity, {{typeParams}}> action)
-                    {
-                        EnsureInitialized();
-                        DeferBegin();
-                        _world.Each((Flecs.NET.Core.Entity entity, {{args}}) => action.Invoke(new Entity(entity, this), {{invokeParams}}));
-                        DeferEnd();
-                    }
-                    
-                """
-            );
-        }
-
-        sb.EndRegion();
-    }
-
-    private static void OrderedEach(StringBuilder sb)
-    {
-        sb.Region("OrderedEach");
-        for (var i = 0; i < 16; i++)
-        {
-            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var invokeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"entity.Get<T{n}>()"));
-            var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"entity.Has<T{n}>()"));
-            sb.AppendLine(
-                $$"""
-                    public void OrderedEach<{{typeParams}}>(System.Action<{{typeParams}}> action)
-                    {
-                        EnsureInitialized();
-                        DeferBegin();
-                        _orderedQuery.Each((Flecs.NET.Core.Entity entity, ref ZIndex _) =>
-                        {
-                            if ({{hasChecks}})
-                                action.Invoke({{invokeParams}});
-                        });
-                        DeferEnd();
-                    }
-                    
-                """
-            );
-            if (i == 15)
-                break;
-            sb.AppendLine(
-                $$"""
-                    public void OrderedEach<{{typeParams}}>(System.Action<Entity, {{typeParams}}> action)
-                    {
-                        EnsureInitialized();
-                        DeferBegin();
-                        _orderedQuery.Each((Flecs.NET.Core.Entity entity, ref ZIndex _) =>
-                        {
-                            if ({{hasChecks}})
-                                action.Invoke(new Entity(entity, this), {{invokeParams}});
-                        });
-                        DeferEnd();
-                    }
-                    
-                """
-            );
-        }
-
-        sb.EndRegion();
-    }
-
     private static void Entities(StringBuilder sb)
     {
         sb.Region("Entities");
-        sb.AppendLine(QueryEnumerable("EntityEnumerable", "Entity", "Entity", "CurrentEntity", "GetEntities"));
+        sb.AppendLine(QueryEnumerable("EntityEnumerator", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
+        sb.AppendLine(
+            QueryEnumerable(
+                "OrderedEntityEnumerator",
+                "Entity",
+                "ZIndex",
+                "CurrentEntity",
+                "GetOrderedEntities",
+                query: "_scene._orderedQuery"
+            )
+        );
         sb.EndRegion();
     }
 
@@ -164,7 +86,8 @@ public sealed class SceneGenerator : ISourceGenerator
         string queryTypeParams,
         string current,
         string methodName,
-        string typeParams = ""
+        string typeParams = "",
+        string query = ""
     )
     {
         return $$"""
@@ -245,7 +168,9 @@ public sealed class SceneGenerator : ISourceGenerator
                         if (!_query.HasValue)
                             Dispose();
                         _scene.DeferBegin();
-                        var query = _scene._world.QueryBuilder<{{queryTypeParams}}>().Build();
+                        var query = {{(
+                query == "" ? $"_scene._world.QueryBuilder<{queryTypeParams}>().Build()" : query
+            )}};
                         _query = query;
                         _iter = query.GetIter();
                         _index = 0;
@@ -268,8 +193,7 @@ public sealed class SceneGenerator : ISourceGenerator
                             Flecs.NET.Core.Ecs.TableUnlock(iter);
                         }
 
-                        _scene.DeferEnd();
-                        _query.Value.Dispose();
+                        _scene.DeferEnd();{{(query == "" ? "\n            _query.Value.Dispose();" : "")}}
                         _query = null;
                         _iter = default;
                         _index = 0;

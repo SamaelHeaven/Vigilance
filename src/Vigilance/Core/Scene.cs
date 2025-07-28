@@ -60,7 +60,9 @@ public sealed unsafe partial class Scene
 
     public bool Deferred => _world.IsDeferred();
 
-    public IEnumerable<Entity> Entities => GetEntities();
+    public EntityEnumerator Entities => GetEntities();
+
+    public OrderedEntityEnumerator OrderedEntities => GetOrderedEntities();
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
@@ -228,22 +230,6 @@ public sealed unsafe partial class Scene
         action.Invoke();
     }
 
-    public void Each(Action<Entity> action)
-    {
-        EnsureInitialized();
-        DeferBegin();
-        _world.Each((Flecs.NET.Core.Entity entity, ref ZIndex _) => action.Invoke(new Entity(entity, this)));
-        DeferEnd();
-    }
-
-    public void OrderedEach(Action<Entity> action)
-    {
-        EnsureInitialized();
-        DeferBegin();
-        _orderedQuery.Each((Flecs.NET.Core.Entity entity, ref ZIndex _) => action.Invoke(new Entity(entity, this)));
-        DeferEnd();
-    }
-
     public void EnsureInitialized()
     {
         if (!Initialized)
@@ -357,7 +343,9 @@ public sealed unsafe partial class Scene
     private void Render()
     {
         _renderBeginAction?.Invoke();
-        OrderedEach(entity => _renderAction?.Invoke(entity));
+        if (_renderAction is not null)
+            foreach (var entity in OrderedEntities)
+                _renderAction.Invoke(entity);
         _renderEndAction?.Invoke();
     }
 
