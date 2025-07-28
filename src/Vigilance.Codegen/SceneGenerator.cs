@@ -31,9 +31,9 @@ public sealed class SceneGenerator : ISourceGenerator
     private static void Entities(StringBuilder sb)
     {
         sb.Region("Entities");
-        sb.AppendLine(QueryEnumerable("EntityEnumerator", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
+        sb.AppendLine(QueryEnumerator("EntityEnumerator", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
         sb.AppendLine(
-            QueryEnumerable(
+            QueryEnumerator(
                 "OrderedEntityEnumerator",
                 "Entity",
                 "ZIndex",
@@ -58,7 +58,7 @@ public sealed class SceneGenerator : ISourceGenerator
                     : "(" + string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"GetField<T{n}>({n})")) + ")";
             var queryArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             sb.AppendLine(
-                QueryEnumerable("ComponentEnumerator", type, queryArgs, current, "Components", $"<{typeParams}>")
+                QueryEnumerator("ComponentEnumerator", type, queryArgs, current, "Components", $"<{typeParams}>")
             );
         }
 
@@ -74,13 +74,13 @@ public sealed class SceneGenerator : ISourceGenerator
             var type = $"(Entity, {typeParams})";
             var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"GetField<T{n}>({n})"));
             var current = $"(CurrentEntity, {getFields})";
-            sb.AppendLine(QueryEnumerable("EntryEnumerator", type, typeParams, current, "Entries", $"<{typeParams}>"));
+            sb.AppendLine(QueryEnumerator("EntryEnumerator", type, typeParams, current, "Entries", $"<{typeParams}>"));
         }
 
         sb.EndRegion();
     }
 
-    private static string QueryEnumerable(
+    private static string QueryEnumerator(
         string name,
         string type,
         string queryTypeParams,
