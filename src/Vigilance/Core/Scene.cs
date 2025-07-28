@@ -1,10 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Flecs.NET.Bindings;
 using Flecs.NET.Core;
-using Flecs.NET.Utilities;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
@@ -63,14 +60,7 @@ public sealed unsafe partial class Scene
 
     public bool Deferred => _world.IsDeferred();
 
-    public IEnumerable<Entity> Entities
-    {
-        get
-        {
-            EnsureInitialized();
-            return new EntityEnumerator(this);
-        }
-    }
+    public IEnumerable<Entity> Entities => GetEntities();
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
@@ -419,126 +409,6 @@ public sealed unsafe partial class Scene
     {
         Set,
         Remove,
-    }
-
-    private abstract class QueryEnumerator<T, TQuery> : IEnumerator<T>, IEnumerable<T>
-        where TQuery : struct, IDisposable, IIterableBase
-    {
-        private int _index;
-        private flecs.ecs_iter_t _iter;
-        private TQuery? _query;
-
-        protected QueryEnumerator(Scene scene)
-        {
-            Scene = scene;
-            Reset();
-        }
-
-        protected Entity CurrentEntity
-        {
-            get
-            {
-                if (!_query.HasValue)
-                    return Core.Entity.Null;
-                var entity = new Flecs.NET.Core.Entity(Scene._world, _iter.entities[_index]);
-                return new Entity(entity, Scene);
-            }
-        }
-
-        protected Scene Scene { get; }
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            return this;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public bool MoveNext()
-        {
-            if (!_query.HasValue)
-                return false;
-            if (_index < _iter.count)
-            {
-                _index++;
-                if (_index < _iter.count)
-                    return true;
-            }
-
-            _index = 0;
-            fixed (flecs.ecs_iter_t* iter = &_iter)
-            {
-                return Utils.Bool(flecs.ecs_query_next(iter));
-            }
-        }
-
-        public void Reset()
-        {
-            if (!_query.HasValue)
-                Dispose();
-            Scene.DeferBegin();
-            var query = Query();
-            _query = query;
-            _iter = query.GetIter();
-            _index = 0;
-            fixed (flecs.ecs_iter_t* iter = &_iter)
-            {
-                Ecs.TableLock(iter);
-            }
-        }
-
-        public abstract T Current { get; }
-
-        object? IEnumerator.Current => Current;
-
-        public void Dispose()
-        {
-            if (!_query.HasValue)
-                return;
-            fixed (flecs.ecs_iter_t* iter = &_iter)
-            {
-                Ecs.TableUnlock(iter);
-            }
-
-            Scene.DeferEnd();
-            _query.Value.Dispose();
-            _query = null;
-            _iter = default;
-            _index = 0;
-        }
-
-        protected TField GetField<TField>(byte index)
-        {
-            fixed (flecs.ecs_iter_t* iter = &_iter)
-            {
-                var ptr = flecs.ecs_field_w_size(iter, Type<TField>.Size, index);
-                if (!RuntimeHelpers.IsReferenceOrContainsReferences<TField>())
-#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-                    return ((TField*)ptr)[_index];
-#pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-                var handle = GCHandle.FromIntPtr(*&((nint*)ptr)[_index]);
-                var box = (StrongBox<TField>)handle.Target!;
-                return box.Value!;
-            }
-        }
-
-        protected abstract TQuery Query();
-    }
-
-    private class EntityEnumerator : QueryEnumerator<Entity, Query<ZIndex>>
-    {
-        public EntityEnumerator(Scene scene)
-            : base(scene) { }
-
-        public override Entity Current => CurrentEntity;
-
-        protected override Query<ZIndex> Query()
-        {
-            return Scene._world.QueryBuilder<ZIndex>().Build();
-        }
     }
 
     #region OnAdd
