@@ -20,7 +20,7 @@ internal sealed class HttpClientCore : IHttpClient
             )
                 requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value);
             HttpResponseMessage responseMessage;
-            if (request.Timeout != default)
+            if (request.Timeout != TimeSpan.Zero)
             {
                 using var cancellationTokenSource = new CancellationTokenSource(request.Timeout);
                 responseMessage = await Client.SendAsync(
