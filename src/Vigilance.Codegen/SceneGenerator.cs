@@ -31,10 +31,10 @@ public sealed class SceneGenerator : ISourceGenerator
     private static void Entities(StringBuilder sb)
     {
         sb.Region("Entities");
-        sb.AppendLine(QueryEnumerator("EntityEnumerator", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
+        sb.AppendLine(QueryIterator("EntityIterator", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
         sb.AppendLine(
-            QueryEnumerator(
-                "OrderedEntityEnumerator",
+            QueryIterator(
+                "OrderedEntityIterator",
                 "Entity",
                 "ZIndex",
                 "CurrentEntity",
@@ -58,7 +58,7 @@ public sealed class SceneGenerator : ISourceGenerator
                     : "(" + string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"GetField<T{n}>({n})")) + ")";
             var queryArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             sb.AppendLine(
-                QueryEnumerator("ComponentEnumerator", type, queryArgs, current, "Components", $"<{typeParams}>")
+                QueryIterator("ComponentIterator", type, queryArgs, current, "Components", $"<{typeParams}>")
             );
         }
 
@@ -74,13 +74,13 @@ public sealed class SceneGenerator : ISourceGenerator
             var type = $"(Entity, {typeParams})";
             var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"GetField<T{n}>({n})"));
             var current = $"(CurrentEntity, {getFields})";
-            sb.AppendLine(QueryEnumerator("EntryEnumerator", type, typeParams, current, "Entries", $"<{typeParams}>"));
+            sb.AppendLine(QueryIterator("EntryIterator", type, typeParams, current, "Entries", $"<{typeParams}>"));
         }
 
         sb.EndRegion();
     }
 
-    private static string QueryEnumerator(
+    private static string QueryIterator(
         string name,
         string type,
         string queryTypeParams,
@@ -91,7 +91,7 @@ public sealed class SceneGenerator : ISourceGenerator
     )
     {
         return $$"""
-                public unsafe struct {{name}}{{typeParams}} : System.Collections.Generic.IEnumerator<{{type}}>, System.Collections.Generic.IEnumerable<{{type}}>
+                public unsafe struct {{name}}{{typeParams}} : IValueIterator<{{name}}{{typeParams}}, {{type}}>
                 {
                     private Scene _scene;
                     private int _index;
@@ -107,16 +107,6 @@ public sealed class SceneGenerator : ISourceGenerator
                     public {{name}}{{typeParams}} GetEnumerator()
                     {
                         return this;
-                    }
-                    
-                    System.Collections.Generic.IEnumerator<{{type}}> System.Collections.Generic.IEnumerable<{{type}}>.GetEnumerator()
-                    {
-                        return GetEnumerator();
-                    }
-
-                    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-                    {
-                        return GetEnumerator();
                     }
                 
                     private Entity CurrentEntity
@@ -169,8 +159,8 @@ public sealed class SceneGenerator : ISourceGenerator
                             Dispose();
                         _scene.DeferBegin();
                         var query = {{(
-                query == "" ? $"_scene._world.QueryBuilder<{queryTypeParams}>().Build()" : query
-            )}};
+                            query == "" ? $"_scene._world.QueryBuilder<{queryTypeParams}>().Build()" : query
+                        )}};
                         _query = query;
                         _iter = query.GetIter();
                         _index = 0;
@@ -182,8 +172,6 @@ public sealed class SceneGenerator : ISourceGenerator
 
                     public {{type}} Current => {{current}};
 
-                    object System.Collections.IEnumerator.Current => Current;
-
                     public void Dispose()
                     {
                         if (!_query.HasValue)
@@ -194,9 +182,6 @@ public sealed class SceneGenerator : ISourceGenerator
                         }
 
                         _scene.DeferEnd();{{(query == "" ? "\n            _query.Value.Dispose();" : "")}}
-                        _query = null;
-                        _iter = default;
-                        _index = 0;
                     }
                 }
                 

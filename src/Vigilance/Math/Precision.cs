@@ -21,7 +21,7 @@ public static class Precision
 
     public static bool AreEqual(double a, double b, double epsilon = DefaultDoubleEpsilon)
     {
-        return System.Math.Abs(a - b) <= epsilon;
+        return (a - b).Abs() <= epsilon;
     }
 
     public static bool AreEqual(double? a, double? b, double epsilon = DefaultDoubleEpsilon)

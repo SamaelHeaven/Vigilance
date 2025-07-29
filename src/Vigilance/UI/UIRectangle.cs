@@ -7,6 +7,13 @@ public class UIRectangle : UIContainer
 {
     private Rectangle _rectangle = new();
 
+    public UIRectangle() { }
+
+    public UIRectangle(Color fill)
+    {
+        Fill = fill;
+    }
+
     public Color Fill
     {
         get => _rectangle.Fill;
@@ -31,17 +38,17 @@ public class UIRectangle : UIContainer
         set => _rectangle.Roundness = value;
     }
 
-    public override object DeepClone()
-    {
-        var result = (UIRectangle)base.DeepClone();
-        result._rectangle = _rectangle.DeepClone();
-        return result;
-    }
-
     public override void Render(Graphics graphics, CameraFunc? camera)
     {
         _rectangle.Camera = camera;
         graphics.DrawRectangle(LayoutPosition, LayoutSize, _rectangle);
         base.Render(graphics, camera);
+    }
+
+    protected override object DeepClone()
+    {
+        var result = (UIRectangle)base.DeepClone();
+        result._rectangle = _rectangle.DeepClone();
+        return result;
     }
 }

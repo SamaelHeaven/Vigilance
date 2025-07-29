@@ -45,7 +45,7 @@ public static class Coordinates
         {
             case Viewport.Fit:
             {
-                var scale = MathF.Min(scaleX, scaleY);
+                var scale = scaleX.Min(scaleY);
                 var offset = (screenSize - size * scale) * 0.5f;
                 coordinates -= offset;
                 coordinates /= scale;
@@ -59,7 +59,7 @@ public static class Coordinates
             }
             case Viewport.Crop:
             {
-                var scale = MathF.Max(scaleX, scaleY);
+                var scale = scaleX.Max(scaleY);
                 var offset = (screenSize - size * scale) * 0.5f;
                 coordinates -= offset;
                 coordinates /= scale;
@@ -85,7 +85,7 @@ public static class Coordinates
         {
             case Viewport.Fit:
             {
-                var scale = MathF.Min(scaleX, scaleY);
+                var scale = scaleX.Min(scaleY);
                 var offset = (screenSize - size * scale) * 0.5f;
                 coordinates *= scale;
                 coordinates += offset;
@@ -99,7 +99,7 @@ public static class Coordinates
             }
             case Viewport.Crop:
             {
-                var scale = MathF.Max(scaleX, scaleY);
+                var scale = scaleX.Max(scaleY);
                 var offset = (screenSize - size * scale) * 0.5f;
                 coordinates *= scale;
                 coordinates += offset;

@@ -60,9 +60,9 @@ public sealed unsafe partial class Scene
 
     public bool Deferred => _world.IsDeferred();
 
-    public EntityEnumerator Entities => GetEntities();
+    public EntityIterator Entities => GetEntities();
 
-    public OrderedEntityEnumerator OrderedEntities => GetOrderedEntities();
+    public OrderedEntityIterator OrderedEntities => GetOrderedEntities();
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)

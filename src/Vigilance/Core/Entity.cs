@@ -1,6 +1,5 @@
 #pragma warning disable CS9084
 
-using System.Collections;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
 using Flecs.NET.Utilities;
@@ -321,7 +320,7 @@ public unsafe partial struct Entity : IEquatable<Entity>
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
-    public readonly ChildEnumerator Children => new(this);
+    public readonly ChildIterator Children => new(this);
 
     #region Traverse
 
@@ -371,31 +370,21 @@ public unsafe partial struct Entity : IEquatable<Entity>
         return result;
     }
 
-    public struct ChildEnumerator : IEnumerator<Entity>, IEnumerable<Entity>
+    public struct ChildIterator : IValueIterator<ChildIterator, Entity>
     {
         private Entity _entity;
         private int _index;
         private flecs.ecs_iter_t _iter;
 
-        internal ChildEnumerator(Entity entity)
+        internal ChildIterator(Entity entity)
         {
             _entity = entity;
             Reset();
         }
 
-        public ChildEnumerator GetEnumerator()
+        public ChildIterator GetEnumerator()
         {
             return this;
-        }
-
-        IEnumerator<Entity> IEnumerable<Entity>.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
 
         public bool MoveNext()
@@ -438,8 +427,6 @@ public unsafe partial struct Entity : IEquatable<Entity>
             }
         }
 
-        object IEnumerator.Current => Current;
-
         public void Dispose()
         {
             if (_iter == default)
@@ -450,9 +437,6 @@ public unsafe partial struct Entity : IEquatable<Entity>
             }
 
             _entity.Scene.DeferEnd();
-            _entity = Null;
-            _iter = default;
-            _index = 0;
         }
     }
 }

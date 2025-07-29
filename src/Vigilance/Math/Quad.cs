@@ -1,11 +1,11 @@
-using System.Collections;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Vigilance.Core;
 
 namespace Vigilance.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Quad : IReadOnlyList<Vector2>, IEquatable<Quad>
+public struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyList<Vector2>, IEquatable<Quad>
 {
     public Vector2 TopLeft { get; set; }
     public Vector2 BottomLeft { get; set; }
@@ -200,19 +200,6 @@ public struct Quad : IReadOnlyList<Vector2>, IEquatable<Quad>
         return $"[{TopLeft}, {BottomLeft}, {BottomRight}, {TopRight}]";
     }
 
-    public IEnumerator<Vector2> GetEnumerator()
-    {
-        yield return TopLeft;
-        yield return BottomLeft;
-        yield return BottomRight;
-        yield return TopRight;
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
     public int Count => 4;
 
     public Vector2 this[int index] =>
@@ -224,4 +211,51 @@ public struct Quad : IReadOnlyList<Vector2>, IEquatable<Quad>
             3 => TopRight,
             _ => throw new IndexOutOfRangeException(),
         };
+
+    public PointEnumerator GetEnumerator()
+    {
+        return new PointEnumerator(this);
+    }
+
+    public struct PointEnumerator : IValueEnumerator<PointEnumerator, Vector2>
+    {
+        private readonly Quad _quad;
+        private int _index;
+
+        internal PointEnumerator(Quad quad)
+        {
+            _quad = quad;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            if (_index >= 4)
+                return false;
+            _index++;
+            return true;
+        }
+
+        public void Reset()
+        {
+            _index = 0;
+        }
+
+        public Vector2 Current
+        {
+            get
+            {
+                return _index switch
+                {
+                    0 => _quad.TopLeft,
+                    1 => _quad.BottomLeft,
+                    2 => _quad.BottomRight,
+                    3 => _quad.TopRight,
+                    _ => default,
+                };
+            }
+        }
+
+        public void Dispose() { }
+    }
 }

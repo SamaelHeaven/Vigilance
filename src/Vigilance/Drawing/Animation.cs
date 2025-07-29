@@ -46,7 +46,7 @@ public sealed class Animation : IEnumerable<AnimationFrame>
         get => _index;
         set
         {
-            _index = System.Math.Clamp(value, 0, _frames.Count - 1);
+            _index = int.Clamp(value, 0, _frames.Count - 1);
             _elapsed = TimeSpan.Zero;
         }
     }
@@ -54,13 +54,13 @@ public sealed class Animation : IEnumerable<AnimationFrame>
     public int StartIndex
     {
         get => _startIndex;
-        set => _startIndex = System.Math.Clamp(value, 0, _frames.Count - 1);
+        set => _startIndex = int.Clamp(value, 0, _frames.Count - 1);
     }
 
     public int? NextIndex
     {
         get => _nextIndex;
-        set => _nextIndex = value.HasValue ? System.Math.Clamp(value.Value, 0, _frames.Count - 1) : null;
+        set => _nextIndex = value.HasValue ? int.Clamp(value.Value, 0, _frames.Count - 1) : null;
     }
 
     public int FrameCount => _frames.Count;

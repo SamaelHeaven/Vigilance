@@ -26,10 +26,10 @@ public struct Box : IEquatable<Box>
     public Box(Quad quad)
     {
         var (topLeft, bottomLeft, bottomRight, topRight) = quad;
-        var minX = MathF.Min(MathF.Min(MathF.Min(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
-        var maxX = MathF.Max(MathF.Max(MathF.Max(topLeft.X, topRight.X), bottomLeft.X), bottomRight.X);
-        var minY = MathF.Min(MathF.Min(MathF.Min(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
-        var maxY = MathF.Max(MathF.Max(MathF.Max(topLeft.Y, topRight.Y), bottomLeft.Y), bottomRight.Y);
+        var minX = topLeft.X.Min(topRight.X).Min(bottomLeft.X).Min(bottomRight.X);
+        var maxX = topLeft.X.Max(topRight.X).Max(bottomLeft.X).Max(bottomRight.X);
+        var minY = topLeft.Y.Min(topRight.Y).Min(bottomLeft.Y).Min(bottomRight.Y);
+        var maxY = topLeft.Y.Max(topRight.Y).Max(bottomLeft.Y).Max(bottomRight.Y);
         X = minX;
         Y = minY;
         Width = maxX - minX;

@@ -11,6 +11,12 @@ public sealed class RegularPolygon : IFullCloneable
         Sides = sides;
     }
 
+    public RegularPolygon(int sides, Color fill)
+        : this(sides)
+    {
+        Fill = fill;
+    }
+
     public int Sides { get; set; } = 0;
     public Color Fill { get; set; } = Color.White;
     public Color Stroke { get; set; } = Color.Transparent;

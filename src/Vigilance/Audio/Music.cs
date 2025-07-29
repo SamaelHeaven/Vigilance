@@ -33,7 +33,7 @@ public sealed class Music
         get => _volume;
         set
         {
-            value = System.Math.Clamp(value, 0, 1);
+            value = value.Clamp(0, 1);
             if (Precision.AreEqual(value, Volume))
                 return;
             _volume = value;
@@ -58,7 +58,7 @@ public sealed class Music
         get => _pan;
         set
         {
-            value = System.Math.Clamp(value, 0, 1);
+            value = value.Clamp(0, 1);
             if (Precision.AreEqual(value, Pan))
                 return;
             _pan = value;

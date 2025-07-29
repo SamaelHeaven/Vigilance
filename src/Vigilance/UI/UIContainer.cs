@@ -49,19 +49,7 @@ public class UIContainer : UIElement
         }
     }
 
-    public IEnumerable<UIElement> Children
-    {
-        get
-        {
-            var element = _children.First;
-            while (element?.Value != null)
-            {
-                var next = element.Next;
-                yield return element.Value;
-                element = next;
-            }
-        }
-    }
+    public ChildIterator Children => new(this);
 
     public override void Render(Graphics graphics, CameraFunc? camera)
     {
@@ -164,11 +152,11 @@ public class UIContainer : UIElement
             element.Remove();
     }
 
-    public override object DeepClone()
+    protected override object DeepClone()
     {
         var result = (UIContainer)base.DeepClone();
         result._children = new LinkedList<UIElement>();
-        result.Add(_children.Select(el => el.DeepClone<UIElement>()));
+        result.Add(_children.Select(el => el.DeepClone()));
         return result;
     }
 
@@ -184,5 +172,42 @@ public class UIContainer : UIElement
         Node.RemoveChild(element.Node);
         _children.Remove(element);
         element.Parent = null;
+    }
+
+    public struct ChildIterator : IValueIterator<ChildIterator, UIElement>
+    {
+        private readonly UIContainer _container;
+        private LinkedListNode<UIElement>? _current;
+        private LinkedListNode<UIElement>? _next;
+
+        internal ChildIterator(UIContainer container)
+        {
+            _container = container;
+            Reset();
+        }
+
+        public ChildIterator GetEnumerator()
+        {
+            return this;
+        }
+
+        public bool MoveNext()
+        {
+            _current = _next;
+            if (_current == null)
+                return false;
+            _next = _current.Next;
+            return _current?.Value != null;
+        }
+
+        public void Reset()
+        {
+            _next = _container._children.First;
+            _current = null;
+        }
+
+        public UIElement Current => _current?.Value!;
+
+        public void Dispose() { }
     }
 }

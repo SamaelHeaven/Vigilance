@@ -159,6 +159,36 @@ public struct Vector2 : IEquatable<Vector2>
         return X * v.X - Y * v.Y;
     }
 
+    public readonly Vector2 Min(Vector2 min)
+    {
+        return new Vector2(X.Min(min.X), Y.Min(min.Y));
+    }
+
+    public readonly Vector2 MinX(float min)
+    {
+        return new Vector2(X.Min(min), Y);
+    }
+
+    public readonly Vector2 MinY(float min)
+    {
+        return new Vector2(X, Y.Min(min));
+    }
+
+    public readonly Vector2 Max(Vector2 max)
+    {
+        return new Vector2(X.Max(max.X), Y.Max(max.Y));
+    }
+
+    public readonly Vector2 MaxX(float max)
+    {
+        return new Vector2(X.Max(max), Y);
+    }
+
+    public readonly Vector2 MaxY(float max)
+    {
+        return new Vector2(X, Y.Max(max));
+    }
+
     public readonly Vector2 Clamp(Vector2 min, Vector2 max)
     {
         return ClampX(min.X, max.X).ClampY(min.Y, max.Y);
@@ -171,12 +201,12 @@ public struct Vector2 : IEquatable<Vector2>
 
     public readonly Vector2 ClampX(float min, float max)
     {
-        return new Vector2(System.Math.Clamp(X, min, max), Y);
+        return new Vector2(X.Clamp(min, max), Y);
     }
 
     public readonly Vector2 ClampY(float min, float max)
     {
-        return new Vector2(X, System.Math.Clamp(Y, min, max));
+        return new Vector2(X, Y.Clamp(min, max));
     }
 
     public readonly float Length()
@@ -206,7 +236,7 @@ public struct Vector2 : IEquatable<Vector2>
 
     public readonly Vector2 Lerp(Vector2 end, float t)
     {
-        t = System.Math.Clamp(t, 0f, 1f);
+        t = t.Clamp(0f, 1f);
         return new Vector2(X + (end.X - X) * t, Y + (end.Y - Y) * t);
     }
 

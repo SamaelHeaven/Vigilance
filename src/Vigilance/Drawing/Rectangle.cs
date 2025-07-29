@@ -4,6 +4,13 @@ namespace Vigilance.Drawing;
 
 public sealed class Rectangle : IFullCloneable
 {
+    public Rectangle() { }
+
+    public Rectangle(Color fill)
+    {
+        Fill = fill;
+    }
+
     public Color Fill { get; set; } = Color.White;
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;

@@ -32,12 +32,20 @@ public sealed unsafe class Font
     public IReadOnlyDictionary<char, GlyphInfo> GlyphInfos => _glyphInfos.AsReadOnly();
     public Texture Atlas { get; }
 
-    public Vector2 MeasureText(string text, float fontSize, Vector2? spacing = null)
+    public Vector2 MeasureText(
+        string text,
+        float? fontSize = null,
+        Vector2? spacing = null,
+        TextHeightMode? textHeightMode = null
+    )
     {
-        var (spacingX, spacingY) = spacing ?? Game.DefaultTextSpacing;
-        var size = new Vector2(0, fontSize + text.Count(c => c == '\n') * (fontSize + spacingY));
-        foreach (var (_, dest) in GetTextBounds(text, fontSize, new Vector2(spacingX, spacingY)))
-            size.X = MathF.Max(size.X, dest.Position.X + dest.Size.X);
+        var fontSizeValue = fontSize ?? Game.DefaultFontSize;
+        var spacingValue = spacing ?? Game.DefaultTextSpacing;
+        var size = Vector2.Zero;
+        foreach (var (_, dest) in GetTextBounds(text, fontSizeValue, spacingValue))
+            size = size.Max(dest.Position + dest.Size);
+        if ((textHeightMode ?? Game.DefaultTextHeightMode) == TextHeightMode.FontSize)
+            size.Y = fontSizeValue + text.Count(c => c == '\n') * (fontSizeValue + spacingValue.Y);
         return size;
     }
 
@@ -61,62 +69,25 @@ public sealed unsafe class Font
         return GetStroke(strokeWidth).GlyphInfos;
     }
 
-    public IEnumerable<(Box Source, Box Dest)> GetTextBounds(
+    public TextBoundIterator GetTextBounds(
         string text,
         float? fontSize,
         Vector2? spacing,
         IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
-        return GetTextBounds(text, fontSize ?? Game.DefaultFontSize, spacing ?? Game.DefaultTextSpacing, glyphInfos);
-    }
-
-    public IEnumerable<(Box Source, Box Dest)> GetTextBounds(
-        string text,
-        float fontSize,
-        Vector2 spacing,
-        IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
-    )
-    {
-        var aspectRatio = Quality / fontSize;
-        var position = Vector2.Zero;
-        foreach (var c in text)
-        {
-            switch (c)
-            {
-                case '\n':
-                    position.X = 0;
-                    position.Y += fontSize + spacing.Y;
-                    continue;
-                case '\t':
-                    position.X += (_spaceSize / aspectRatio + spacing.X) * 4;
-                    continue;
-                case ' ':
-                    position.X += _spaceSize / aspectRatio + spacing.X;
-                    continue;
-            }
-
-            if (!(glyphInfos ?? _glyphInfos).TryGetValue(c, out var glyph))
-                continue;
-            var atlasSpacing = glyph.Stroke == 0 ? 0 : AtlasSpacing;
-            var halfAtlasSpacing = atlasSpacing * 0.5f;
-            var sourcePosition = new Vector2(glyph.X, glyph.Y) - halfAtlasSpacing;
-            var sourceSize = new Vector2(glyph.Width, glyph.Height) + atlasSpacing;
-            var destPosition =
-                position
-                + new Vector2(
-                    glyph.OffsetX - glyph.Stroke - halfAtlasSpacing,
-                    glyph.OffsetY - glyph.Stroke - halfAtlasSpacing
-                ) / aspectRatio;
-            var destSize = sourceSize / aspectRatio;
-            yield return (new Box(sourcePosition, sourceSize), new Box(destPosition, destSize));
-            position.X += glyph.Advance / aspectRatio + spacing.X;
-        }
+        return new TextBoundIterator(
+            this,
+            text,
+            fontSize ?? Game.DefaultFontSize,
+            spacing ?? Game.DefaultTextSpacing,
+            glyphInfos
+        );
     }
 
     public (Texture Atlas, IReadOnlyDictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
     {
-        strokeWidth = System.Math.Clamp(strokeWidth, 0, 50);
+        strokeWidth = int.Clamp(strokeWidth, 0, 50);
         if (_strokes.TryGetValue(strokeWidth, out var stroke))
             return stroke;
         FT.FT_Stroker_Set(
@@ -288,5 +259,92 @@ public sealed unsafe class Font
         public int Left;
         public int Top;
         public FT_Bitmap_ Bitmap;
+    }
+
+    public struct TextBoundIterator : IValueIterator<TextBoundIterator, (Box Source, Box Dest)>
+    {
+        private readonly Font _font;
+        private readonly string _text;
+        private readonly float _fontSize;
+        private readonly Vector2 _spacing;
+        private readonly IReadOnlyDictionary<char, GlyphInfo> _glyphInfos;
+        private readonly float _aspectRatio;
+        private int _index;
+        private Vector2 _position;
+
+        internal TextBoundIterator(
+            Font font,
+            string text,
+            float fontSize,
+            Vector2 spacing,
+            IReadOnlyDictionary<char, GlyphInfo>? glyphInfos
+        )
+        {
+            _font = font;
+            _text = text;
+            _fontSize = fontSize;
+            _spacing = spacing;
+            _glyphInfos = glyphInfos ?? font.GlyphInfos;
+            _aspectRatio = _font.Quality / fontSize;
+            Reset();
+        }
+
+        public TextBoundIterator GetEnumerator()
+        {
+            return this;
+        }
+
+        public bool MoveNext()
+        {
+            while (_index < _text.Length)
+            {
+                var c = _text[_index++];
+                switch (c)
+                {
+                    case '\n':
+                        _position.X = 0;
+                        _position.Y += _fontSize + _spacing.Y;
+                        continue;
+
+                    case '\t':
+                        _position.X += (_font._spaceSize / _aspectRatio + _spacing.X) * 4;
+                        continue;
+
+                    case ' ':
+                        _position.X += _font._spaceSize / _aspectRatio + _spacing.X;
+                        continue;
+                }
+
+                if (!_glyphInfos.TryGetValue(c, out var glyph))
+                    continue;
+                var atlasSpacing = glyph.Stroke == 0 ? 0 : 4;
+                var halfAtlasSpacing = atlasSpacing * 0.5f;
+                var sourcePosition = new Vector2(glyph.X, glyph.Y) - halfAtlasSpacing;
+                var sourceSize = new Vector2(glyph.Width, glyph.Height) + atlasSpacing;
+                var destPosition =
+                    _position
+                    + new Vector2(
+                        glyph.OffsetX - glyph.Stroke - halfAtlasSpacing,
+                        glyph.OffsetY - glyph.Stroke - halfAtlasSpacing
+                    ) / _aspectRatio;
+                var destSize = sourceSize / _aspectRatio;
+                Current = (new Box(sourcePosition, sourceSize), new Box(destPosition, destSize));
+                _position.X += glyph.Advance / _aspectRatio + _spacing.X;
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            _index = 0;
+            _position = Vector2.Zero;
+            Current = default;
+        }
+
+        public (Box Source, Box Dest) Current { get; private set; }
+
+        public void Dispose() { }
     }
 }

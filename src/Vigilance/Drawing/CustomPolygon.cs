@@ -12,13 +12,19 @@ public sealed class CustomPolygon : IFullCloneable
         Points = points;
     }
 
+    public CustomPolygon(IReadOnlyList<Vector2> points, Color fill)
+        : this(points)
+    {
+        Fill = fill;
+    }
+
     public IReadOnlyList<Vector2> Points { get; set; } = Array.Empty<Vector2>();
     public Color Fill { get; set; } = Color.White;
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
     public CameraFunc? Camera { get; set; } = Core.Camera.Default;
 
-    public object DeepClone()
+    object IDeepCloneable.DeepClone()
     {
         var result = this.ShallowClone();
         result.Points = Points.ToArray();

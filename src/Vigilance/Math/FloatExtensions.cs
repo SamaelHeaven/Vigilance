@@ -12,6 +12,16 @@ public static class FloatExtensions
         return radians * (180 / MathF.PI);
     }
 
+    public static float Min(this float value, float min)
+    {
+        return MathF.Min(value, min);
+    }
+
+    public static float Max(this float value, float max)
+    {
+        return MathF.Max(value, max);
+    }
+
     public static float Clamp(this float value, float min, float max)
     {
         return MathF.Min(MathF.Max(value, min), max);

@@ -203,12 +203,6 @@ public sealed unsafe class Game
         set => GetGame()._config.VerticalInputAxis = value;
     }
 
-    public static Vector2 DefaultTextSpacing
-    {
-        get => GetGame()._config.DefaultTextSpacing;
-        set => GetGame()._config.DefaultTextSpacing = value;
-    }
-
     public static int DefaultFontQuality
     {
         get => GetGame()._config.DefaultFontQuality;
@@ -219,6 +213,18 @@ public sealed unsafe class Game
     {
         get => GetGame()._config.DefaultFontSize;
         set => GetGame()._config.DefaultFontSize = value;
+    }
+
+    public static Vector2 DefaultTextSpacing
+    {
+        get => GetGame()._config.DefaultTextSpacing;
+        set => GetGame()._config.DefaultTextSpacing = value;
+    }
+
+    public static TextHeightMode DefaultTextHeightMode
+    {
+        get => GetGame()._config.DefaultTextHeightMode;
+        set => GetGame()._config.DefaultTextHeightMode = value;
     }
 
     public static Font DefaultFont
@@ -255,7 +261,7 @@ public sealed unsafe class Game
         set
         {
             EnsureRunning();
-            Raylib.SetMasterVolume(System.Math.Clamp(value, 0, 1));
+            Raylib.SetMasterVolume(value.Clamp(0, 1));
         }
     }
 

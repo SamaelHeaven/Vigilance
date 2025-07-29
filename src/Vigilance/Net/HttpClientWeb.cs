@@ -22,7 +22,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
             Emscripten.FetchAttrInit(ref attr);
             attr.UserData = id;
             attr.Attributes = 1;
-            for (var i = 0; i < System.Math.Min(method.Length, EmscriptenFetchAttr.RequestMethodSize); i++)
+            for (var i = 0; i < int.Min(method.Length, EmscriptenFetchAttr.RequestMethodSize); i++)
                 attr.RequestMethod[i] = method[i];
             attr.RequestMethod[EmscriptenFetchAttr.RequestMethodSize - 1] = 0;
             attr.TimeoutMSecs = (uint)request.Timeout.TotalMilliseconds;

@@ -214,16 +214,16 @@ public class UIScrollContainer : UIContainer
         foreach (var element in Children)
         {
             if (element.Position == Position.Absolute)
-                break;
+                continue;
             if (direction.IsVertical())
             {
-                size.X = MathF.Max(size.X, element.LayoutPosition.X + element.LayoutWidth);
+                size.X = size.X.Max(element.LayoutPosition.X + element.LayoutWidth);
                 size.Y += element.LayoutHeight;
             }
             else
             {
                 size.X += element.LayoutWidth;
-                size.Y = MathF.Max(size.Y, element.LayoutPosition.Y + element.LayoutHeight);
+                size.Y = size.Y.Max(element.LayoutPosition.Y + element.LayoutHeight);
             }
         }
 
@@ -289,14 +289,6 @@ public class UIScrollContainer : UIContainer
         base.Update(entity);
     }
 
-    public override object DeepClone()
-    {
-        var result = (UIScrollContainer)base.DeepClone();
-        result._scrollBarTrackRectangle = _scrollBarTrackRectangle.DeepClone();
-        result._scrollBarThumbRectangle = _scrollBarThumbRectangle.DeepClone();
-        return result;
-    }
-
     public override void Render(Graphics graphics, CameraFunc? camera)
     {
         var horizontalVisible = IsHorizontalScrollBarVisible;
@@ -347,6 +339,14 @@ public class UIScrollContainer : UIContainer
         ScrollOffset = -offset;
     }
 
+    protected override object DeepClone()
+    {
+        var result = (UIScrollContainer)base.DeepClone();
+        result._scrollBarTrackRectangle = _scrollBarTrackRectangle.DeepClone();
+        result._scrollBarThumbRectangle = _scrollBarThumbRectangle.DeepClone();
+        return result;
+    }
+
     protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraFunc? camera)
     {
         _scrollBarTrackRectangle.Camera = camera;
@@ -389,10 +389,10 @@ public class UIScrollContainer : UIContainer
         var marginRight = isVertical ? ScrollBarThumbMarginRight : ScrollBarThumbMarginBottom;
         var marginBottom = isVertical ? ScrollBarThumbMarginBottom : ScrollBarThumbMarginRight;
         var marginLeft = isVertical ? ScrollBarThumbMarginLeft : ScrollBarThumbMarginTop;
-        var topInset = MathF.Max(0, marginTop.Calculate(size.Y));
-        var rightInset = MathF.Max(0, marginRight.Calculate(size.X));
-        var bottomInset = MathF.Max(0, marginBottom.Calculate(size.Y));
-        var leftInset = MathF.Max(0, marginLeft.Calculate(size.X));
+        var topInset = marginTop.Calculate(size.Y).Max(0);
+        var rightInset = marginRight.Calculate(size.X).Max(0);
+        var bottomInset = marginBottom.Calculate(size.Y).Max(0);
+        var leftInset = marginLeft.Calculate(size.X).Max(0);
         var scroll = ScrollOffset;
         var thumbSize = Vector2.Zero;
         var thumbOffset = Vector2.Zero;
@@ -400,19 +400,19 @@ public class UIScrollContainer : UIContainer
         var verticalVisible = IsVerticalScrollBarVisible;
 
         {
-            size.X = MathF.Max(size.X - (verticalVisible ? barSize.Y : 0), 0);
-            var visibleRatio = size.X / MathF.Max(contentSize.X, 1f);
-            thumbSize.X = MathF.Min(visibleRatio * size.X, size.X);
-            var maxScroll = MathF.Max(contentSize.X - size.X + leftInset + rightInset, 1f);
+            size.X = (size.X - (verticalVisible ? barSize.Y : 0)).Max(0);
+            var visibleRatio = size.X / contentSize.X.Max(1f);
+            thumbSize.X = size.X.Min(visibleRatio * size.X);
+            var maxScroll = (contentSize.X - size.X + leftInset + rightInset).Max(1f);
             thumbOffset.X = -scroll.X / maxScroll * (size.X - thumbSize.X);
         }
 
         size = LayoutSize;
         {
-            size.Y = MathF.Max(size.Y - (horizontalVisible ? barSize.X : 0), 0);
-            var visibleRatio = size.Y / MathF.Max(contentSize.Y, 1f);
-            thumbSize.Y = MathF.Min(visibleRatio * size.Y, size.Y);
-            var maxScroll = MathF.Max(contentSize.Y - size.Y + topInset + bottomInset, 1f);
+            size.Y = (size.Y - (horizontalVisible ? barSize.X : 0)).Max(0);
+            var visibleRatio = size.Y / contentSize.Y.Max(1f);
+            thumbSize.Y = size.Y.Min(visibleRatio * size.Y);
+            var maxScroll = (contentSize.Y - size.Y + topInset + bottomInset).Max(1f);
             thumbOffset.Y = -scroll.Y / maxScroll * (size.Y - thumbSize.Y);
         }
 

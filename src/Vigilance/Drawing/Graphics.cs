@@ -68,7 +68,7 @@ public sealed unsafe class Graphics
         {
             var scaleX = MathF.Sqrt(matrix.M11 * matrix.M11 + matrix.M12 * matrix.M12);
             var scaleY = MathF.Sqrt(matrix.M21 * matrix.M21 + matrix.M22 * matrix.M22);
-            offset *= MathF.Max(scaleX, scaleY);
+            offset *= scaleX.Max(scaleY);
         }
 
         var clip = GetClip();
@@ -491,10 +491,9 @@ public sealed unsafe class Graphics
         var roundness = rectangle.Roundness.Abs();
         var position = transform.Position;
         var scale = transform.Scale.Abs();
-        var strokeWidth = MathF.Max(
-            0,
-            MathF.Min(MathF.Min(scale.X, scale.Y) * 0.5f - (roundness > 0 ? PixelOffset : 0), rectangle.StrokeWidth)
-        );
+        var strokeWidth = rectangle
+            .StrokeWidth.Min(scale.X.Min(scale.Y) * 0.5f - (roundness > 0 ? PixelOffset : 0))
+            .Max(0);
         PushMatrix();
         Pivot(transform, true);
         if (roundness > 0)
@@ -538,7 +537,7 @@ public sealed unsafe class Graphics
         var stroke = rectangle.Stroke;
         var position = transform.Position;
         var scale = transform.Scale.Abs();
-        var strokeWidth = MathF.Max(0, MathF.Min(MathF.Min(scale.X, scale.Y) * 0.5f, rectangle.StrokeWidth));
+        var strokeWidth = rectangle.StrokeWidth.Min(scale.X.Min(scale.Y) * 0.5f).Max(0);
         PushMatrix();
         Pivot(transform, true);
         FillRectangleGradient(
@@ -757,7 +756,7 @@ public sealed unsafe class Graphics
         )
             return;
         BeginDrawing(camera);
-        Raylib.DrawPolyLinesEx(center, sides, radius, 0, MathF.Min(radius, strokeWidth), color.RColor);
+        Raylib.DrawPolyLinesEx(center, sides, radius, 0, radius.Min(strokeWidth), color.RColor);
         EndDrawing();
     }
 
@@ -890,7 +889,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var radius = MathF.Max(innerRadius, outerRadius);
+        var radius = innerRadius.Max(outerRadius);
         if (color == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
         BeginDrawing(camera);
@@ -924,7 +923,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var radius = MathF.Max(innerRadius, outerRadius);
+        var radius = innerRadius.Max(outerRadius);
         if (
             color == Color.Transparent
             || strokeWidth <= 0

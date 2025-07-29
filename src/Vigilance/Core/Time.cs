@@ -1,4 +1,5 @@
 using Raylib_cs.BleedingEdge;
+using Vigilance.Math;
 
 namespace Vigilance.Core;
 
@@ -44,7 +45,7 @@ public sealed class Time
     public static float Scale
     {
         get => GetTime()._scale;
-        set => GetTime()._scale = MathF.Max(0, value);
+        set => GetTime()._scale = value.Max(0);
     }
 
     public static float UnscaledDeltaSeconds => (float)GetTime()._delta.TotalSeconds;

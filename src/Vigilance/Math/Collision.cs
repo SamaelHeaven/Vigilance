@@ -114,7 +114,7 @@ public static class Collision
         var dxl = end.X - start.X;
         var dyl = end.Y - start.Y;
         var cross = dxc * dyl - dyc * dxl;
-        if (!(cross.Abs() < threshold * MathF.Max(dxl.Abs(), dyl.Abs())))
+        if (!(cross.Abs() < threshold * dxl.Abs().Max(dyl.Abs())))
             return false;
         if (dxl.Abs() >= dyl.Abs())
             return dxl > 0 ? start.X <= point.X && point.X <= end.X : end.X <= point.X && point.X <= start.X;
@@ -222,22 +222,10 @@ public static class Collision
                 - (start1.Y - end1.Y) * (start2.X * end2.Y - start2.Y * end2.X)
             ) / div;
         if (
-            (
-                (start1.X - end1.X).Abs() > float.Epsilon
-                && (xi < MathF.Min(start1.X, end1.X) || xi > MathF.Max(start1.X, end1.X))
-            )
-            || (
-                (start2.X - end2.X).Abs() > float.Epsilon
-                && (xi < MathF.Min(start2.X, end2.X) || xi > MathF.Max(start2.X, end2.X))
-            )
-            || (
-                (start1.Y - end1.Y).Abs() > float.Epsilon
-                && (yi < MathF.Min(start1.Y, end1.Y) || yi > MathF.Max(start1.Y, end1.Y))
-            )
-            || (
-                (start2.Y - end2.Y).Abs() > float.Epsilon
-                && (yi < MathF.Min(start2.Y, end2.Y) || yi > MathF.Max(start2.Y, end2.Y))
-            )
+            ((start1.X - end1.X).Abs() > float.Epsilon && (xi < start1.X.Min(end1.X) || xi > start1.X.Max(end1.X)))
+            || ((start2.X - end2.X).Abs() > float.Epsilon && (xi < start2.X.Min(end2.X) || xi > start2.X.Max(end2.X)))
+            || ((start1.Y - end1.Y).Abs() > float.Epsilon && (yi < start1.Y.Min(end1.Y) || yi > start1.Y.Max(end1.Y)))
+            || ((start2.Y - end2.Y).Abs() > float.Epsilon && (yi < start2.Y.Min(end2.Y) || yi > start2.Y.Max(end2.Y)))
         )
             collision = false;
         if (collision)

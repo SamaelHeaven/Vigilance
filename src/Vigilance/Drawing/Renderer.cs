@@ -39,8 +39,8 @@ public sealed class Renderer
         var height = Game.Height;
         var scaleX = screenWidth / width;
         var scaleY = screenHeight / height;
-        var minScale = MathF.Min(scaleX, scaleY);
-        var maxScale = MathF.Max(scaleX, scaleY);
+        var minScale = scaleX.Min(scaleY);
+        var maxScale = scaleX.Max(scaleY);
         var viewport = Game.Viewport;
         renderer._scale = viewport switch
         {

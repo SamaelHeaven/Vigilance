@@ -20,7 +20,7 @@ public abstract class UIElement : IDeepCloneable
 
     public string Id { get; set; } = "";
 
-    public Tags Tags { get; private set; } = new();
+    public Attributes Attributes { get; private set; } = new();
 
     public float LayoutLeft => Node.LayoutGetLeft();
 
@@ -456,17 +456,9 @@ public abstract class UIElement : IDeepCloneable
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
-    public virtual object DeepClone()
+    object IDeepCloneable.DeepClone()
     {
-        var result = (UIElement)MemberwiseClone();
-        result._click = false;
-        result.LayoutReady = false;
-        result.Parent = null;
-        result.Node = Flex.CreateDefaultNode();
-        Flex.NodeCopyStyle(result.Node, Node);
-        result.Tags = new Tags();
-        result.Tags.UnionWith(Tags);
-        return result;
+        return DeepClone();
     }
 
     public event Action<UIEvent>? OnUpdateEvent;
@@ -563,6 +555,18 @@ public abstract class UIElement : IDeepCloneable
     }
 
     public abstract void Render(Graphics graphics, CameraFunc? camera);
+
+    protected virtual object DeepClone()
+    {
+        var result = (UIElement)MemberwiseClone();
+        result._click = false;
+        result.LayoutReady = false;
+        result.Parent = null;
+        result.Node = Flex.CreateDefaultNode();
+        Flex.NodeCopyStyle(result.Node, Node);
+        result.Attributes = Attributes.DeepClone();
+        return result;
+    }
 
     protected void MarkDirty()
     {

@@ -14,9 +14,9 @@ public readonly struct Components : IReadOnlyList<Component>
 
     public Components() { }
 
-    public OfTypeEnumerator<T> OfType<T>()
+    public OfTypeIterator<T> OfType<T>()
     {
-        return new OfTypeEnumerator<T>(Values);
+        return new OfTypeIterator<T>(this);
     }
 
     public IEnumerator<Component> GetEnumerator()
@@ -29,37 +29,25 @@ public readonly struct Components : IReadOnlyList<Component>
         return GetEnumerator();
     }
 
-    public struct OfTypeEnumerator<T> : IEnumerator<T>, IEnumerable<T>
+    public struct OfTypeIterator<T> : IValueIterator<OfTypeIterator<T>, T>
     {
-        private readonly List<Component> _components;
+        private readonly Components _components;
         private int _index;
         private T _current;
 
-        internal OfTypeEnumerator(List<Component> components)
+        internal OfTypeIterator(Components components)
         {
             _components = components;
             _index = -1;
             _current = default!;
         }
 
-        public OfTypeEnumerator<T> GetEnumerator()
+        public OfTypeIterator<T> GetEnumerator()
         {
             return this;
         }
 
-        IEnumerator<T> IEnumerable<T>.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
         public T Current => _current;
-
-        object IEnumerator.Current => _current!;
 
         public bool MoveNext()
         {

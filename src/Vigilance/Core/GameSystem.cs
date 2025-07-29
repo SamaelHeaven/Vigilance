@@ -30,13 +30,6 @@ public abstract class GameSystem : IGameSystem
         Configure();
     }
 
-    [UnconditionalSuppressMessage("Trimming", "IL2070")]
-    private static bool IsOverridden(Type type, string methodName)
-    {
-        var method = type.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        return method?.DeclaringType != typeof(GameSystem);
-    }
-
     public virtual void Configure() { }
 
     public virtual void Initialize() { }
@@ -54,4 +47,11 @@ public abstract class GameSystem : IGameSystem
     public virtual void RenderEnd() { }
 
     public virtual void Render(Entity entity) { }
+
+    [UnconditionalSuppressMessage("Trimming", "IL2070")]
+    private static bool IsOverridden(Type type, string methodName)
+    {
+        var method = type.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        return method?.DeclaringType != typeof(GameSystem);
+    }
 }
