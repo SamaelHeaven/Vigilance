@@ -20,7 +20,7 @@ public sealed class Grid : IFullCloneable
     public float CellSize { get; set; }
     public float Thick { get; set; } = 1;
     public Color Color { get; set; } = Color.White;
-    public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
 
     public override string ToString()
     {

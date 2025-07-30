@@ -485,7 +485,7 @@ public sealed unsafe class Graphics
 
     public void DrawRectangle(Transform transform, Rectangle rectangle)
     {
-        var camera = rectangle.Camera?.Invoke();
+        var camera = rectangle.Camera.Get();
         var fill = rectangle.Fill;
         var stroke = rectangle.Stroke;
         var roundness = rectangle.Roundness.Abs();
@@ -529,7 +529,7 @@ public sealed unsafe class Graphics
 
     public void DrawRectangleGradient(Transform transform, RectangleGradient rectangle)
     {
-        var camera = rectangle.Camera?.Invoke();
+        var camera = rectangle.Camera.Get();
         var topLeftFill = rectangle.TopLeftFill;
         var bottomLeftFill = rectangle.BottomLeftFill;
         var bottomRightFill = rectangle.BottomRightFill;
@@ -626,7 +626,7 @@ public sealed unsafe class Graphics
 
     public void DrawCircle(Transform transform, Circle circle)
     {
-        var camera = circle.Camera?.Invoke();
+        var camera = circle.Camera.Get();
         var fill = circle.Fill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
@@ -642,7 +642,7 @@ public sealed unsafe class Graphics
 
     public void DrawCircleGradient(Transform transform, CircleGradient circle)
     {
-        var camera = circle.Camera?.Invoke();
+        var camera = circle.Camera.Get();
         var innerFill = circle.InnerFill;
         var outerFill = circle.OuterFill;
         var stroke = circle.Stroke;
@@ -690,7 +690,7 @@ public sealed unsafe class Graphics
 
     public void DrawTriangle(Transform transform, Triangle triangle)
     {
-        var camera = triangle.Camera?.Invoke();
+        var camera = triangle.Camera.Get();
         var position = transform.Position;
         var scale = transform.Scale;
         var scaledPoints = Coordinates.Scale(triangle.Points, scale, position);
@@ -762,7 +762,7 @@ public sealed unsafe class Graphics
 
     public void DrawRegularPolygon(Transform transform, RegularPolygon polygon)
     {
-        var camera = polygon.Camera?.Invoke();
+        var camera = polygon.Camera.Get();
         var sides = polygon.Sides;
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
@@ -833,7 +833,7 @@ public sealed unsafe class Graphics
 
     public void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
     {
-        var camera = polygon.Camera?.Invoke();
+        var camera = polygon.Camera.Get();
         var position = transform.Position;
         var scale = transform.Scale;
         var scaledPoints = Coordinates.Scale(polygon.Points, scale, position);
@@ -949,7 +949,7 @@ public sealed unsafe class Graphics
 
     public void DrawRing(Transform transform, Ring ring)
     {
-        var camera = ring.Camera?.Invoke();
+        var camera = ring.Camera.Get();
         var startAngle = ring.StartAngle;
         var endAngle = ring.EndAngle;
         var fill = ring.Fill;
@@ -998,7 +998,7 @@ public sealed unsafe class Graphics
 
     public void DrawLine(Transform transform, Line line)
     {
-        var camera = line.Camera?.Invoke();
+        var camera = line.Camera.Get();
         var position = transform.Position;
         var start = line.Start + position;
         var end = line.End + position;
@@ -1096,7 +1096,7 @@ public sealed unsafe class Graphics
 
     public void DrawText(Transform transform, Text text)
     {
-        var camera = text.Camera?.Invoke();
+        var camera = text.Camera.Get();
         var value = text.Value;
         var fill = text.Fill;
         var stroke = text.Stroke;
@@ -1217,7 +1217,7 @@ public sealed unsafe class Graphics
 
     public void DrawSprite(Transform transform, Sprite sprite)
     {
-        var camera = sprite.Camera?.Invoke();
+        var camera = sprite.Camera.Get();
         var texture = sprite.Texture;
         var interpolation = sprite.Interpolation;
         var tint = sprite.Tint;
@@ -1278,7 +1278,7 @@ public sealed unsafe class Graphics
 
     public void DrawGrid(Transform transform, Grid grid)
     {
-        var camera = grid.Camera?.Invoke();
+        var camera = grid.Camera.Get();
         var color = grid.Color;
         var cellSize = grid.CellSize;
         var thick = grid.Thick;

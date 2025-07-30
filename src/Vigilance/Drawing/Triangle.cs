@@ -26,7 +26,7 @@ public sealed class Triangle : IFullCloneable
     public Color Fill { get; set; } = Color.White;
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 1;
-    public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
 
     public PointEnumerable Points => new(this);
 

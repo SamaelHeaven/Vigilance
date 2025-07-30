@@ -289,7 +289,7 @@ public class UIScrollContainer : UIContainer
         base.Update(entity);
     }
 
-    public override void Render(Graphics graphics, CameraFunc? camera)
+    public override void Render(Graphics graphics, CameraProvider camera)
     {
         var horizontalVisible = IsHorizontalScrollBarVisible;
         var verticalVisible = IsVerticalScrollBarVisible;
@@ -347,13 +347,13 @@ public class UIScrollContainer : UIContainer
         return result;
     }
 
-    protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraFunc? camera)
+    protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraProvider camera)
     {
         _scrollBarTrackRectangle.Camera = camera;
         graphics.DrawRectangle(box, _scrollBarTrackRectangle);
     }
 
-    protected virtual void RenderScrollBarThumb(Graphics graphics, Box box, CameraFunc? camera)
+    protected virtual void RenderScrollBarThumb(Graphics graphics, Box box, CameraProvider camera)
     {
         _scrollBarThumbRectangle.Camera = camera;
         graphics.DrawRectangle(box, _scrollBarThumbRectangle);

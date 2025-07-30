@@ -51,7 +51,7 @@ public class UISprite : UIContainer
         set => _sprite.Interpolation = value;
     }
 
-    public override void Render(Graphics graphics, CameraFunc? camera)
+    public override void Render(Graphics graphics, CameraProvider camera)
     {
         _sprite.Camera = camera;
         graphics.DrawSprite(LayoutPosition, LayoutSize, _sprite);

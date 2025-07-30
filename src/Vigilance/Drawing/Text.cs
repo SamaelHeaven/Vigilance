@@ -29,7 +29,7 @@ public sealed class Text : IFullCloneable
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
     public Interpolation? Interpolation { get; set; } = null;
-    public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
 
     public string Value
     {

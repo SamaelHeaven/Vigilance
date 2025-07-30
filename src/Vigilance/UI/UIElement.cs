@@ -64,7 +64,7 @@ public abstract class UIElement : IDeepCloneable
 
     public Matrix3x2 RenderedMatrix { get; private set; }
 
-    public CameraFunc? RenderedCamera { get; private set; }
+    public Camera? RenderedCamera { get; private set; }
 
     public Box? RenderedClip { get; private set; }
 
@@ -102,7 +102,7 @@ public abstract class UIElement : IDeepCloneable
         init => OnMouseLeaveEvent += value;
     }
 
-    public CameraFunc? Camera { get; set; }
+    public CameraProvider Camera { get; set; } = Core.Camera.Null;
 
     public UIContainer? Parent { get; internal set; }
 
@@ -554,7 +554,7 @@ public abstract class UIElement : IDeepCloneable
         Render(LayoutTransform, graphics, Camera);
     }
 
-    public abstract void Render(Graphics graphics, CameraFunc? camera);
+    public abstract void Render(Graphics graphics, CameraProvider camera);
 
     protected virtual object DeepClone()
     {
@@ -589,7 +589,7 @@ public abstract class UIElement : IDeepCloneable
         LayoutReady = true;
     }
 
-    internal void Render(Transform transform, Graphics graphics, CameraFunc? camera)
+    internal void Render(Transform transform, Graphics graphics, CameraProvider camera)
     {
         if (!LayoutReady || Display == Display.None)
             return;
@@ -611,10 +611,10 @@ public abstract class UIElement : IDeepCloneable
         graphics.Rotate(transform.Rotation, transform.PivotPoint + position + size * 0.5f);
         var matrix = graphics.GetMatrix();
         RenderedMatrix = matrix;
-        if (camera is not null)
-            matrix *= camera.Invoke().Matrix;
+        RenderedCamera = camera.Get();
+        if (RenderedCamera is not null)
+            matrix *= RenderedCamera.Matrix;
         RenderedBounds = new Quad(new Transform(offset, size)).Transform(matrix);
-        RenderedCamera = camera;
         var layoutBox = new Box(RenderedBounds);
         var oldClip = graphics.GetClip();
         RenderedOutside = oldClip.HasValue && !Collision.CheckBoxes(oldClip.Value, layoutBox);

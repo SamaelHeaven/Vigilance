@@ -18,7 +18,7 @@ public sealed class Sprite : IFullCloneable
     public Box? Source { get; set; } = null;
     public Color Tint { get; set; } = Color.White;
     public Interpolation Interpolation { get; set; } = Interpolation.Nearest;
-    public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
 
     public override string ToString()
     {

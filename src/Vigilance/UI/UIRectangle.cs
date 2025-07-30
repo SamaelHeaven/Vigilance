@@ -38,7 +38,7 @@ public class UIRectangle : UIContainer
         set => _rectangle.Roundness = value;
     }
 
-    public override void Render(Graphics graphics, CameraFunc? camera)
+    public override void Render(Graphics graphics, CameraProvider camera)
     {
         _rectangle.Camera = camera;
         graphics.DrawRectangle(LayoutPosition, LayoutSize, _rectangle);
