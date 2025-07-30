@@ -26,7 +26,7 @@ public unsafe partial record struct Entity
 
     public ulong Id => _entity.Id.Value;
 
-    public string Name => _entity.Name();
+    public string Name => Valid ? "" : _entity.Name();
 
     public bool Valid => _entity.IsValid();
 
@@ -40,7 +40,7 @@ public unsafe partial record struct Entity
                 Position = Position,
                 Scale = Scale,
                 Rotation = Rotation,
-                PivotPoint = PivotPoint,
+                PivotPoint = PivotPoint
             };
         set
         {
@@ -167,7 +167,7 @@ public unsafe partial record struct Entity
         }
     }
 
-    public Components Components => _entity.Has<Components>() ? _entity.Get<Components>() : Components.Empty;
+    public Components Components => Has<Components>() ? _entity.Get<Components>() : Components.Empty;
 
     public ChildEnumerable Children => new(this);
 
@@ -237,6 +237,7 @@ public unsafe partial record struct Entity
 
     public T Get<T>()
     {
+        EnsureValid();
         return _entity.Get<T>();
     }
 
@@ -260,6 +261,7 @@ public unsafe partial record struct Entity
 
     private ref readonly Entity Set<T>(ref T data, bool updateComponents)
     {
+        EnsureValid();
         var type = typeof(T);
         if (type == typeof(Components))
             throw new InvalidOperationException("Components cannot be set.");
@@ -276,6 +278,7 @@ public unsafe partial record struct Entity
 
     public ref readonly Entity Remove<T>()
     {
+        EnsureValid();
         var type = typeof(T);
         if (type == typeof(Components))
             throw new InvalidOperationException("Components cannot be removed.");
@@ -286,11 +289,13 @@ public unsafe partial record struct Entity
 
     public void Destroy()
     {
+        EnsureValid();
         _entity.Destruct();
     }
 
     public ref readonly Entity Scope(Action action)
     {
+        EnsureValid();
         Scene.DeferBegin();
         _entity.Scope(action);
         Scene.DeferEnd();
@@ -299,13 +304,14 @@ public unsafe partial record struct Entity
 
     public ref readonly Entity ChildOf(Entity parent)
     {
+        EnsureValid();
         _entity.ChildOf(parent._entity);
         return ref this;
     }
 
     public bool IsChildOf(Entity parent)
     {
-        return _entity.Has(Ecs.ChildOf, parent._entity);
+        return Valid && _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
     public bool TryGet<T0>(out T0 t)
@@ -316,13 +322,24 @@ public unsafe partial record struct Entity
             t = Get<T0>();
         return result;
     }
+    
+    public void EnsureValid()
+    {
+        if (!Valid)
+            throw new InvalidOperationException("Entity is not valid.");
+    }
 
     private bool PrintMembers(StringBuilder sb)
     {
+        var name = Name;
         sb.Append("Id = ");
         sb.Append(Id);
-        sb.Append(", Name = ");
-        sb.Append(Name);
+        if (name != "")
+        {
+            sb.Append(", Name = ");
+            sb.Append(Name);
+        }
+
         sb.Append(", Transform = ");
         sb.Append(Transform.ToString());
         sb.Append(", Components = ");
@@ -356,8 +373,8 @@ public unsafe partial record struct Entity
     public ref struct ChildEnumerator
     {
         private readonly Entity _entity;
-        private int _index;
         private flecs.ecs_iter_t _iter;
+        private int _index;
 
         internal ChildEnumerator(Entity entity)
         {
@@ -366,6 +383,8 @@ public unsafe partial record struct Entity
 
         public bool MoveNext()
         {
+            if (_iter.world == null)
+                return false;
             if (_index < _iter.count)
             {
                 _index++;
@@ -382,8 +401,9 @@ public unsafe partial record struct Entity
 
         public void Reset()
         {
-            if (_iter != default)
-                Dispose();
+            if (!_entity.Valid)
+                return;
+            Dispose();
             _entity.Scene.DeferBegin();
             _iter = flecs.ecs_each_id(_entity._entity.World, Ecs.Pair(flecs.EcsChildOf, _entity.Id));
             _index = 0;
@@ -397,7 +417,7 @@ public unsafe partial record struct Entity
         {
             get
             {
-                if (_iter == default)
+                if (_iter.world == null)
                     return Null;
                 var entity = new Flecs.NET.Core.Entity(_entity._entity.World, _iter.entities[_index]);
                 return new Entity(entity, _entity.Scene);
@@ -406,7 +426,7 @@ public unsafe partial record struct Entity
 
         public void Dispose()
         {
-            if (_iter == default)
+            if (_iter.world == null)
                 return;
             fixed (flecs.ecs_iter_t* iter = &_iter)
             {
@@ -414,6 +434,8 @@ public unsafe partial record struct Entity
             }
 
             _entity.Scene.DeferEnd();
+            _iter = default;
+            _index = 0;
         }
     }
 
@@ -421,6 +443,7 @@ public unsafe partial record struct Entity
 
     public ref readonly Entity Traverse(Action<Entity> action)
     {
+        EnsureValid();
         action.Invoke(this);
         foreach (var child in Children)
             child.Traverse(action);
@@ -429,6 +452,7 @@ public unsafe partial record struct Entity
 
     public ref readonly Entity Traverse<T>(Action<Entity> action)
     {
+        EnsureValid();
         if (Has<T>())
             action.Invoke(this);
         foreach (var child in Children)
@@ -438,6 +462,7 @@ public unsafe partial record struct Entity
 
     public ref readonly Entity Traverse<T>(Action<T> action)
     {
+        EnsureValid();
         if (Has<T>())
             action.Invoke(Get<T>());
         foreach (var child in Children)
@@ -447,6 +472,7 @@ public unsafe partial record struct Entity
 
     public ref readonly Entity Traverse<T>(Action<Entity, T> action)
     {
+        EnsureValid();
         if (Has<T>())
             action.Invoke(this, Get<T>());
         foreach (var child in Children)

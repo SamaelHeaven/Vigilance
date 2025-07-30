@@ -38,6 +38,8 @@ public sealed class EntityGenerator : ISourceGenerator
                 $$"""
                     public bool Has<{{genericParams}}>()
                     {
+                        if (!Valid)
+                            return false;
                         return {{hasChecks}};
                     }
                     

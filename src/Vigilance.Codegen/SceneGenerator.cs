@@ -114,9 +114,9 @@ public sealed class SceneGenerator : ISourceGenerator
                 
                 public unsafe ref struct {{name}}Enumerator{{typeParams}} {
                     private readonly Scene _scene;
-                    private int _index;
-                    private Flecs.NET.Bindings.flecs.ecs_iter_t _iter;
                     private Flecs.NET.Core.Query<{{queryTypeParams}}>? _query;
+                    private Flecs.NET.Bindings.flecs.ecs_iter_t _iter;
+                    private int _index;
                     
                     internal {{name}}Enumerator(Scene scene)
                     {
@@ -168,8 +168,7 @@ public sealed class SceneGenerator : ISourceGenerator
 
                     public void Reset()
                     {
-                        if (!_query.HasValue)
-                            Dispose();
+                        Dispose();
                         _scene.DeferBegin();
                         var query = {{(
                             query == "" ? $"_scene._world.QueryBuilder<{queryTypeParams}>().Build()" : query
@@ -195,6 +194,9 @@ public sealed class SceneGenerator : ISourceGenerator
                         }
 
                         _scene.DeferEnd();{{(query == "" ? "\n            _query.Value.Dispose();" : "")}}
+                        _query = null;
+                        _iter = default;
+                        _index = 0;
                     }
                 }
                 
