@@ -49,7 +49,7 @@ public class UIContainer : UIElement
         }
     }
 
-    public ChildIterator Children => new(this);
+    public ChildEnumerable Children => new(this);
 
     public override void Render(Graphics graphics, CameraFunc? camera)
     {
@@ -174,30 +174,40 @@ public class UIContainer : UIElement
         element.Parent = null;
     }
 
-    public struct ChildIterator : IValueIterator<ChildIterator, UIElement>
+    public readonly struct ChildEnumerable : IValueEnumerable<ChildEnumerator, UIElement>
+    {
+        private readonly UIContainer _container;
+
+        internal ChildEnumerable(UIContainer container)
+        {
+            _container = container;
+        }
+
+        public ChildEnumerator GetEnumerator()
+        {
+            return new ChildEnumerator(_container);
+        }
+    }
+
+    public struct ChildEnumerator : IValueEnumerator<UIElement>
     {
         private readonly UIContainer _container;
         private LinkedListNode<UIElement>? _current;
         private LinkedListNode<UIElement>? _next;
 
-        internal ChildIterator(UIContainer container)
+        internal ChildEnumerator(UIContainer container)
         {
             _container = container;
             Reset();
         }
 
-        public ChildIterator GetEnumerator()
-        {
-            return this;
-        }
-
         public bool MoveNext()
         {
             _current = _next;
-            if (_current == null)
+            if (_current is null)
                 return false;
             _next = _current.Next;
-            return _current?.Value != null;
+            return _current?.Value is not null;
         }
 
         public void Reset()

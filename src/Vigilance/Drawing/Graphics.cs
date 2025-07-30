@@ -693,7 +693,7 @@ public sealed unsafe class Graphics
         var camera = triangle.Camera?.Invoke();
         var position = transform.Position;
         var scale = transform.Scale;
-        var scaledPoints = Coordinates.Scale(triangle.Points.ToArray(), scale, position);
+        var scaledPoints = Coordinates.Scale(triangle.Points, scale, position);
         var fill = triangle.Fill;
         var stroke = triangle.Stroke;
         var strokeWidth = triangle.StrokeWidth;

@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed record Rectangle : IFullCloneable
+public sealed class Rectangle : IFullCloneable
 {
     public Rectangle() { }
 
@@ -16,4 +16,9 @@ public sealed record Rectangle : IFullCloneable
     public float StrokeWidth { get; set; } = 0;
     public float Roundness { get; set; } = 0;
     public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+
+    public override string ToString()
+    {
+        return Printer.Print(this);
+    }
 }

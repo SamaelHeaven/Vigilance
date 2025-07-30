@@ -5,7 +5,7 @@ using Vigilance.Core;
 namespace Vigilance.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyList<Vector2>
+public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
 {
     public Vector2 TopLeft { get; set; }
     public Vector2 BottomLeft { get; set; }
@@ -169,22 +169,12 @@ public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IRe
 
     public int Count => 4;
 
-    public Vector2 this[int index] =>
-        index switch
-        {
-            0 => TopLeft,
-            1 => BottomLeft,
-            2 => BottomRight,
-            3 => TopRight,
-            _ => throw new IndexOutOfRangeException(),
-        };
-
     public PointEnumerator GetEnumerator()
     {
         return new PointEnumerator(this);
     }
 
-    public struct PointEnumerator : IValueEnumerator<PointEnumerator, Vector2>
+    public struct PointEnumerator : IValueEnumerator<Vector2>
     {
         private readonly Quad _quad;
         private int _index;
@@ -197,7 +187,7 @@ public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IRe
 
         public bool MoveNext()
         {
-            if (_index >= _quad.Count)
+            if (_index >= 4)
                 return false;
             _index++;
             return true;
@@ -208,7 +198,15 @@ public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IRe
             _index = 0;
         }
 
-        public Vector2 Current => _quad[_index];
+        public Vector2 Current =>
+            _index switch
+            {
+                0 => _quad.TopLeft,
+                1 => _quad.BottomLeft,
+                2 => _quad.BottomRight,
+                3 => _quad.TopRight,
+                _ => throw new IndexOutOfRangeException(),
+            };
 
         public void Dispose() { }
     }

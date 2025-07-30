@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed record Line : IFullCloneable
+public sealed class Line : IFullCloneable
 {
     public Line() { }
 
@@ -25,4 +25,9 @@ public sealed record Line : IFullCloneable
     public Color Color { get; set; } = Color.White;
     public float Thick { get; set; } = 1;
     public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+
+    public override string ToString()
+    {
+        return Printer.Print(this);
+    }
 }

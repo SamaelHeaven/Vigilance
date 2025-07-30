@@ -69,14 +69,14 @@ public sealed unsafe class Font
         return GetStroke(strokeWidth).GlyphInfos;
     }
 
-    public TextBoundIterator GetTextBounds(
+    public TextBoundEnumerable GetTextBounds(
         string text,
         float? fontSize,
         Vector2? spacing,
         IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
-        return new TextBoundIterator(
+        return new TextBoundEnumerable(
             this,
             text,
             fontSize ?? Game.DefaultFontSize,
@@ -261,7 +261,36 @@ public sealed unsafe class Font
         public FT_Bitmap_ Bitmap;
     }
 
-    public struct TextBoundIterator : IValueIterator<TextBoundIterator, (Box Source, Box Dest)>
+    public readonly struct TextBoundEnumerable : IValueEnumerable<TextBoundEnumerator, (Box Source, Box Dest)>
+    {
+        private readonly Font _font;
+        private readonly string _text;
+        private readonly float _fontSize;
+        private readonly Vector2 _spacing;
+        private readonly IReadOnlyDictionary<char, GlyphInfo> _glyphInfos;
+
+        internal TextBoundEnumerable(
+            Font font,
+            string text,
+            float fontSize,
+            Vector2 spacing,
+            IReadOnlyDictionary<char, GlyphInfo>? glyphInfos
+        )
+        {
+            _font = font;
+            _text = text;
+            _fontSize = fontSize;
+            _spacing = spacing;
+            _glyphInfos = glyphInfos ?? font.GlyphInfos;
+        }
+
+        public TextBoundEnumerator GetEnumerator()
+        {
+            return new TextBoundEnumerator(_font, _text, _fontSize, _spacing, _glyphInfos);
+        }
+    }
+
+    public struct TextBoundEnumerator : IValueEnumerator<(Box Source, Box Dest)>
     {
         private readonly Font _font;
         private readonly string _text;
@@ -272,7 +301,7 @@ public sealed unsafe class Font
         private int _index;
         private Vector2 _position;
 
-        internal TextBoundIterator(
+        internal TextBoundEnumerator(
             Font font,
             string text,
             float fontSize,
@@ -287,11 +316,6 @@ public sealed unsafe class Font
             _glyphInfos = glyphInfos ?? font.GlyphInfos;
             _aspectRatio = _font.Quality / fontSize;
             Reset();
-        }
-
-        public TextBoundIterator GetEnumerator()
-        {
-            return this;
         }
 
         public bool MoveNext()

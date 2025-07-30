@@ -6,7 +6,7 @@ namespace Vigilance.Core;
 
 public delegate Camera CameraFunc();
 
-public sealed record Camera
+public sealed class Camera
 {
     public static CameraFunc Default { get; } = () => Game.Scene.Camera;
     public Vector2 Target { get; set; } = Vector2.Zero;
@@ -31,5 +31,10 @@ public sealed record Camera
     public static implicit operator Camera?(CameraFunc? func)
     {
         return func?.Invoke();
+    }
+
+    public override string ToString()
+    {
+        return Printer.Print(this, Printer.Exclude(nameof(Matrix)));
     }
 }

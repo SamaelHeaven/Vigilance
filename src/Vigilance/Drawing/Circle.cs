@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed record Circle : IFullCloneable
+public sealed class Circle : IFullCloneable
 {
     public Circle() { }
 
@@ -15,4 +15,9 @@ public sealed record Circle : IFullCloneable
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
     public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+
+    public override string ToString()
+    {
+        return Printer.Print(this);
+    }
 }

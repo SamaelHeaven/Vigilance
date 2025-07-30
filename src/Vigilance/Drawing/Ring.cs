@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed record Ring : IFullCloneable
+public sealed class Ring : IFullCloneable
 {
     public float InnerRadius { get; set; } = 0;
     public float OuterRadius { get; set; } = 0;
@@ -12,4 +12,9 @@ public sealed record Ring : IFullCloneable
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
     public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+
+    public override string ToString()
+    {
+        return Printer.Print(this);
+    }
 }

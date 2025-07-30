@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed record Triangle : IFullCloneable
+public sealed class Triangle : IFullCloneable
 {
     public Triangle() { }
 
@@ -28,22 +28,39 @@ public sealed record Triangle : IFullCloneable
     public float StrokeWidth { get; set; } = 1;
     public CameraFunc? Camera { get; set; } = Core.Camera.Default;
 
-    public PointIterator Points => new(this);
+    public PointEnumerable Points => new(this);
 
-    public struct PointIterator : IValueIterator<PointIterator, Vector2>
+    public override string ToString()
+    {
+        return Printer.Print(this);
+    }
+
+    public readonly struct PointEnumerable : IValueEnumerable<PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
+    {
+        private readonly Triangle _triangle;
+
+        internal PointEnumerable(Triangle triangle)
+        {
+            _triangle = triangle;
+        }
+
+        public PointEnumerator GetEnumerator()
+        {
+            return new PointEnumerator(_triangle);
+        }
+
+        public int Count => 3;
+    }
+
+    public struct PointEnumerator : IValueEnumerator<Vector2>
     {
         private readonly Triangle _triangle;
         private int _index;
 
-        internal PointIterator(Triangle triangle)
+        internal PointEnumerator(Triangle triangle)
         {
             _triangle = triangle;
             Reset();
-        }
-
-        public PointIterator GetEnumerator()
-        {
-            return this;
         }
 
         public bool MoveNext()
@@ -68,7 +85,7 @@ public sealed record Triangle : IFullCloneable
                     0 => _triangle.P1,
                     1 => _triangle.P2,
                     2 => _triangle.P3,
-                    _ => default,
+                    _ => throw new IndexOutOfRangeException(),
                 };
             }
         }

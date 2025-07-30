@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed record CustomPolygon : IFullCloneable
+public sealed class CustomPolygon : IFullCloneable
 {
     public CustomPolygon() { }
 
@@ -29,5 +29,10 @@ public sealed record CustomPolygon : IFullCloneable
         var result = this.ShallowClone();
         result.Points = Points.ToArray();
         return result;
+    }
+
+    public override string ToString()
+    {
+        return Printer.Print(this);
     }
 }

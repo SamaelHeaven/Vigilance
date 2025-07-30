@@ -169,7 +169,7 @@ public unsafe partial record struct Entity
 
     public Components Components => _entity.Has<Components>() ? _entity.Get<Components>() : Components.Empty;
 
-    public ChildIterator Children => new(this);
+    public ChildEnumerable Children => new(this);
 
     public bool Equals(Entity other)
     {
@@ -330,21 +330,38 @@ public unsafe partial record struct Entity
         return true;
     }
 
-    public struct ChildIterator : IValueIterator<ChildIterator, Entity>
+    public readonly struct ChildEnumerable
+    {
+        private readonly Entity _entity;
+
+        internal ChildEnumerable(Entity entity)
+        {
+            _entity = entity;
+        }
+
+        public ChildEnumerator GetEnumerator()
+        {
+            return new ChildEnumerator(_entity);
+        }
+
+        public List<Entity> ToList()
+        {
+            var list = new List<Entity>();
+            foreach (var item in this)
+                list.Add(item);
+            return list;
+        }
+    }
+
+    public ref struct ChildEnumerator
     {
         private readonly Entity _entity;
         private int _index;
         private flecs.ecs_iter_t _iter;
 
-        internal ChildIterator(Entity entity)
+        internal ChildEnumerator(Entity entity)
         {
             _entity = entity;
-            Reset();
-        }
-
-        public ChildIterator GetEnumerator()
-        {
-            return this;
         }
 
         public bool MoveNext()

@@ -24,9 +24,9 @@ public readonly record struct Components : IReadOnlyList<Component>
         return GetEnumerator();
     }
 
-    public OfTypeIterator<T> OfType<T>()
+    public OfTypeEnumerable<T> OfType<T>()
     {
-        return new OfTypeIterator<T>(this);
+        return new OfTypeEnumerable<T>(this);
     }
 
     public override string ToString()
@@ -34,21 +34,31 @@ public readonly record struct Components : IReadOnlyList<Component>
         return Values.Count == 0 ? "[]" : $"[\n  {string.Join(",\n  ", Values)}\n]";
     }
 
-    public struct OfTypeIterator<T> : IValueIterator<OfTypeIterator<T>, T>
+    public readonly struct OfTypeEnumerable<T> : IValueEnumerable<OfTypeEnumerator<T>, T>
+    {
+        private readonly Components _components;
+
+        internal OfTypeEnumerable(Components components)
+        {
+            _components = components;
+        }
+
+        public OfTypeEnumerator<T> GetEnumerator()
+        {
+            return new OfTypeEnumerator<T>(_components);
+        }
+    }
+
+    public struct OfTypeEnumerator<T> : IValueEnumerator<T>
     {
         private readonly Components _components;
         private int _index;
 
-        internal OfTypeIterator(Components components)
+        internal OfTypeEnumerator(Components components)
         {
             _components = components;
             _index = -1;
             Current = default!;
-        }
-
-        public OfTypeIterator<T> GetEnumerator()
-        {
-            return this;
         }
 
         public T Current { get; private set; }

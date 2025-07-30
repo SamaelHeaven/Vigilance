@@ -52,6 +52,6 @@ public abstract class GameSystem : IGameSystem
     private static bool IsOverridden(Type type, string methodName)
     {
         var method = type.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        return method?.DeclaringType != typeof(GameSystem);
+        return method is null || method.DeclaringType != typeof(GameSystem);
     }
 }

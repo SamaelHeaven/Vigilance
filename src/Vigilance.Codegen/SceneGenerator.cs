@@ -31,10 +31,10 @@ public sealed class SceneGenerator : ISourceGenerator
     private static void Entities(StringBuilder sb)
     {
         sb.Region("Entities");
-        sb.AppendLine(QueryIterator("EntityIterator", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
+        sb.AppendLine(QueryIterator("Entity", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
         sb.AppendLine(
             QueryIterator(
-                "OrderedEntityIterator",
+                "OrderedEntity",
                 "Entity",
                 "ZIndex",
                 "CurrentEntity",
@@ -57,9 +57,7 @@ public sealed class SceneGenerator : ISourceGenerator
                     ? "GetField<T0>(0)"
                     : "(" + string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"GetField<T{n}>({n})")) + ")";
             var queryArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            sb.AppendLine(
-                QueryIterator("ComponentIterator", type, queryArgs, current, "Components", $"<{typeParams}>")
-            );
+            sb.AppendLine(QueryIterator("Component", type, queryArgs, current, "Components", $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -74,7 +72,7 @@ public sealed class SceneGenerator : ISourceGenerator
             var type = $"(Entity, {typeParams})";
             var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"GetField<T{n}>({n})"));
             var current = $"(CurrentEntity, {getFields})";
-            sb.AppendLine(QueryIterator("EntryIterator", type, typeParams, current, "Entries", $"<{typeParams}>"));
+            sb.AppendLine(QueryIterator("Entry", type, typeParams, current, "Entries", $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -91,22 +89,39 @@ public sealed class SceneGenerator : ISourceGenerator
     )
     {
         return $$"""
-                public unsafe struct {{name}}{{typeParams}} : IValueIterator<{{name}}{{typeParams}}, {{type}}>
+                public readonly struct {{name}}Enumerable{{typeParams}}
                 {
-                    private Scene _scene;
+                    private readonly Scene _scene;
+                
+                    internal {{name}}Enumerable(Scene scene)
+                    {
+                        _scene = scene;
+                    }
+                    
+                    public {{name}}Enumerator{{typeParams}} GetEnumerator()
+                    {
+                        return new {{name}}Enumerator{{typeParams}}(_scene);
+                    }
+                    
+                    public List<{{type}}> ToList()
+                    {
+                        var list = new List<{{type}}>();
+                        foreach (var item in this)
+                            list.Add(item);
+                        return list;
+                    }
+                }
+                
+                public unsafe ref struct {{name}}Enumerator{{typeParams}} {
+                    private readonly Scene _scene;
                     private int _index;
                     private Flecs.NET.Bindings.flecs.ecs_iter_t _iter;
                     private Flecs.NET.Core.Query<{{queryTypeParams}}>? _query;
-                
-                    internal {{name}}(Scene scene)
+                    
+                    internal {{name}}Enumerator(Scene scene)
                     {
                         _scene = scene;
                         Reset();
-                    }
-                    
-                    public {{name}}{{typeParams}} GetEnumerator()
-                    {
-                        return this;
                     }
                 
                     private Entity CurrentEntity
@@ -137,8 +152,6 @@ public sealed class SceneGenerator : ISourceGenerator
 
                     public bool MoveNext()
                     {
-                        if (!_query.HasValue)
-                            return false;
                         if (_index < _iter.count)
                         {
                             _index++;
@@ -185,9 +198,9 @@ public sealed class SceneGenerator : ISourceGenerator
                     }
                 }
                 
-                public {{name}}{{typeParams}} {{methodName}}{{typeParams}}() {
+                public {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
                     EnsureInitialized();
-                    return new {{name}}{{typeParams}}(this);
+                    return new {{name}}Enumerable{{typeParams}}(this);
                 }
                 
             """;

@@ -5,7 +5,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public sealed record GameConfig : IShallowCloneable
+public sealed class GameConfig : IShallowCloneable
 {
     public string Title { get; set; } = "";
     public string WorkingDirectory { get; set; } = "";
@@ -70,4 +70,9 @@ public sealed record GameConfig : IShallowCloneable
 
     public string DefaultFontCharset { get; set; } =
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
+    public override string ToString()
+    {
+        return Printer.Print(this);
+    }
 }

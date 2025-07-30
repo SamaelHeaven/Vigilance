@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed record Text : IFullCloneable
+public sealed class Text : IFullCloneable
 {
     private Font _font = Game.DefaultFont;
     private float _fontSize = Game.DefaultFontSize;
@@ -82,4 +82,9 @@ public sealed record Text : IFullCloneable
     }
 
     public Vector2 Size => _sizeCache ??= _font.MeasureText(_value, _fontSize, _spacing, _heightMode);
+
+    public override string ToString()
+    {
+        return Printer.Print(this);
+    }
 }

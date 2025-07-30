@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed record RegularPolygon : IFullCloneable
+public sealed class RegularPolygon : IFullCloneable
 {
     public RegularPolygon() { }
 
@@ -22,4 +22,9 @@ public sealed record RegularPolygon : IFullCloneable
     public Color Stroke { get; set; } = Color.Transparent;
     public float StrokeWidth { get; set; } = 0;
     public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+
+    public override string ToString()
+    {
+        return Printer.Print(this);
+    }
 }

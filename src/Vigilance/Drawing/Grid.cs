@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed record Grid : IFullCloneable
+public sealed class Grid : IFullCloneable
 {
     public Grid() { }
 
@@ -21,4 +21,9 @@ public sealed record Grid : IFullCloneable
     public float Thick { get; set; } = 1;
     public Color Color { get; set; } = Color.White;
     public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+
+    public override string ToString()
+    {
+        return Printer.Print(this);
+    }
 }
