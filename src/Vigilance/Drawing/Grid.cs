@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class Grid : IFullCloneable
+public sealed record Grid : IFullCloneable
 {
     public Grid() { }
 

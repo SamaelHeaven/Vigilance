@@ -2,11 +2,8 @@ using Vigilance.Math;
 
 namespace Vigilance.UI;
 
-public struct Dimensions
+public record struct Dimensions
 {
-    public Unit X { get; set; } = Unit.Zero;
-    public Unit Y { get; set; } = Unit.Zero;
-
     public Dimensions(Unit value)
     {
         X = value;
@@ -18,6 +15,9 @@ public struct Dimensions
         X = x;
         Y = y;
     }
+
+    public Unit X { get; set; } = Unit.Zero;
+    public Unit Y { get; set; } = Unit.Zero;
 
     public static implicit operator Dimensions(Vector2 value)
     {

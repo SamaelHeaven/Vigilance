@@ -5,7 +5,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public sealed class GameConfig : IShallowCloneable
+public sealed record GameConfig : IShallowCloneable
 {
     public string Title { get; set; } = "";
     public string WorkingDirectory { get; set; } = "";

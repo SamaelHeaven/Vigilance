@@ -5,32 +5,32 @@ using Exception = System.Exception;
 namespace Vigilance.Drawing;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Color : IEquatable<Color>
+public record struct Color
 {
-    public static Color White { get; } = new(255, 255, 255);
-    public static Color Black { get; } = new(0, 0, 0);
-    public static Color Transparent { get; } = new(0, 0, 0, 0);
-    public static Color LightGray { get; } = new(200, 200, 200);
-    public static Color Gray { get; } = new(130, 130, 130);
-    public static Color DarkGray { get; } = new(80, 80, 80);
-    public static Color Yellow { get; } = new(253, 249, 0);
-    public static Color Gold { get; } = new(255, 203, 0);
-    public static Color Orange { get; } = new(255, 161, 0);
-    public static Color Pink { get; } = new(255, 109, 194);
-    public static Color Red { get; } = new(230, 41, 55);
-    public static Color Maroon { get; } = new(190, 33, 55);
-    public static Color Green { get; } = new(0, 228, 48);
-    public static Color Lime { get; } = new(0, 158, 47);
-    public static Color DarkGreen { get; } = new(0, 117, 44);
-    public static Color SkyBlue { get; } = new(102, 191, 255);
-    public static Color Blue { get; } = new(0, 121, 241);
-    public static Color DarkBlue { get; } = new(0, 82, 172);
-    public static Color Purple { get; } = new(200, 122, 255);
-    public static Color Violet { get; } = new(135, 60, 190);
-    public static Color DarkPurple { get; } = new(112, 31, 126);
-    public static Color Beige { get; } = new(211, 176, 131);
-    public static Color Brown { get; } = new(127, 106, 79);
-    public static Color DarkBrown { get; } = new(76, 63, 47);
+    public static Color White => new(255, 255, 255);
+    public static Color Black => new(0, 0, 0);
+    public static Color Transparent => new(0, 0, 0, 0);
+    public static Color LightGray => new(200, 200, 200);
+    public static Color Gray => new(130, 130, 130);
+    public static Color DarkGray => new(80, 80, 80);
+    public static Color Yellow => new(253, 249, 0);
+    public static Color Gold => new(255, 203, 0);
+    public static Color Orange => new(255, 161, 0);
+    public static Color Pink => new(255, 109, 194);
+    public static Color Red => new(230, 41, 55);
+    public static Color Maroon => new(190, 33, 55);
+    public static Color Green => new(0, 228, 48);
+    public static Color Lime => new(0, 158, 47);
+    public static Color DarkGreen => new(0, 117, 44);
+    public static Color SkyBlue => new(102, 191, 255);
+    public static Color Blue => new(0, 121, 241);
+    public static Color DarkBlue => new(0, 82, 172);
+    public static Color Purple => new(200, 122, 255);
+    public static Color Violet => new(135, 60, 190);
+    public static Color DarkPurple => new(112, 31, 126);
+    public static Color Beige => new(211, 176, 131);
+    public static Color Brown => new(127, 106, 79);
+    public static Color DarkBrown => new(76, 63, 47);
 
     public byte R { get; set; }
     public byte G { get; set; }
@@ -131,31 +131,6 @@ public struct Color : IEquatable<Color>
     public int ToInt()
     {
         return Raylib.ColorToInt(RColor);
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is Color c && Equals(c);
-    }
-
-    public bool Equals(Color other)
-    {
-        return R == other.R && G == other.G && B == other.B && A == other.A;
-    }
-
-    public static bool operator ==(Color a, Color b)
-    {
-        return a.Equals(b);
-    }
-
-    public static bool operator !=(Color a, Color b)
-    {
-        return !(a == b);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(R, G, B, A);
     }
 
     public Color Blend(Color color)

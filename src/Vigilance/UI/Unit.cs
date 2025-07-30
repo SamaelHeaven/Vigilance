@@ -2,8 +2,14 @@ using FlexLayoutSharp;
 
 namespace Vigilance.UI;
 
-public struct Unit
+public record struct Unit
 {
+    public Unit(UnitType type, float value = 0)
+    {
+        Type = type;
+        Value = value;
+    }
+
     public UnitType Type { get; set; }
     public float Value { get; set; }
 
@@ -32,12 +38,6 @@ public struct Unit
     public static Unit operator -(Unit unit)
     {
         return new Unit(unit.Type, -unit.Value);
-    }
-
-    public Unit(UnitType type, float value = 0)
-    {
-        Type = type;
-        Value = value;
     }
 
     public readonly float Calculate(float size)

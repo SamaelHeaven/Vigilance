@@ -2,22 +2,17 @@ using System.Collections;
 
 namespace Vigilance.Core;
 
-public readonly struct Components : IReadOnlyList<Component>
+public readonly record struct Components : IReadOnlyList<Component>
 {
-    public static Components Empty { get; } = new();
-
     internal readonly List<Component> Values = new();
+
+    public Components() { }
+
+    public static Components Empty { get; } = new();
 
     public int Count => Values.Count;
 
     public Component this[int index] => Values[index];
-
-    public Components() { }
-
-    public OfTypeIterator<T> OfType<T>()
-    {
-        return new OfTypeIterator<T>(this);
-    }
 
     public IEnumerator<Component> GetEnumerator()
     {
@@ -29,17 +24,26 @@ public readonly struct Components : IReadOnlyList<Component>
         return GetEnumerator();
     }
 
+    public OfTypeIterator<T> OfType<T>()
+    {
+        return new OfTypeIterator<T>(this);
+    }
+
+    public override string ToString()
+    {
+        return Values.Count == 0 ? "[]" : $"[\n  {string.Join(",\n  ", Values)}\n]";
+    }
+
     public struct OfTypeIterator<T> : IValueIterator<OfTypeIterator<T>, T>
     {
         private readonly Components _components;
         private int _index;
-        private T _current;
 
         internal OfTypeIterator(Components components)
         {
             _components = components;
             _index = -1;
-            _current = default!;
+            Current = default!;
         }
 
         public OfTypeIterator<T> GetEnumerator()
@@ -47,7 +51,7 @@ public readonly struct Components : IReadOnlyList<Component>
             return this;
         }
 
-        public T Current => _current;
+        public T Current { get; private set; }
 
         public bool MoveNext()
         {
@@ -55,7 +59,7 @@ public readonly struct Components : IReadOnlyList<Component>
             {
                 if (_components[_index].Data is not T t)
                     continue;
-                _current = t;
+                Current = t;
                 return true;
             }
 
@@ -65,7 +69,7 @@ public readonly struct Components : IReadOnlyList<Component>
         public void Reset()
         {
             _index = -1;
-            _current = default!;
+            Current = default!;
         }
 
         public void Dispose() { }

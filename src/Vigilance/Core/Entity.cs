@@ -1,5 +1,6 @@
 #pragma warning disable CS9084
 
+using System.Text;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
 using Flecs.NET.Utilities;
@@ -10,12 +11,9 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public unsafe partial struct Entity : IEquatable<Entity>
+public unsafe partial record struct Entity
 {
-    public static Entity Null { get; } = new(Flecs.NET.Core.Entity.Null(), null!);
-    public Scene Scene { get; }
-
-    private Flecs.NET.Core.Entity _entity;
+    private readonly Flecs.NET.Core.Entity _entity;
 
     internal Entity(Flecs.NET.Core.Entity entity, Scene scene)
     {
@@ -23,15 +21,18 @@ public unsafe partial struct Entity : IEquatable<Entity>
         Scene = scene;
     }
 
-    public readonly ulong Id => _entity.Id.Value;
+    public static Entity Null { get; } = new(Flecs.NET.Core.Entity.Null(), null!);
+    public Scene Scene { get; }
 
-    public readonly string Name => _entity.Name();
+    public ulong Id => _entity.Id.Value;
 
-    public readonly bool Valid => _entity.IsValid();
+    public string Name => _entity.Name();
 
-    public readonly Entity Parent => new(_entity.Parent(), null!);
+    public bool Valid => _entity.IsValid();
 
-    public readonly Transform Transform
+    public Entity Parent => new(_entity.Parent(), Scene);
+
+    public Transform Transform
     {
         get =>
             new()
@@ -50,57 +51,57 @@ public unsafe partial struct Entity : IEquatable<Entity>
         }
     }
 
-    public readonly Vector2 Position
+    public Vector2 Position
     {
         get => Has<Position>() ? Get<Position>().Value : Vector2.Zero;
         set
         {
             if (!Precision.AreEqual(Position, value))
-                Set(new Position { Value = value }, false);
+                Set(new Position(value), false);
         }
     }
 
-    public readonly Vector2 Scale
+    public Vector2 Scale
     {
         get => Has<Scale>() ? Get<Scale>().Value : Vector2.One;
         set
         {
             if (!Precision.AreEqual(Scale, value))
-                Set(new Scale { Value = value }, false);
+                Set(new Scale(value), false);
         }
     }
 
-    public readonly float Rotation
+    public float Rotation
     {
         get => Has<Rotation>() ? Get<Rotation>().Value : 0;
         set
         {
             if (!Precision.AreEqual(Rotation, value))
-                Set(new Rotation { Value = value }, false);
+                Set(new Rotation(value), false);
         }
     }
 
-    public readonly Vector2 PivotPoint
+    public Vector2 PivotPoint
     {
         get => Has<PivotPoint>() ? Get<PivotPoint>().Value : Vector2.Zero;
         set
         {
             if (!Precision.AreEqual(PivotPoint, value))
-                Set(new PivotPoint { Value = value }, false);
+                Set(new PivotPoint(value), false);
         }
     }
 
-    public readonly int ZIndex
+    public int ZIndex
     {
         get => Has<ZIndex>() ? Get<ZIndex>().Value : 0;
         set
         {
             if (ZIndex != value)
-                Set(new ZIndex { Value = value }, false);
+                Set(new ZIndex(value), false);
         }
     }
 
-    public readonly Transform WorldTransform
+    public Transform WorldTransform
     {
         get
         {
@@ -111,7 +112,7 @@ public unsafe partial struct Entity : IEquatable<Entity>
         }
     }
 
-    public readonly Vector2 WorldPosition
+    public Vector2 WorldPosition
     {
         get
         {
@@ -122,7 +123,7 @@ public unsafe partial struct Entity : IEquatable<Entity>
         }
     }
 
-    public readonly Vector2 WorldScale
+    public Vector2 WorldScale
     {
         get
         {
@@ -133,7 +134,7 @@ public unsafe partial struct Entity : IEquatable<Entity>
         }
     }
 
-    public readonly float WorldRotation
+    public float WorldRotation
     {
         get
         {
@@ -144,7 +145,7 @@ public unsafe partial struct Entity : IEquatable<Entity>
         }
     }
 
-    public readonly Vector2 WorldPivotPoint
+    public Vector2 WorldPivotPoint
     {
         get
         {
@@ -155,7 +156,7 @@ public unsafe partial struct Entity : IEquatable<Entity>
         }
     }
 
-    public readonly int WorldZIndex
+    public int WorldZIndex
     {
         get
         {
@@ -166,99 +167,86 @@ public unsafe partial struct Entity : IEquatable<Entity>
         }
     }
 
-    public readonly Components Components => _entity.Has<Components>() ? _entity.Get<Components>() : Components.Empty;
+    public Components Components => _entity.Has<Components>() ? _entity.Get<Components>() : Components.Empty;
 
-    public static bool operator ==(Entity a, Entity b)
-    {
-        return a.Equals(b);
-    }
+    public ChildIterator Children => new(this);
 
-    public static bool operator !=(Entity a, Entity b)
-    {
-        return !(a == b);
-    }
-
-    public override readonly bool Equals(object? obj)
-    {
-        return obj is Entity entity && Equals(entity);
-    }
-
-    public readonly bool Equals(Entity other)
+    public bool Equals(Entity other)
     {
         return _entity == other._entity;
     }
 
-    public override readonly int GetHashCode()
+    public override int GetHashCode()
     {
         return _entity.GetHashCode();
     }
 
-    public readonly ref readonly Entity SetTransform(Transform transform)
+    public ref readonly Entity SetTransform(Transform transform)
     {
         Transform = transform;
         return ref this;
     }
 
-    public readonly ref readonly Entity SetPosition(float v1, float? v2 = null)
+    public ref readonly Entity SetPosition(float v1, float? v2 = null)
     {
         Position = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
-    public readonly ref readonly Entity SetPosition(Vector2 position)
+    public ref readonly Entity SetPosition(Vector2 position)
     {
         Position = position;
         return ref this;
     }
 
-    public readonly ref readonly Entity SetScale(float v1, float? v2 = null)
+    public ref readonly Entity SetScale(float v1, float? v2 = null)
     {
         Scale = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
-    public readonly ref readonly Entity SetScale(Vector2 scale)
+    public ref readonly Entity SetScale(Vector2 scale)
     {
         Scale = scale;
         return ref this;
     }
 
-    public readonly ref readonly Entity SetRotation(float rotation)
+    public ref readonly Entity SetRotation(float rotation)
     {
         Rotation = rotation;
         return ref this;
     }
 
-    public readonly ref readonly Entity SetPivotPoint(float v1, float? v2 = null)
+    public ref readonly Entity SetPivotPoint(float v1, float? v2 = null)
     {
         PivotPoint = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
-    public readonly ref readonly Entity SetPivotPoint(Vector2 pivotPoint)
+    public ref readonly Entity SetPivotPoint(Vector2 pivotPoint)
     {
         PivotPoint = pivotPoint;
         return ref this;
     }
 
-    public readonly ref readonly Entity SetZIndex(int zIndex)
+    public ref readonly Entity SetZIndex(int zIndex)
     {
         ZIndex = zIndex;
         return ref this;
     }
 
-    public readonly T Get<T>()
+    public T Get<T>()
     {
         return _entity.Get<T>();
     }
 
-    public readonly ref readonly Entity Set<T>(T data)
+    public ref readonly Entity Set<T>(T data)
     {
         Set(data, true);
         return ref this;
     }
 
-    public readonly ref readonly Entity Set<T>(ref T data)
+    public ref readonly Entity Set<T>(ref T data)
     {
         Set(data, true);
         return ref this;
@@ -286,7 +274,7 @@ public unsafe partial struct Entity : IEquatable<Entity>
         return ref this;
     }
 
-    public readonly ref readonly Entity Remove<T>()
+    public ref readonly Entity Remove<T>()
     {
         var type = typeof(T);
         if (type == typeof(Components))
@@ -296,12 +284,12 @@ public unsafe partial struct Entity : IEquatable<Entity>
         return ref this;
     }
 
-    public readonly void Destroy()
+    public void Destroy()
     {
         _entity.Destruct();
     }
 
-    public readonly ref readonly Entity Scope(Action action)
+    public ref readonly Entity Scope(Action action)
     {
         Scene.DeferBegin();
         _entity.Scope(action);
@@ -309,59 +297,18 @@ public unsafe partial struct Entity : IEquatable<Entity>
         return ref this;
     }
 
-    public readonly ref readonly Entity ChildOf(Entity parent)
+    public ref readonly Entity ChildOf(Entity parent)
     {
         _entity.ChildOf(parent._entity);
         return ref this;
     }
 
-    public readonly bool IsChildOf(Entity parent)
+    public bool IsChildOf(Entity parent)
     {
         return _entity.Has(Ecs.ChildOf, parent._entity);
     }
 
-    public readonly ChildIterator Children => new(this);
-
-    #region Traverse
-
-    public readonly ref readonly Entity Traverse(Action<Entity> action)
-    {
-        action.Invoke(this);
-        foreach (var child in Children)
-            child.Traverse(action);
-        return ref this;
-    }
-
-    public readonly ref readonly Entity Traverse<T>(Action<Entity> action)
-    {
-        if (Has<T>())
-            action.Invoke(this);
-        foreach (var child in Children)
-            child.Traverse<T>(action);
-        return ref this;
-    }
-
-    public readonly ref readonly Entity Traverse<T>(Action<T> action)
-    {
-        if (Has<T>())
-            action.Invoke(Get<T>());
-        foreach (var child in Children)
-            child.Traverse(action);
-        return ref this;
-    }
-
-    public readonly ref readonly Entity Traverse<T>(Action<Entity, T> action)
-    {
-        if (Has<T>())
-            action.Invoke(this, Get<T>());
-        foreach (var child in Children)
-            child.Traverse(action);
-        return ref this;
-    }
-
-    #endregion
-
-    public readonly bool TryGet<T0>(out T0 t)
+    public bool TryGet<T0>(out T0 t)
     {
         var result = Has<T0>();
         t = default!;
@@ -370,9 +317,22 @@ public unsafe partial struct Entity : IEquatable<Entity>
         return result;
     }
 
+    private bool PrintMembers(StringBuilder sb)
+    {
+        sb.Append("Id = ");
+        sb.Append(Id);
+        sb.Append(", Name = ");
+        sb.Append(Name);
+        sb.Append(", Transform = ");
+        sb.Append(Transform.ToString());
+        sb.Append(", Components = ");
+        sb.Append(Components.ToString());
+        return true;
+    }
+
     public struct ChildIterator : IValueIterator<ChildIterator, Entity>
     {
-        private Entity _entity;
+        private readonly Entity _entity;
         private int _index;
         private flecs.ecs_iter_t _iter;
 
@@ -439,4 +399,43 @@ public unsafe partial struct Entity : IEquatable<Entity>
             _entity.Scene.DeferEnd();
         }
     }
+
+    #region Traverse
+
+    public ref readonly Entity Traverse(Action<Entity> action)
+    {
+        action.Invoke(this);
+        foreach (var child in Children)
+            child.Traverse(action);
+        return ref this;
+    }
+
+    public ref readonly Entity Traverse<T>(Action<Entity> action)
+    {
+        if (Has<T>())
+            action.Invoke(this);
+        foreach (var child in Children)
+            child.Traverse<T>(action);
+        return ref this;
+    }
+
+    public ref readonly Entity Traverse<T>(Action<T> action)
+    {
+        if (Has<T>())
+            action.Invoke(Get<T>());
+        foreach (var child in Children)
+            child.Traverse(action);
+        return ref this;
+    }
+
+    public ref readonly Entity Traverse<T>(Action<Entity, T> action)
+    {
+        if (Has<T>())
+            action.Invoke(this, Get<T>());
+        foreach (var child in Children)
+            child.Traverse(action);
+        return ref this;
+    }
+
+    #endregion
 }

@@ -6,7 +6,7 @@ namespace Vigilance.Core;
 
 public delegate Camera CameraFunc();
 
-public sealed class Camera
+public sealed record Camera
 {
     public static CameraFunc Default { get; } = () => Game.Scene.Camera;
     public Vector2 Target { get; set; } = Vector2.Zero;

@@ -5,7 +5,7 @@ using Vigilance.Core;
 namespace Vigilance.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyList<Vector2>, IEquatable<Quad>
+public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyList<Vector2>
 {
     public Vector2 TopLeft { get; set; }
     public Vector2 BottomLeft { get; set; }
@@ -107,34 +107,6 @@ public struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyL
         );
     }
 
-    public override bool Equals(object? obj)
-    {
-        return obj is Quad other && Equals(other);
-    }
-
-    public bool Equals(Quad other)
-    {
-        return TopLeft.Equals(other.TopLeft)
-            && BottomLeft.Equals(other.BottomLeft)
-            && BottomRight.Equals(other.BottomRight)
-            && TopRight.Equals(other.TopRight);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(TopLeft, BottomLeft, BottomRight, TopRight);
-    }
-
-    public static bool operator ==(Quad a, Quad b)
-    {
-        return a.Equals(b);
-    }
-
-    public static bool operator !=(Quad a, Quad b)
-    {
-        return !a.Equals(b);
-    }
-
     public static Quad operator +(Quad a, Vector2 b)
     {
         return new Quad(a.TopLeft + b, a.BottomLeft + b, a.BottomRight + b, a.TopRight + b);
@@ -195,11 +167,6 @@ public struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyL
         );
     }
 
-    public override string ToString()
-    {
-        return $"[{TopLeft}, {BottomLeft}, {BottomRight}, {TopRight}]";
-    }
-
     public int Count => 4;
 
     public Vector2 this[int index] =>
@@ -230,7 +197,7 @@ public struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyL
 
         public bool MoveNext()
         {
-            if (_index >= 4)
+            if (_index >= _quad.Count)
                 return false;
             _index++;
             return true;
@@ -241,20 +208,7 @@ public struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyL
             _index = 0;
         }
 
-        public Vector2 Current
-        {
-            get
-            {
-                return _index switch
-                {
-                    0 => _quad.TopLeft,
-                    1 => _quad.BottomLeft,
-                    2 => _quad.BottomRight,
-                    3 => _quad.TopRight,
-                    _ => default,
-                };
-            }
-        }
+        public Vector2 Current => _quad[_index];
 
         public void Dispose() { }
     }

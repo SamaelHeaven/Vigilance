@@ -2,9 +2,8 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-internal readonly struct Scale
+internal readonly record struct Scale(Vector2 Value)
 {
-    public Vector2 Value { get; init; } = Vector2.One;
-
-    public Scale() { }
+    public Scale()
+        : this(Vector2.One) { }
 }

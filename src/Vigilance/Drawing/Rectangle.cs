@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class Rectangle : IFullCloneable
+public sealed record Rectangle : IFullCloneable
 {
     public Rectangle() { }
 

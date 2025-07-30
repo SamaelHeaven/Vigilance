@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class CircleGradient : IFullCloneable
+public sealed record CircleGradient : IFullCloneable
 {
     public Color InnerFill { get; set; } = Color.White;
     public Color OuterFill { get; set; } = Color.White;

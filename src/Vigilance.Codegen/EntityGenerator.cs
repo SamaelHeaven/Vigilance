@@ -16,7 +16,7 @@ public sealed class EntityGenerator : ISourceGenerator
             """
             namespace Vigilance.Core;
 
-            public partial struct Entity
+            public readonly partial record struct Entity
             {
 
             """
@@ -36,7 +36,7 @@ public sealed class EntityGenerator : ISourceGenerator
             var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"_entity.Has<T{n}>()"));
             sb.AppendLine(
                 $$"""
-                    public readonly bool Has<{{genericParams}}>()
+                    public bool Has<{{genericParams}}>()
                     {
                         return {{hasChecks}};
                     }
@@ -59,7 +59,7 @@ public sealed class EntityGenerator : ISourceGenerator
             var tryCalls = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"TryGet(out t{n})"));
             sb.AppendLine(
                 $$"""
-                    public readonly bool TryGet<{{genericParams}}>({{outParams}})
+                    public bool TryGet<{{genericParams}}>({{outParams}})
                     {
                         {{defaultAssign}}
                         return {{tryCalls}};

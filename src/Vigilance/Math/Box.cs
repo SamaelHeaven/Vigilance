@@ -2,13 +2,8 @@ using System.Numerics;
 
 namespace Vigilance.Math;
 
-public struct Box : IEquatable<Box>
+public record struct Box
 {
-    public float X { get; set; }
-    public float Y { get; set; }
-    public float Width { get; set; }
-    public float Height { get; set; }
-
     public Box(float x, float y, float width, float height)
     {
         X = x;
@@ -35,6 +30,33 @@ public struct Box : IEquatable<Box>
         Width = maxX - minX;
         Height = maxY - minY;
     }
+
+    public float X { get; set; }
+    public float Y { get; set; }
+    public float Width { get; set; }
+    public float Height { get; set; }
+
+    public Vector2 Position
+    {
+        readonly get => new(X, Y);
+        set
+        {
+            X = value.X;
+            Y = value.Y;
+        }
+    }
+
+    public Vector2 Size
+    {
+        readonly get => new(Width, Height);
+        set
+        {
+            Width = value.X;
+            Height = value.Y;
+        }
+    }
+
+    public readonly Vector2 Center => new(X + Width * 0.5f, Y + Height * 0.5f);
 
     public static implicit operator (float X, float Y, float Width, float Height)(Box box)
     {
@@ -95,53 +117,6 @@ public struct Box : IEquatable<Box>
     {
         position = new Vector2(X, Y);
         size = new Vector2(Width, Height);
-    }
-
-    public Vector2 Position
-    {
-        readonly get => new(X, Y);
-        set
-        {
-            X = value.X;
-            Y = value.Y;
-        }
-    }
-
-    public Vector2 Size
-    {
-        readonly get => new(Width, Height);
-        set
-        {
-            Width = value.X;
-            Height = value.Y;
-        }
-    }
-
-    public readonly Vector2 Center => new(X + Width * 0.5f, Y + Height * 0.5f);
-
-    public override bool Equals(object? obj)
-    {
-        return obj is Box other && Equals(other);
-    }
-
-    public bool Equals(Box other)
-    {
-        return X.Equals(other.X) && Y.Equals(other.Y) && Width.Equals(other.Width) && Height.Equals(other.Height);
-    }
-
-    public static bool operator ==(Box a, Box b)
-    {
-        return a.Equals(b);
-    }
-
-    public static bool operator !=(Box a, Box b)
-    {
-        return !(a == b);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(X, Y, Width, Height);
     }
 
     public override string ToString()

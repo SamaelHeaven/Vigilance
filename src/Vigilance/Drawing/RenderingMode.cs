@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-public readonly struct RenderingMode
+public readonly record struct RenderingMode
 {
     public RenderingModeType ModeType { get; init; }
     public Interpolation Interpolation { get; init; }

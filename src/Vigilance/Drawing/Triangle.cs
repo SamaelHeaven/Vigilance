@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class Triangle : IFullCloneable
+public sealed record Triangle : IFullCloneable
 {
     public Triangle() { }
 

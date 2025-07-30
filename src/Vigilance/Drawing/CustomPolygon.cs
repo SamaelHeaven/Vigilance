@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class CustomPolygon : IFullCloneable
+public sealed record CustomPolygon : IFullCloneable
 {
     public CustomPolygon() { }
 

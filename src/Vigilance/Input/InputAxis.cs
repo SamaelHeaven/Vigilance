@@ -23,25 +23,23 @@ public sealed class InputAxis
     {
         get
         {
-            {
-                var negative =
-                    NegativeKeys.Any(Keyboard.IsKeyDown)
-                    || Gamepads.Any(gamepad =>
-                        NegativeGamepadButtons.Any(gamepad.IsButtonDown)
-                        || GamepadAxes.Any(axis => (int)(gamepad.GetAxis(axis) - DeadZone).Round() <= -1)
-                    );
-                var positive =
-                    PositiveKeys.Any(Keyboard.IsKeyDown)
-                    || Gamepads.Any(gamepad =>
-                        PositiveGamepadButtons.Any(gamepad.IsButtonDown)
-                        || GamepadAxes.Any(axis => (int)(gamepad.GetAxis(axis) + DeadZone).Round() >= 1)
-                    );
-                if (negative && !positive)
-                    return -1;
-                if (positive && !negative)
-                    return 1;
-                return 0;
-            }
+            var negative =
+                NegativeKeys.Any(Keyboard.IsKeyDown)
+                || Gamepads.Any(gamepad =>
+                    NegativeGamepadButtons.Any(gamepad.IsButtonDown)
+                    || GamepadAxes.Any(axis => (int)(gamepad.GetAxis(axis) - DeadZone).Round() <= -1)
+                );
+            var positive =
+                PositiveKeys.Any(Keyboard.IsKeyDown)
+                || Gamepads.Any(gamepad =>
+                    PositiveGamepadButtons.Any(gamepad.IsButtonDown)
+                    || GamepadAxes.Any(axis => (int)(gamepad.GetAxis(axis) + DeadZone).Round() >= 1)
+                );
+            if (negative && !positive)
+                return -1;
+            if (positive && !negative)
+                return 1;
+            return 0;
         }
     }
 }

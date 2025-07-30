@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class Circle : IFullCloneable
+public sealed record Circle : IFullCloneable
 {
     public Circle() { }
 
