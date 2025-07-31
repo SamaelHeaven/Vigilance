@@ -26,11 +26,25 @@ public unsafe partial record struct Entity
 
     public ulong Id => _entity.Id.Value;
 
-    public string Name => Valid ? "" : _entity.Name();
+    public string Name
+    {
+        get
+        {
+            EnsureValid();
+            return _entity.Name();
+        }
+    }
 
     public bool Valid => _entity.IsValid();
 
-    public Entity Parent => new(_entity.Parent(), Scene);
+    public Entity Parent
+    {
+        get
+        {
+            EnsureValid();
+            return new Entity(_entity.Parent(), Scene);
+        }
+    }
 
     public Transform Transform
     {
@@ -40,7 +54,7 @@ public unsafe partial record struct Entity
                 Position = Position,
                 Scale = Scale,
                 Rotation = Rotation,
-                PivotPoint = PivotPoint
+                PivotPoint = PivotPoint,
             };
         set
         {
@@ -53,9 +67,10 @@ public unsafe partial record struct Entity
 
     public Vector2 Position
     {
-        get => Has<Position>() ? Get<Position>().Value : Vector2.Zero;
+        get => Has<Position>() ? _entity.Get<Position>().Value : Vector2.Zero;
         set
         {
+            EnsureValid();
             if (!Precision.AreEqual(Position, value))
                 Set(new Position(value), false);
         }
@@ -63,9 +78,10 @@ public unsafe partial record struct Entity
 
     public Vector2 Scale
     {
-        get => Has<Scale>() ? Get<Scale>().Value : Vector2.One;
+        get => Has<Scale>() ? _entity.Get<Scale>().Value : Vector2.One;
         set
         {
+            EnsureValid();
             if (!Precision.AreEqual(Scale, value))
                 Set(new Scale(value), false);
         }
@@ -73,9 +89,10 @@ public unsafe partial record struct Entity
 
     public float Rotation
     {
-        get => Has<Rotation>() ? Get<Rotation>().Value : 0;
+        get => Has<Rotation>() ? _entity.Get<Rotation>().Value : 0;
         set
         {
+            EnsureValid();
             if (!Precision.AreEqual(Rotation, value))
                 Set(new Rotation(value), false);
         }
@@ -83,9 +100,10 @@ public unsafe partial record struct Entity
 
     public Vector2 PivotPoint
     {
-        get => Has<PivotPoint>() ? Get<PivotPoint>().Value : Vector2.Zero;
+        get => Has<PivotPoint>() ? _entity.Get<PivotPoint>().Value : Vector2.Zero;
         set
         {
+            EnsureValid();
             if (!Precision.AreEqual(PivotPoint, value))
                 Set(new PivotPoint(value), false);
         }
@@ -93,7 +111,7 @@ public unsafe partial record struct Entity
 
     public int ZIndex
     {
-        get => Has<ZIndex>() ? Get<ZIndex>().Value : 0;
+        get => Has<ZIndex>() ? _entity.Get<ZIndex>().Value : 0;
         set
         {
             if (ZIndex != value)
@@ -173,12 +191,12 @@ public unsafe partial record struct Entity
 
     public bool Equals(Entity other)
     {
-        return _entity == other._entity;
+        return Id == other.Id;
     }
 
     public override int GetHashCode()
     {
-        return _entity.GetHashCode();
+        return Id.GetHashCode();
     }
 
     public ref readonly Entity SetTransform(Transform transform)
@@ -311,29 +329,28 @@ public unsafe partial record struct Entity
 
     public bool IsChildOf(Entity parent)
     {
-        return Valid && _entity.Has(Ecs.ChildOf, parent._entity);
+        EnsureValid();
+        return _entity.Has(Ecs.ChildOf, parent.Id);
     }
 
-    public bool TryGet<T0>(out T0 t)
-    {
-        var result = Has<T0>();
-        t = default!;
-        if (result)
-            t = Get<T0>();
-        return result;
-    }
-    
     public void EnsureValid()
     {
-        if (!Valid)
+        if (!_entity.IsValid())
             throw new InvalidOperationException("Entity is not valid.");
     }
 
     private bool PrintMembers(StringBuilder sb)
     {
-        var name = Name;
         sb.Append("Id = ");
         sb.Append(Id);
+        if (!Valid)
+        {
+            sb.Append(", Valid = ");
+            sb.Append(Valid);
+            return true;
+        }
+
+        var name = Name;
         if (name != "")
         {
             sb.Append(", Name = ");
@@ -347,7 +364,7 @@ public unsafe partial record struct Entity
         return true;
     }
 
-    public readonly struct ChildEnumerable
+    public readonly struct ChildEnumerable : IValueEnumerable<ChildEnumerator, Entity>
     {
         private readonly Entity _entity;
 
@@ -360,17 +377,9 @@ public unsafe partial record struct Entity
         {
             return new ChildEnumerator(_entity);
         }
-
-        public List<Entity> ToList()
-        {
-            var list = new List<Entity>();
-            foreach (var item in this)
-                list.Add(item);
-            return list;
-        }
     }
 
-    public ref struct ChildEnumerator
+    public struct ChildEnumerator : IValueEnumerator<Entity>
     {
         private readonly Entity _entity;
         private flecs.ecs_iter_t _iter;
@@ -379,6 +388,7 @@ public unsafe partial record struct Entity
         internal ChildEnumerator(Entity entity)
         {
             _entity = entity;
+            Reset();
         }
 
         public bool MoveNext()
@@ -401,8 +411,7 @@ public unsafe partial record struct Entity
 
         public void Reset()
         {
-            if (!_entity.Valid)
-                return;
+            _entity.EnsureValid();
             Dispose();
             _entity.Scene.DeferBegin();
             _iter = flecs.ecs_each_id(_entity._entity.World, Ecs.Pair(flecs.EcsChildOf, _entity.Id));
@@ -453,7 +462,7 @@ public unsafe partial record struct Entity
     public ref readonly Entity Traverse<T>(Action<Entity> action)
     {
         EnsureValid();
-        if (Has<T>())
+        if (_entity.Has<T>())
             action.Invoke(this);
         foreach (var child in Children)
             child.Traverse<T>(action);
@@ -463,8 +472,8 @@ public unsafe partial record struct Entity
     public ref readonly Entity Traverse<T>(Action<T> action)
     {
         EnsureValid();
-        if (Has<T>())
-            action.Invoke(Get<T>());
+        if (_entity.Has<T>())
+            action.Invoke(_entity.Get<T>());
         foreach (var child in Children)
             child.Traverse(action);
         return ref this;
@@ -473,8 +482,8 @@ public unsafe partial record struct Entity
     public ref readonly Entity Traverse<T>(Action<Entity, T> action)
     {
         EnsureValid();
-        if (Has<T>())
-            action.Invoke(this, Get<T>());
+        if (_entity.Has<T>())
+            action.Invoke(this, _entity.Get<T>());
         foreach (var child in Children)
             child.Traverse(action);
         return ref this;

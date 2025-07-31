@@ -32,14 +32,13 @@ public sealed class EntityGenerator : ISourceGenerator
         sb.Region("Has");
         for (var i = 0; i < 16; i++)
         {
-            var genericParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"_entity.Has<T{n}>()"));
             sb.AppendLine(
                 $$"""
-                    public bool Has<{{genericParams}}>()
+                    public bool Has<{{typeParams}}>()
                     {
-                        if (!Valid)
-                            return false;
+                        EnsureValid();
                         return {{hasChecks}};
                     }
                     
@@ -53,18 +52,26 @@ public sealed class EntityGenerator : ISourceGenerator
     private static void TryGet(StringBuilder sb)
     {
         sb.Region("TryGet");
-        for (var i = 1; i < 16; i++)
+        for (var i = 0; i < 16; i++)
         {
-            var genericParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             var outParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"out T{n} t{n}"));
-            var defaultAssign = string.Join("\n        ", Enumerable.Range(0, i + 1).Select(n => $"t{n} = default!;"));
-            var tryCalls = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"TryGet(out t{n})"));
+            var defaultAssigns = string.Join("\n        ", Enumerable.Range(0, i + 1).Select(n => $"t{n} = default!;"));
+            var assigns = string.Join(
+                "\n            ",
+                Enumerable.Range(0, i + 1).Select(n => $"t{n} = _entity.Get<T{n}>();")
+            );
             sb.AppendLine(
                 $$"""
-                    public bool TryGet<{{genericParams}}>({{outParams}})
+                    public bool TryGet<{{typeParams}}>({{outParams}})
                     {
-                        {{defaultAssign}}
-                        return {{tryCalls}};
+                        {{defaultAssigns}}
+                        var result = Has<{{typeParams}}>();
+                        if (result) {
+                            {{assigns}}
+                        }
+                        
+                        return result;
                     }
                     
                 """

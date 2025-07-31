@@ -89,7 +89,7 @@ public sealed class SceneGenerator : ISourceGenerator
     )
     {
         return $$"""
-                public readonly struct {{name}}Enumerable{{typeParams}}
+                public readonly struct {{name}}Enumerable{{typeParams}} : IValueEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
                 {
                     private readonly Scene _scene;
                 
@@ -102,17 +102,9 @@ public sealed class SceneGenerator : ISourceGenerator
                     {
                         return new {{name}}Enumerator{{typeParams}}(_scene);
                     }
-                    
-                    public List<{{type}}> ToList()
-                    {
-                        var list = new List<{{type}}>();
-                        foreach (var item in this)
-                            list.Add(item);
-                        return list;
-                    }
                 }
                 
-                public unsafe ref struct {{name}}Enumerator{{typeParams}} {
+                public unsafe struct {{name}}Enumerator{{typeParams}} : IValueEnumerator<{{type}}> {
                     private readonly Scene _scene;
                     private Flecs.NET.Core.Query<{{queryTypeParams}}>? _query;
                     private Flecs.NET.Bindings.flecs.ecs_iter_t _iter;
