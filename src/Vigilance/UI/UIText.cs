@@ -106,7 +106,7 @@ public class UIText : UIElement
         }
     }
 
-    public override void Render(Graphics graphics, CameraProvider camera)
+    protected override void Render(Graphics graphics, CameraProvider camera)
     {
         _text.Camera = camera;
         graphics.DrawText(LayoutPosition, _text);

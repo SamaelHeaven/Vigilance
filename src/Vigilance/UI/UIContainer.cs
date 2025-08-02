@@ -51,7 +51,7 @@ public class UIContainer : UIElement
 
     public ChildEnumerable Children => new(this);
 
-    public override void Render(Graphics graphics, CameraProvider camera)
+    protected override void Render(Graphics graphics, CameraProvider camera)
     {
         foreach (var element in Children)
             element.Render(element.LayoutTransform, graphics, camera);

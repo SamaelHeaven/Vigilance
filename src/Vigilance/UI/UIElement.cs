@@ -66,6 +66,8 @@ public abstract class UIElement : IDeepCloneable
 
     public Camera? RenderedCamera { get; private set; }
 
+    public Graphics? RenderedGraphics { get; private set; }
+
     public Box? RenderedClip { get; private set; }
 
     public bool LayoutReady { get; private set; }
@@ -502,7 +504,10 @@ public abstract class UIElement : IDeepCloneable
     {
         var e = new UIEvent { Entity = entity, Element = this };
         var oldMouseInside = MouseInside;
-        MouseInside = Visible && Collision.CheckPointQuad(Mouse.Position, RenderedBounds);
+        MouseInside =
+            RenderedGraphics == Renderer.Graphics
+            && Visible
+            && Collision.CheckPointQuad(Mouse.Position, RenderedBounds);
         OnUpdateEvent?.Invoke(e);
         switch (oldMouseInside)
         {
@@ -554,7 +559,7 @@ public abstract class UIElement : IDeepCloneable
         Render(LayoutTransform, graphics, Camera);
     }
 
-    public abstract void Render(Graphics graphics, CameraProvider camera);
+    protected abstract void Render(Graphics graphics, CameraProvider camera);
 
     protected virtual object DeepClone()
     {
@@ -610,6 +615,7 @@ public abstract class UIElement : IDeepCloneable
         graphics.Translate(-offset);
         graphics.Rotate(transform.Rotation, transform.PivotPoint + position + size * 0.5f);
         var matrix = graphics.GetMatrix();
+        RenderedGraphics = graphics;
         RenderedMatrix = matrix;
         RenderedCamera = camera.Get();
         if (RenderedCamera is not null)

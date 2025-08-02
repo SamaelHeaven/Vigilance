@@ -289,7 +289,12 @@ public class UIScrollContainer : UIContainer
         base.Update(entity);
     }
 
-    public override void Render(Graphics graphics, CameraProvider camera)
+    public void ScrollTo(Vector2 offset)
+    {
+        ScrollOffset = -offset;
+    }
+
+    protected override void Render(Graphics graphics, CameraProvider camera)
     {
         var horizontalVisible = IsHorizontalScrollBarVisible;
         var verticalVisible = IsVerticalScrollBarVisible;
@@ -332,11 +337,6 @@ public class UIScrollContainer : UIContainer
         box = GetScrollBarThumbBox(ScrollBarDirection.Vertical);
         RenderScrollBarThumb(graphics, box, camera);
         RenderedVerticalScrollBarThumbBounds = box.Transform(matrix);
-    }
-
-    public void ScrollTo(Vector2 offset)
-    {
-        ScrollOffset = -offset;
     }
 
     protected override object DeepClone()

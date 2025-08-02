@@ -4,9 +4,9 @@ using Vigilance.UI;
 
 namespace Vigilance.Systems;
 
-public sealed class UISystem : GameSystem
+public sealed class UISystem(Graphics? graphics = null) : GameSystem
 {
-    public Graphics Graphics { get; set; } = Renderer.Graphics;
+    public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
 
     public override void Render(Entity entity)
     {
