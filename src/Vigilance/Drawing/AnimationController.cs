@@ -13,11 +13,11 @@ public sealed class AnimationController : IEnumerable<KeyValuePair<string, Anima
 
     public AnimationController(IEnumerable<KeyValuePair<string, Animation>> animations)
     {
-        var list = animations as IList<KeyValuePair<string, Animation>> ?? animations.ToList();
+        var list = animations as IReadOnlyList<KeyValuePair<string, Animation>> ?? animations.ToList();
         if (list.Count == 0)
             throw new ArgumentException("AnimationController must have at least one animation.");
         _animations = list.ToImmutableDictionary();
-        _currentAnimation = list.First().Key;
+        _currentAnimation = list[0].Key;
     }
 
     public Animation Animation => _animations[_currentAnimation];
