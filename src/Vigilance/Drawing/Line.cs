@@ -1,4 +1,5 @@
 using Vigilance.Core;
+using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
@@ -28,6 +29,6 @@ public sealed class Line : IFullCloneable
 
     public override string ToString()
     {
-        return Printer.Print(this);
+        return ObjectPrinter.Print(this);
     }
 }

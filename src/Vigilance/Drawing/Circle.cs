@@ -1,4 +1,5 @@
 using Vigilance.Core;
+using Vigilance.Logging;
 
 namespace Vigilance.Drawing;
 
@@ -18,6 +19,6 @@ public sealed class Circle : IFullCloneable
 
     public override string ToString()
     {
-        return Printer.Print(this);
+        return ObjectPrinter.Print(this);
     }
 }

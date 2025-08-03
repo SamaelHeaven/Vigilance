@@ -1,4 +1,5 @@
 using Vigilance.Core;
+using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
@@ -22,6 +23,6 @@ public sealed class Sprite : IFullCloneable
 
     public override string ToString()
     {
-        return Printer.Print(this);
+        return ObjectPrinter.Print(this);
     }
 }

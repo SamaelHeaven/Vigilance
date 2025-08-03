@@ -1,11 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace Vigilance.Core;
+namespace Vigilance.Logging;
 
-public static class Printer
+public static class ObjectPrinter
 {
     public enum FilterType
     {
@@ -19,7 +18,6 @@ public static class Printer
     )
         where T : notnull
     {
-        RuntimeHelpers.EnsureSufficientExecutionStack();
         var type = typeof(T);
         var sb = new StringBuilder();
         sb.Append(type.Name);
@@ -31,11 +29,10 @@ public static class Printer
         {
             if (i++ > 0)
                 sb.Append(", ");
-
             var value = prop.GetValue(obj);
             sb.Append(prop.Name);
             sb.Append(" = ");
-            sb.Append(value is null ? "null" : value.ToString());
+            sb.Append(value);
         }
 
         if (i > 0)

@@ -73,6 +73,6 @@ public sealed class GameConfig : IShallowCloneable
 
     public override string ToString()
     {
-        return Printer.Print(this);
+        return ObjectPrinter.Print(this);
     }
 }

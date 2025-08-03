@@ -1,4 +1,5 @@
 using Vigilance.Core;
+using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
@@ -32,7 +33,7 @@ public sealed class Triangle : IFullCloneable
 
     public override string ToString()
     {
-        return Printer.Print(this);
+        return ObjectPrinter.Print(this);
     }
 
     public readonly struct PointEnumerable : IValueEnumerable<PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>

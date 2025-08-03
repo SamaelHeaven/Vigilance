@@ -1,4 +1,5 @@
 using Vigilance.Core;
+using Vigilance.Logging;
 
 namespace Vigilance.Drawing;
 
@@ -24,6 +25,6 @@ public sealed class Grid : IFullCloneable
 
     public override string ToString()
     {
-        return Printer.Print(this);
+        return ObjectPrinter.Print(this);
     }
 }

@@ -1,26 +1,9 @@
 using System.Numerics;
+using Vigilance.Logging;
 using Vigilance.Math;
 using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Core;
-
-public readonly record struct CameraProvider(Func<Camera?> Func)
-{
-    public Camera? Get()
-    {
-        return Func.Invoke();
-    }
-
-    public override string ToString()
-    {
-        return Get()?.ToString() ?? "null";
-    }
-
-    public static implicit operator Camera?(CameraProvider provider)
-    {
-        return provider.Get();
-    }
-}
 
 public sealed class Camera
 {
@@ -47,6 +30,24 @@ public sealed class Camera
 
     public override string ToString()
     {
-        return Printer.Print(this, Printer.Exclude(nameof(Matrix)));
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Matrix)));
+    }
+}
+
+public readonly record struct CameraProvider(Func<Camera?> Func)
+{
+    public Camera? Get()
+    {
+        return Func.Invoke();
+    }
+
+    public override string? ToString()
+    {
+        return Get()?.ToString();
+    }
+
+    public static implicit operator Camera?(CameraProvider provider)
+    {
+        return provider.Get();
     }
 }
