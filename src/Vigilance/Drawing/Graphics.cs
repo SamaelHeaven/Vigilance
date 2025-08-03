@@ -632,7 +632,7 @@ public sealed unsafe class Graphics
         var strokeWidth = circle.StrokeWidth;
         var position = transform.Position;
         var scale = transform.Scale;
-        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
+        var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
         PushMatrix();
         Pivot(transform, false);
         FillCircle(position, radius, fill, camera);
@@ -649,7 +649,7 @@ public sealed unsafe class Graphics
         var strokeWidth = circle.StrokeWidth;
         var position = transform.Position;
         var scale = transform.Scale;
-        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
+        var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
         PushMatrix();
         Pivot(transform, false);
         FillCircleGradient(position, radius, innerFill, outerFill, camera);
@@ -720,7 +720,7 @@ public sealed unsafe class Graphics
 
     public void FillRegularPolygon(Vector2 center, int sides, float radius, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+        if (color == Color.Transparent || sides < 3 || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawPoly(center, sides, radius, 0, color.RColor);
@@ -751,6 +751,7 @@ public sealed unsafe class Graphics
     {
         if (
             color == Color.Transparent
+            || sides < 3
             || strokeWidth <= 0
             || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
         )
@@ -771,7 +772,7 @@ public sealed unsafe class Graphics
         var scale = transform.Scale;
         PushMatrix();
         Pivot(transform, false);
-        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
+        var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
         FillRegularPolygon(position, sides, radius, fill, camera);
         StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
         PopMatrix();
@@ -956,7 +957,7 @@ public sealed unsafe class Graphics
         var stroke = ring.Stroke;
         var strokeWidth = ring.StrokeWidth;
         var position = transform.Position;
-        var scale = (transform.Scale.X.Abs() + transform.Scale.Y.Abs()) * 0.5f;
+        var scale = transform.Scale.X.Abs().Min(transform.Scale.Y.Abs());
         var innerRadius = ring.InnerRadius * scale;
         var outerRadius = ring.OuterRadius * scale;
         PushMatrix();
@@ -1004,7 +1005,7 @@ public sealed unsafe class Graphics
         var end = line.End + position;
         var color = line.Color;
         var thick = line.Thick;
-        var scale = (transform.Scale.X.Abs() + transform.Scale.Y.Abs()) * 0.5f;
+        var scale = transform.Scale.X.Abs().Min(transform.Scale.Y.Abs());
         PushMatrix();
         Pivot(transform, false);
         DrawLine(start, end, color, thick * scale, camera);
@@ -1270,6 +1271,7 @@ public sealed unsafe class Graphics
     {
         if (color == Color.Transparent || thick <= 0)
             return;
+        cellSize = cellSize.Max(1);
         for (var x = position.X; x <= position.X + size.X; x += cellSize)
             DrawLine(new Vector2(x, position.Y), new Vector2(x, position.Y + size.Y), color, thick, camera);
         for (var y = position.Y; y <= position.Y + size.Y; y += cellSize)
@@ -1288,6 +1290,21 @@ public sealed unsafe class Graphics
         Pivot(transform, true);
         DrawGrid(position, scale, cellSize, color, thick, camera);
         PopMatrix();
+    }
+
+    public void DrawGrid(float x, float y, float width, float height, Grid grid)
+    {
+        DrawGrid(new Vector2(x, y), new Vector2(width, height), grid);
+    }
+
+    public void DrawGrid(Vector2 position, Vector2 size, Grid grid)
+    {
+        DrawGrid(new Transform(position + size * 0.5f, size), grid);
+    }
+
+    public void DrawGrid(Box box, Grid grid)
+    {
+        DrawGrid(box.Position, box.Size, grid);
     }
 
     #endregion

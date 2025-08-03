@@ -2,17 +2,8 @@ using FlexLayoutSharp;
 
 namespace Vigilance.UI;
 
-public record struct Unit
+public record struct Unit(UnitType Type, float Value = 0)
 {
-    public Unit(UnitType type, float value = 0)
-    {
-        Type = type;
-        Value = value;
-    }
-
-    public UnitType Type { get; set; }
-    public float Value { get; set; }
-
     public static Unit Auto => new(UnitType.Auto);
     public static Unit Zero => new(UnitType.Fixed);
     public static Unit NaN => new(UnitType.Fixed, float.NaN);
