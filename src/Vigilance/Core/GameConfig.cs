@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Logging;
@@ -40,6 +41,7 @@ public sealed class GameConfig : IShallowCloneable
     public Vector2 DefaultTextSpacing { get; set; } = new(0, 4);
     public GameSystemsFunc Systems { get; set; } = Array.Empty<IGameSystem>;
     public Action? QuitAction { get; set; } = null;
+    public ImmutableDictionary<string, object?> Attributes { get; set; } = ImmutableDictionary<string, object?>.Empty;
 
     public InputAxis HorizontalInputAxis { get; set; } =
         new()

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -270,6 +271,8 @@ public sealed unsafe class Game
         get => GetGame()._config.Debug;
         set => GetGame()._config.Debug = value;
     }
+
+    public static ImmutableDictionary<string, object?> Attributes => GetGame()._config.Attributes;
 
     public static LogLevel LogLevel
     {
