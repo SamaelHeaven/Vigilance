@@ -433,7 +433,11 @@ public class UIScrollContainer : UIContainer
 
     private bool IsMouseInsideNestedScrollContainer(UIContainer container)
     {
-        if (container != this && container is UIScrollContainer { MouseInside: true })
+        if (
+            container != this
+            && container is UIScrollContainer { MouseInside: true } scrollContainer
+            && (scrollContainer.IsHorizontalScrollBarVisible || scrollContainer.IsVerticalScrollBarVisible)
+        )
             return true;
         foreach (var child in container.Children)
         {
