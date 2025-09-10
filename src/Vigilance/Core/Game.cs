@@ -1,19 +1,15 @@
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Raylib_cs.BleedingEdge;
-using Raylib_cs.BleedingEdge.Interop;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Logging;
 using Vigilance.Math;
 using Color = Vigilance.Drawing.Color;
-using Font = Vigilance.Drawing.Font;
 using Image = Vigilance.Drawing.Image;
-using Music = Vigilance.Audio.Music;
-using Sound = Vigilance.Audio.Sound;
+using Music = Vigilance.Media.Music;
+using Sound = Vigilance.Media.Sound;
 
 namespace Vigilance.Core;
 
@@ -22,46 +18,66 @@ public sealed unsafe class Game
     private static Game? _game;
     private readonly ConcurrentStack<Action> _actions = [];
     private GameConfig _config = null!;
-    private Font _defaultFont = null!;
-    private GameConfig _launchConfig = null!;
+    private Configs _configs = null!;
     private Box _previousScreen;
     private bool _quit;
     private bool _resetScreen;
     private Scene _scene = null!;
 
-    private Game()
-    {
-        EnsureRunning();
-    }
+    private Game() { }
 
     public static bool Running { get; private set; }
 
     public static Platform Platform { get; } =
         Enum.GetValues<Platform>().FirstOrDefault(platform => platform.IsCurrent());
 
-    public static bool Fullscreen
+    public static string Title
     {
-        get
-        {
-            EnsureRunning();
-            return Platform switch
-            {
-                Platform.Web => JSEngine.Eval("!!document.fullscreenElement"),
-                _ => Raylib.IsWindowFullscreen(),
-            };
-        }
+        get => GetGame()._config.Title;
         set
         {
-            if (value != Fullscreen)
-                ToggleFullscreen();
+            GetGame()._config.Title = value;
+            Raylib.SetWindowTitle(value);
         }
     }
+
+    public static Key ExitKey
+    {
+        get => GetGame()._config.ExitKey;
+        set
+        {
+            GetGame()._config.ExitKey = value;
+            Raylib.SetExitKey((KeyboardKey)value);
+        }
+    }
+
+    public static Key FullscreenKey
+    {
+        get => GetGame()._config.FullscreenKey;
+        set => GetGame()._config.FullscreenKey = value;
+    }
+
+    public static Vector2 Size => GetGame()._config.Size;
 
     public static float Width => GetGame()._config.Size.X;
 
     public static float Height => GetGame()._config.Size.Y;
 
-    public static Vector2 Size => new(Width, Height);
+    public static Vector2 ScreenSize
+    {
+        get => new(ScreenWidth, ScreenHeight);
+        set
+        {
+            if (!Platform.Desktop.IsCurrent())
+                return;
+            if (Fullscreen)
+                return;
+            var size = value.Round();
+            if (ScreenSize == size)
+                return;
+            Raylib.SetWindowSize((int)size.X, (int)size.Y);
+        }
+    }
 
     public static int ScreenWidth
     {
@@ -105,68 +121,18 @@ public sealed unsafe class Game
         }
     }
 
-    public static Vector2 ScreenSize
-    {
-        get => new(ScreenWidth, ScreenHeight);
-        set
-        {
-            if (!Platform.Desktop.IsCurrent())
-                return;
-            if (Fullscreen)
-                return;
-            var size = value.Round();
-            if (ScreenSize == size)
-                return;
-            Raylib.SetWindowSize((int)size.X, (int)size.Y);
-        }
-    }
-
     public static Viewport Viewport
     {
         get => GetGame()._config.Viewport;
         set => Defer(() => GetGame()._config.Viewport = value);
     }
 
-    public static Scene Scene
-    {
-        get => GetGame()._scene;
-        set
-        {
-            var game = GetGame();
-            if (game._scene == value)
-                return;
-            Defer(() =>
-            {
-                game._scene.Stop();
-                game._scene = value;
-            });
-        }
-    }
+    public static RenderingMode RenderingMode => GetGame()._config.RenderingMode;
 
-    public static string Title
+    public static Color Background
     {
-        get => GetGame()._config.Title;
-        set
-        {
-            GetGame()._config.Title = value;
-            Raylib.SetWindowTitle(value);
-        }
-    }
-
-    public static Key ExitKey
-    {
-        get => GetGame()._config.ExitKey;
-        set
-        {
-            GetGame()._config.ExitKey = value;
-            Raylib.SetExitKey((KeyboardKey)value);
-        }
-    }
-
-    public static Key FullscreenKey
-    {
-        get => GetGame()._config.FullscreenKey;
-        set => GetGame()._config.FullscreenKey = value;
+        get => GetGame()._config.Background;
+        set => GetGame()._config.Background = value;
     }
 
     public static int FpsTarget
@@ -184,104 +150,21 @@ public sealed unsafe class Game
         }
     }
 
-    public static RenderingMode RenderingMode => GetGame()._config.RenderingMode;
-
-    public static Color Background
-    {
-        get => GetGame()._config.Background;
-        set => GetGame()._config.Background = value;
-    }
-
-    public static InputAxis HorizontalInputAxis
-    {
-        get => GetGame()._config.HorizontalInputAxis;
-        set => GetGame()._config.HorizontalInputAxis = value;
-    }
-
-    public static InputAxis VerticalInputAxis
-    {
-        get => GetGame()._config.VerticalInputAxis;
-        set => GetGame()._config.VerticalInputAxis = value;
-    }
-
-    public static int DefaultFontQuality
-    {
-        get => GetGame()._config.DefaultFontQuality;
-        set => GetGame()._config.DefaultFontQuality = value;
-    }
-
-    public static float DefaultFontSize
-    {
-        get => GetGame()._config.DefaultFontSize;
-        set => GetGame()._config.DefaultFontSize = value;
-    }
-
-    public static Vector2 DefaultTextSpacing
-    {
-        get => GetGame()._config.DefaultTextSpacing;
-        set => GetGame()._config.DefaultTextSpacing = value;
-    }
-
-    public static TextHeightMode DefaultTextHeightMode
-    {
-        get => GetGame()._config.DefaultTextHeightMode;
-        set => GetGame()._config.DefaultTextHeightMode = value;
-    }
-
-    public static Font DefaultFont
-    {
-        get => GetGame()._defaultFont;
-        set => GetGame()._defaultFont = value;
-    }
-
-    public static string DefaultFontCharset
-    {
-        get => GetGame()._config.DefaultFontCharset;
-        set => GetGame()._config.DefaultFontCharset = value;
-    }
-
-    public static CacheType DefaultAssetCacheType
-    {
-        get => GetGame()._config.DefaultAssetCacheType;
-        set => GetGame()._config.DefaultAssetCacheType = value;
-    }
-
-    public static int DefaultSoundMaxAliases
-    {
-        get => GetGame()._config.DefaultSoundMaxAliases;
-        set => GetGame()._config.DefaultSoundMaxAliases = value;
-    }
-
-    public static float MasterVolume
+    public static bool Fullscreen
     {
         get
         {
             EnsureRunning();
-            return Raylib.GetMasterVolume();
+            return Platform switch
+            {
+                Platform.Web => JSEngine.Eval("!!document.fullscreenElement"),
+                _ => Raylib.IsWindowFullscreen()
+            };
         }
         set
         {
-            EnsureRunning();
-            Raylib.SetMasterVolume(value.Clamp(0, 1));
-        }
-    }
-
-    public static bool Debug
-    {
-        get => GetGame()._config.Debug;
-        set => GetGame()._config.Debug = value;
-    }
-
-    public static ImmutableDictionary<string, object?> Attributes => GetGame()._config.Attributes;
-
-    public static LogLevel LogLevel
-    {
-        get => GetGame()._config.LogLevel;
-        set
-        {
-            var game = GetGame();
-            game._config.LogLevel = value;
-            Raylib.SetTraceLogLevel((TraceLogLevel)game._config.LogLevel);
+            if (value != Fullscreen)
+                ToggleFullscreen();
         }
     }
 
@@ -312,6 +195,24 @@ public sealed unsafe class Game
         }
     }
 
+    public static bool Vsync => GetGame()._config.Vsync;
+
+    public static Scene Scene
+    {
+        get => GetGame()._scene;
+        set
+        {
+            var game = GetGame();
+            if (game._scene == value)
+                return;
+            Defer(() =>
+            {
+                game._scene.Stop();
+                game._scene = value;
+            });
+        }
+    }
+
     public static bool Focused
     {
         get
@@ -321,7 +222,7 @@ public sealed unsafe class Game
         }
     }
 
-    public static GameConfig Config => GetGame()._launchConfig.ShallowClone();
+    public static Configs Configs => _game?._configs ?? Configs.Empty;
 
     internal static GameSystemsFunc Systems => GetGame()._config.Systems;
 
@@ -345,36 +246,8 @@ public sealed unsafe class Game
 
     public static void Defer(Action action)
     {
-        var game = GetGame();
+        var game = _game ??= new Game();
         game._actions.Push(action);
-    }
-
-    public static void Log(object? value)
-    {
-        Log(value is Exception ? LogLevel.Error : LogLevel.Info, value);
-    }
-
-    public static void Log(LogLevel level, object? value)
-    {
-        var game = GetGame();
-        if (game._config.LogLevel > level)
-            return;
-        var message = value is Exception e
-            ? $"{e.GetType()}: {e.Message}{(e.StackTrace is null ? "" : $"\n{e.StackTrace}")}"
-            : value?.ToString() ?? "";
-        if (game._config.Logger is null)
-            lock (Console.Out)
-            {
-                if (level is > LogLevel.All and < LogLevel.None)
-                    Console.Write($"{level.ToString().ToUpper()}: ");
-                Console.WriteLine(message);
-                Console.Out.Flush();
-            }
-        else
-            game._config.Logger.Log(level, message);
-
-        if (level == LogLevel.Fatal)
-            Environment.Exit(1);
     }
 
     public static void Maximize()
@@ -420,7 +293,7 @@ public sealed unsafe class Game
             Width = width,
             Height = height,
             Mipmaps = 1,
-            Format = PixelFormat.UncompressedR8G8B8A8,
+            Format = PixelFormat.UncompressedR8G8B8A8
         };
         return new Image(rImage);
     }
@@ -460,24 +333,27 @@ public sealed unsafe class Game
         }
     }
 
-    public static void Launch(GameConfig config, Scene scene)
+    public static void Launch(Configs configs, Scene scene)
     {
         EnsureNotRunning();
         Running = true;
-        var game = GetGame();
-        game._launchConfig = config.ShallowClone();
-        game._config = config.ShallowClone();
+        var game = _game ??= new Game();
+        game._configs = configs;
+        game._config = configs.Take<GameConfig>() ?? new GameConfig();
         game._scene = scene;
-        InitializeCultureInfo();
-        game.InitializeLogging();
-        game.InitializeFileSystem();
+        Logger.Initialize();
         game.InitializeWindow();
-        InitializeAudio();
-        ExitKey = config.ExitKey;
-        FpsTarget = config.FpsTarget;
-        MasterVolume = config.MasterVolume;
-        game._defaultFont = config.DefaultFont.Invoke();
-        game.Loop();
+        ExitKey = game._config.ExitKey;
+        FpsTarget = game._config.FpsTarget;
+        game.UpdateActions();
+        try
+        {
+            game.Loop();
+        }
+        catch (Exception e)
+        {
+            Logger.Fatal(e);
+        }
     }
 
     public static void Quit()
@@ -487,43 +363,8 @@ public sealed unsafe class Game
 
     private static Game GetGame()
     {
+        EnsureRunning();
         return _game ??= new Game();
-    }
-
-    private static void InitializeCultureInfo()
-    {
-        var cultureInfo = CultureInfo.InvariantCulture;
-        CultureInfo.CurrentCulture = cultureInfo;
-        CultureInfo.CurrentUICulture = cultureInfo;
-        CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
-        CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
-    }
-
-    private void InitializeLogging()
-    {
-        var engine = Assemblies.Engine.GetName();
-        var message = $"Initializing {engine.Name} {engine.Version}";
-        Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
-        try
-        {
-            if (Platform.Web.IsCurrent())
-                throw new PlatformNotSupportedException();
-            Raylib.SetTraceLogCallback(&UnmanagedLog);
-            Raylib.TraceLog(TraceLogLevel.Info, message);
-        }
-        catch
-        {
-            _config.Logger = null;
-            Raylib.SetTraceLogCallback(null);
-            Log(LogLevel.Warning, "Failed to initialize custom logging");
-            Log(message);
-        }
-    }
-
-    private void InitializeFileSystem()
-    {
-        FileSystem.WorkingNamespace = _config.WorkingNamespace;
-        FileSystem.ChangeDirectory(_config.WorkingDirectory);
     }
 
     private void InitializeWindow()
@@ -546,10 +387,10 @@ public sealed unsafe class Game
             Raylib.InitWindow(width, height, _config.Title);
         }
 
-        if (Platform.Desktop.IsCurrent() && _config.MinSize.HasValue)
-            Raylib.SetWindowMinSize((int)_config.MinSize.Value.X, (int)_config.MinSize.Value.Y);
-        if (Platform.Desktop.IsCurrent() && _config.MaxSize.HasValue)
-            Raylib.SetWindowMaxSize((int)_config.MaxSize.Value.X, (int)_config.MaxSize.Value.Y);
+        if (Platform.Desktop.IsCurrent() && _config.MinScreenSize.HasValue)
+            Raylib.SetWindowMinSize((int)_config.MinScreenSize.Value.X, (int)_config.MinScreenSize.Value.Y);
+        if (Platform.Desktop.IsCurrent() && _config.MaxScreenSize.HasValue)
+            Raylib.SetWindowMaxSize((int)_config.MaxScreenSize.Value.X, (int)_config.MaxScreenSize.Value.Y);
         if (_config.Maximized)
             Maximize();
         if (_config.Fullscreen)
@@ -559,20 +400,6 @@ public sealed unsafe class Game
         var image = _config.Icon!.Invoke().Copy();
         image.Format = ImageFormat.UncompressedR8G8B8A8;
         Raylib.SetWindowIcon(image.RImage);
-    }
-
-    private static void InitializeAudio()
-    {
-        Raylib.SetAudioStreamBufferSizeDefault(8192);
-        if (!OperatingSystem.IsWindows())
-        {
-            Raylib.InitAudioDevice();
-            return;
-        }
-
-        var thread = new Thread(Raylib.InitAudioDevice);
-        thread.Start();
-        thread.Join();
     }
 
     private void Loop()
@@ -661,12 +488,5 @@ public sealed unsafe class Game
     private static void UnmanagedFrame()
     {
         GetGame().Frame();
-    }
-
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static void UnmanagedLog(TraceLogLevel logLevel, sbyte* format, nint args)
-    {
-        var message = NativeStringFormatter.Format((nint)format, args);
-        Log((LogLevel)logLevel, message);
     }
 }

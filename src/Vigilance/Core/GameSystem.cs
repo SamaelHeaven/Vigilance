@@ -3,6 +3,13 @@ using System.Reflection;
 
 namespace Vigilance.Core;
 
+public delegate IEnumerable<IGameSystem> GameSystemsFunc();
+
+public interface IGameSystem
+{
+    void Configure(Scene scene);
+}
+
 public abstract class GameSystem : IGameSystem
 {
     public Scene Scene { get; private set; } = null!;

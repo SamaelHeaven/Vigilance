@@ -11,6 +11,7 @@ public sealed unsafe class Font
     private const int AtlasSpacing = 4;
     private const int AtlasNbCols = 10;
     private static readonly FreeTypeLibrary FtLibrary = new();
+    private static FontConfig _config = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
     private readonly Dictionary<int, (Texture Atlas, IReadOnlyDictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
     private nint _buffer;
@@ -21,16 +22,55 @@ public sealed unsafe class Font
     public Font(IEnumerable<byte> bytes, int? quality = null, string? charset = null)
     {
         Game.EnsureRunning();
-        Quality = quality ?? Game.DefaultFontQuality;
-        Charset = string.Concat((charset ?? Game.DefaultFontCharset).Distinct());
+        Quality = quality ?? DefaultQuality;
+        Charset = string.Concat((charset ?? DefaultCharset).Distinct());
         var glyphs = LoadGlyphs(bytes);
         Atlas = DrawAtlas(glyphs);
+    }
+
+    public static Font Default { get; set; } = null!;
+
+    public static int DefaultQuality
+    {
+        get => _config.DefaultQuality;
+        set => _config.DefaultQuality = value;
+    }
+
+    public static int DefaultSize
+    {
+        get => _config.DefaultSize;
+        set => _config.DefaultSize = value;
+    }
+
+    public static TextHeightMode DefaultTextHeightMode
+    {
+        get => _config.DefaultTextHeightMode;
+        set => _config.DefaultTextHeightMode = value;
+    }
+
+    public static Vector2 DefaultTextSpacing
+    {
+        get => _config.DefaultTextSpacing;
+        set => _config.DefaultTextSpacing = value;
+    }
+
+    public static string DefaultCharset
+    {
+        get => _config.DefaultCharset;
+        set => _config.DefaultCharset = value;
     }
 
     public string Charset { get; }
     public int Quality { get; }
     public IReadOnlyDictionary<char, GlyphInfo> GlyphInfos => _glyphInfos.AsReadOnly();
     public Texture Atlas { get; }
+
+    internal static void Initialize()
+    {
+        if (Game.Configs.TryTake(out FontConfig config))
+            _config = config;
+        Default = _config.Default.Invoke();
+    }
 
     public Vector2 MeasureText(
         string text,
@@ -39,12 +79,12 @@ public sealed unsafe class Font
         TextHeightMode? textHeightMode = null
     )
     {
-        var fontSizeValue = fontSize ?? Game.DefaultFontSize;
-        var spacingValue = spacing ?? Game.DefaultTextSpacing;
+        var fontSizeValue = fontSize ?? DefaultSize;
+        var spacingValue = spacing ?? DefaultTextSpacing;
         var size = Vector2.Zero;
         foreach (var (_, dest) in GetTextBounds(text, fontSizeValue, spacingValue))
             size = size.Max(dest.Position + dest.Size);
-        if ((textHeightMode ?? Game.DefaultTextHeightMode) == TextHeightMode.FontSize)
+        if ((textHeightMode ?? DefaultTextHeightMode) == TextHeightMode.FontSize)
             size.Y = fontSizeValue + text.Count(c => c == '\n') * (fontSizeValue + spacingValue.Y);
         return size;
     }
@@ -76,13 +116,7 @@ public sealed unsafe class Font
         IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
-        return new TextBoundEnumerable(
-            this,
-            text,
-            fontSize ?? Game.DefaultFontSize,
-            spacing ?? Game.DefaultTextSpacing,
-            glyphInfos
-        );
+        return new TextBoundEnumerable(this, text, fontSize ?? DefaultSize, spacing ?? DefaultTextSpacing, glyphInfos);
     }
 
     public (Texture Atlas, IReadOnlyDictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
@@ -191,7 +225,7 @@ public sealed unsafe class Font
                 Width = width,
                 Height = height,
                 Format = PixelFormat.UncompressedGrayAlpha,
-                Mipmaps = 1,
+                Mipmaps = 1
             };
             result.Id = Rlgl.LoadTexture(pixelsBuffer, result.Width, result.Height, result.Format, result.Mipmaps);
             return new Texture(result);

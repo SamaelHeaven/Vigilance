@@ -45,7 +45,7 @@ public sealed unsafe partial class Scene
         _orderedQuery = BuildOrderedQuery();
     }
 
-    public IReadOnlyList<IGameSystem> Systems
+    public IImmutableList<IGameSystem> Systems
     {
         get
         {
@@ -72,6 +72,18 @@ public sealed unsafe partial class Scene
         var e2 = new Entity(scene._world.Entity(id2), scene);
         var result = e1.WorldZIndex.CompareTo(e2.WorldZIndex);
         return result == 0 ? id1.CompareTo(id2) : result;
+    }
+
+    public static Scene Build<T>(GameSystemsFunc? systems = null)
+        where T : IGameSystem, new()
+    {
+        return new Scene(() => systems is null ? [new T()] : systems.Invoke().Concat([new T()]));
+    }
+
+    public static Scene Build<T>(Func<T> factory, GameSystemsFunc? systems = null)
+        where T : IGameSystem
+    {
+        return new Scene(() => systems is null ? [factory.Invoke()] : systems.Invoke().Concat([factory.Invoke()]));
     }
 
     public void Restart()

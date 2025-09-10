@@ -7,7 +7,7 @@ namespace Vigilance.Drawing;
 public sealed class Animation : IEnumerable<AnimationFrame>
 {
     public const int InfiniteRepeatCount = -1;
-    private readonly IImmutableList<AnimationFrame> _frames;
+    private readonly ImmutableList<AnimationFrame> _frames;
     private TimeSpan _elapsed;
     private int _index;
     private int? _nextIndex;

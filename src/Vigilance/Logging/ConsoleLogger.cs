@@ -4,22 +4,25 @@ public sealed class ConsoleLogger : ILogger
 {
     public void Log(LogLevel level, string message)
     {
-        lock (Console.Out)
+        Console.ResetColor();
+        Console.Write(" ");
+        if (level is > LogLevel.All and < LogLevel.None)
         {
-            Console.ResetColor();
-            if (level is > LogLevel.All and < LogLevel.None)
+            var color = level.GetConsoleColor();
+            if (color is not null)
             {
-                var color = level.GetConsoleColor();
-                Console.Write("[");
-                if (color is not null)
-                    Console.ForegroundColor = color.Value;
-                Console.Write(level);
-                Console.ResetColor();
-                Console.Write("] ");
+                Console.ForegroundColor = ConsoleColor.Black;
+                Console.BackgroundColor = color.Value;
             }
 
-            Console.WriteLine(message);
-            Console.Out.Flush();
+            Console.Write(" ");
+            Console.Write(level.ToString().ToUpper());
+            Console.Write(" ");
+            Console.ResetColor();
+            Console.Write(" ");
         }
+
+        Console.WriteLine(message);
+        Console.Out.Flush();
     }
 }

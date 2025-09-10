@@ -1,5 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace Vigilance.Core;
 
@@ -23,16 +22,8 @@ public interface IFullCloneable : IShallowCloneable, IDeepCloneable;
 
 public static class Cloner
 {
-    [DynamicDependency(DynamicallyAccessedMemberTypes.NonPublicMethods, typeof(object))]
-    private static readonly MethodInfo MemberwiseCloneMethod = typeof(object).GetMethod(
-        "MemberwiseClone",
-        BindingFlags.Instance | BindingFlags.NonPublic
-    )!;
-
-    public static object MemberwiseClone(object obj)
-    {
-        return MemberwiseCloneMethod.Invoke(obj, null)!;
-    }
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "MemberwiseClone")]
+    public static extern object MemberwiseClone(object obj);
 }
 
 public static class CloneableExtensions

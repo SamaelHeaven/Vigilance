@@ -5,6 +5,7 @@ namespace Vigilance.Input;
 
 public sealed class InputAxis
 {
+    private static InputAxesConfig _config = new();
     public IReadOnlyList<Key> NegativeKeys { get; init; } = Array.Empty<Key>();
     public IReadOnlyList<Key> PositiveKeys { get; init; } = Array.Empty<Key>();
     public IReadOnlyList<GamepadButton> NegativeGamepadButtons { get; init; } = Array.Empty<GamepadButton>();
@@ -13,9 +14,17 @@ public sealed class InputAxis
     public IReadOnlyList<Gamepad> Gamepads { get; init; } = Gamepad.Gamepads;
     public float DeadZone { get; init; } = 0;
 
-    public static InputAxis Horizontal => Game.HorizontalInputAxis;
+    public static InputAxis Horizontal
+    {
+        get => _config.Horizontal;
+        set => _config.Horizontal = value;
+    }
 
-    public static InputAxis Vertical => Game.VerticalInputAxis;
+    public static InputAxis Vertical
+    {
+        get => _config.Vertical;
+        set => _config.Vertical = value;
+    }
 
     public static Vector2 Both => new(Horizontal.Value, Vertical.Value);
 
@@ -41,5 +50,11 @@ public sealed class InputAxis
                 return 1;
             return 0;
         }
+    }
+
+    internal static void Initialize()
+    {
+        if (Game.Configs.TryTake(out InputAxesConfig config))
+            _config = config;
     }
 }

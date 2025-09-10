@@ -2,7 +2,7 @@ using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 
-namespace Vigilance.Audio;
+namespace Vigilance.Media;
 
 public sealed class Sound
 {
@@ -16,7 +16,7 @@ public sealed class Sound
     public unsafe Sound(string fileType, IEnumerable<byte> bytes, int? maxAliases = null)
     {
         Game.EnsureRunning();
-        MaxAliases = int.Max(maxAliases ?? Game.DefaultSoundMaxAliases, 1);
+        MaxAliases = maxAliases ?? Audio.DefaultSoundMaxAliases;
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)

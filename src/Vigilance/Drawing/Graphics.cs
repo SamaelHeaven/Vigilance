@@ -1044,7 +1044,7 @@ public sealed unsafe class Graphics
     {
         if (text == "" || color == Color.Transparent)
             return;
-        font ??= Game.DefaultFont;
+        font ??= Font.Default;
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing))
             DrawTexture(font.Atlas, source, new Box(dest.Position + position, dest.Size), color, interpolation, camera);
     }
@@ -1079,7 +1079,7 @@ public sealed unsafe class Graphics
     {
         if (text == "" || color == Color.Transparent || strokeWidth <= 0)
             return;
-        font ??= Game.DefaultFont;
+        font ??= Font.Default;
         var (atlas, glyphInfos) = font.GetStroke((int)strokeWidth.Round());
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, glyphInfos))
             DrawTexture(atlas, source, new Box(dest.Position + position, dest.Size), color, interpolation, camera);

@@ -6,11 +6,11 @@ namespace Vigilance.Drawing;
 
 public sealed class Text : IFullCloneable
 {
-    private Font _font = Game.DefaultFont;
-    private float _fontSize = Game.DefaultFontSize;
-    private TextHeightMode _heightMode = Game.DefaultTextHeightMode;
+    private Font _font = Font.Default;
+    private float _fontSize = Font.DefaultSize;
+    private TextHeightMode _heightMode = Font.DefaultTextHeightMode;
     private Vector2? _sizeCache = null;
-    private Vector2 _spacing = Game.DefaultTextSpacing;
+    private Vector2 _spacing = Font.DefaultTextSpacing;
     private string _value = "";
 
     public Text() { }

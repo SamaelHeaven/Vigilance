@@ -3,7 +3,7 @@ using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 
-namespace Vigilance.Audio;
+namespace Vigilance.Media;
 
 public sealed class Music
 {
