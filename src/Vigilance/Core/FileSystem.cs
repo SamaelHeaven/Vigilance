@@ -22,8 +22,8 @@ public static unsafe partial class FileSystem
 
     internal static void Initialize()
     {
-        if (!Game.Configs.TryTake(out FileSystemConfig config))
-            return;
+        FileSystemConfig config;
+        config = Game.Configs.TryTake(out config) ? config : new FileSystemConfig();
         WorkingNamespace = config.WorkingNamespace;
         ChangeDirectory(config.WorkingDirectory);
     }
