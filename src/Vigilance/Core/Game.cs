@@ -240,7 +240,7 @@ public sealed unsafe class Game
 
     public static void OnQuit(Action action)
     {
-        _quitAction = action;
+        _quitAction += action;
     }
 
     public static void Maximize()
