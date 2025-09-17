@@ -39,7 +39,7 @@ public class UIContainer : UIElement
     }
 
     public int ChildCount => _children.Count;
-    
+
     public UIContainer this[UIElement element]
     {
         get
@@ -117,14 +117,14 @@ public class UIContainer : UIElement
                 yield return child;
         }
     }
-    
+
     public void Add(UIElement element)
     {
-            Node.AddChild(element.Node);
-            if (Node.IndexOfChild(element.Node) == -1)
-                return;
-            _children.AddLast(element);
-            element.Parent = this;
+        Node.AddChild(element.Node);
+        if (Node.IndexOfChild(element.Node) == -1)
+            return;
+        _children.AddLast(element);
+        element.Parent = this;
     }
 
     public void Add(params IEnumerable<UIElement> elements)
