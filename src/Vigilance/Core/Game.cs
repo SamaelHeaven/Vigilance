@@ -8,8 +8,8 @@ using Vigilance.Logging;
 using Vigilance.Math;
 using Color = Vigilance.Drawing.Color;
 using Image = Vigilance.Drawing.Image;
-using Music = Vigilance.Media.Music;
-using Sound = Vigilance.Media.Sound;
+using Music = Vigilance.Audio.Music;
+using Sound = Vigilance.Audio.Sound;
 
 namespace Vigilance.Core;
 

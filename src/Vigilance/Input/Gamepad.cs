@@ -28,7 +28,7 @@ public sealed class Gamepad
             _axes.Add(axis, 0);
     }
 
-    public static IReadOnlyList<Gamepad> Gamepads { get; } = GamepadArray.AsReadOnly();
+    public static EnumerableArray<Gamepad> Gamepads => GamepadArray;
     public int Id { get; }
 
     public static Gamepad First => GamepadArray[0];
@@ -36,11 +36,11 @@ public sealed class Gamepad
     public static Gamepad Third => GamepadArray[2];
     public static Gamepad Fourth => GamepadArray[3];
 
-    public IReadOnlyList<GamepadButton> DownButtons => _downButtons.AsReadOnly();
-    public IReadOnlyList<GamepadButton> UpButtons => _upButtons.AsReadOnly();
-    public IReadOnlyList<GamepadButton> PressedButtons => _pressedButtons.AsReadOnly();
-    public IReadOnlyList<GamepadButton> ReleasedButtons => _releasedButtons.AsReadOnly();
-    public IReadOnlyDictionary<GamepadAxis, float> Axes => _axes.AsReadOnly();
+    public EnumerableList<GamepadButton> DownButtons => _downButtons;
+    public EnumerableList<GamepadButton> UpButtons => _upButtons;
+    public EnumerableList<GamepadButton> PressedButtons => _pressedButtons;
+    public EnumerableList<GamepadButton> ReleasedButtons => _releasedButtons;
+    public EnumerableDictionary<GamepadAxis, float> Axes => _axes;
     public bool Connected { get; private set; }
     public string Name { get; private set; }
 

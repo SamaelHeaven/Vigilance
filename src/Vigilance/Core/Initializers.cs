@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Vigilance.Drawing;
 using Vigilance.Logging;
-using Vigilance.Media;
 
 namespace Vigilance.Core;
 
@@ -23,9 +22,9 @@ public static class Initializers
         Game.Defer(() =>
         {
             FileSystem.Initialize();
-            Audio.Initialize();
             Asset.Initialize();
             Font.Initialize();
+            Audio.Audio.Initialize();
             Input.Input.Initialize();
             Drawing.Drawing.Initialize();
         });

@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Flecs.NET.Core;
 using Vigilance.Math;
@@ -34,7 +33,7 @@ public sealed unsafe partial class Scene
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
-    private ImmutableList<IGameSystem> _systems = ImmutableList<IGameSystem>.Empty;
+    private List<IGameSystem> _systems = [];
     private float _time;
     private Action? _updateAction;
     private World _world = World.Create();
@@ -45,7 +44,7 @@ public sealed unsafe partial class Scene
         _orderedQuery = BuildOrderedQuery();
     }
 
-    public IImmutableList<IGameSystem> Systems
+    public EnumerableList<IGameSystem> Systems
     {
         get
         {
@@ -325,7 +324,7 @@ public sealed unsafe partial class Scene
 
     private void Initialize()
     {
-        _systems = Game.Systems.Invoke().Concat(_systemsFunc.Invoke()).ToImmutableList();
+        _systems = Game.Systems.Invoke().Concat(_systemsFunc.Invoke()).ToList();
         foreach (var system in _systems)
             system.Configure(this);
         Initialized = true;

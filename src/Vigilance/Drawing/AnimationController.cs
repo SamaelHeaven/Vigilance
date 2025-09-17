@@ -1,12 +1,10 @@
-using System.Collections.Immutable;
 using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class AnimationController
-    : IValueEnumerable<ImmutableDictionary<string, Animation>.Enumerator, KeyValuePair<string, Animation>>
+public sealed class AnimationController : IEnumerableDictionary<string, Animation>
 {
-    private readonly ImmutableDictionary<string, Animation> _animations;
+    private readonly Dictionary<string, Animation> _animations;
 
     public AnimationController(IEnumerable<(string, Animation)> animations)
         : this(animations.Select(x => new KeyValuePair<string, Animation>(x.Item1, x.Item2))) { }
@@ -16,7 +14,7 @@ public sealed class AnimationController
         var list = animations as IReadOnlyList<KeyValuePair<string, Animation>> ?? animations.ToList();
         if (list.Count == 0)
             throw new ArgumentException("AnimationController must have at least one animation.");
-        _animations = list.ToImmutableDictionary();
+        _animations = list.ToDictionary();
         Current = list[0].Key;
     }
 
@@ -26,9 +24,14 @@ public sealed class AnimationController
 
     public Animation this[string animation] => _animations[animation];
 
-    public ImmutableDictionary<string, Animation>.Enumerator GetEnumerator()
+    public Dictionary<string, Animation>.Enumerator GetEnumerator()
     {
         return _animations.GetEnumerator();
+    }
+
+    public bool IsUsing(string animation)
+    {
+        return Current == animation;
     }
 
     public bool Has(string animation)

@@ -48,6 +48,11 @@ public static unsafe class Logger
         Log(value is Exception ? LogLevel.Error : LogLevel.Info, value);
     }
 
+    public static void Log(params object?[] values)
+    {
+        Log(LogLevel.Info, values);
+    }
+
     public static void Log(LogLevel level, object? value)
     {
         if (_config.LogLevel > level)
@@ -74,9 +79,21 @@ public static unsafe class Logger
         }
     }
 
+    public static void Log(LogLevel level, params object?[] values)
+    {
+        if (_config.LogLevel > level)
+            return;
+        Log(level, string.Join(", ", values));
+    }
+
     public static void Debug(object? value)
     {
         Log(LogLevel.Debug, value);
+    }
+
+    public static void Debug(params object?[] values)
+    {
+        Log(LogLevel.Debug, values);
     }
 
     public static void Info(object? value)
@@ -84,9 +101,19 @@ public static unsafe class Logger
         Log(LogLevel.Info, value);
     }
 
+    public static void Info(params object?[] values)
+    {
+        Log(LogLevel.Info, values);
+    }
+
     public static void Warning(object? value)
     {
         Log(LogLevel.Warning, value);
+    }
+
+    public static void Warning(params object?[] values)
+    {
+        Log(LogLevel.Warning, values);
     }
 
     public static void Error(object? value)
@@ -94,9 +121,19 @@ public static unsafe class Logger
         Log(LogLevel.Error, value);
     }
 
+    public static void Error(params object?[] values)
+    {
+        Log(LogLevel.Error, values);
+    }
+
     public static void Fatal(object? value)
     {
         Log(LogLevel.Fatal, value);
+    }
+
+    public static void Fatal(params object?[] values)
+    {
+        Log(LogLevel.Fatal, values);
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]

@@ -1,12 +1,11 @@
-using System.Collections.Immutable;
 using Vigilance.Core;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class TextureAtlas : IValueEnumerable<ImmutableList<Box>.Enumerator, Box>
+public sealed class TextureAtlas : IEnumerableList<Box>, IReadOnlyList<Box>
 {
-    private readonly ImmutableList<Box> _boxes;
+    private readonly List<Box> _boxes;
 
     public TextureAtlas(Texture texture, Vector2 count, float spacing = 0)
         : this(texture, (int)count.X, (int)count.Y, spacing) { }
@@ -35,7 +34,7 @@ public sealed class TextureAtlas : IValueEnumerable<ImmutableList<Box>.Enumerato
             offsetY += regionHeight + spacing;
         }
 
-        _boxes = boxes.ToImmutableList();
+        _boxes = boxes.ToList();
     }
 
     public Texture Texture { get; }
@@ -56,18 +55,18 @@ public sealed class TextureAtlas : IValueEnumerable<ImmutableList<Box>.Enumerato
 
     public float RegionHeight => RegionSize.Y;
 
-    public Box this[int index] => GetRegion(index);
-
     public Box this[int x, int y] => GetRegion(x, y);
 
     public Box this[Vector2 position] => GetRegion(position);
 
-    public int Count => _boxes.Count;
-
-    public ImmutableList<Box>.Enumerator GetEnumerator()
+    public List<Box>.Enumerator GetEnumerator()
     {
         return _boxes.GetEnumerator();
     }
+
+    public Box this[int index] => GetRegion(index);
+
+    public int Count => _boxes.Count;
 
     public Box GetRegion(int index)
     {

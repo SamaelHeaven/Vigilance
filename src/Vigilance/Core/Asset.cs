@@ -1,6 +1,6 @@
 using System.Reflection;
+using Vigilance.Audio;
 using Vigilance.Drawing;
-using Vigilance.Media;
 
 namespace Vigilance.Core;
 
@@ -149,8 +149,8 @@ public static class Asset
     {
         return SoundContainer.File(
             ref path,
-            () => (path, maxAliases ?? Audio.DefaultSoundMaxAliases),
-            bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Audio.DefaultSoundMaxAliases),
+            () => (path, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+            bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
             cacheType
         );
     }
@@ -167,8 +167,8 @@ public static class Asset
             ref resource,
             @namespace,
             assembly,
-            () => (resource, maxAliases ?? Audio.DefaultSoundMaxAliases),
-            bytes => new Sound(Path.GetExtension(resource), bytes, maxAliases ?? Audio.DefaultSoundMaxAliases),
+            () => (resource, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+            bytes => new Sound(Path.GetExtension(resource), bytes, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
             cacheType
         );
     }
