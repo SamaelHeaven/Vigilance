@@ -280,6 +280,7 @@ public sealed class Display
 
     private void InitializeWindow()
     {
+        Game.OnQuit(Raylib.CloseWindow);
         Raylib.SetConfigFlags(GetConfigFlags());
         var width = (int)(
             _config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.X : _config.ScreenSize.X
