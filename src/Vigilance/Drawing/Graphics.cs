@@ -74,7 +74,7 @@ public sealed unsafe class Graphics
         var clip = GetClip();
         return new Box(
             (clip?.Position ?? Vector2.Zero) - offset,
-            (clip?.Size ?? _buffer?.Size ?? Game.Size) + offset * 2
+            (clip?.Size ?? _buffer?.Size ?? Display.Size) + offset * 2
         );
     }
 

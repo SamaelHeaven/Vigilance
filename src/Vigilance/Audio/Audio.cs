@@ -28,6 +28,7 @@ public static class Audio
 
     internal static void Initialize()
     {
+        Game.OnQuit(Raylib.CloseAudioDevice);
         Raylib.SetAudioStreamBufferSizeDefault(8192);
         if (OperatingSystem.IsWindows())
         {

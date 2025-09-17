@@ -1,7 +1,8 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using Vigilance.Drawing;
+using Raylib_cs.BleedingEdge;
 using Vigilance.Logging;
+using Font = Vigilance.Drawing.Font;
 
 namespace Vigilance.Core;
 
@@ -18,10 +19,12 @@ public static class Initializers
             return;
         _initialized = true;
         InitializeCultureInfo();
-        Logger.LogLevel = LogLevel.None;
+        Raylib.SetTraceLogLevel(TraceLogLevel.None);
         Game.Defer(() =>
         {
             FileSystem.Initialize();
+            Logger.Initialize();
+            Display.Initialize();
             Asset.Initialize();
             Font.Initialize();
             Audio.Audio.Initialize();

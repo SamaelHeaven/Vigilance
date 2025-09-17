@@ -57,7 +57,7 @@ public sealed class Keyboard
     internal static void Update()
     {
         var keyboard = GetKeyboard();
-        if (!Game.Focused)
+        if (!Display.Focused)
         {
             keyboard.Reset();
             return;

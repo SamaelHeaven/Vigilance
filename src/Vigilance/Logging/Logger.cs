@@ -17,7 +17,8 @@ public static unsafe class Logger
         set
         {
             _config.LogLevel = value;
-            Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
+            if (Game.Running)
+                Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
         }
     }
 

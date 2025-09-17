@@ -130,9 +130,7 @@ public class UIContainer : UIElement
     public void Add(params IEnumerable<UIElement> elements)
     {
         foreach (var element in elements)
-        {
             Add(element);
-        }
     }
 
     public void Insert(int index, UIElement element)

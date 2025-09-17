@@ -37,11 +37,11 @@ public static class Coordinates
 
     public static Vector2 ScreenToLocal(Vector2 coordinates, Viewport? viewport = null)
     {
-        var size = Game.Size;
-        var screenSize = Game.ScreenSize;
+        var size = Display.Size;
+        var screenSize = Display.ScreenSize;
         var scaleX = screenSize.X / size.X;
         var scaleY = screenSize.Y / size.Y;
-        switch (viewport ?? Game.Viewport)
+        switch (viewport ?? Display.Viewport)
         {
             case Viewport.Fit:
             {
@@ -77,11 +77,11 @@ public static class Coordinates
 
     public static Vector2 LocalToScreen(Vector2 coordinates, Viewport? viewport = null)
     {
-        var size = Game.Size;
-        var screenSize = Game.ScreenSize;
+        var size = Display.Size;
+        var screenSize = Display.ScreenSize;
         var scaleX = screenSize.X / size.X;
         var scaleY = screenSize.Y / size.Y;
-        switch (viewport ?? Game.Viewport)
+        switch (viewport ?? Display.Viewport)
         {
             case Viewport.Fit:
             {

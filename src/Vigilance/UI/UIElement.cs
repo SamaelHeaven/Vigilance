@@ -4,6 +4,7 @@ using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
+using Display = FlexLayoutSharp.Display;
 using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
@@ -123,15 +124,15 @@ public abstract class UIElement : IDeepCloneable
     {
         get
         {
-            var visible = LayoutReady && Display != Display.None && !RenderedOutside;
+            var visible = LayoutReady && Display != DisplayMode.None && !RenderedOutside;
             return (Parent?.Visible ?? true) && visible;
         }
     }
 
-    public Display Display
+    public DisplayMode Display
     {
-        get => (Display)Node.StyleGetDisplay();
-        set => Node.StyleSetDisplay((FlexLayoutSharp.Display)value);
+        get => (DisplayMode)Node.StyleGetDisplay();
+        set => Node.StyleSetDisplay((Display)value);
     }
 
     public Overflow Overflow { get; set; }
@@ -596,7 +597,7 @@ public abstract class UIElement : IDeepCloneable
 
     internal void Render(Transform transform, Graphics graphics, CameraProvider camera)
     {
-        if (!LayoutReady || Display == Display.None)
+        if (!LayoutReady || Display == DisplayMode.None)
             return;
         Matrix3x2? oldMatrix = null;
         var position = LayoutPosition;

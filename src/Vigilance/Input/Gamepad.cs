@@ -87,7 +87,7 @@ public sealed class Gamepad
     {
         Connected = IsConnected();
         Name = GetName();
-        if (!Game.Focused || !Connected)
+        if (!Display.Focused || !Connected)
         {
             Reset();
             return;
