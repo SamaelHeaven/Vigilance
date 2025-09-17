@@ -1,10 +1,9 @@
-using System.Collections;
 using System.Collections.Immutable;
 using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class Animation : IEnumerable<AnimationFrame>
+public sealed class Animation : IValueEnumerable<ImmutableList<AnimationFrame>.Enumerator, AnimationFrame>
 {
     public const int InfiniteRepeatCount = -1;
     private readonly ImmutableList<AnimationFrame> _frames;
@@ -15,7 +14,7 @@ public sealed class Animation : IEnumerable<AnimationFrame>
     private int _startIndex;
 
     public Animation(
-        IReadOnlyCollection<AnimationFrame> frames,
+        IEnumerable<AnimationFrame> frames,
         TimeSpan delay,
         int repeatCount = InfiniteRepeatCount,
         int startIndex = 0,
@@ -23,9 +22,9 @@ public sealed class Animation : IEnumerable<AnimationFrame>
         Action? completeAction = null
     )
     {
-        if (frames.Count == 0)
-            throw new ArgumentException("Animation must have at least one frame.");
         _frames = frames.ToImmutableList();
+        if (_frames.Count == 0)
+            throw new ArgumentException("Animation must have at least one frame.");
         _nextIndex = null;
         OnComplete = completeAction;
         OnRepeat = repeatAction;
@@ -65,14 +64,9 @@ public sealed class Animation : IEnumerable<AnimationFrame>
 
     public int FrameCount => _frames.Count;
 
-    public IEnumerator<AnimationFrame> GetEnumerator()
+    public ImmutableList<AnimationFrame>.Enumerator GetEnumerator()
     {
         return _frames.GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
     }
 
     public event Action? OnComplete;

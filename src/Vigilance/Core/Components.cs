@@ -1,8 +1,8 @@
-using System.Collections;
-
 namespace Vigilance.Core;
 
-public readonly record struct Components : IReadOnlyList<Component>
+public readonly record struct Components
+    : IValueEnumerable<List<Component>.Enumerator, Component>,
+        IReadOnlyList<Component>
 {
     internal readonly List<Component> Values = new();
 
@@ -14,14 +14,9 @@ public readonly record struct Components : IReadOnlyList<Component>
 
     public Component this[int index] => Values[index];
 
-    public IEnumerator<Component> GetEnumerator()
+    public List<Component>.Enumerator GetEnumerator()
     {
         return Values.GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
     }
 
     public OfTypeEnumerable<T> OfType<T>()

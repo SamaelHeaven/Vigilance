@@ -1,12 +1,12 @@
-using System.Collections;
 using System.Collections.Immutable;
+using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class AnimationController : IEnumerable<KeyValuePair<string, Animation>>
+public sealed class AnimationController
+    : IValueEnumerable<ImmutableDictionary<string, Animation>.Enumerator, KeyValuePair<string, Animation>>
 {
     private readonly ImmutableDictionary<string, Animation> _animations;
-    private string _currentAnimation;
 
     public AnimationController(IEnumerable<(string, Animation)> animations)
         : this(animations.Select(x => new KeyValuePair<string, Animation>(x.Item1, x.Item2))) { }
@@ -17,21 +17,18 @@ public sealed class AnimationController : IEnumerable<KeyValuePair<string, Anima
         if (list.Count == 0)
             throw new ArgumentException("AnimationController must have at least one animation.");
         _animations = list.ToImmutableDictionary();
-        _currentAnimation = list[0].Key;
+        Current = list[0].Key;
     }
 
-    public Animation Animation => _animations[_currentAnimation];
+    public string Current { get; private set; }
+
+    public Animation Animation => _animations[Current];
 
     public Animation this[string animation] => _animations[animation];
 
-    public IEnumerator<KeyValuePair<string, Animation>> GetEnumerator()
+    public ImmutableDictionary<string, Animation>.Enumerator GetEnumerator()
     {
         return _animations.GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
     }
 
     public bool Has(string animation)
@@ -53,7 +50,7 @@ public sealed class AnimationController : IEnumerable<KeyValuePair<string, Anima
     {
         if (!_animations.ContainsKey(animation))
             throw new KeyNotFoundException(animation);
-        _currentAnimation = animation;
+        Current = animation;
         if (!resetOthers)
             return;
         foreach (var key in _animations.Keys.Where(key => key != animation))
