@@ -9,10 +9,10 @@ public sealed class Ring : IFullCloneable
     public float OuterRadius { get; set; } = 0;
     public float StartAngle { get; set; } = 0;
     public float EndAngle { get; set; } = 360;
-    public Color Fill { get; set; } = Color.White;
-    public Color Stroke { get; set; } = Color.Transparent;
-    public float StrokeWidth { get; set; } = 0;
-    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
+    public Color Fill { get; set; } = Drawing.DefaultFill;
+    public Color Stroke { get; set; } = Drawing.DefaultStroke;
+    public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public override string ToString()
     {

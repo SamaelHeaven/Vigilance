@@ -9,8 +9,8 @@ public sealed class FileSystemConfig
 
 public static class FileSystemConfigExtensions
 {
-    public static ConfigsBuilder FileSystem(this ConfigsBuilder configs, FileSystemConfig config)
+    public static ConfigBuilder FileSystem(this ConfigBuilder builder, FileSystemConfig config)
     {
-        return configs.AddConfig(config);
+        return builder.Add(config);
     }
 }

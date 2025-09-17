@@ -19,9 +19,9 @@ public sealed class Grid : IFullCloneable
     }
 
     public float CellSize { get; set; }
-    public float Thick { get; set; } = 1;
-    public Color Color { get; set; } = Color.White;
-    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
+    public float Thick { get; set; } = Drawing.DefaultStrokeWidth == 0 ? 1 : Drawing.DefaultStrokeWidth;
+    public Color Color { get; set; } = Drawing.DefaultFill;
+    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public override string ToString()
     {

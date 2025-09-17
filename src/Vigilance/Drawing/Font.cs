@@ -67,7 +67,7 @@ public sealed unsafe class Font
 
     internal static void Initialize()
     {
-        if (Game.Configs.TryTake(out FontConfig config))
+        if (Game.Config.TryTake(out FontConfig config))
             _config = config;
         Default = _config.Default.Invoke();
     }
@@ -225,7 +225,7 @@ public sealed unsafe class Font
                 Width = width,
                 Height = height,
                 Format = PixelFormat.UncompressedGrayAlpha,
-                Mipmaps = 1
+                Mipmaps = 1,
             };
             result.Id = Rlgl.LoadTexture(pixelsBuffer, result.Width, result.Height, result.Format, result.Mipmaps);
             return new Texture(result);

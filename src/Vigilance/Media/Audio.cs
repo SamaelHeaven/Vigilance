@@ -40,9 +40,24 @@ public static class Audio
             Raylib.InitAudioDevice();
         }
 
-        if (Game.Configs.TryTake(out AudioConfig config))
+        if (Game.Config.TryTake(out AudioConfig config))
             _config = config;
         MasterVolume = _config.MasterVolume;
         DefaultSoundMaxAliases = _config.DefaultSoundMaxAliases;
+    }
+}
+
+public sealed class AudioConfig
+{
+    public float MasterVolume { get; set; } = 1f;
+
+    public int DefaultSoundMaxAliases { get; set; } = 16;
+}
+
+public static class AudioConfigExtensions
+{
+    public static ConfigBuilder Audio(this ConfigBuilder builder, AudioConfig config)
+    {
+        return builder.Add(config);
     }
 }

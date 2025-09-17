@@ -16,15 +16,20 @@ namespace Vigilance.Core;
 public sealed unsafe class Game
 {
     private static Game? _game;
-    private readonly ConcurrentStack<Action> _actions = [];
-    private GameConfig _config = null!;
-    private Configs _configs = null!;
+    private static Action? _quitAction = null;
+    private static readonly ConcurrentStack<Action> Actions = [];
+    private Config _config = null!;
+    private DisplayConfig _displayConfig = null!;
     private Box _previousScreen;
     private bool _quit;
     private bool _resetScreen;
     private Scene _scene = null!;
+    private GameSystemsFunc _systems = null!;
 
-    private Game() { }
+    private Game()
+    {
+        EnsureRunning();
+    }
 
     public static bool Running { get; private set; }
 
@@ -33,35 +38,19 @@ public sealed unsafe class Game
 
     public static string Title
     {
-        get => GetGame()._config.Title;
+        get => GetGame()._displayConfig.Title;
         set
         {
-            GetGame()._config.Title = value;
+            GetGame()._displayConfig.Title = value;
             Raylib.SetWindowTitle(value);
         }
     }
 
-    public static Key ExitKey
-    {
-        get => GetGame()._config.ExitKey;
-        set
-        {
-            GetGame()._config.ExitKey = value;
-            Raylib.SetExitKey((KeyboardKey)value);
-        }
-    }
+    public static Vector2 Size => GetGame()._displayConfig.Size;
 
-    public static Key FullscreenKey
-    {
-        get => GetGame()._config.FullscreenKey;
-        set => GetGame()._config.FullscreenKey = value;
-    }
+    public static float Width => GetGame()._displayConfig.Size.X;
 
-    public static Vector2 Size => GetGame()._config.Size;
-
-    public static float Width => GetGame()._config.Size.X;
-
-    public static float Height => GetGame()._config.Size.Y;
+    public static float Height => GetGame()._displayConfig.Size.Y;
 
     public static Vector2 ScreenSize
     {
@@ -123,21 +112,21 @@ public sealed unsafe class Game
 
     public static Viewport Viewport
     {
-        get => GetGame()._config.Viewport;
-        set => Defer(() => GetGame()._config.Viewport = value);
+        get => GetGame()._displayConfig.Viewport;
+        set => Defer(() => GetGame()._displayConfig.Viewport = value);
     }
 
-    public static RenderingMode RenderingMode => GetGame()._config.RenderingMode;
+    public static RenderingMode RenderingMode => GetGame()._displayConfig.RenderingMode;
 
     public static Color Background
     {
-        get => GetGame()._config.Background;
-        set => GetGame()._config.Background = value;
+        get => GetGame()._displayConfig.Background;
+        set => GetGame()._displayConfig.Background = value;
     }
 
     public static int FpsTarget
     {
-        get => GetGame()._config.FpsTarget;
+        get => GetGame()._displayConfig.FpsTarget;
         set
         {
             var game = GetGame();
@@ -145,7 +134,7 @@ public sealed unsafe class Game
                 value = 0;
             if (value == FpsTarget)
                 return;
-            game._config.FpsTarget = value;
+            game._displayConfig.FpsTarget = value;
             Raylib.SetTargetFPS(value);
         }
     }
@@ -158,7 +147,7 @@ public sealed unsafe class Game
             return Platform switch
             {
                 Platform.Web => JSEngine.Eval("!!document.fullscreenElement"),
-                _ => Raylib.IsWindowFullscreen()
+                _ => Raylib.IsWindowFullscreen(),
             };
         }
         set
@@ -195,7 +184,7 @@ public sealed unsafe class Game
         }
     }
 
-    public static bool Vsync => GetGame()._config.Vsync;
+    public static bool Vsync => GetGame()._displayConfig.Vsync;
 
     public static Scene Scene
     {
@@ -222,9 +211,9 @@ public sealed unsafe class Game
         }
     }
 
-    public static Configs Configs => _game?._configs ?? Configs.Empty;
+    public static Config Config => _game?._config ?? Config.Empty;
 
-    internal static GameSystemsFunc Systems => GetGame()._config.Systems;
+    internal static GameSystemsFunc Systems => GetGame()._systems;
 
     public static void OpenUrl(string url)
     {
@@ -246,8 +235,12 @@ public sealed unsafe class Game
 
     public static void Defer(Action action)
     {
-        var game = _game ??= new Game();
-        game._actions.Push(action);
+        Actions.Push(action);
+    }
+
+    public static void OnQuit(Action action)
+    {
+        _quitAction = action;
     }
 
     public static void Maximize()
@@ -293,7 +286,7 @@ public sealed unsafe class Game
             Width = width,
             Height = height,
             Mipmaps = 1,
-            Format = PixelFormat.UncompressedR8G8B8A8
+            Format = PixelFormat.UncompressedR8G8B8A8,
         };
         return new Image(rImage);
     }
@@ -333,19 +326,18 @@ public sealed unsafe class Game
         }
     }
 
-    public static void Launch(Configs configs, Scene scene)
+    public static void Launch(Config config, Scene scene)
     {
         EnsureNotRunning();
         Running = true;
-        var game = _game ??= new Game();
-        game._configs = configs;
-        game._config = configs.Take<GameConfig>() ?? new GameConfig();
+        var game = GetGame();
+        game._config = config;
+        game._displayConfig = config.Take<DisplayConfig>() ?? new DisplayConfig();
+        game._systems = config.Take<GameSystemsFunc>() ?? (() => []);
         game._scene = scene;
         Logger.Initialize();
         game.InitializeWindow();
-        ExitKey = game._config.ExitKey;
-        FpsTarget = game._config.FpsTarget;
-        game.UpdateActions();
+        UpdateActions();
         try
         {
             game.Loop();
@@ -363,7 +355,6 @@ public sealed unsafe class Game
 
     private static Game GetGame()
     {
-        EnsureRunning();
         return _game ??= new Game();
     }
 
@@ -371,35 +362,46 @@ public sealed unsafe class Game
     {
         Raylib.SetConfigFlags(GetConfigFlags());
         var width = (int)(
-            _config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.X : _config.ScreenSize.X
+            _displayConfig.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent()
+                ? _displayConfig.Size.X
+                : _displayConfig.ScreenSize.X
         );
         var height = (int)(
-            _config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.Y : _config.ScreenSize.Y
+            _displayConfig.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent()
+                ? _displayConfig.Size.Y
+                : _displayConfig.ScreenSize.Y
         );
-        if (Platform.Desktop.IsCurrent())
+        if (OperatingSystem.IsMacOS())
         {
-            Raylib.InitWindow(0, 0, _config.Title);
+            Raylib.InitWindow(0, 0, _displayConfig.Title);
             Raylib.SetWindowPosition((Raylib.GetScreenWidth() - width) / 2, (Raylib.GetScreenHeight() - height) / 2);
             Raylib.SetWindowSize(width, height);
         }
         else
         {
-            Raylib.InitWindow(width, height, _config.Title);
+            Raylib.InitWindow(width, height, _displayConfig.Title);
         }
 
-        if (Platform.Desktop.IsCurrent() && _config.MinScreenSize.HasValue)
-            Raylib.SetWindowMinSize((int)_config.MinScreenSize.Value.X, (int)_config.MinScreenSize.Value.Y);
-        if (Platform.Desktop.IsCurrent() && _config.MaxScreenSize.HasValue)
-            Raylib.SetWindowMaxSize((int)_config.MaxScreenSize.Value.X, (int)_config.MaxScreenSize.Value.Y);
-        if (_config.Maximized)
+        if (Platform.Desktop.IsCurrent() && _displayConfig.MinScreenSize.HasValue)
+            Raylib.SetWindowMinSize(
+                (int)_displayConfig.MinScreenSize.Value.X,
+                (int)_displayConfig.MinScreenSize.Value.Y
+            );
+        if (Platform.Desktop.IsCurrent() && _displayConfig.MaxScreenSize.HasValue)
+            Raylib.SetWindowMaxSize(
+                (int)_displayConfig.MaxScreenSize.Value.X,
+                (int)_displayConfig.MaxScreenSize.Value.Y
+            );
+        if (_displayConfig.Maximized)
             Maximize();
-        if (_config.Fullscreen)
+        if (_displayConfig.Fullscreen)
             ToggleFullscreen();
-        if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon is null)
+        FpsTarget = _displayConfig.FpsTarget;
+        if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _displayConfig.Icon is null)
             return;
-        var image = _config.Icon!.Invoke().Copy();
-        image.Format = ImageFormat.UncompressedR8G8B8A8;
-        Raylib.SetWindowIcon(image.RImage);
+        var icon = _displayConfig.Icon!.Invoke().Copy();
+        icon.Format = ImageFormat.UncompressedR8G8B8A8;
+        Raylib.SetWindowIcon(icon.RImage);
     }
 
     private void Loop()
@@ -443,45 +445,45 @@ public sealed unsafe class Game
         ScreenSize = _previousScreen.Size;
     }
 
-    private void UpdateActions()
-    {
-        var length = _actions.Count;
-        if (length == 0)
-            return;
-        var actions = new Action[length];
-        var amount = _actions.TryPopRange(actions, 0, length);
-        for (var i = amount - 1; i >= 0; i--)
-            actions[i].Invoke();
-    }
-
-    private void UpdateFullscreen()
-    {
-        if (Keyboard.IsKeyPressed(_config.FullscreenKey))
-            ToggleFullscreen();
-    }
-
     private ConfigFlags GetConfigFlags()
     {
         ConfigFlags flags = 0;
-        if (_config.Resizable)
+        if (_displayConfig.Resizable)
             flags |= ConfigFlags.WindowResizable;
-        if (!_config.Decorated)
+        if (!_displayConfig.Decorated)
             flags |= ConfigFlags.WindowUndecorated;
-        if (_config.Vsync)
+        if (_displayConfig.Vsync)
             flags |= ConfigFlags.VSyncHint;
-        if (_config.RunMinimized)
+        if (_displayConfig.RunMinimized)
             flags |= ConfigFlags.WindowAlwaysRun;
-        if (_config.Msaa4X)
+        if (_displayConfig.Msaa4X)
             flags |= ConfigFlags.Msaa4XHint;
         return flags;
     }
 
-    private void Dispose()
+    private static void UpdateActions()
     {
-        _config.QuitAction?.Invoke();
+        var length = Actions.Count;
+        if (length == 0)
+            return;
+        var actions = new Action[length];
+        var amount = Actions.TryPopRange(actions, 0, length);
+        for (var i = amount - 1; i >= 0; i--)
+            actions[i].Invoke();
+    }
+
+    private static void Dispose()
+    {
+        _quitAction?.Invoke();
         Raylib.CloseAudioDevice();
         Raylib.CloseWindow();
         Environment.Exit(0);
+    }
+
+    private static void UpdateFullscreen()
+    {
+        if (Keyboard.IsKeyPressed(Input.Input.FullscreenKey))
+            ToggleFullscreen();
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]

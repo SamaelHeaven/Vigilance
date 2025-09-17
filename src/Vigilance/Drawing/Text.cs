@@ -26,11 +26,11 @@ public sealed class Text : IFullCloneable
         Fill = fill;
     }
 
-    public Color Fill { get; set; } = Color.White;
-    public Color Stroke { get; set; } = Color.Transparent;
-    public float StrokeWidth { get; set; } = 0;
-    public Interpolation? Interpolation { get; set; } = null;
-    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
+    public Color Fill { get; set; } = Drawing.DefaultFill;
+    public Color Stroke { get; set; } = Drawing.DefaultStroke;
+    public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public Interpolation? Interpolation { get; set; } = Drawing.DefaultInterpolation;
+    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public string Value
     {

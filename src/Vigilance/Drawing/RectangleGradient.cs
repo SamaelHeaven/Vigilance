@@ -5,13 +5,13 @@ namespace Vigilance.Drawing;
 
 public sealed class RectangleGradient : IFullCloneable
 {
-    public Color TopLeftFill { get; set; } = Color.White;
-    public Color BottomLeftFill { get; set; } = Color.White;
-    public Color BottomRightFill { get; set; } = Color.White;
-    public Color TopRightFill { get; set; } = Color.White;
-    public Color Stroke { get; set; } = Color.Transparent;
-    public float StrokeWidth { get; set; } = 0;
-    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
+    public Color TopLeftFill { get; set; } = Drawing.DefaultFill;
+    public Color BottomLeftFill { get; set; } = Drawing.DefaultFill;
+    public Color BottomRightFill { get; set; } = Drawing.DefaultFill;
+    public Color TopRightFill { get; set; } = Drawing.DefaultFill;
+    public Color Stroke { get; set; } = Drawing.DefaultStroke;
+    public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public Color Fill
     {

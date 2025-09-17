@@ -23,7 +23,7 @@ public static unsafe class Logger
 
     internal static void Initialize()
     {
-        _config = Game.Configs.TryTake(out LoggingConfig config) ? config : new LoggingConfig();
+        _config = Game.Config.TryTake(out LoggingConfig config) ? config : new LoggingConfig();
         LogLevel = _config.LogLevel;
         var engine = Assemblies.Engine.GetName();
         var message = $"Initializing {engine.Name} {engine.Version}";

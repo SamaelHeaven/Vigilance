@@ -7,8 +7,8 @@ public sealed class AssetConfig
 
 public static class AssetConfigExtensions
 {
-    public static ConfigsBuilder Asset(this ConfigsBuilder configs, AssetConfig config)
+    public static ConfigBuilder Asset(this ConfigBuilder builder, AssetConfig config)
     {
-        return configs.AddConfig(config);
+        return builder.Add(config);
     }
 }

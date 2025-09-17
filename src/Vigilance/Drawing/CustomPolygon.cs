@@ -20,10 +20,10 @@ public sealed class CustomPolygon : IFullCloneable
     }
 
     public IReadOnlyList<Vector2> Points { get; set; } = Array.Empty<Vector2>();
-    public Color Fill { get; set; } = Color.White;
-    public Color Stroke { get; set; } = Color.Transparent;
-    public float StrokeWidth { get; set; } = 0;
-    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
+    public Color Fill { get; set; } = Drawing.DefaultFill;
+    public Color Stroke { get; set; } = Drawing.DefaultStroke;
+    public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     object IDeepCloneable.DeepClone()
     {

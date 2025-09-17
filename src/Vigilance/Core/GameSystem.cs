@@ -62,3 +62,11 @@ public abstract class GameSystem : IGameSystem
         return method is null || method.DeclaringType != typeof(GameSystem);
     }
 }
+
+public static class GameSystemConfigExtensions
+{
+    public static ConfigBuilder Systems(this ConfigBuilder builder, GameSystemsFunc systems)
+    {
+        return builder.Add(systems);
+    }
+}

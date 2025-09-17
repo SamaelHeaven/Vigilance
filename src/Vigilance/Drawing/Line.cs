@@ -23,9 +23,9 @@ public sealed class Line : IFullCloneable
 
     public Vector2 Start { get; set; } = Vector2.Zero;
     public Vector2 End { get; set; } = Vector2.Zero;
-    public Color Color { get; set; } = Color.White;
-    public float Thick { get; set; } = 1;
-    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
+    public Color Color { get; set; } = Drawing.DefaultFill;
+    public float Thick { get; set; } = Drawing.DefaultStrokeWidth == 0 ? 1 : Drawing.DefaultStrokeWidth;
+    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public override string ToString()
     {

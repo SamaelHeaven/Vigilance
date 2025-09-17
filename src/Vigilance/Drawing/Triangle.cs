@@ -24,10 +24,10 @@ public sealed class Triangle : IFullCloneable
     public Vector2 P1 { get; set; } = Vector2.Zero;
     public Vector2 P2 { get; set; } = Vector2.Zero;
     public Vector2 P3 { get; set; } = Vector2.Zero;
-    public Color Fill { get; set; } = Color.White;
-    public Color Stroke { get; set; } = Color.Transparent;
-    public float StrokeWidth { get; set; } = 1;
-    public CameraProvider Camera { get; set; } = Core.Camera.Scene;
+    public Color Fill { get; set; } = Drawing.DefaultFill;
+    public Color Stroke { get; set; } = Drawing.DefaultStroke;
+    public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public PointEnumerable Points => new(this);
 

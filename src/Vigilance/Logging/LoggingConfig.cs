@@ -10,8 +10,8 @@ public sealed class LoggingConfig
 
 public static class LoggingConfigExtensions
 {
-    public static ConfigsBuilder Logging(this ConfigsBuilder configs, LoggingConfig config)
+    public static ConfigBuilder Logging(this ConfigBuilder builder, LoggingConfig config)
     {
-        return configs.AddConfig(config);
+        return builder.Add(config);
     }
 }

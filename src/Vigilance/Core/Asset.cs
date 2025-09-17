@@ -21,7 +21,7 @@ public static class Asset
 
     internal static void Initialize()
     {
-        if (Game.Configs.TryTake(out AssetConfig config))
+        if (Game.Config.TryTake(out AssetConfig config))
             _config = config;
     }
 

@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Vigilance.Drawing;
-using Vigilance.Input;
 using Vigilance.Logging;
 using Vigilance.Media;
 
@@ -27,7 +26,8 @@ public static class Initializers
             Audio.Initialize();
             Asset.Initialize();
             Font.Initialize();
-            InputAxis.Initialize();
+            Input.Input.Initialize();
+            Drawing.Drawing.Initialize();
         });
     }
 

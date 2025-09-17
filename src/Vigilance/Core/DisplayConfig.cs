@@ -1,15 +1,12 @@
 using Vigilance.Drawing;
-using Vigilance.Input;
 using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public sealed class GameConfig
+public sealed class DisplayConfig
 {
     public string Title { get; set; } = "";
     public Func<Image>? Icon { get; set; } = null;
-    public Key ExitKey { get; set; } = Key.Null;
-    public Key FullscreenKey { get; set; } = Key.Null;
     public Vector2 Size { get; set; } = new(800, 600);
     public Vector2 ScreenSize { get; set; } = Vector2.Zero;
     public Vector2? MinScreenSize { get; set; } = null;
@@ -25,14 +22,12 @@ public sealed class GameConfig
     public bool Resizable { get; set; } = true;
     public bool RunMinimized { get; set; } = true;
     public bool Msaa4X { get; set; } = false;
-    public Action? QuitAction { get; set; } = null;
-    public GameSystemsFunc Systems { get; set; } = Array.Empty<IGameSystem>;
 }
 
-public static class GameConfigExtensions
+public static class DisplayConfigExtensions
 {
-    public static ConfigsBuilder Game(this ConfigsBuilder configs, GameConfig config)
+    public static ConfigBuilder Display(this ConfigBuilder configs, DisplayConfig config)
     {
-        return configs.AddConfig(config);
+        return configs.Add(config);
     }
 }

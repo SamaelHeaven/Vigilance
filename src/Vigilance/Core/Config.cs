@@ -1,16 +1,19 @@
 namespace Vigilance.Core;
 
-public sealed class Configs(IEnumerable<KeyValuePair<Type, object>> configs)
+public sealed class Config
 {
-    private readonly Dictionary<Type, object> _configs = configs
-        .Select(config => (config.Key, Cloner.MemberwiseClone(config.Value)))
-        .ToDictionary();
+    private readonly Dictionary<Type, object> _configs;
 
-    public static Configs Empty { get; } = new(Enumerable.Empty<KeyValuePair<Type, object>>());
-
-    public static ConfigsBuilder Builder()
+    internal Config(IEnumerable<KeyValuePair<Type, object>> configs)
     {
-        return new ConfigsBuilder();
+        _configs = configs.Select(config => (config.Key, Cloner.MemberwiseClone(config.Value))).ToDictionary();
+    }
+
+    public static Config Empty { get; } = new(Enumerable.Empty<KeyValuePair<Type, object>>());
+
+    public static ConfigBuilder Builder()
+    {
+        return new ConfigBuilder();
     }
 
     public T? Take<T>()
@@ -34,21 +37,21 @@ public sealed class Configs(IEnumerable<KeyValuePair<Type, object>> configs)
     }
 }
 
-public sealed class ConfigsBuilder
+public sealed class ConfigBuilder
 {
     private readonly Dictionary<Type, object> _configs = new();
 
-    internal ConfigsBuilder() { }
+    internal ConfigBuilder() { }
 
-    public ConfigsBuilder AddConfig(object config)
+    public ConfigBuilder Add(object config)
     {
         var type = config.GetType();
         _configs[type] = config;
         return this;
     }
 
-    public Configs Build()
+    public Config Build()
     {
-        return new Configs(_configs);
+        return new Config(_configs);
     }
 }
