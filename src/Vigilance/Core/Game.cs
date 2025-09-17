@@ -184,7 +184,26 @@ public sealed unsafe class Game
         }
     }
 
-    public static bool Vsync => GetGame()._displayConfig.Vsync;
+    public static bool Vsync
+    {
+        get => GetGame()._displayConfig.Vsync;
+        set
+        {
+            var game = GetGame();
+            if (value == game._displayConfig.Vsync)
+                return;
+            game._displayConfig.Vsync = value;
+            if (!Platform.Desktop.IsCurrent())
+                return;
+            if (value)
+            {
+                Raylib.SetWindowState(ConfigFlags.VSyncHint);
+                return;
+            }
+
+            Raylib.ClearWindowState(ConfigFlags.VSyncHint);
+        }
+    }
 
     public static Scene Scene
     {
