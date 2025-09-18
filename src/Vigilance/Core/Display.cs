@@ -273,6 +273,11 @@ public sealed class Display
         display.UpdateSize();
     }
 
+    internal static void Dispose()
+    {
+        Raylib.CloseWindow();
+    }
+
     private static Display GetDisplay()
     {
         return _display ??= new Display();
@@ -280,7 +285,6 @@ public sealed class Display
 
     private void InitializeWindow()
     {
-        Game.OnQuit(Raylib.CloseWindow);
         Raylib.SetConfigFlags(GetConfigFlags());
         var width = (int)(
             _config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.X : _config.ScreenSize.X

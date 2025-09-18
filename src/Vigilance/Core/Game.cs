@@ -171,6 +171,8 @@ public sealed unsafe class Game
     private static void Dispose()
     {
         _quitAction?.Invoke();
+        Audio.Audio.Dispose();
+        Display.Dispose();
         Environment.Exit(0);
     }
 
