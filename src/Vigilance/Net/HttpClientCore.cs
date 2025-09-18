@@ -6,9 +6,10 @@ internal sealed class HttpClientCore : IHttpClient
 
     public async void Fetch(HttpRequest request)
     {
-        var response = new HttpResponse();
+        HttpResponse response = null!;
         try
         {
+            response = new HttpResponse();
             using var requestMessage = new HttpRequestMessage();
             requestMessage.Method = new HttpMethod(request.Method);
             requestMessage.RequestUri = new Uri(request.Url);

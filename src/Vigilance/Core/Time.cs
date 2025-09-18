@@ -84,9 +84,7 @@ public sealed class Time
     {
         var time = GetTime();
         var fpsTarget =
-            Display.FpsTarget < 1 && Display.Vsync && Display.Minimized
-                ? Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor())
-                : Display.FpsTarget;
+            Display.FpsTarget < 1 && Display.Vsync && Display.Minimized ? Display.RefreshRate : Display.FpsTarget;
         var target = fpsTarget < 1 ? 0 : 1.0 / fpsTarget;
         var wait = target - (Elapsed - time._last).TotalSeconds;
         if (wait > 0 && wait <= target)

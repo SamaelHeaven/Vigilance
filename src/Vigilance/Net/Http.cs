@@ -19,7 +19,6 @@ public static class Http
 
     public static void Fetch(HttpRequest request)
     {
-        Game.EnsureRunning();
         Client.Fetch(request);
     }
 

@@ -33,11 +33,21 @@ public sealed class Display
 
     public static float Height => GetDisplay()._config.Size.Y;
 
+    public static int RefreshRate
+    {
+        get
+        {
+            Game.EnsureRunning();
+            return Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor());
+        }
+    }
+
     public static Vector2 ScreenSize
     {
         get => new(ScreenWidth, ScreenHeight);
         set
         {
+            Game.EnsureRunning();
             if (!Platform.Desktop.IsCurrent())
                 return;
             if (Fullscreen)
@@ -60,6 +70,7 @@ public sealed class Display
         }
         set
         {
+            Game.EnsureRunning();
             if (!Platform.Desktop.IsCurrent())
                 return;
             if (Fullscreen)
@@ -81,6 +92,7 @@ public sealed class Display
         }
         set
         {
+            Game.EnsureRunning();
             if (!Platform.Desktop.IsCurrent())
                 return;
             if (Fullscreen)
@@ -91,10 +103,44 @@ public sealed class Display
         }
     }
 
+    public static Vector2? MinScreenSize
+    {
+        get => GetDisplay()._config.MinScreenSize;
+        set
+        {
+            value = value?.Round();
+            var display = GetDisplay();
+            if (value == display._config.MinScreenSize)
+                return;
+            display._config.MinScreenSize = value;
+            if (Platform.Desktop.IsCurrent())
+                Raylib.SetWindowMinSize((int)(value?.X ?? 0), (int)(value?.Y ?? 0));
+        }
+    }
+
+    public static Vector2? MaxScreenSize
+    {
+        get => GetDisplay()._config.MaxScreenSize;
+        set
+        {
+            value = value?.Round();
+            var display = GetDisplay();
+            if (value == display._config.MaxScreenSize)
+                return;
+            display._config.MaxScreenSize = value;
+            if (Platform.Desktop.IsCurrent())
+                Raylib.SetWindowMaxSize((int)(value?.X ?? 0), (int)(value?.Y ?? 0));
+        }
+    }
+
     public static Viewport Viewport
     {
         get => GetDisplay()._config.Viewport;
-        set => Game.Defer(() => GetDisplay()._config.Viewport = value);
+        set
+        {
+            Game.EnsureRunning();
+            Game.Defer(() => GetDisplay()._config.Viewport = value);
+        }
     }
 
     public static RenderingMode RenderingMode => GetDisplay()._config.RenderingMode;
@@ -110,12 +156,12 @@ public sealed class Display
         get => GetDisplay()._config.FpsTarget;
         set
         {
-            var game = GetDisplay();
+            var display = GetDisplay();
             if (value < 1)
                 value = 0;
             if (value == FpsTarget)
                 return;
-            game._config.FpsTarget = value;
+            display._config.FpsTarget = value;
             Raylib.SetTargetFPS(value);
         }
     }
@@ -165,26 +211,48 @@ public sealed class Display
         }
     }
 
+    public static bool Decorated
+    {
+        get => GetDisplay()._config.Decorated;
+        set
+        {
+            var display = GetDisplay();
+            if (value == display._config.Decorated)
+                return;
+            display._config.Decorated = value;
+            ToggleWindowState(ConfigFlags.WindowUndecorated, !value);
+        }
+    }
+
     public static bool Vsync
     {
         get => GetDisplay()._config.Vsync;
         set
         {
-            var game = GetDisplay();
-            if (value == game._config.Vsync)
+            var display = GetDisplay();
+            if (value == display._config.Vsync)
                 return;
-            game._config.Vsync = value;
-            if (!Platform.Desktop.IsCurrent())
-                return;
-            if (value)
-            {
-                Raylib.SetWindowState(ConfigFlags.VSyncHint);
-                return;
-            }
-
-            Raylib.ClearWindowState(ConfigFlags.VSyncHint);
+            display._config.Vsync = value;
+            ToggleWindowState(ConfigFlags.VSyncHint, value);
         }
     }
+
+    public static bool Resizable
+    {
+        get => GetDisplay()._config.Resizable;
+        set
+        {
+            var display = GetDisplay();
+            if (value == display._config.Resizable)
+                return;
+            display._config.Resizable = value;
+            ToggleWindowState(ConfigFlags.WindowResizable, value);
+        }
+    }
+
+    public static bool RunMinimized => GetDisplay()._config.RunMinimized;
+
+    public static bool Msaa4X => GetDisplay()._config.Msaa4X;
 
     public static bool Focused
     {
@@ -227,7 +295,7 @@ public sealed class Display
 
     public static void ToggleFullscreen()
     {
-        var game = GetDisplay();
+        var display = GetDisplay();
         if (Platform.Web.IsCurrent())
         {
             JSEngine.Eval(Fullscreen ? "document.exitFullscreen()" : "Module.canvas.requestFullscreen()");
@@ -238,11 +306,11 @@ public sealed class Display
             var monitorSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
             if (Fullscreen)
             {
-                game._resetScreen = true;
+                display._resetScreen = true;
             }
             else
             {
-                game._previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
+                display._previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
                 if (OperatingSystem.IsMacOS() && !Raylib.IsWindowMaximized())
                     Raylib.MaximizeWindow();
                 ScreenSize = monitorSize;
@@ -283,6 +351,19 @@ public sealed class Display
         return _display ??= new Display();
     }
 
+    private static void ToggleWindowState(ConfigFlags flag, bool value)
+    {
+        if (!Platform.Desktop.IsCurrent())
+            return;
+        if (value)
+        {
+            Raylib.SetWindowState(flag);
+            return;
+        }
+
+        Raylib.ClearWindowState(flag);
+    }
+
     private void InitializeWindow()
     {
         Raylib.SetConfigFlags(GetConfigFlags());
@@ -311,7 +392,7 @@ public sealed class Display
             Maximize();
         if (_config.Fullscreen)
             ToggleFullscreen();
-        FpsTarget = _config.FpsTarget;
+        Raylib.SetTargetFPS(_config.FpsTarget);
         if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon is null)
             return;
         var icon = _config.Icon!.Invoke().Copy();
