@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Vigilance.Core;
 
 namespace Vigilance.Drawing;
@@ -44,7 +45,7 @@ public sealed class AnimationController : IEnumerableDictionary<string, Animatio
         return _animations[animation];
     }
 
-    public bool TryGet(string animation, out Animation animationOut)
+    public bool TryGet(string animation, [MaybeNullWhen(false)] out Animation animationOut)
     {
         return _animations.TryGetValue(animation, out animationOut!);
     }

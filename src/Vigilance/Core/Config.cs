@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Vigilance.Core;
 
 public sealed class Config
@@ -24,10 +26,10 @@ public sealed class Config
         return default;
     }
 
-    public bool TryTake<T>(out T config)
+    public bool TryTake<T>([MaybeNullWhen(false)] out T config)
     {
-        config = Take<T>()!;
-        return (T?)config is not null;
+        config = Take<T>();
+        return config is not null;
     }
 
     public bool Has<T>()

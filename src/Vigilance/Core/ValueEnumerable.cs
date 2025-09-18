@@ -26,15 +26,27 @@ public interface IValueEnumerator<out TValue> : IEnumerator<TValue>
     object? IEnumerator.Current => Current;
 }
 
-public interface IEnumerableList<TValue> : IValueEnumerable<List<TValue>.Enumerator, TValue> { }
+public interface IEnumerableList<TValue> : IValueEnumerable<List<TValue>.Enumerator, TValue>;
 
 public interface IEnumerableDictionary<TKey, TValue>
     : IValueEnumerable<Dictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>
-    where TKey : notnull { }
+    where TKey : notnull;
 
-public interface IEnumerableHashSet<TValue> : IValueEnumerable<HashSet<TValue>.Enumerator, TValue> { }
+public interface IEnumerableSortedDictionary<TKey, TValue>
+    : IValueEnumerable<SortedDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>
+    where TKey : notnull;
 
-public interface IEnumerableArray<TValue> : IValueEnumerable<ArrayEnumerator<TValue>, TValue> { }
+public interface IEnumerableHashSet<TValue> : IValueEnumerable<HashSet<TValue>.Enumerator, TValue>;
+
+public interface IEnumerableSortedSet<TValue> : IValueEnumerable<SortedSet<TValue>.Enumerator, TValue>;
+
+public interface IEnumerableLinkedList<TValue> : IValueEnumerable<LinkedList<TValue>.Enumerator, TValue>;
+
+public interface IEnumerableQueue<TValue> : IValueEnumerable<Queue<TValue>.Enumerator, TValue>;
+
+public interface IEnumerableStack<TValue> : IValueEnumerable<Stack<TValue>.Enumerator, TValue>;
+
+public interface IEnumerableArray<TValue> : IValueEnumerable<ArrayEnumerator<TValue>, TValue>;
 
 public readonly struct EnumerableList<TValue>(List<TValue> list) : IEnumerableList<TValue>
 {
@@ -77,13 +89,55 @@ public readonly struct EnumerableDictionary<TKey, TValue>(Dictionary<TKey, TValu
 
     public TValue this[TKey key] => dictionary[key];
 
-    public IEnumerable<TKey> Keys => dictionary.Keys;
+    public Dictionary<TKey, TValue>.KeyCollection Keys => dictionary.Keys;
 
-    public IEnumerable<TValue> Values => dictionary.Values;
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => dictionary.Keys;
+
+    public Dictionary<TKey, TValue>.ValueCollection Values => dictionary.Values;
+
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => dictionary.Values;
 
     public static implicit operator EnumerableDictionary<TKey, TValue>(Dictionary<TKey, TValue> dictionary)
     {
         return new EnumerableDictionary<TKey, TValue>(dictionary);
+    }
+}
+
+public readonly struct EnumerableSortedDictionary<TKey, TValue>(SortedDictionary<TKey, TValue> sortedDictionary)
+    : IEnumerableSortedDictionary<TKey, TValue>,
+        IReadOnlyDictionary<TKey, TValue>
+    where TKey : notnull
+{
+    public SortedDictionary<TKey, TValue>.Enumerator GetEnumerator()
+    {
+        return sortedDictionary.GetEnumerator();
+    }
+
+    public int Count => sortedDictionary.Count;
+
+    public bool ContainsKey(TKey key)
+    {
+        return sortedDictionary.ContainsKey(key);
+    }
+
+    public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return sortedDictionary.TryGetValue(key, out value);
+    }
+
+    public TValue this[TKey key] => sortedDictionary[key];
+
+    public SortedDictionary<TKey, TValue>.KeyCollection Keys => sortedDictionary.Keys;
+
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => sortedDictionary.Keys;
+
+    public SortedDictionary<TKey, TValue>.ValueCollection Values => sortedDictionary.Values;
+
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => sortedDictionary.Values;
+
+    public static implicit operator EnumerableSortedDictionary<TKey, TValue>(SortedDictionary<TKey, TValue> dictionary)
+    {
+        return new EnumerableSortedDictionary<TKey, TValue>(dictionary);
     }
 }
 
@@ -136,6 +190,109 @@ public readonly struct EnumerableHashSet<TValue>(HashSet<TValue> hashSet)
     public static implicit operator EnumerableHashSet<TValue>(HashSet<TValue> hashSet)
     {
         return new EnumerableHashSet<TValue>(hashSet);
+    }
+}
+
+public readonly struct EnumerableSortedSet<TValue>(SortedSet<TValue> sortedSet)
+    : IEnumerableSortedSet<TValue>,
+        IReadOnlySet<TValue>
+{
+    public SortedSet<TValue>.Enumerator GetEnumerator()
+    {
+        return sortedSet.GetEnumerator();
+    }
+
+    public int Count => sortedSet.Count;
+
+    public bool Contains(TValue item)
+    {
+        return sortedSet.Contains(item);
+    }
+
+    public bool IsProperSubsetOf(IEnumerable<TValue> other)
+    {
+        return sortedSet.IsProperSubsetOf(other);
+    }
+
+    public bool IsProperSupersetOf(IEnumerable<TValue> other)
+    {
+        return sortedSet.IsProperSupersetOf(other);
+    }
+
+    public bool IsSubsetOf(IEnumerable<TValue> other)
+    {
+        return sortedSet.IsSubsetOf(other);
+    }
+
+    public bool IsSupersetOf(IEnumerable<TValue> other)
+    {
+        return sortedSet.IsSupersetOf(other);
+    }
+
+    public bool Overlaps(IEnumerable<TValue> other)
+    {
+        return sortedSet.Overlaps(other);
+    }
+
+    public bool SetEquals(IEnumerable<TValue> other)
+    {
+        return sortedSet.SetEquals(other);
+    }
+
+    public static implicit operator EnumerableSortedSet<TValue>(SortedSet<TValue> sortedSet)
+    {
+        return new EnumerableSortedSet<TValue>(sortedSet);
+    }
+}
+
+public readonly struct EnumerableLinkedList<TValue>(LinkedList<TValue> linkedList)
+    : IEnumerableLinkedList<TValue>,
+        IReadOnlyCollection<TValue>
+{
+    public LinkedList<TValue>.Enumerator GetEnumerator()
+    {
+        return linkedList.GetEnumerator();
+    }
+
+    public int Count => linkedList.Count;
+
+    public static implicit operator EnumerableLinkedList<TValue>(LinkedList<TValue> linkedList)
+    {
+        return new EnumerableLinkedList<TValue>(linkedList);
+    }
+}
+
+public readonly struct EnumerableQueue<TValue>(Queue<TValue> queue)
+    : IEnumerableQueue<TValue>,
+        IReadOnlyCollection<TValue>
+{
+    public Queue<TValue>.Enumerator GetEnumerator()
+    {
+        return queue.GetEnumerator();
+    }
+
+    public int Count => queue.Count;
+
+    public static implicit operator EnumerableQueue<TValue>(Queue<TValue> queue)
+    {
+        return new EnumerableQueue<TValue>(queue);
+    }
+}
+
+public readonly struct EnumerableStack<TValue>(Stack<TValue> stack)
+    : IEnumerableStack<TValue>,
+        IReadOnlyCollection<TValue>
+{
+    public Stack<TValue>.Enumerator GetEnumerator()
+    {
+        return stack.GetEnumerator();
+    }
+
+    public int Count => stack.Count;
+
+    public static implicit operator EnumerableStack<TValue>(Stack<TValue> stack)
+    {
+        return new EnumerableStack<TValue>(stack);
     }
 }
 
