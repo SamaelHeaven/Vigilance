@@ -6,8 +6,10 @@ using Vigilance.Core;
 
 namespace Vigilance.Logging;
 
-public static unsafe class Logger
+public static unsafe partial class Logger
 {
+    private const int StdOutputHandle = -11;
+    private const uint EnableVirtualTerminalProcessing = 0x0004;
     private static readonly Lock LogLock = new();
     private static LoggingConfig _config = new();
 
@@ -30,6 +32,7 @@ public static unsafe class Logger
         var message = $"Initializing {engine.Name} {engine.Version}";
         try
         {
+            EnableAnsiSupport();
             if (Platform.Web.IsCurrent())
                 throw new PlatformNotSupportedException();
             Raylib.SetTraceLogCallback(&UnmanagedLog);
@@ -143,4 +146,23 @@ public static unsafe class Logger
         var message = NativeStringFormatter.Format((nint)format, args);
         Log((LogLevel)logLevel, message);
     }
+
+    private static void EnableAnsiSupport()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+        var handle = GetStdHandle(StdOutputHandle);
+        if (GetConsoleMode(handle, out var mode))
+            SetConsoleMode(handle, mode | EnableVirtualTerminalProcessing);
+    }
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    private static partial void SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    private static partial nint GetStdHandle(int nStdHandle);
+
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
 }

@@ -15,9 +15,9 @@ public sealed class ConsoleLogger : ILogger
                 Console.BackgroundColor = color.Value;
             }
 
-            Console.Write(" ");
+            Console.Write("\e[1m ");
             Console.Write(level.ToString().ToUpper());
-            Console.Write(" ");
+            Console.Write(" \e[0m");
             Console.ResetColor();
             Console.Write(" ");
         }
