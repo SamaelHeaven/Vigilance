@@ -11,6 +11,19 @@ public static class Asset
     private static readonly Container<(string Key, int Quality, string Charset), Font> FontContainer = new();
     private static readonly Container<string, Music> MusicContainer = new();
     private static readonly Container<(string Key, int MaxAliases), Sound> SoundContainer = new();
+    private static AssetConfig _config = new();
+
+    public static CacheType DefaultCacheType
+    {
+        get => _config.DefaultCacheType;
+        set => _config.DefaultCacheType = value;
+    }
+
+    internal static void Initialize()
+    {
+        if (Game.Config.TryTake(out AssetConfig config))
+            _config = config;
+    }
 
     public static Texture TextureFile(string path, CacheType? cacheType = null)
     {
@@ -75,8 +88,8 @@ public static class Asset
     {
         return FontContainer.File(
             ref path,
-            () => (path, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
-            bytes => new Font(bytes, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
+            () => (path, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
+            bytes => new Font(bytes, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
             cacheType
         );
     }
@@ -94,8 +107,8 @@ public static class Asset
             ref resource,
             @namespace,
             assembly,
-            () => (resource, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
-            bytes => new Font(bytes, quality ?? Game.DefaultFontQuality, charset ?? Game.DefaultFontCharset),
+            () => (resource, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
+            bytes => new Font(bytes, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
             cacheType
         );
     }
@@ -136,8 +149,8 @@ public static class Asset
     {
         return SoundContainer.File(
             ref path,
-            () => (path, maxAliases ?? Game.DefaultSoundMaxAliases),
-            bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Game.DefaultSoundMaxAliases),
+            () => (path, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+            bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
             cacheType
         );
     }
@@ -154,8 +167,8 @@ public static class Asset
             ref resource,
             @namespace,
             assembly,
-            () => (resource, maxAliases ?? Game.DefaultSoundMaxAliases),
-            bytes => new Sound(Path.GetExtension(resource), bytes, maxAliases ?? Game.DefaultSoundMaxAliases),
+            () => (resource, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+            bytes => new Sound(Path.GetExtension(resource), bytes, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
             cacheType
         );
     }
@@ -184,7 +197,7 @@ public static class Asset
             var filePath = FileSystem.FormatPath(path);
             path = FileSystem.FormatPath(Path.Combine(FileSystem.WorkingDirectory, path));
             var key = keyFunc.Invoke();
-            var fCacheType = cacheType ?? Game.DefaultAssetCacheType;
+            var fCacheType = cacheType ?? DefaultCacheType;
             var weak = fCacheType == CacheType.Weak;
             var strong = fCacheType == CacheType.Strong;
             TValue? value;
@@ -218,7 +231,7 @@ public static class Asset
         {
             resource = FileSystem.FormatResource(resource, @namespace ?? FileSystem.WorkingNamespace);
             var key = keyFunc.Invoke();
-            var rCacheType = cacheType ?? Game.DefaultAssetCacheType;
+            var rCacheType = cacheType ?? DefaultCacheType;
             var weak = rCacheType == CacheType.Weak;
             var strong = rCacheType == CacheType.Strong;
             TValue? value;

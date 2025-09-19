@@ -19,7 +19,6 @@ public static class Http
 
     public static void Fetch(HttpRequest request)
     {
-        Game.EnsureRunning();
         Client.Fetch(request);
     }
 
@@ -31,7 +30,7 @@ public static class Http
         var statusText = response.StatusText;
         var logLevel = response.Success ? LogLevel.Info : LogLevel.Error;
         var logMessage = $"FETCH: {method} \"{url}\"{(statusCode == 0 ? "" : $" {statusCode}")} ({statusText})";
-        Game.Log(logLevel, logMessage);
+        Logger.Log(logLevel, logMessage);
         Game.Defer(() => request.OnComplete?.Invoke(response));
     }
 }

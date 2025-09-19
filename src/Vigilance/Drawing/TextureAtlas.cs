@@ -1,11 +1,11 @@
-using System.Collections;
+using Vigilance.Core;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class TextureAtlas : IEnumerable<Box>
+public sealed class TextureAtlas : IEnumerableList<Box>, IReadOnlyList<Box>
 {
-    private readonly Box[] _boxes;
+    private readonly List<Box> _boxes;
 
     public TextureAtlas(Texture texture, Vector2 count, float spacing = 0)
         : this(texture, (int)count.X, (int)count.Y, spacing) { }
@@ -18,7 +18,7 @@ public sealed class TextureAtlas : IEnumerable<Box>
 
     public TextureAtlas(Texture texture, float regionWidth, float regionHeight, int count, float spacing = 0)
     {
-        _boxes = new Box[count];
+        var boxes = new List<Box>(count);
         Texture = texture;
         RegionSize = new Vector2(regionWidth, regionHeight);
         Spacing = spacing;
@@ -26,13 +26,15 @@ public sealed class TextureAtlas : IEnumerable<Box>
         var offsetY = 0.0f;
         for (var i = 0; i < count; i++)
         {
-            _boxes[i] = new Box(offsetX, offsetY, regionWidth, regionHeight);
+            boxes.Add(new Box(offsetX, offsetY, regionWidth, regionHeight));
             offsetX += regionWidth + spacing;
             if (!(offsetX + regionWidth > texture.Width))
                 continue;
             offsetX = 0;
             offsetY += regionHeight + spacing;
         }
+
+        _boxes = boxes.ToList();
     }
 
     public Texture Texture { get; }
@@ -53,23 +55,18 @@ public sealed class TextureAtlas : IEnumerable<Box>
 
     public float RegionHeight => RegionSize.Y;
 
-    public Box this[int index] => GetRegion(index);
-
     public Box this[int x, int y] => GetRegion(x, y);
 
     public Box this[Vector2 position] => GetRegion(position);
 
-    public int Count => _boxes.Length;
-
-    public IEnumerator<Box> GetEnumerator()
+    public List<Box>.Enumerator GetEnumerator()
     {
-        return _boxes.Cast<Box>().GetEnumerator();
+        return _boxes.GetEnumerator();
     }
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
+    public Box this[int index] => GetRegion(index);
+
+    public int Count => _boxes.Count;
 
     public Box GetRegion(int index)
     {
@@ -96,24 +93,76 @@ public sealed class TextureAtlas : IEnumerable<Box>
         return row * Cols + col;
     }
 
-    public AnimationFrame[] GetAnimationFrames(int startCol, int startRow, int endCol, int? endRow = null)
+    public AnimationFrameEnumerable GetAnimationFrames(int startCol, int startRow, int endCol, int? endRow = null)
     {
         return GetAnimationFrames(GetIndex(startCol, startRow), GetIndex(endCol, endRow ?? startRow));
     }
 
-    public AnimationFrame[] GetAnimationFrames(Vector2 startPosition, Vector2 endPosition)
+    public AnimationFrameEnumerable GetAnimationFrames(Vector2 startPosition, Vector2 endPosition)
     {
         return GetAnimationFrames(GetIndex(startPosition), GetIndex(endPosition));
     }
 
-    public AnimationFrame[] GetAnimationFrames(int startIndex, int endIndex)
+    public AnimationFrameEnumerable GetAnimationFrames(int startIndex, int endIndex)
     {
         if (startIndex < 0 || endIndex >= Count || startIndex > endIndex)
             throw new ArgumentException("Invalid animation index range.");
-        var frameCount = endIndex - startIndex + 1;
-        var frames = new AnimationFrame[frameCount];
-        for (var i = 0; i < frameCount; i++)
-            frames[i] = new AnimationFrame { Texture = Texture, Source = _boxes[startIndex + i] };
-        return frames;
+
+        return new AnimationFrameEnumerable(this, startIndex, endIndex);
+    }
+
+    public readonly struct AnimationFrameEnumerable : IValueEnumerable<AnimationFrameEnumerator, AnimationFrame>
+    {
+        private readonly TextureAtlas _atlas;
+        private readonly int _startIndex;
+        private readonly int _endIndex;
+
+        internal AnimationFrameEnumerable(TextureAtlas atlas, int startIndex, int endIndex)
+        {
+            _atlas = atlas;
+            _startIndex = startIndex;
+            _endIndex = endIndex;
+        }
+
+        public AnimationFrameEnumerator GetEnumerator()
+        {
+            return new AnimationFrameEnumerator(_atlas, _startIndex, _endIndex);
+        }
+    }
+
+    public struct AnimationFrameEnumerator : IValueEnumerator<AnimationFrame>
+    {
+        private readonly TextureAtlas _atlas;
+        private readonly int _startIndex;
+        private readonly int _endIndex;
+        private int _currentIndex;
+
+        internal AnimationFrameEnumerator(TextureAtlas atlas, int startIndex, int endIndex)
+        {
+            _atlas = atlas;
+            _startIndex = startIndex;
+            _currentIndex = startIndex - 1;
+            _endIndex = endIndex;
+            Current = null!;
+        }
+
+        public bool MoveNext()
+        {
+            if (_currentIndex >= _endIndex)
+                return false;
+            _currentIndex++;
+            Current = new AnimationFrame { Texture = _atlas.Texture, Source = _atlas._boxes[_currentIndex] };
+            return true;
+        }
+
+        public void Reset()
+        {
+            _currentIndex = _startIndex - 1;
+            Current = null!;
+        }
+
+        public AnimationFrame Current { get; private set; }
+
+        public void Dispose() { }
     }
 }

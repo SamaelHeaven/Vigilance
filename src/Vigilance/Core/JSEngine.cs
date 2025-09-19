@@ -13,7 +13,7 @@ public static class JSEngine
     }
 }
 
-public readonly struct JSResult
+public readonly record struct JSResult
 {
     public string Value { get; init; }
 

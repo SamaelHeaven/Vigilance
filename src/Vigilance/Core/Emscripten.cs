@@ -20,20 +20,16 @@ internal static unsafe partial class Emscripten
     public static partial void FetchAttrInit(ref EmscriptenFetchAttr attr);
 
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8, EntryPoint = "emscripten_fetch")]
-    public static partial EmscriptenFetch* Fetch(ref EmscriptenFetchAttr attr, string url);
+    public static partial void Fetch(ref EmscriptenFetchAttr attr, string url);
 
     [LibraryImport(LibraryName, EntryPoint = "emscripten_fetch_close")]
-    public static partial int FetchClose(EmscriptenFetch* fetch);
+    public static partial void FetchClose(EmscriptenFetch* fetch);
 
     [LibraryImport(LibraryName, EntryPoint = "emscripten_fetch_get_response_headers_length")]
     public static partial nuint FetchGetResponseHeadersLength(EmscriptenFetch* fetch);
 
-    [LibraryImport(
-        LibraryName,
-        StringMarshalling = StringMarshalling.Utf8,
-        EntryPoint = "emscripten_fetch_get_response_headers"
-    )]
-    public static partial nuint FetchGetResponseHeaders(EmscriptenFetch* fetch, byte* dst, nuint dstSizeBytes);
+    [LibraryImport(LibraryName, EntryPoint = "emscripten_fetch_get_response_headers")]
+    public static partial void FetchGetResponseHeaders(EmscriptenFetch* fetch, byte* dst, nuint dstSizeBytes);
 }
 
 [StructLayout(LayoutKind.Sequential)]

@@ -6,9 +6,10 @@ internal sealed class HttpClientCore : IHttpClient
 
     public async void Fetch(HttpRequest request)
     {
-        var response = new HttpResponse();
+        HttpResponse response = null!;
         try
         {
+            response = new HttpResponse();
             using var requestMessage = new HttpRequestMessage();
             requestMessage.Method = new HttpMethod(request.Method);
             requestMessage.RequestUri = new Uri(request.Url);
@@ -20,7 +21,7 @@ internal sealed class HttpClientCore : IHttpClient
             )
                 requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value);
             HttpResponseMessage responseMessage;
-            if (request.Timeout != default)
+            if (request.Timeout != TimeSpan.Zero)
             {
                 using var cancellationTokenSource = new CancellationTokenSource(request.Timeout);
                 responseMessage = await Client.SendAsync(

@@ -3,14 +3,12 @@ using Timer = Vigilance.Core.Timer;
 
 namespace Vigilance.Systems;
 
-public sealed class TimerSystem : ISystem
+public sealed class TimerSystem : GameSystem
 {
-    public void Configure(Scene scene)
+    public override void Update()
     {
-        scene.OnUpdate(() =>
-        {
-            var step = Time.Delta;
-            scene.Each((Timer timer) => timer.Update(step));
-        });
+        var step = Time.Delta;
+        foreach (var timer in Scene.Components<Timer>())
+            timer.Update(step);
     }
 }

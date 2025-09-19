@@ -2,25 +2,23 @@ using FlexLayoutSharp;
 
 namespace Vigilance.UI;
 
-public struct Unit
+public record struct Unit(UnitType Type, float Value = 0)
 {
-    public UnitType Type { get; set; }
-    public float Value { get; set; }
-
-    public static Unit Auto { get; } = new() { Type = UnitType.Auto };
-
-    public static Unit Zero { get; } = new() { Type = UnitType.Fixed };
-
-    public static Unit Full { get; } = new() { Type = UnitType.Percent, Value = 100 };
+    public static Unit Auto => new(UnitType.Auto);
+    public static Unit Zero => new(UnitType.Fixed);
+    public static Unit NaN => new(UnitType.Fixed, float.NaN);
+    public static Unit Full => new(UnitType.Percent, 100);
+    public static Unit Half => new(UnitType.Percent, 50);
+    public static Unit Undefined => new(UnitType.Undefined);
 
     public static Unit Fixed(float value)
     {
-        return new Unit { Type = UnitType.Fixed, Value = value };
+        return new Unit(UnitType.Fixed, value);
     }
 
     public static Unit Percent(float value)
     {
-        return new Unit { Type = UnitType.Percent, Value = value };
+        return new Unit(UnitType.Percent, value);
     }
 
     public static implicit operator Unit(float value)
@@ -28,7 +26,12 @@ public struct Unit
         return Fixed(value);
     }
 
-    public float Calculate(float size)
+    public static Unit operator -(Unit unit)
+    {
+        return new Unit(unit.Type, -unit.Value);
+    }
+
+    public readonly float Calculate(float size)
     {
         return Type switch
         {
@@ -47,7 +50,7 @@ public struct Unit
             FlexLayoutSharp.Unit.Point => UnitType.Fixed,
             _ => UnitType.Undefined,
         };
-        return new Unit { Type = type, Value = value.value };
+        return new Unit(type, value.value);
     }
 
     internal static void SetUnit(Unit value, Action setAuto, Action<float> setFixed, Action<float> setPercent)

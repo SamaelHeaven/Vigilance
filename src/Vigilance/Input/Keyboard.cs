@@ -24,10 +24,10 @@ public sealed class Keyboard
     private Keyboard() { }
 
     public static string TypedString => GetKeyboard()._typedString.ToString();
-    public static IReadOnlyList<Key> DownKeys => GetKeyboard()._downKeys.AsReadOnly();
-    public static IReadOnlyList<Key> UpKeys => GetKeyboard()._upKeys.AsReadOnly();
-    public static IReadOnlyList<Key> PressedKeys => GetKeyboard()._pressedKeys.AsReadOnly();
-    public static IReadOnlyList<Key> ReleasedKeys => GetKeyboard()._releasedKeys.AsReadOnly();
+    public static EnumerableList<Key> DownKeys => GetKeyboard()._downKeys;
+    public static EnumerableList<Key> UpKeys => GetKeyboard()._upKeys;
+    public static EnumerableList<Key> PressedKeys => GetKeyboard()._pressedKeys;
+    public static EnumerableList<Key> ReleasedKeys => GetKeyboard()._releasedKeys;
 
     public static bool IsKeyDown(Key key)
     {
@@ -57,7 +57,7 @@ public sealed class Keyboard
     internal static void Update()
     {
         var keyboard = GetKeyboard();
-        if (!Game.Focused)
+        if (!Display.Focused)
         {
             keyboard.Reset();
             return;

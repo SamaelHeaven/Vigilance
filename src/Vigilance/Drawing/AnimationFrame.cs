@@ -2,7 +2,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class AnimationFrame
+public sealed record AnimationFrame
 {
     public TimeSpan Delay { get; init; } = TimeSpan.Zero;
     public Texture? Texture { get; init; } = null;

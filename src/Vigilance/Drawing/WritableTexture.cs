@@ -17,7 +17,7 @@ public sealed class WritableTexture
         RenderTexture2D = Raylib.LoadRenderTexture((int)(width * scale), (int)(height * scale));
         Texture = new Texture(RenderTexture2D.Texture, this);
         Graphics = new Graphics(this);
-        Scale = MathF.Max(1, scale);
+        Scale = scale.Max(1);
     }
 
     public Texture Texture { get; }

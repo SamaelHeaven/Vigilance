@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
@@ -7,17 +8,17 @@ namespace Vigilance.Drawing;
 public sealed class Renderer
 {
     private static Renderer? _renderer;
-    private readonly Graphics _graphics;
     private readonly WritableTexture? _buffer;
+    private readonly Graphics _graphics;
     private Vector2 _offset;
     private Vector2 _scale;
 
     private Renderer()
     {
         Game.EnsureRunning();
-        var mode = Game.RenderingMode;
+        var mode = Display.RenderingMode;
         if (mode.ModeType == RenderingModeType.Buffer)
-            _buffer = new WritableTexture(Game.Size, mode.Scale);
+            _buffer = new WritableTexture(Display.Size, mode.Scale);
         _graphics = new Graphics(_buffer);
     }
 
@@ -30,25 +31,30 @@ public sealed class Renderer
     internal static void BeginDrawing()
     {
         Graphics.Reset();
-        Raylib.ClearBackground(Game.Background.RColor);
+        Raylib.ClearBackground(Display.Background.RColor);
         var renderer = GetRenderer();
-        var screenWidth = (float)Game.ScreenWidth;
-        var screenHeight = (float)Game.ScreenHeight;
-        var width = Game.Width;
-        var height = Game.Height;
+        var screenWidth = (float)Display.ScreenWidth;
+        var screenHeight = (float)Display.ScreenHeight;
+        var width = Display.Width;
+        var height = Display.Height;
         var scaleX = screenWidth / width;
         var scaleY = screenHeight / height;
-        var minScale = MathF.Min(scaleX, scaleY);
-        var maxScale = MathF.Max(scaleX, scaleY);
-        renderer._scale = Game.Viewport switch
+        var minScale = scaleX.Min(scaleY);
+        var maxScale = scaleX.Max(scaleY);
+        var viewport = Display.Viewport;
+        renderer._scale = viewport switch
         {
             Viewport.Fit => new Vector2(minScale),
             Viewport.Stretch => new Vector2(scaleX, scaleY),
             Viewport.Crop => new Vector2(maxScale),
-            _ => throw new ArgumentOutOfRangeException(),
+            _ => throw new InvalidEnumArgumentException(
+                $"{nameof(Game)}.{nameof(Display.Viewport)}",
+                (int)viewport,
+                typeof(Viewport)
+            ),
         };
         renderer._offset = (
-            Game.Viewport switch
+            Display.Viewport switch
             {
                 Viewport.Fit => new Vector2(
                     (screenWidth - width * minScale) * 0.5f,
@@ -59,7 +65,11 @@ public sealed class Renderer
                     (screenWidth - width * maxScale) * 0.5f,
                     (screenHeight - height * maxScale) * 0.5f
                 ),
-                _ => throw new ArgumentOutOfRangeException(),
+                _ => throw new InvalidEnumArgumentException(
+                    $"{nameof(Game)}.{nameof(Display.Viewport)}",
+                    (int)viewport,
+                    typeof(Viewport)
+                ),
             }
         ).Ceil();
     }
@@ -67,16 +77,16 @@ public sealed class Renderer
     internal static void EndDrawing()
     {
         var renderer = GetRenderer();
-        var screenWidth = Game.ScreenWidth;
-        var screenHeight = Game.ScreenHeight;
-        var width = Game.Width;
-        var height = Game.Height;
+        var screenWidth = Display.ScreenWidth;
+        var screenHeight = Display.ScreenHeight;
+        var width = Display.Width;
+        var height = Display.Height;
         var scaleX = renderer._scale.X;
         var scaleY = renderer._scale.Y;
         var offsetX = (int)renderer._offset.X;
         var offsetY = (int)renderer._offset.Y;
-        var background = Game.Background.RColor;
-        var mode = Game.RenderingMode;
+        var background = Display.Background.RColor;
+        var mode = Display.RenderingMode;
         Graphics.Reset();
         if (renderer._buffer is null)
         {

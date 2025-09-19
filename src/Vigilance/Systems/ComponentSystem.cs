@@ -2,36 +2,39 @@ using Vigilance.Core;
 
 namespace Vigilance.Systems;
 
-public sealed class ComponentSystem : ISystem
+public sealed class ComponentSystem : GameSystem
 {
-    public void Configure(Scene scene)
+    public override void Update()
     {
-        scene.OnUpdate(() =>
-        {
-            scene.Each(
-                (Entity entity, Components components) =>
-                {
-                    foreach (var component in components.OfType<IComponent>())
-                        component.Update(entity);
-                }
-            );
-        });
+        foreach (var (entity, components) in Scene.Entries<Components>())
+        foreach (var component in components.OfType<IComponent>())
+            component.Update(entity);
+    }
 
-        scene.OnFixedUpdate(() =>
-        {
-            scene.Each(
-                (Entity entity, Components components) =>
-                {
-                    foreach (var component in components.OfType<IComponent>())
-                        component.FixedUpdate(entity);
-                }
-            );
-        });
+    public override void FixedUpdate()
+    {
+        foreach (var (entity, components) in Scene.Entries<Components>())
+        foreach (var component in components.OfType<IComponent>())
+            component.FixedUpdate(entity);
+    }
 
-        scene.OnRender(entity =>
-        {
-            foreach (var component in entity.Components.OfType<IComponent>())
-                component.Render(entity);
-        });
+    public override void RenderBegin()
+    {
+        foreach (var (entity, components) in Scene.Entries<Components>())
+        foreach (var component in components.OfType<IComponent>())
+            component.RenderBegin(entity);
+    }
+
+    public override void RenderEnd()
+    {
+        foreach (var (entity, components) in Scene.Entries<Components>())
+        foreach (var component in components.OfType<IComponent>())
+            component.RenderEnd(entity);
+    }
+
+    public override void Render(Entity entity)
+    {
+        foreach (var component in entity.Components.OfType<IComponent>())
+            component.Render(entity);
     }
 }

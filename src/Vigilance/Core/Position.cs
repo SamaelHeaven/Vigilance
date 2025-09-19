@@ -2,9 +2,8 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-internal readonly struct Position
+internal readonly record struct Position(Vector2 Value)
 {
-    public Vector2 Value { get; init; } = Vector2.Zero;
-
-    public Position() { }
+    public Position()
+        : this(Vector2.Zero) { }
 }

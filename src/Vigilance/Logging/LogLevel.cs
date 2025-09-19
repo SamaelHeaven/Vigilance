@@ -20,9 +20,9 @@ public static class LogLevelExtensions
     {
         return level switch
         {
-            LogLevel.Debug => ConsoleColor.Cyan,
-            LogLevel.Info => ConsoleColor.Green,
-            LogLevel.Warning => ConsoleColor.Yellow,
+            LogLevel.Debug => ConsoleColor.DarkBlue,
+            LogLevel.Info => ConsoleColor.DarkGreen,
+            LogLevel.Warning => ConsoleColor.DarkYellow,
             LogLevel.Error => ConsoleColor.Red,
             LogLevel.Fatal => ConsoleColor.DarkRed,
             _ => null,

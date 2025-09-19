@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.UI;
 
-public struct UIEvent
+public record struct UIEvent
 {
     public Entity Entity { get; set; }
     public UIElement Element { get; set; }

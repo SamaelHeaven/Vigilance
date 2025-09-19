@@ -1,4 +1,5 @@
 using Raylib_cs.BleedingEdge;
+using Vigilance.Math;
 
 namespace Vigilance.Core;
 
@@ -44,7 +45,7 @@ public sealed class Time
     public static float Scale
     {
         get => GetTime()._scale;
-        set => GetTime()._scale = MathF.Max(0, value);
+        set => GetTime()._scale = value.Max(0);
     }
 
     public static float UnscaledDeltaSeconds => (float)GetTime()._delta.TotalSeconds;
@@ -83,19 +84,27 @@ public sealed class Time
     {
         var time = GetTime();
         var fpsTarget =
-            Game.FpsTarget < 1 && Game.Config.Vsync && Game.Minimized
-                ? Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor())
-                : Game.FpsTarget;
+            Display.FpsTarget < 1 && Display.Vsync && Display.Minimized ? Display.RefreshRate : Display.FpsTarget;
         var target = fpsTarget < 1 ? 0 : 1.0 / fpsTarget;
         var wait = target - (Elapsed - time._last).TotalSeconds;
         if (wait > 0 && wait <= target)
-            Raylib.WaitTime(wait);
+            Sleep(wait);
         var elapsed = Elapsed;
         time._delta = elapsed - time._last;
         time._last = elapsed;
         while (time._fpsHistory.Count >= FpsHistorySize)
             time._fpsHistory.Dequeue();
         time._fpsHistory.Enqueue(CurrentFps);
+    }
+
+    public static void Sleep(TimeSpan duration)
+    {
+        Sleep(duration.TotalSeconds);
+    }
+
+    public static void Sleep(double seconds)
+    {
+        Raylib.WaitTime(seconds);
     }
 
     internal static void Restart()

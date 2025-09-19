@@ -1,6 +1,6 @@
 namespace Vigilance.UI;
 
-public struct Insets
+public record struct Insets
 {
     public Unit Top { get; set; }
     public Unit Right { get; set; }

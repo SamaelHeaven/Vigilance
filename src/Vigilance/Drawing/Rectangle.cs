@@ -1,12 +1,25 @@
 using Vigilance.Core;
+using Vigilance.Logging;
 
 namespace Vigilance.Drawing;
 
-public sealed class Rectangle
+public sealed class Rectangle : IFullCloneable
 {
-    public Color Fill { get; set; } = Color.White;
-    public Color Stroke { get; set; } = Color.Transparent;
-    public float StrokeWidth { get; set; } = 0;
+    public Rectangle() { }
+
+    public Rectangle(Color fill)
+    {
+        Fill = fill;
+    }
+
+    public Color Fill { get; set; } = Drawing.DefaultFill;
+    public Color Stroke { get; set; } = Drawing.DefaultStroke;
+    public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
     public float Roundness { get; set; } = 0;
-    public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
+
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this);
+    }
 }

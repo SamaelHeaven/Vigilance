@@ -1,19 +1,30 @@
+using System.Text;
+
 namespace Vigilance.Core;
 
-public interface IComponent
+public readonly record struct Component(Type Type, object? Data = null)
 {
-    void Update(Entity entity);
+    public bool Equals(Component other)
+    {
+        return Type == other.Type;
+    }
 
-    void FixedUpdate(Entity entity);
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Type);
+    }
 
-    void Render(Entity entity);
-}
+    private bool PrintMembers(StringBuilder sb)
+    {
+        var type = Data?.GetType();
+        if (Type != type)
+        {
+            sb.Append("Type = ");
+            sb.Append(Type.Name);
+            sb.Append(", Data = ");
+        }
 
-public abstract class Component : IComponent
-{
-    public virtual void Update(Entity entity) { }
-
-    public virtual void FixedUpdate(Entity entity) { }
-
-    public virtual void Render(Entity entity) { }
+        sb.Append(Data);
+        return true;
+    }
 }

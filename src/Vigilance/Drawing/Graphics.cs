@@ -9,10 +9,11 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Graphics
 {
+    private const float PixelOffset = 0.375f;
     private static WritableTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
-    private readonly Stack<Matrix3x2> _matrixStack = new();
     private readonly WritableTexture? _buffer;
+    private readonly Stack<Matrix3x2> _matrixStack = new();
     private Box? _clip = null;
     private bool _drawing = false;
     private Matrix3x2 _matrix = Matrix3x2.Identity;
@@ -28,8 +29,12 @@ public sealed unsafe class Graphics
     {
         if (entity.TryGet(out Rectangle rectangle))
             DrawRectangle(entity.WorldTransform, rectangle);
+        if (entity.TryGet(out RectangleGradient rectangleGradient))
+            DrawRectangleGradient(entity.WorldTransform, rectangleGradient);
         if (entity.TryGet(out Circle circle))
             DrawCircle(entity.WorldTransform, circle);
+        if (entity.TryGet(out CircleGradient circleGradient))
+            DrawCircleGradient(entity.WorldTransform, circleGradient);
         if (entity.TryGet(out Triangle triangle))
             DrawTriangle(entity.WorldTransform, triangle);
         if (entity.TryGet(out RegularPolygon regularPolygon))
@@ -50,11 +55,83 @@ public sealed unsafe class Graphics
 
     #endregion
 
+    #region Bounds
+
+    public Box GetBounds(Camera? camera = null, float offset = 0)
+    {
+        return GetBounds(GetMatrix(camera), offset);
+    }
+
+    public Box GetBounds(Matrix3x2 matrix, float offset = 0)
+    {
+        if (!Precision.AreEqual(offset, 0))
+        {
+            var scaleX = MathF.Sqrt(matrix.M11 * matrix.M11 + matrix.M12 * matrix.M12);
+            var scaleY = MathF.Sqrt(matrix.M21 * matrix.M21 + matrix.M22 * matrix.M22);
+            offset *= scaleX.Max(scaleY);
+        }
+
+        var clip = GetClip();
+        return new Box(
+            (clip?.Position ?? Vector2.Zero) - offset,
+            (clip?.Size ?? _buffer?.Size ?? Display.Size) + offset * 2
+        );
+    }
+
+    public bool IsBoxInBounds(float x, float y, float width, float height, Camera? camera, float offset = 0)
+    {
+        return IsBoxInBounds(new Box(x, y, width, height), camera, offset);
+    }
+
+    public bool IsBoxInBounds(Vector2 position, Vector2 size, Camera? camera, float offset = 0)
+    {
+        return IsBoxInBounds(new Box(position, size), camera, offset);
+    }
+
+    public bool IsBoxInBounds(Box box, Camera? camera, float offset = 0)
+    {
+        var matrix = GetMatrix(camera);
+        return Collision.CheckPolygonsSpan(box.Transform(matrix), (Quad)GetBounds(matrix, offset));
+    }
+
+    public bool IsPolygonInBounds(IEnumerable<Vector2> points, Camera? camera, float offset = 0)
+    {
+        return IsPolygonInBoundsSpan(points.AsSpan(), camera, offset);
+    }
+
+    public bool IsPolygonInBoundsSpan(ReadOnlySpan<Vector2> points, Camera? camera, float offset = 0)
+    {
+        var matrix = GetMatrix(camera);
+        if (points.Length > 128)
+        {
+            var transformedPoints = new Vector2[points.Length];
+            for (var i = 0; i < points.Length; i++)
+                transformedPoints[i] = points[i].Transform(matrix);
+            points = transformedPoints;
+        }
+        else
+        {
+            var transformedPoints = stackalloc Vector2[points.Length];
+            for (var i = 0; i < points.Length; i++)
+                transformedPoints[i] = points[i].Transform(matrix);
+            points = new ReadOnlySpan<Vector2>(transformedPoints, points.Length);
+        }
+
+        return Collision.CheckPolygonsSpan(points, (Quad)GetBounds(matrix, offset));
+    }
+
+    #endregion
+
     #region Matrix
 
     public Matrix3x2 GetMatrix()
     {
         return _matrixStack.Count == 0 ? _matrix : _matrixStack.Peek();
+    }
+
+    public Matrix3x2 GetMatrix(Camera? camera)
+    {
+        return camera is not null ? GetMatrix() * camera.Matrix : GetMatrix();
     }
 
     public void LoadIdentity()
@@ -198,10 +275,83 @@ public sealed unsafe class Graphics
 
     public void FillRectangle(Vector2 position, Vector2 size, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || !IsBoxInBounds(position, size, camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRec(new Raylib_cs.BleedingEdge.Rectangle(position, size), color.RColor);
+        EndDrawing();
+    }
+
+    public void FillRectangleGradient(
+        float x,
+        float y,
+        float width,
+        float height,
+        Color topLeftColor,
+        Color bottomLeftColor,
+        Color bottomRightColor,
+        Color topRightColor,
+        Camera? camera = null
+    )
+    {
+        FillRectangleGradient(
+            new Vector2(x, y),
+            new Vector2(width, height),
+            topLeftColor,
+            bottomLeftColor,
+            bottomRightColor,
+            topRightColor,
+            camera
+        );
+    }
+
+    public void FillRectangleGradient(
+        Box box,
+        Color topLeftColor,
+        Color bottomLeftColor,
+        Color bottomRightColor,
+        Color topRightColor,
+        Camera? camera = null
+    )
+    {
+        FillRectangleGradient(
+            box.Position,
+            box.Size,
+            topLeftColor,
+            bottomLeftColor,
+            bottomRightColor,
+            topRightColor,
+            camera
+        );
+    }
+
+    public void FillRectangleGradient(
+        Vector2 position,
+        Vector2 size,
+        Color topLeftColor,
+        Color bottomLeftColor,
+        Color bottomRightColor,
+        Color topRightColor,
+        Camera? camera = null
+    )
+    {
+        if (
+            (
+                topLeftColor == Color.Transparent
+                && bottomLeftColor == Color.Transparent
+                && bottomRightColor == Color.Transparent
+                && topRightColor == Color.Transparent
+            ) || !IsBoxInBounds(position, size, camera)
+        )
+            return;
+        BeginDrawing(camera);
+        Raylib.DrawRectangleGradientEx(
+            new Raylib_cs.BleedingEdge.Rectangle(position, size),
+            topLeftColor.RColor,
+            bottomLeftColor.RColor,
+            bottomRightColor.RColor,
+            topRightColor.RColor
+        );
         EndDrawing();
     }
 
@@ -231,7 +381,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
+        if (color == Color.Transparent || strokeWidth <= 0 || !IsBoxInBounds(position, size, camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleLinesEx(new Raylib_cs.BleedingEdge.Rectangle(position, size), strokeWidth, color.RColor);
@@ -264,7 +414,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || !IsBoxInBounds(position, size, camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRounded(new Raylib_cs.BleedingEdge.Rectangle(position, size), roundness, 0, color.RColor);
@@ -305,7 +455,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
+        if (color == Color.Transparent || strokeWidth <= 0 || !IsBoxInBounds(position, size, camera, strokeWidth))
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRoundedLinesEx(
@@ -318,15 +468,32 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
+    public void DrawRectangle(float x, float y, float width, float height, Rectangle rectangle)
+    {
+        DrawRectangle(new Vector2(x, y), new Vector2(width, height), rectangle);
+    }
+
+    public void DrawRectangle(Vector2 position, Vector2 size, Rectangle rectangle)
+    {
+        DrawRectangle(new Transform(position + size * 0.5f, size), rectangle);
+    }
+
+    public void DrawRectangle(Box box, Rectangle rectangle)
+    {
+        DrawRectangle(box.Position, box.Size, rectangle);
+    }
+
     public void DrawRectangle(Transform transform, Rectangle rectangle)
     {
-        var camera = rectangle.Camera?.Invoke();
+        var camera = rectangle.Camera.Get();
         var fill = rectangle.Fill;
         var stroke = rectangle.Stroke;
-        var roundness = rectangle.Roundness;
-        var strokeWidth = MathF.Max(0, rectangle.StrokeWidth);
+        var roundness = rectangle.Roundness.Abs();
         var position = transform.Position;
         var scale = transform.Scale.Abs();
+        var strokeWidth = rectangle
+            .StrokeWidth.Min(scale.X.Min(scale.Y) * 0.5f - (roundness > 0 ? PixelOffset : 0))
+            .Max(0);
         PushMatrix();
         Pivot(transform, true);
         if (roundness > 0)
@@ -345,6 +512,47 @@ public sealed unsafe class Graphics
         PopMatrix();
     }
 
+    public void DrawRectangleGradient(float x, float y, float width, float height, RectangleGradient rectangle)
+    {
+        DrawRectangleGradient(new Vector2(x, y), new Vector2(width, height), rectangle);
+    }
+
+    public void DrawRectangleGradient(Vector2 position, Vector2 size, RectangleGradient rectangle)
+    {
+        DrawRectangleGradient(new Transform(position + size * 0.5f, size), rectangle);
+    }
+
+    public void DrawRectangleGradient(Box box, RectangleGradient rectangle)
+    {
+        DrawRectangleGradient(box.Position, box.Size, rectangle);
+    }
+
+    public void DrawRectangleGradient(Transform transform, RectangleGradient rectangle)
+    {
+        var camera = rectangle.Camera.Get();
+        var topLeftFill = rectangle.TopLeftFill;
+        var bottomLeftFill = rectangle.BottomLeftFill;
+        var bottomRightFill = rectangle.BottomRightFill;
+        var topRightFill = rectangle.TopRightFill;
+        var stroke = rectangle.Stroke;
+        var position = transform.Position;
+        var scale = transform.Scale.Abs();
+        var strokeWidth = rectangle.StrokeWidth.Min(scale.X.Min(scale.Y) * 0.5f).Max(0);
+        PushMatrix();
+        Pivot(transform, true);
+        FillRectangleGradient(
+            position + strokeWidth,
+            scale - strokeWidth * 2,
+            topLeftFill,
+            bottomLeftFill,
+            bottomRightFill,
+            topRightFill,
+            camera
+        );
+        StrokeRectangle(position, scale, stroke, strokeWidth, camera);
+        PopMatrix();
+    }
+
     #endregion
 
     #region Circle
@@ -356,10 +564,45 @@ public sealed unsafe class Graphics
 
     public void FillCircle(Vector2 center, float radius, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawCircleV(center, radius, color.RColor);
+        EndDrawing();
+    }
+
+    public void FillCircleGradient(
+        Vector2 center,
+        float radius,
+        Color innerColor,
+        Color outerColor,
+        Camera? camera = null
+    )
+    {
+        if (
+            (innerColor == Color.Transparent && outerColor == Color.Transparent)
+            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
+        )
+            return;
+        BeginDrawing(camera);
+        Rlgl.Begin(RlglEnum.Triangles);
+        for (var i = 0; i < 360; i += 10)
+        {
+            Rlgl.Color4ub(innerColor.R, innerColor.G, innerColor.B, innerColor.A);
+            Rlgl.Vertex2f(center.X, center.Y);
+            Rlgl.Color4ub(outerColor.R, outerColor.G, outerColor.B, outerColor.A);
+            Rlgl.Vertex2f(
+                center.X + MathF.Cos((i + 10f).DegToRad()) * radius,
+                center.Y + MathF.Sin((i + 10f).DegToRad()) * radius
+            );
+            Rlgl.Color4ub(outerColor.R, outerColor.G, outerColor.B, outerColor.A);
+            Rlgl.Vertex2f(
+                center.X + MathF.Cos(((float)i).DegToRad()) * radius,
+                center.Y + MathF.Sin(((float)i).DegToRad()) * radius
+            );
+        }
+
+        Rlgl.End();
         EndDrawing();
     }
 
@@ -370,7 +613,11 @@ public sealed unsafe class Graphics
 
     public void StrokeCircle(Vector2 center, float radius, Color color, float strokeWidth = 1, Camera? camera = null)
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
+        if (
+            color == Color.Transparent
+            || strokeWidth <= 0
+            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
+        )
             return;
         BeginDrawing(camera);
         Raylib.DrawRing(center, radius - strokeWidth, radius + 1, 0, 360, 0, color.RColor);
@@ -379,16 +626,33 @@ public sealed unsafe class Graphics
 
     public void DrawCircle(Transform transform, Circle circle)
     {
-        var camera = circle.Camera?.Invoke();
+        var camera = circle.Camera.Get();
         var fill = circle.Fill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
         var position = transform.Position;
         var scale = transform.Scale;
+        var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
         PushMatrix();
         Pivot(transform, false);
-        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
         FillCircle(position, radius, fill, camera);
+        StrokeCircle(position, radius, stroke, strokeWidth, camera);
+        PopMatrix();
+    }
+
+    public void DrawCircleGradient(Transform transform, CircleGradient circle)
+    {
+        var camera = circle.Camera.Get();
+        var innerFill = circle.InnerFill;
+        var outerFill = circle.OuterFill;
+        var stroke = circle.Stroke;
+        var strokeWidth = circle.StrokeWidth;
+        var position = transform.Position;
+        var scale = transform.Scale;
+        var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
+        PushMatrix();
+        Pivot(transform, false);
+        FillCircleGradient(position, radius, innerFill, outerFill, camera);
         StrokeCircle(position, radius, stroke, strokeWidth, camera);
         PopMatrix();
     }
@@ -399,7 +663,12 @@ public sealed unsafe class Graphics
 
     public void FillTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color color, Camera? camera = null)
     {
-        FillCustomPolygon([v1, v2, v3], color, camera);
+        var points = stackalloc Vector2[3];
+        points[0] = v1;
+        points[1] = v2;
+        points[2] = v3;
+        var span = new ReadOnlySpan<Vector2>(points, 3);
+        FillCustomPolygonSpan(span, color, camera);
     }
 
     public void StrokeTriangle(
@@ -411,22 +680,33 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        StrokeCustomPolygon([v1, v2, v3], color, strokeWidth, camera);
+        var points = stackalloc Vector2[3];
+        points[0] = v1;
+        points[1] = v2;
+        points[2] = v3;
+        var span = new ReadOnlySpan<Vector2>(points, 3);
+        StrokeCustomPolygonSpan(span, color, strokeWidth, camera);
     }
 
     public void DrawTriangle(Transform transform, Triangle triangle)
     {
-        DrawCustomPolygon(
-            transform,
-            new CustomPolygon
-            {
-                Points = [triangle.V1, triangle.V2, triangle.V3],
-                Fill = triangle.Fill,
-                Stroke = triangle.Stroke,
-                StrokeWidth = triangle.StrokeWidth,
-                Camera = triangle.Camera,
-            }
-        );
+        var camera = triangle.Camera.Get();
+        var position = transform.Position;
+        var scale = transform.Scale;
+        var scaledPoints = Coordinates.Scale(triangle.Points, scale, position);
+        var fill = triangle.Fill;
+        var stroke = triangle.Stroke;
+        var strokeWidth = triangle.StrokeWidth;
+        PushMatrix();
+        Pivot(transform, false);
+        var points = stackalloc Vector2[3];
+        var i = 0;
+        foreach (var point in scaledPoints)
+            points[i++] = point;
+        var span = new ReadOnlySpan<Vector2>(points, 3);
+        FillCustomPolygonSpan(span, fill, camera);
+        StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+        PopMatrix();
     }
 
     #endregion
@@ -440,7 +720,7 @@ public sealed unsafe class Graphics
 
     public void FillRegularPolygon(Vector2 center, int sides, float radius, Color color, Camera? camera = null)
     {
-        if (color == Color.Transparent)
+        if (color == Color.Transparent || sides < 3 || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawPoly(center, sides, radius, 0, color.RColor);
@@ -469,16 +749,21 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
+        if (
+            color == Color.Transparent
+            || sides < 3
+            || strokeWidth <= 0
+            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
+        )
             return;
         BeginDrawing(camera);
-        Raylib.DrawPolyLinesEx(center, sides, radius, 0, strokeWidth, color.RColor);
+        Raylib.DrawPolyLinesEx(center, sides, radius, 0, radius.Min(strokeWidth), color.RColor);
         EndDrawing();
     }
 
     public void DrawRegularPolygon(Transform transform, RegularPolygon polygon)
     {
-        var camera = polygon.Camera?.Invoke();
+        var camera = polygon.Camera.Get();
         var sides = polygon.Sides;
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
@@ -487,7 +772,7 @@ public sealed unsafe class Graphics
         var scale = transform.Scale;
         PushMatrix();
         Pivot(transform, false);
-        var radius = (scale.X.Abs() + scale.Y.Abs()) * 0.25f;
+        var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
         FillRegularPolygon(position, sides, radius, fill, camera);
         StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
         PopMatrix();
@@ -495,13 +780,17 @@ public sealed unsafe class Graphics
 
     public void FillCustomPolygon(IEnumerable<Vector2> points, Color color, Camera? camera = null)
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 3)
+        FillCustomPolygonSpan(points.AsSpan(), color, camera);
+    }
+
+    public void FillCustomPolygonSpan(ReadOnlySpan<Vector2> points, Color color, Camera? camera = null)
+    {
+        if (color == Color.Transparent || points.Length < 3 || !IsPolygonInBoundsSpan(points, camera))
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, span.Length, color.RColor);
+            Raylib.DrawTriangleFan((System.Numerics.Vector2*)pointsBuffer, points.Length, color.RColor);
         }
 
         EndDrawing();
@@ -514,14 +803,28 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || strokeWidth <= 0 || span.Length < 3)
+        StrokeCustomPolygonSpan(points.AsSpan(), color, strokeWidth, camera);
+    }
+
+    public void StrokeCustomPolygonSpan(
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float strokeWidth = 1,
+        Camera? camera = null
+    )
+    {
+        if (
+            color == Color.Transparent
+            || strokeWidth <= 0
+            || points.Length < 3
+            || !IsPolygonInBoundsSpan(points, camera, strokeWidth * 0.5f)
+        )
             return;
         BeginDrawing(camera);
-        for (var i = 0; i < span.Length; i++)
+        for (var i = 0; i < points.Length; i++)
         {
-            var start = span[i];
-            var end = span[(i + 1) % span.Length];
+            var start = points[i];
+            var end = points[(i + 1) % points.Length];
             Raylib.DrawLineEx(start, end, strokeWidth, color.RColor);
             Raylib.DrawCircleV(start, strokeWidth * 0.5f, color.RColor);
         }
@@ -531,17 +834,31 @@ public sealed unsafe class Graphics
 
     public void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
     {
-        var camera = polygon.Camera?.Invoke();
+        var camera = polygon.Camera.Get();
         var position = transform.Position;
         var scale = transform.Scale;
-        var points = Coordinates.Scale(polygon.Points, scale, position);
+        var scaledPoints = Coordinates.Scale(polygon.Points, scale, position);
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
         PushMatrix();
         Pivot(transform, false);
-        FillCustomPolygon(points, fill, camera);
-        StrokeCustomPolygon(points, stroke, strokeWidth, camera);
+        ReadOnlySpan<Vector2> span;
+        if (polygon.Points.Count > 128)
+        {
+            span = scaledPoints.AsSpan();
+        }
+        else
+        {
+            var points = stackalloc Vector2[polygon.Points.Count];
+            var i = 0;
+            foreach (var point in scaledPoints)
+                points[i++] = point;
+            span = new ReadOnlySpan<Vector2>(points, polygon.Points.Count);
+        }
+
+        FillCustomPolygonSpan(span, fill, camera);
+        StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
         PopMatrix();
     }
 
@@ -573,7 +890,8 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent)
+        var radius = innerRadius.Max(outerRadius);
+        if (color == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
         BeginDrawing(camera);
         Raylib.DrawRing(center, innerRadius, outerRadius, startAngle, endAngle, 0, color.RColor);
@@ -606,7 +924,12 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (color == Color.Transparent || strokeWidth <= 0)
+        var radius = innerRadius.Max(outerRadius);
+        if (
+            color == Color.Transparent
+            || strokeWidth <= 0
+            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera, strokeWidth * 0.5f)
+        )
             return;
         var lineWidth = Rlgl.GetLineWidth();
         var changeLineWidth = !Precision.AreEqual(lineWidth, strokeWidth);
@@ -627,14 +950,14 @@ public sealed unsafe class Graphics
 
     public void DrawRing(Transform transform, Ring ring)
     {
-        var camera = ring.Camera?.Invoke();
+        var camera = ring.Camera.Get();
         var startAngle = ring.StartAngle;
         var endAngle = ring.EndAngle;
         var fill = ring.Fill;
         var stroke = ring.Stroke;
         var strokeWidth = ring.StrokeWidth;
         var position = transform.Position;
-        var scale = (transform.Scale.X.Abs() + transform.Scale.Y.Abs()) * 0.5f;
+        var scale = transform.Scale.X.Abs().Min(transform.Scale.Y.Abs());
         var innerRadius = ring.InnerRadius * scale;
         var outerRadius = ring.OuterRadius * scale;
         PushMatrix();
@@ -663,7 +986,11 @@ public sealed unsafe class Graphics
 
     public void DrawLine(Vector2 start, Vector2 end, Color color, float thick = 1, Camera? camera = null)
     {
-        if (color == Color.Transparent || thick <= 0)
+        if (
+            color == Color.Transparent
+            || thick <= 0
+            || !IsPolygonInBoundsSpan(new Quad(start, start, end, end), camera, thick * 0.5f)
+        )
             return;
         BeginDrawing(camera);
         Raylib.DrawLineEx(start, end, thick, color.RColor);
@@ -672,13 +999,13 @@ public sealed unsafe class Graphics
 
     public void DrawLine(Transform transform, Line line)
     {
-        var camera = line.Camera?.Invoke();
+        var camera = line.Camera.Get();
         var position = transform.Position;
         var start = line.Start + position;
         var end = line.End + position;
         var color = line.Color;
         var thick = line.Thick;
-        var scale = (transform.Scale.X.Abs() + transform.Scale.Y.Abs()) * 0.5f;
+        var scale = transform.Scale.X.Abs().Min(transform.Scale.Y.Abs());
         PushMatrix();
         Pivot(transform, false);
         DrawLine(start, end, color, thick * scale, camera);
@@ -717,20 +1044,9 @@ public sealed unsafe class Graphics
     {
         if (text == "" || color == Color.Transparent)
             return;
-        font ??= Game.DefaultFont;
-        Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
-        BeginDrawing(camera);
-        var rColor = color.RColor;
+        font ??= Font.Default;
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing))
-            Raylib.DrawTexturePro(
-                font.Atlas.Texture2D,
-                new Raylib_cs.BleedingEdge.Rectangle(source.Position, source.Size),
-                new Raylib_cs.BleedingEdge.Rectangle(dest.Position + position, dest.Size),
-                new Vector2(),
-                0,
-                rColor
-            );
-        EndDrawing();
+            DrawTexture(font.Atlas, source, new Box(dest.Position + position, dest.Size), color, interpolation, camera);
     }
 
     public void StrokeText(
@@ -763,26 +1079,25 @@ public sealed unsafe class Graphics
     {
         if (text == "" || color == Color.Transparent || strokeWidth <= 0)
             return;
-        font ??= Game.DefaultFont;
+        font ??= Font.Default;
         var (atlas, glyphInfos) = font.GetStroke((int)strokeWidth.Round());
-        Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
-        BeginDrawing(camera);
-        var rColor = color.RColor;
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, glyphInfos))
-            Raylib.DrawTexturePro(
-                atlas.Texture2D,
-                new Raylib_cs.BleedingEdge.Rectangle(source.Position, source.Size),
-                new Raylib_cs.BleedingEdge.Rectangle(dest.Position + position, dest.Size),
-                new Vector2(),
-                0,
-                rColor
-            );
-        EndDrawing();
+            DrawTexture(atlas, source, new Box(dest.Position + position, dest.Size), color, interpolation, camera);
+    }
+
+    public void DrawText(float x, float y, Text text)
+    {
+        DrawText(new Vector2(x, y), text);
+    }
+
+    public void DrawText(Vector2 position, Text text)
+    {
+        DrawText(new Transform(position + text.Size * 0.5f), text);
     }
 
     public void DrawText(Transform transform, Text text)
     {
-        var camera = text.Camera?.Invoke();
+        var camera = text.Camera.Get();
         var value = text.Value;
         var fill = text.Fill;
         var stroke = text.Stroke;
@@ -793,9 +1108,9 @@ public sealed unsafe class Graphics
         var interpolation = text.Interpolation;
         var position = transform.Position;
         var scale = transform.Scale;
-        PushMatrix();
         fontSize *= (scale.X.Abs() + scale.Y.Abs()) * 0.5f;
-        transform.Scale = text.Font.MeasureText(value, fontSize, spacing);
+        transform.Scale = text.Size;
+        PushMatrix();
         Pivot(transform, true);
         FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
         StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
@@ -871,6 +1186,8 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
+        if (!IsBoxInBounds(dest, camera))
+            return;
         Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
         BeginDrawing(camera);
         var rSource = new Raylib_cs.BleedingEdge.Rectangle(
@@ -884,9 +1201,24 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
+    public void DrawSprite(float x, float y, float width, float height, Sprite sprite)
+    {
+        DrawSprite(new Vector2(x, y), new Vector2(width, height), sprite);
+    }
+
+    public void DrawSprite(Vector2 position, Vector2 size, Sprite sprite)
+    {
+        DrawSprite(new Transform(position + size * 0.5f, size), sprite);
+    }
+
+    public void DrawSprite(Box box, Sprite sprite)
+    {
+        DrawSprite(box.Position, box.Size, sprite);
+    }
+
     public void DrawSprite(Transform transform, Sprite sprite)
     {
-        var camera = sprite.Camera?.Invoke();
+        var camera = sprite.Camera.Get();
         var texture = sprite.Texture;
         var interpolation = sprite.Interpolation;
         var tint = sprite.Tint;
@@ -939,17 +1271,16 @@ public sealed unsafe class Graphics
     {
         if (color == Color.Transparent || thick <= 0)
             return;
-        BeginDrawing(camera);
+        cellSize = cellSize.Max(1);
         for (var x = position.X; x <= position.X + size.X; x += cellSize)
-            Raylib.DrawLineEx(new Vector2(x, position.Y), new Vector2(x, position.Y + size.Y), thick, color.RColor);
+            DrawLine(new Vector2(x, position.Y), new Vector2(x, position.Y + size.Y), color, thick, camera);
         for (var y = position.Y; y <= position.Y + size.Y; y += cellSize)
-            Raylib.DrawLineEx(new Vector2(position.X, y), new Vector2(position.X + size.X, y), thick, color.RColor);
-        EndDrawing();
+            DrawLine(new Vector2(position.X, y), new Vector2(position.X + size.X, y), color, thick, camera);
     }
 
     public void DrawGrid(Transform transform, Grid grid)
     {
-        var camera = grid.Camera?.Invoke();
+        var camera = grid.Camera.Get();
         var color = grid.Color;
         var cellSize = grid.CellSize;
         var thick = grid.Thick;
@@ -961,19 +1292,38 @@ public sealed unsafe class Graphics
         PopMatrix();
     }
 
+    public void DrawGrid(float x, float y, float width, float height, Grid grid)
+    {
+        DrawGrid(new Vector2(x, y), new Vector2(width, height), grid);
+    }
+
+    public void DrawGrid(Vector2 position, Vector2 size, Grid grid)
+    {
+        DrawGrid(new Transform(position + size * 0.5f, size), grid);
+    }
+
+    public void DrawGrid(Box box, Grid grid)
+    {
+        DrawGrid(box.Position, box.Size, grid);
+    }
+
     #endregion
 
     #region Spline
 
     public void DrawSplineLinear(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 2 || thick <= 0)
+        DrawSplineLinearSpan(points.AsSpan(), color, thick, camera);
+    }
+
+    public void DrawSplineLinearSpan(ReadOnlySpan<Vector2> points, Color color, float thick = 1, Camera? camera = null)
+    {
+        if (color == Color.Transparent || points.Length < 2 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawSplineLinear((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
+            Raylib.DrawSplineLinear((System.Numerics.Vector2*)pointsBuffer, points.Length, thick, color.RColor);
         }
 
         EndDrawing();
@@ -981,13 +1331,17 @@ public sealed unsafe class Graphics
 
     public void DrawSplineBasis(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 4 || thick <= 0)
+        DrawSplineBasisSpan(points.AsSpan(), color, thick, camera);
+    }
+
+    public void DrawSplineBasisSpan(ReadOnlySpan<Vector2> points, Color color, float thick = 1, Camera? camera = null)
+    {
+        if (color == Color.Transparent || points.Length < 4 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawSplineBasis((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
+            Raylib.DrawSplineBasis((System.Numerics.Vector2*)pointsBuffer, points.Length, thick, color.RColor);
         }
 
         EndDrawing();
@@ -995,13 +1349,22 @@ public sealed unsafe class Graphics
 
     public void DrawSplineCatmullRom(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 4 || thick <= 0)
+        DrawSplineCatmullRomSpan(points.AsSpan(), color, thick, camera);
+    }
+
+    public void DrawSplineCatmullRomSpan(
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || points.Length < 4 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawSplineCatmullRom((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
+            Raylib.DrawSplineCatmullRom((System.Numerics.Vector2*)pointsBuffer, points.Length, thick, color.RColor);
         }
 
         EndDrawing();
@@ -1014,13 +1377,27 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 3 || thick <= 0)
+        DrawSplineBezierQuadraticSpan(points.AsSpan(), color, thick, camera);
+    }
+
+    public void DrawSplineBezierQuadraticSpan(
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || points.Length < 3 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawSplineBezierQuadratic((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
+            Raylib.DrawSplineBezierQuadratic(
+                (System.Numerics.Vector2*)pointsBuffer,
+                points.Length,
+                thick,
+                color.RColor
+            );
         }
 
         EndDrawing();
@@ -1028,13 +1405,22 @@ public sealed unsafe class Graphics
 
     public void DrawSplineBezierCubic(IEnumerable<Vector2> points, Color color, float thick = 1, Camera? camera = null)
     {
-        var span = points.AsSpan();
-        if (color == Color.Transparent || span.Length < 4 || thick <= 0)
+        DrawSplineBezierCubicSpan(points.AsSpan(), color, thick, camera);
+    }
+
+    public void DrawSplineBezierCubicSpan(
+        ReadOnlySpan<Vector2> points,
+        Color color,
+        float thick = 1,
+        Camera? camera = null
+    )
+    {
+        if (color == Color.Transparent || points.Length < 4 || thick <= 0)
             return;
         BeginDrawing(camera);
-        fixed (Vector2* pointsBuffer = span)
+        fixed (Vector2* pointsBuffer = points)
         {
-            Raylib.DrawSplineBezierCubic((System.Numerics.Vector2*)pointsBuffer, span.Length, thick, color.RColor);
+            Raylib.DrawSplineBezierCubic((System.Numerics.Vector2*)pointsBuffer, points.Length, thick, color.RColor);
         }
 
         EndDrawing();
@@ -1173,10 +1559,10 @@ public sealed unsafe class Graphics
             _currentClip = clip;
             if (clip.HasValue)
                 Raylib.BeginScissorMode(
-                    (int)clip.Value.X.Round(),
-                    (int)clip.Value.Y.Round(),
-                    (int)clip.Value.Width.Round(),
-                    (int)clip.Value.Height.Round()
+                    (int)(clip.Value.X + PixelOffset).Round(),
+                    (int)(clip.Value.Y + PixelOffset).Round(),
+                    (int)(clip.Value.Width + PixelOffset).Round(),
+                    (int)(clip.Value.Height + PixelOffset).Round()
                 );
         }
 
@@ -1184,7 +1570,7 @@ public sealed unsafe class Graphics
         Rlgl.PushMatrix();
         Rlgl.Translatef(offset.X, offset.Y, 0);
         Rlgl.Scalef(scale.X, scale.Y, 1);
-        Rlgl.Translatef(0.375f, 0.375f, 0);
+        Rlgl.Translatef(PixelOffset, PixelOffset, 0);
         if (camera is not null)
             matrix *= camera.Matrix;
         Rlgl.MultMatrixf(

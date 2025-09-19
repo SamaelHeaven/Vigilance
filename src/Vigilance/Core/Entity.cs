@@ -1,16 +1,19 @@
 #pragma warning disable CS9084
 
+using System.Text;
+using Flecs.NET.Bindings;
 using Flecs.NET.Core;
+using Flecs.NET.Utilities;
 using Vigilance.Math;
+
+// ReSharper disable PossiblyImpureMethodCallOnReadonlyVariable
+#pragma warning disable CS8656 // Call to non-readonly member from a 'readonly' member results in an implicit copy.
 
 namespace Vigilance.Core;
 
-public unsafe struct Entity
+public unsafe partial record struct Entity
 {
-    public static Entity Null { get; } = new(Flecs.NET.Core.Entity.Null(), null!);
-    public Scene Scene { get; }
-
-    private Flecs.NET.Core.Entity _entity;
+    private readonly Flecs.NET.Core.Entity _entity;
 
     internal Entity(Flecs.NET.Core.Entity entity, Scene scene)
     {
@@ -18,13 +21,30 @@ public unsafe struct Entity
         Scene = scene;
     }
 
+    public static Entity Null { get; } = new(Flecs.NET.Core.Entity.Null(), null!);
+    public Scene Scene { get; }
+
     public ulong Id => _entity.Id.Value;
 
-    public string Name => _entity.Name();
+    public string Name
+    {
+        get
+        {
+            EnsureValid();
+            return _entity.Name();
+        }
+    }
 
     public bool Valid => _entity.IsValid();
 
-    public Entity Parent => new(_entity.Parent(), null!);
+    public Entity Parent
+    {
+        get
+        {
+            EnsureValid();
+            return new Entity(_entity.Parent(), Scene);
+        }
+    }
 
     public Transform Transform
     {
@@ -47,51 +67,55 @@ public unsafe struct Entity
 
     public Vector2 Position
     {
-        get => Has<Position>() ? Get<Position>().Value : Vector2.Zero;
+        get => Has<Position>() ? _entity.Get<Position>().Value : Vector2.Zero;
         set
         {
+            EnsureValid();
             if (!Precision.AreEqual(Position, value))
-                Set(new Position { Value = value }, false);
+                Set(new Position(value), false);
         }
     }
 
     public Vector2 Scale
     {
-        get => Has<Scale>() ? Get<Scale>().Value : Vector2.One;
+        get => Has<Scale>() ? _entity.Get<Scale>().Value : Vector2.One;
         set
         {
+            EnsureValid();
             if (!Precision.AreEqual(Scale, value))
-                Set(new Scale { Value = value }, false);
+                Set(new Scale(value), false);
         }
     }
 
     public float Rotation
     {
-        get => Has<Rotation>() ? Get<Rotation>().Value : 0;
+        get => Has<Rotation>() ? _entity.Get<Rotation>().Value : 0;
         set
         {
+            EnsureValid();
             if (!Precision.AreEqual(Rotation, value))
-                Set(new Rotation { Value = value }, false);
+                Set(new Rotation(value), false);
         }
     }
 
     public Vector2 PivotPoint
     {
-        get => Has<PivotPoint>() ? Get<PivotPoint>().Value : Vector2.Zero;
+        get => Has<PivotPoint>() ? _entity.Get<PivotPoint>().Value : Vector2.Zero;
         set
         {
+            EnsureValid();
             if (!Precision.AreEqual(PivotPoint, value))
-                Set(new PivotPoint { Value = value }, false);
+                Set(new PivotPoint(value), false);
         }
     }
 
     public int ZIndex
     {
-        get => Has<ZIndex>() ? Get<ZIndex>().Value : 0;
+        get => Has<ZIndex>() ? _entity.Get<ZIndex>().Value : 0;
         set
         {
             if (ZIndex != value)
-                Set(new ZIndex { Value = value }, false);
+                Set(new ZIndex(value), false);
         }
     }
 
@@ -161,82 +185,69 @@ public unsafe struct Entity
         }
     }
 
-    public Components Components => _entity.Has<Components>() ? _entity.Get<Components>() : Components.Empty;
+    public Components Components => Has<Components>() ? _entity.Get<Components>() : Components.Empty;
 
-    public static bool operator ==(Entity a, Entity b)
-    {
-        return a.Equals(b);
-    }
-
-    public static bool operator !=(Entity a, Entity b)
-    {
-        return !(a == b);
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is Entity entity && Equals(entity);
-    }
+    public ChildEnumerable Children => new(this);
 
     public bool Equals(Entity other)
     {
-        return _entity == other._entity;
+        return Id == other.Id;
     }
 
     public override int GetHashCode()
     {
-        return _entity.GetHashCode();
+        return Id.GetHashCode();
     }
 
-    public ref Entity SetTransform(Transform transform)
+    public ref readonly Entity SetTransform(Transform transform)
     {
         Transform = transform;
         return ref this;
     }
 
-    public ref Entity SetPosition(float v1, float? v2 = null)
+    public ref readonly Entity SetPosition(float v1, float? v2 = null)
     {
         Position = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
-    public ref Entity SetPosition(Vector2 position)
+    public ref readonly Entity SetPosition(Vector2 position)
     {
         Position = position;
         return ref this;
     }
 
-    public ref Entity SetScale(float v1, float? v2 = null)
+    public ref readonly Entity SetScale(float v1, float? v2 = null)
     {
         Scale = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
-    public ref Entity SetScale(Vector2 scale)
+    public ref readonly Entity SetScale(Vector2 scale)
     {
         Scale = scale;
         return ref this;
     }
 
-    public ref Entity SetRotation(float rotation)
+    public ref readonly Entity SetRotation(float rotation)
     {
         Rotation = rotation;
         return ref this;
     }
 
-    public ref Entity SetPivotPoint(float v1, float? v2 = null)
+    public ref readonly Entity SetPivotPoint(float v1, float? v2 = null)
     {
         PivotPoint = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
-    public ref Entity SetPivotPoint(Vector2 pivotPoint)
+    public ref readonly Entity SetPivotPoint(Vector2 pivotPoint)
     {
         PivotPoint = pivotPoint;
         return ref this;
     }
 
-    public ref Entity SetZIndex(int zIndex)
+    public ref readonly Entity SetZIndex(int zIndex)
     {
         ZIndex = zIndex;
         return ref this;
@@ -244,29 +255,31 @@ public unsafe struct Entity
 
     public T Get<T>()
     {
+        EnsureValid();
         return _entity.Get<T>();
     }
 
-    public ref Entity Set<T>(T data)
+    public ref readonly Entity Set<T>(T data)
     {
         Set(data, true);
         return ref this;
     }
 
-    public ref Entity Set<T>(ref T data)
+    public ref readonly Entity Set<T>(ref T data)
     {
         Set(data, true);
         return ref this;
     }
 
-    private ref Entity Set<T>(T data, bool updateComponents)
+    private ref readonly Entity Set<T>(T data, bool updateComponents)
     {
         Set(ref data, updateComponents);
         return ref this;
     }
 
-    private ref Entity Set<T>(ref T data, bool updateComponents)
+    private ref readonly Entity Set<T>(ref T data, bool updateComponents)
     {
+        EnsureValid();
         var type = typeof(T);
         if (type == typeof(Components))
             throw new InvalidOperationException("Components cannot be set.");
@@ -281,8 +294,9 @@ public unsafe struct Entity
         return ref this;
     }
 
-    public ref Entity Remove<T>()
+    public ref readonly Entity Remove<T>()
     {
+        EnsureValid();
         var type = typeof(T);
         if (type == typeof(Components))
             throw new InvalidOperationException("Components cannot be removed.");
@@ -293,640 +307,186 @@ public unsafe struct Entity
 
     public void Destroy()
     {
+        EnsureValid();
         _entity.Destruct();
     }
 
-    public ref Entity Scope(Action action)
+    public ref readonly Entity Scope(Action action)
     {
+        EnsureValid();
+        Scene.DeferBegin();
         _entity.Scope(action);
+        Scene.DeferEnd();
         return ref this;
     }
 
-    public ref Entity ChildOf(Entity parent)
+    public ref readonly Entity ChildOf(Entity parent)
     {
+        EnsureValid();
         _entity.ChildOf(parent._entity);
         return ref this;
     }
 
     public bool IsChildOf(Entity parent)
     {
-        return _entity.Has(Ecs.ChildOf, parent._entity);
+        EnsureValid();
+        return _entity.Has(Ecs.ChildOf, parent.Id);
     }
 
-    public ref Entity Children(Action<Entity> action)
+    public void EnsureValid()
     {
-        var scene = Scene;
-        scene.DeferBegin();
-        _entity.Children(entity => action.Invoke(new Entity(entity, scene)));
-        scene.DeferEnd();
-        return ref this;
+        if (!_entity.IsValid())
+            throw new InvalidOperationException("Entity is not valid.");
+    }
+
+    private bool PrintMembers(StringBuilder sb)
+    {
+        sb.Append("Id = ");
+        sb.Append(Id);
+        if (!Valid)
+        {
+            sb.Append(", Valid = ");
+            sb.Append(Valid);
+            return true;
+        }
+
+        var name = Name;
+        if (name != "")
+        {
+            sb.Append(", Name = ");
+            sb.Append(Name);
+        }
+
+        sb.Append(", Transform = ");
+        sb.Append(Transform.ToString());
+        sb.Append(", Components = ");
+        sb.Append(Components.ToString());
+        return true;
+    }
+
+    public readonly struct ChildEnumerable : IValueEnumerable<ChildEnumerator, Entity>
+    {
+        private readonly Entity _entity;
+
+        internal ChildEnumerable(Entity entity)
+        {
+            _entity = entity;
+        }
+
+        public ChildEnumerator GetEnumerator()
+        {
+            return new ChildEnumerator(_entity);
+        }
+    }
+
+    public struct ChildEnumerator : IValueEnumerator<Entity>
+    {
+        private readonly Entity _entity;
+        private flecs.ecs_iter_t _iter;
+        private int _index;
+
+        internal ChildEnumerator(Entity entity)
+        {
+            _entity = entity;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            if (_iter.world == null)
+                return false;
+            if (_index < _iter.count)
+            {
+                _index++;
+                if (_index < _iter.count)
+                    return true;
+            }
+
+            _index = 0;
+            fixed (flecs.ecs_iter_t* iter = &_iter)
+            {
+                return Utils.Bool(flecs.ecs_each_next(iter));
+            }
+        }
+
+        public void Reset()
+        {
+            _entity.EnsureValid();
+            Dispose();
+            _entity.Scene.DeferBegin();
+            _iter = flecs.ecs_each_id(_entity._entity.World, Ecs.Pair(flecs.EcsChildOf, _entity.Id));
+            _index = 0;
+            fixed (flecs.ecs_iter_t* iter = &_iter)
+            {
+                Ecs.TableLock(iter);
+            }
+        }
+
+        public Entity Current
+        {
+            get
+            {
+                if (_iter.world == null)
+                    return Null;
+                var entity = new Flecs.NET.Core.Entity(_entity._entity.World, _iter.entities[_index]);
+                return new Entity(entity, _entity.Scene);
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_iter.world == null)
+                return;
+            fixed (flecs.ecs_iter_t* iter = &_iter)
+            {
+                Ecs.TableUnlock(iter);
+            }
+
+            _entity.Scene.DeferEnd();
+            _iter = default;
+            _index = 0;
+        }
     }
 
     #region Traverse
 
-    public ref Entity Traverse(Action<Entity> action)
+    public ref readonly Entity Traverse(Action<Entity> action)
     {
+        EnsureValid();
         action.Invoke(this);
-        Children(child => child.Traverse(action));
+        foreach (var child in Children)
+            child.Traverse(action);
         return ref this;
     }
 
-    public ref Entity Traverse<T>(Action<Entity> action)
+    public ref readonly Entity Traverse<T>(Action<Entity> action)
     {
-        if (Has<T>())
+        EnsureValid();
+        if (_entity.Has<T>())
             action.Invoke(this);
-        Children(child => child.Traverse<T>(action));
+        foreach (var child in Children)
+            child.Traverse<T>(action);
         return ref this;
     }
 
-    public ref Entity Traverse<T>(Action<T> action)
+    public ref readonly Entity Traverse<T>(Action<T> action)
     {
-        if (Has<T>())
-            action.Invoke(Get<T>());
-        Children(child => child.Traverse(action));
+        EnsureValid();
+        if (_entity.Has<T>())
+            action.Invoke(_entity.Get<T>());
+        foreach (var child in Children)
+            child.Traverse(action);
         return ref this;
     }
 
-    public ref Entity Traverse<T>(Action<Entity, T> action)
+    public ref readonly Entity Traverse<T>(Action<Entity, T> action)
     {
-        if (Has<T>())
-            action.Invoke(this, Get<T>());
-        Children(child => child.Traverse(action));
+        EnsureValid();
+        if (_entity.Has<T>())
+            action.Invoke(this, _entity.Get<T>());
+        foreach (var child in Children)
+            child.Traverse(action);
         return ref this;
-    }
-
-    #endregion
-
-    #region TryGet
-
-    public bool TryGet<T0>(out T0 t)
-    {
-        var result = Has<T0>();
-        t = default!;
-        if (result)
-            t = Get<T0>();
-        return result;
-    }
-
-    public bool TryGet<T0, T1>(out T0 t0, out T1 t1)
-    {
-        t0 = default!;
-        t1 = default!;
-        return TryGet(out t0) && TryGet(out t1);
-    }
-
-    public bool TryGet<T0, T1, T2>(out T0 t0, out T1 t1, out T2 t2)
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        return TryGet(out t0) && TryGet(out t1) && TryGet(out t2);
-    }
-
-    public bool TryGet<T0, T1, T2, T3>(out T0 t0, out T1 t1, out T2 t2, out T3 t3)
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        return TryGet(out t0) && TryGet(out t1) && TryGet(out t2) && TryGet(out t3);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4>(out T0 t0, out T1 t1, out T2 t2, out T3 t3, out T4 t4)
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        return TryGet(out t0) && TryGet(out t1) && TryGet(out t2) && TryGet(out t3) && TryGet(out t4);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4, T5>(out T0 t0, out T1 t1, out T2 t2, out T3 t3, out T4 t4, out T5 t5)
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        t5 = default!;
-        return TryGet(out t0) && TryGet(out t1) && TryGet(out t2) && TryGet(out t3) && TryGet(out t4) && TryGet(out t5);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6>(
-        out T0 t0,
-        out T1 t1,
-        out T2 t2,
-        out T3 t3,
-        out T4 t4,
-        out T5 t5,
-        out T6 t6
-    )
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        t5 = default!;
-        t6 = default!;
-        return TryGet(out t0)
-            && TryGet(out t1)
-            && TryGet(out t2)
-            && TryGet(out t3)
-            && TryGet(out t4)
-            && TryGet(out t5)
-            && TryGet(out t6);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7>(
-        out T0 t0,
-        out T1 t1,
-        out T2 t2,
-        out T3 t3,
-        out T4 t4,
-        out T5 t5,
-        out T6 t6,
-        out T7 t7
-    )
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        t5 = default!;
-        t6 = default!;
-        t7 = default!;
-        return TryGet(out t0)
-            && TryGet(out t1)
-            && TryGet(out t2)
-            && TryGet(out t3)
-            && TryGet(out t4)
-            && TryGet(out t5)
-            && TryGet(out t6)
-            && TryGet(out t7);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8>(
-        out T0 t0,
-        out T1 t1,
-        out T2 t2,
-        out T3 t3,
-        out T4 t4,
-        out T5 t5,
-        out T6 t6,
-        out T7 t7,
-        out T8 t8
-    )
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        t5 = default!;
-        t6 = default!;
-        t7 = default!;
-        t8 = default!;
-        return TryGet(out t0)
-            && TryGet(out t1)
-            && TryGet(out t2)
-            && TryGet(out t3)
-            && TryGet(out t4)
-            && TryGet(out t5)
-            && TryGet(out t6)
-            && TryGet(out t7)
-            && TryGet(out t8);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>(
-        out T0 t0,
-        out T1 t1,
-        out T2 t2,
-        out T3 t3,
-        out T4 t4,
-        out T5 t5,
-        out T6 t6,
-        out T7 t7,
-        out T8 t8,
-        out T9 t9
-    )
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        t5 = default!;
-        t6 = default!;
-        t7 = default!;
-        t8 = default!;
-        t9 = default!;
-        return TryGet(out t0)
-            && TryGet(out t1)
-            && TryGet(out t2)
-            && TryGet(out t3)
-            && TryGet(out t4)
-            && TryGet(out t5)
-            && TryGet(out t6)
-            && TryGet(out t7)
-            && TryGet(out t8)
-            && TryGet(out t9);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(
-        out T0 t0,
-        out T1 t1,
-        out T2 t2,
-        out T3 t3,
-        out T4 t4,
-        out T5 t5,
-        out T6 t6,
-        out T7 t7,
-        out T8 t8,
-        out T9 t9,
-        out T10 t10
-    )
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        t5 = default!;
-        t6 = default!;
-        t7 = default!;
-        t8 = default!;
-        t9 = default!;
-        t10 = default!;
-        return TryGet(out t0)
-            && TryGet(out t1)
-            && TryGet(out t2)
-            && TryGet(out t3)
-            && TryGet(out t4)
-            && TryGet(out t5)
-            && TryGet(out t6)
-            && TryGet(out t7)
-            && TryGet(out t8)
-            && TryGet(out t9)
-            && TryGet(out t10);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(
-        out T0 t0,
-        out T1 t1,
-        out T2 t2,
-        out T3 t3,
-        out T4 t4,
-        out T5 t5,
-        out T6 t6,
-        out T7 t7,
-        out T8 t8,
-        out T9 t9,
-        out T10 t10,
-        out T11 t11
-    )
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        t5 = default!;
-        t6 = default!;
-        t7 = default!;
-        t8 = default!;
-        t9 = default!;
-        t10 = default!;
-        t11 = default!;
-        return TryGet(out t0)
-            && TryGet(out t1)
-            && TryGet(out t2)
-            && TryGet(out t3)
-            && TryGet(out t4)
-            && TryGet(out t5)
-            && TryGet(out t6)
-            && TryGet(out t7)
-            && TryGet(out t8)
-            && TryGet(out t9)
-            && TryGet(out t10)
-            && TryGet(out t11);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(
-        out T0 t0,
-        out T1 t1,
-        out T2 t2,
-        out T3 t3,
-        out T4 t4,
-        out T5 t5,
-        out T6 t6,
-        out T7 t7,
-        out T8 t8,
-        out T9 t9,
-        out T10 t10,
-        out T11 t11,
-        out T12 t12
-    )
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        t5 = default!;
-        t6 = default!;
-        t7 = default!;
-        t8 = default!;
-        t9 = default!;
-        t10 = default!;
-        t11 = default!;
-        t12 = default!;
-        return TryGet(out t0)
-            && TryGet(out t1)
-            && TryGet(out t2)
-            && TryGet(out t3)
-            && TryGet(out t4)
-            && TryGet(out t5)
-            && TryGet(out t6)
-            && TryGet(out t7)
-            && TryGet(out t8)
-            && TryGet(out t9)
-            && TryGet(out t10)
-            && TryGet(out t11)
-            && TryGet(out t12);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
-        out T0 t0,
-        out T1 t1,
-        out T2 t2,
-        out T3 t3,
-        out T4 t4,
-        out T5 t5,
-        out T6 t6,
-        out T7 t7,
-        out T8 t8,
-        out T9 t9,
-        out T10 t10,
-        out T11 t11,
-        out T12 t12,
-        out T13 t13
-    )
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        t5 = default!;
-        t6 = default!;
-        t7 = default!;
-        t8 = default!;
-        t9 = default!;
-        t10 = default!;
-        t11 = default!;
-        t12 = default!;
-        t13 = default!;
-        return TryGet(out t0)
-            && TryGet(out t1)
-            && TryGet(out t2)
-            && TryGet(out t3)
-            && TryGet(out t4)
-            && TryGet(out t5)
-            && TryGet(out t6)
-            && TryGet(out t7)
-            && TryGet(out t8)
-            && TryGet(out t9)
-            && TryGet(out t10)
-            && TryGet(out t11)
-            && TryGet(out t12)
-            && TryGet(out t13);
-    }
-
-    public bool TryGet<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(
-        out T0 t0,
-        out T1 t1,
-        out T2 t2,
-        out T3 t3,
-        out T4 t4,
-        out T5 t5,
-        out T6 t6,
-        out T7 t7,
-        out T8 t8,
-        out T9 t9,
-        out T10 t10,
-        out T11 t11,
-        out T12 t12,
-        out T13 t13,
-        out T14 t14
-    )
-    {
-        t0 = default!;
-        t1 = default!;
-        t2 = default!;
-        t3 = default!;
-        t4 = default!;
-        t5 = default!;
-        t6 = default!;
-        t7 = default!;
-        t8 = default!;
-        t9 = default!;
-        t10 = default!;
-        t11 = default!;
-        t12 = default!;
-        t13 = default!;
-        t14 = default!;
-        return TryGet(out t0)
-            && TryGet(out t1)
-            && TryGet(out t2)
-            && TryGet(out t3)
-            && TryGet(out t4)
-            && TryGet(out t5)
-            && TryGet(out t6)
-            && TryGet(out t7)
-            && TryGet(out t8)
-            && TryGet(out t9)
-            && TryGet(out t10)
-            && TryGet(out t11)
-            && TryGet(out t12)
-            && TryGet(out t13)
-            && TryGet(out t14);
-    }
-
-    #endregion
-
-    #region Has
-
-    public bool Has<T0>()
-    {
-        return _entity.Has<T0>();
-    }
-
-    public bool Has<T0, T1>()
-    {
-        return _entity.Has<T0>() && _entity.Has<T1>();
-    }
-
-    public bool Has<T0, T1, T2>()
-    {
-        return _entity.Has<T0>() && _entity.Has<T1>() && _entity.Has<T2>();
-    }
-
-    public bool Has<T0, T1, T2, T3>()
-    {
-        return _entity.Has<T0>() && _entity.Has<T1>() && _entity.Has<T2>() && _entity.Has<T3>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4>()
-    {
-        return _entity.Has<T0>() && _entity.Has<T1>() && _entity.Has<T2>() && _entity.Has<T3>() && _entity.Has<T4>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4, T5>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4, T5, T6>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>()
-            && _entity.Has<T6>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>()
-            && _entity.Has<T6>()
-            && _entity.Has<T7>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>()
-            && _entity.Has<T6>()
-            && _entity.Has<T7>()
-            && _entity.Has<T8>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>()
-            && _entity.Has<T6>()
-            && _entity.Has<T7>()
-            && _entity.Has<T8>()
-            && _entity.Has<T9>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>()
-            && _entity.Has<T6>()
-            && _entity.Has<T7>()
-            && _entity.Has<T8>()
-            && _entity.Has<T9>()
-            && _entity.Has<T10>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>()
-            && _entity.Has<T6>()
-            && _entity.Has<T7>()
-            && _entity.Has<T8>()
-            && _entity.Has<T9>()
-            && _entity.Has<T10>()
-            && _entity.Has<T11>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>()
-            && _entity.Has<T6>()
-            && _entity.Has<T7>()
-            && _entity.Has<T8>()
-            && _entity.Has<T9>()
-            && _entity.Has<T10>()
-            && _entity.Has<T11>()
-            && _entity.Has<T12>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>()
-            && _entity.Has<T6>()
-            && _entity.Has<T7>()
-            && _entity.Has<T8>()
-            && _entity.Has<T9>()
-            && _entity.Has<T10>()
-            && _entity.Has<T11>()
-            && _entity.Has<T12>()
-            && _entity.Has<T13>();
-    }
-
-    public bool Has<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>()
-    {
-        return _entity.Has<T0>()
-            && _entity.Has<T1>()
-            && _entity.Has<T2>()
-            && _entity.Has<T3>()
-            && _entity.Has<T4>()
-            && _entity.Has<T5>()
-            && _entity.Has<T6>()
-            && _entity.Has<T7>()
-            && _entity.Has<T8>()
-            && _entity.Has<T9>()
-            && _entity.Has<T10>()
-            && _entity.Has<T11>()
-            && _entity.Has<T12>()
-            && _entity.Has<T13>()
-            && _entity.Has<T14>();
     }
 
     #endregion

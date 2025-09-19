@@ -1,37 +1,38 @@
-using System.Collections;
-using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class AnimationController : IEnumerable<KeyValuePair<string, Animation>>
+public sealed class AnimationController : IEnumerableDictionary<string, Animation>
 {
-    private readonly ImmutableDictionary<string, Animation> _animations;
-    private string _currentAnimation;
+    private readonly Dictionary<string, Animation> _animations;
 
     public AnimationController(IEnumerable<(string, Animation)> animations)
         : this(animations.Select(x => new KeyValuePair<string, Animation>(x.Item1, x.Item2))) { }
 
     public AnimationController(IEnumerable<KeyValuePair<string, Animation>> animations)
     {
-        var list = animations as IList<KeyValuePair<string, Animation>> ?? animations.ToList();
+        var list = animations as IReadOnlyList<KeyValuePair<string, Animation>> ?? animations.ToList();
         if (list.Count == 0)
             throw new ArgumentException("AnimationController must have at least one animation.");
-        _animations = list.ToImmutableDictionary();
-        _currentAnimation = list.First().Key;
+        _animations = list.ToDictionary();
+        Current = list[0].Key;
     }
 
-    public Animation Animation => _animations[_currentAnimation];
+    public string Current { get; private set; }
+
+    public Animation Animation => _animations[Current];
 
     public Animation this[string animation] => _animations[animation];
 
-    public IEnumerator<KeyValuePair<string, Animation>> GetEnumerator()
+    public Dictionary<string, Animation>.Enumerator GetEnumerator()
     {
         return _animations.GetEnumerator();
     }
 
-    IEnumerator IEnumerable.GetEnumerator()
+    public bool IsUsing(string animation)
     {
-        return GetEnumerator();
+        return Current == animation;
     }
 
     public bool Has(string animation)
@@ -44,7 +45,7 @@ public sealed class AnimationController : IEnumerable<KeyValuePair<string, Anima
         return _animations[animation];
     }
 
-    public bool TryGet(string animation, out Animation animationOut)
+    public bool TryGet(string animation, [MaybeNullWhen(false)] out Animation animationOut)
     {
         return _animations.TryGetValue(animation, out animationOut!);
     }
@@ -53,7 +54,7 @@ public sealed class AnimationController : IEnumerable<KeyValuePair<string, Anima
     {
         if (!_animations.ContainsKey(animation))
             throw new KeyNotFoundException(animation);
-        _currentAnimation = animation;
+        Current = animation;
         if (!resetOthers)
             return;
         foreach (var key in _animations.Keys.Where(key => key != animation))

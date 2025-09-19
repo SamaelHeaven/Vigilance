@@ -4,7 +4,7 @@ namespace Vigilance.Core;
 
 public readonly ref struct Utf8Buffer
 {
-    private readonly IntPtr _data;
+    private readonly nint _data;
 
     public Utf8Buffer(string text)
     {

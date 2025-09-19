@@ -4,17 +4,17 @@ using System.Runtime.InteropServices;
 namespace Vigilance.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Vector2
+public record struct Vector2
 {
     public float X { get; set; }
     public float Y { get; set; }
 
-    public static Vector2 Zero { get; } = new(0);
-    public static Vector2 One { get; } = new(1);
-    public static Vector2 Up { get; } = new(0, -1);
-    public static Vector2 Down { get; } = new(0, 1);
-    public static Vector2 Left { get; } = new(-1, 0);
-    public static Vector2 Right { get; } = new(1, 0);
+    public static Vector2 Zero => new(0);
+    public static Vector2 One => new(1);
+    public static Vector2 Up => new(0, -1);
+    public static Vector2 Down => new(0, 1);
+    public static Vector2 Left => new(-1, 0);
+    public static Vector2 Right => new(1, 0);
 
     public Vector2(float? v1 = null, float? v2 = null)
     {
@@ -56,31 +56,6 @@ public struct Vector2
     public override string ToString()
     {
         return $"<{X}, {Y}>";
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is Vector2 v && Equals(v);
-    }
-
-    public bool Equals(Vector2 other)
-    {
-        return X.Equals(other.X) && Y.Equals(other.Y);
-    }
-
-    public static bool operator ==(Vector2 a, Vector2 b)
-    {
-        return a.Equals(b);
-    }
-
-    public static bool operator !=(Vector2 a, Vector2 b)
-    {
-        return !(a == b);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(X, Y);
     }
 
     public static Vector2 operator -(Vector2 v)
@@ -159,6 +134,36 @@ public struct Vector2
         return X * v.X - Y * v.Y;
     }
 
+    public readonly Vector2 Min(Vector2 min)
+    {
+        return new Vector2(X.Min(min.X), Y.Min(min.Y));
+    }
+
+    public readonly Vector2 MinX(float min)
+    {
+        return new Vector2(X.Min(min), Y);
+    }
+
+    public readonly Vector2 MinY(float min)
+    {
+        return new Vector2(X, Y.Min(min));
+    }
+
+    public readonly Vector2 Max(Vector2 max)
+    {
+        return new Vector2(X.Max(max.X), Y.Max(max.Y));
+    }
+
+    public readonly Vector2 MaxX(float max)
+    {
+        return new Vector2(X.Max(max), Y);
+    }
+
+    public readonly Vector2 MaxY(float max)
+    {
+        return new Vector2(X, Y.Max(max));
+    }
+
     public readonly Vector2 Clamp(Vector2 min, Vector2 max)
     {
         return ClampX(min.X, max.X).ClampY(min.Y, max.Y);
@@ -171,12 +176,12 @@ public struct Vector2
 
     public readonly Vector2 ClampX(float min, float max)
     {
-        return new Vector2(System.Math.Clamp(X, min, max), Y);
+        return new Vector2(X.Clamp(min, max), Y);
     }
 
     public readonly Vector2 ClampY(float min, float max)
     {
-        return new Vector2(X, System.Math.Clamp(Y, min, max));
+        return new Vector2(X, Y.Clamp(min, max));
     }
 
     public readonly float Length()
@@ -206,7 +211,7 @@ public struct Vector2
 
     public readonly Vector2 Lerp(Vector2 end, float t)
     {
-        t = System.Math.Clamp(t, 0f, 1f);
+        t = t.Clamp(0f, 1f);
         return new Vector2(X + (end.X - X) * t, Y + (end.Y - Y) * t);
     }
 

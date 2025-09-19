@@ -16,7 +16,7 @@ public sealed class Sound
     public unsafe Sound(string fileType, IEnumerable<byte> bytes, int? maxAliases = null)
     {
         Game.EnsureRunning();
-        MaxAliases = System.Math.Max(maxAliases ?? Game.DefaultSoundMaxAliases, 1);
+        MaxAliases = maxAliases ?? Audio.DefaultSoundMaxAliases;
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)
@@ -34,7 +34,7 @@ public sealed class Sound
         get => _volume;
         set
         {
-            value = System.Math.Clamp(value, 0, 1);
+            value = value.Clamp(0, 1);
             if (Precision.AreEqual(value, Volume))
                 return;
             _volume = value;
@@ -63,7 +63,7 @@ public sealed class Sound
         get => _pan;
         set
         {
-            value = System.Math.Clamp(value, 0, 1);
+            value = value.Clamp(0, 1);
             if (Precision.AreEqual(value, Pan))
                 return;
             _pan = value;

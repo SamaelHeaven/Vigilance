@@ -5,32 +5,32 @@ using Exception = System.Exception;
 namespace Vigilance.Drawing;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Color
+public record struct Color
 {
-    public static Color White { get; } = new(255, 255, 255);
-    public static Color Black { get; } = new(0, 0, 0);
-    public static Color Transparent { get; } = new(0, 0, 0, 0);
-    public static Color LightGray { get; } = new(200, 200, 200);
-    public static Color Gray { get; } = new(130, 130, 130);
-    public static Color DarkGray { get; } = new(80, 80, 80);
-    public static Color Yellow { get; } = new(253, 249, 0);
-    public static Color Gold { get; } = new(255, 203, 0);
-    public static Color Orange { get; } = new(255, 161, 0);
-    public static Color Pink { get; } = new(255, 109, 194);
-    public static Color Red { get; } = new(230, 41, 55);
-    public static Color Maroon { get; } = new(190, 33, 55);
-    public static Color Green { get; } = new(0, 228, 48);
-    public static Color Lime { get; } = new(0, 158, 47);
-    public static Color DarkGreen { get; } = new(0, 117, 44);
-    public static Color SkyBlue { get; } = new(102, 191, 255);
-    public static Color Blue { get; } = new(0, 121, 241);
-    public static Color DarkBlue { get; } = new(0, 82, 172);
-    public static Color Purple { get; } = new(200, 122, 255);
-    public static Color Violet { get; } = new(135, 60, 190);
-    public static Color DarkPurple { get; } = new(112, 31, 126);
-    public static Color Beige { get; } = new(211, 176, 131);
-    public static Color Brown { get; } = new(127, 106, 79);
-    public static Color DarkBrown { get; } = new(76, 63, 47);
+    public static Color White => new(255, 255, 255);
+    public static Color Black => new(0, 0, 0);
+    public static Color Transparent => new(0, 0, 0, 0);
+    public static Color LightGray => new(200, 200, 200);
+    public static Color Gray => new(130, 130, 130);
+    public static Color DarkGray => new(80, 80, 80);
+    public static Color Yellow => new(253, 249, 0);
+    public static Color Gold => new(255, 203, 0);
+    public static Color Orange => new(255, 161, 0);
+    public static Color Pink => new(255, 109, 194);
+    public static Color Red => new(230, 41, 55);
+    public static Color Maroon => new(190, 33, 55);
+    public static Color Green => new(0, 228, 48);
+    public static Color Lime => new(0, 158, 47);
+    public static Color DarkGreen => new(0, 117, 44);
+    public static Color SkyBlue => new(102, 191, 255);
+    public static Color Blue => new(0, 121, 241);
+    public static Color DarkBlue => new(0, 82, 172);
+    public static Color Purple => new(200, 122, 255);
+    public static Color Violet => new(135, 60, 190);
+    public static Color DarkPurple => new(112, 31, 126);
+    public static Color Beige => new(211, 176, 131);
+    public static Color Brown => new(127, 106, 79);
+    public static Color DarkBrown => new(76, 63, 47);
 
     public byte R { get; set; }
     public byte G { get; set; }
@@ -133,63 +133,180 @@ public struct Color
         return Raylib.ColorToInt(RColor);
     }
 
-    public override bool Equals(object? obj)
+    public Color Blend(Color color)
     {
-        return obj is Color c && Equals(c);
-    }
-
-    public bool Equals(Color other)
-    {
-        return R == other.R && G == other.G && B == other.B && A == other.A;
-    }
-
-    public static bool operator ==(Color a, Color b)
-    {
-        return a.Equals(b);
-    }
-
-    public static bool operator !=(Color a, Color b)
-    {
-        return !(a == b);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(R, G, B, A);
+        return new Color(
+            (byte)((R + color.R) / 2),
+            (byte)((G + color.G) / 2),
+            (byte)((B + color.B) / 2),
+            (byte)((A + color.A) / 2)
+        );
     }
 
     public Color Fade(float alpha)
     {
-        return new Color(Raylib.ColorAlpha(RColor, alpha));
+        var result = this;
+        alpha = alpha switch
+        {
+            < 0 => 0,
+            > 1 => 1,
+            _ => alpha,
+        };
+        result.A = (byte)(255 * alpha);
+        return result;
     }
 
     public Color Tint(Color color)
     {
-        return new Color(Raylib.ColorTint(RColor, color.RColor));
+        var result = this;
+        result.R = (byte)(R * color.R / 255);
+        result.G = (byte)(G * color.G / 255);
+        result.B = (byte)(B * color.B / 255);
+        result.A = (byte)(A * color.A / 255);
+        return result;
     }
 
     public Color Brightness(float factor)
     {
-        return new Color(Raylib.ColorBrightness(RColor, factor));
+        var result = this;
+        factor = factor switch
+        {
+            > 1.0f => 1.0f,
+            < -1.0f => -1.0f,
+            _ => factor,
+        };
+        var red = R;
+        var green = G;
+        var blue = B;
+        if (factor < 0.0f)
+        {
+            factor = 1.0f + factor;
+            red = (byte)(red * factor);
+            green = (byte)(green * factor);
+            blue = (byte)(blue * factor);
+        }
+        else
+        {
+            red = (byte)((255 - red) * factor + red);
+            green = (byte)((255 - green) * factor + green);
+            blue = (byte)((255 - blue) * factor + blue);
+        }
+
+        result.R = red;
+        result.G = green;
+        result.B = blue;
+        return result;
     }
 
     public Color Contrast(float factor)
     {
-        return new Color(Raylib.ColorContrast(RColor, factor));
+        var result = this;
+        factor = factor switch
+        {
+            < 0.0f => -1.0f,
+            > 1.0f => 1.0f,
+            _ => factor,
+        };
+        factor = 1.0f + factor;
+        factor *= factor;
+        var pR = R / 255.0f;
+        pR -= 0.5f;
+        pR *= factor;
+        pR += 0.5f;
+        pR *= 255;
+        pR = pR switch
+        {
+            < 0 => 0,
+            > 255 => 255,
+            _ => pR,
+        };
+        var pG = G / 255.0f;
+        pG -= 0.5f;
+        pG *= factor;
+        pG += 0.5f;
+        pG *= 255;
+        pG = pG switch
+        {
+            < 0 => 0,
+            > 255 => 255,
+            _ => pG,
+        };
+        var pB = B / 255.0f;
+        pB -= 0.5f;
+        pB *= factor;
+        pB += 0.5f;
+        pB *= 255;
+        pB = pB switch
+        {
+            < 0 => 0,
+            > 255 => 255,
+            _ => pB,
+        };
+        result.R = (byte)pR;
+        result.G = (byte)pG;
+        result.B = (byte)pB;
+        return result;
     }
 
     public Color Alpha(float alpha)
     {
-        return new Color(Raylib.ColorAlpha(RColor, alpha));
+        var result = this;
+        alpha = alpha switch
+        {
+            < 0.0f => 0.0f,
+            > 1.0f => 1.0f,
+            _ => alpha,
+        };
+        result.A = (byte)(255.0f * alpha);
+        return result;
     }
 
     public Color AlphaBlend(Color src, Color tint)
     {
-        return new Color(Raylib.ColorAlphaBlend(RColor, src.RColor, tint.RColor));
+        var result = White;
+        src.R = (byte)(src.R * tint.R / 255);
+        src.G = (byte)(src.G * tint.G / 255);
+        src.B = (byte)(src.B * tint.B / 255);
+        src.A = (byte)(src.A * tint.A / 255);
+        switch (src.A)
+        {
+            case 0:
+                result = this;
+                break;
+            case 255:
+                result = src;
+                break;
+            default:
+            {
+                var alpha = src.A + 1;
+                result.A = (byte)((alpha * 256 + A * (256 - alpha)) / 256);
+                if (result.A > 0)
+                {
+                    result.R = (byte)((src.R * alpha * 256 + R * A * (256 - alpha)) / result.A / 256);
+                    result.G = (byte)((src.G * alpha * 256 + G * A * (256 - alpha)) / result.A / 256);
+                    result.B = (byte)((src.B * alpha * 256 + B * A * (256 - alpha)) / result.A / 256);
+                }
+
+                break;
+            }
+        }
+
+        return result;
     }
 
     public Color Lerp(Color color, float factor)
     {
-        return new Color(Raylib.ColorLerp(RColor, color.RColor, factor));
+        var result = Transparent;
+        factor = factor switch
+        {
+            < 0.0f => 0.0f,
+            > 1.0f => 1.0f,
+            _ => factor,
+        };
+        result.R = (byte)((1.0f - factor) * R + factor * color.R);
+        result.G = (byte)((1.0f - factor) * G + factor * color.G);
+        result.B = (byte)((1.0f - factor) * B + factor * color.B);
+        result.A = (byte)((1.0f - factor) * A + factor * color.A);
+        return result;
     }
 }

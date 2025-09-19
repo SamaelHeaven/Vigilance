@@ -25,10 +25,10 @@ public sealed class Mouse
 
     private Mouse() { }
 
-    public static IReadOnlyList<MouseButton> DownButtons => GetMouse()._downButtons.AsReadOnly();
-    public static IReadOnlyList<MouseButton> UpButtons => GetMouse()._upButtons.AsReadOnly();
-    public static IReadOnlyList<MouseButton> PressedButtons => GetMouse()._pressedButtons.AsReadOnly();
-    public static IReadOnlyList<MouseButton> ReleasedButtons => GetMouse()._releasedButtons.AsReadOnly();
+    public static EnumerableList<MouseButton> DownButtons => GetMouse()._downButtons;
+    public static EnumerableList<MouseButton> UpButtons => GetMouse()._upButtons;
+    public static EnumerableList<MouseButton> PressedButtons => GetMouse()._pressedButtons;
+    public static EnumerableList<MouseButton> ReleasedButtons => GetMouse()._releasedButtons;
 
     public static bool OnScreen => Raylib.IsCursorOnScreen();
 
@@ -36,10 +36,10 @@ public sealed class Mouse
 
     public static Vector2 Position
     {
-        get => Coordinates.ScreenToLocal(GetMouse()._screenPosition).Clamp(Vector2.Zero, Game.Size);
+        get => Coordinates.ScreenToLocal(GetMouse()._screenPosition).Clamp(Vector2.Zero, Display.Size);
         set
         {
-            value = value.Clamp(Vector2.Zero, Game.Size);
+            value = value.Clamp(Vector2.Zero, Display.Size);
             ScreenPosition = Coordinates.LocalToScreen(value);
         }
     }
@@ -56,9 +56,9 @@ public sealed class Mouse
         set
         {
             var mouse = GetMouse();
-            if (!Game.Focused)
+            if (!Display.Focused)
                 return;
-            value = value.Clamp(Vector2.Zero, Game.ScreenSize).Round();
+            value = value.Clamp(Vector2.Zero, Display.ScreenSize).Round();
             if (Precision.AreEqual(mouse._screenPosition, value))
                 return;
             mouse._screenPosition = value;
@@ -116,7 +116,7 @@ public sealed class Mouse
     internal static void Update()
     {
         var mouse = GetMouse();
-        if (!Game.Focused)
+        if (!Display.Focused)
         {
             mouse.Reset();
             return;
@@ -137,8 +137,10 @@ public sealed class Mouse
 
     private void UpdateState()
     {
-        _screenPosition = ((Vector2)Raylib.GetMousePosition()).Clamp(Vector2.Zero, Game.ScreenSize).Round();
+        _screenPosition = ((Vector2)Raylib.GetMousePosition()).Clamp(Vector2.Zero, Display.ScreenSize).Round();
         _scroll = Raylib.GetMouseWheelMoveV();
+        if (Platform.Web.IsCurrent())
+            _scroll.X = -_scroll.X;
         _currentButtons.Clear();
         foreach (var button in ButtonValues)
             if (Raylib.IsMouseButtonDown((Raylib_cs.BleedingEdge.MouseButton)button))

@@ -1,14 +1,14 @@
 using System.Numerics;
+using Vigilance.Logging;
 using Vigilance.Math;
 using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Core;
 
-public delegate Camera CameraFunc();
-
 public sealed class Camera
 {
-    public static CameraFunc Default { get; } = () => Game.Scene.Camera;
+    public static CameraProvider Null { get; } = new(() => null);
+    public static CameraProvider Scene { get; } = new(() => Game.Scene.Camera);
     public Vector2 Target { get; set; } = Vector2.Zero;
     public Vector2 Offset { get; set; } = Vector2.Zero;
     public float Rotation { get; set; } = 0;
@@ -26,5 +26,28 @@ public sealed class Camera
             var translationMatrix = Matrix3x2.CreateTranslation(offset.X, offset.Y);
             return originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
         }
+    }
+
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Matrix)));
+    }
+}
+
+public readonly record struct CameraProvider(Func<Camera?> Func)
+{
+    public Camera? Get()
+    {
+        return Func.Invoke();
+    }
+
+    public override string? ToString()
+    {
+        return Get()?.ToString();
+    }
+
+    public static implicit operator Camera?(CameraProvider provider)
+    {
+        return provider.Get();
     }
 }

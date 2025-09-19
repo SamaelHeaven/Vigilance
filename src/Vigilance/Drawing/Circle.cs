@@ -1,11 +1,24 @@
 using Vigilance.Core;
+using Vigilance.Logging;
 
 namespace Vigilance.Drawing;
 
-public sealed class Circle
+public sealed class Circle : IFullCloneable
 {
-    public Color Fill { get; set; } = Color.White;
-    public Color Stroke { get; set; } = Color.Transparent;
-    public float StrokeWidth { get; set; } = 0;
-    public CameraFunc? Camera { get; set; } = Core.Camera.Default;
+    public Circle() { }
+
+    public Circle(Color fill)
+    {
+        Fill = fill;
+    }
+
+    public Color Fill { get; set; } = Drawing.DefaultFill;
+    public Color Stroke { get; set; } = Drawing.DefaultStroke;
+    public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
+
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this);
+    }
 }

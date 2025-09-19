@@ -1,13 +1,11 @@
-using System.Collections;
-using System.Collections.Immutable;
 using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public sealed class Animation : IEnumerable<AnimationFrame>
+public sealed class Animation : IEnumerableList<AnimationFrame>
 {
     public const int InfiniteRepeatCount = -1;
-    private readonly IImmutableList<AnimationFrame> _frames;
+    private readonly List<AnimationFrame> _frames;
     private TimeSpan _elapsed;
     private int _index;
     private int? _nextIndex;
@@ -15,7 +13,7 @@ public sealed class Animation : IEnumerable<AnimationFrame>
     private int _startIndex;
 
     public Animation(
-        IReadOnlyCollection<AnimationFrame> frames,
+        IEnumerable<AnimationFrame> frames,
         TimeSpan delay,
         int repeatCount = InfiniteRepeatCount,
         int startIndex = 0,
@@ -23,9 +21,9 @@ public sealed class Animation : IEnumerable<AnimationFrame>
         Action? completeAction = null
     )
     {
-        if (frames.Count == 0)
+        _frames = frames.ToList();
+        if (_frames.Count == 0)
             throw new ArgumentException("Animation must have at least one frame.");
-        _frames = frames.ToImmutableList();
         _nextIndex = null;
         OnComplete = completeAction;
         OnRepeat = repeatAction;
@@ -46,7 +44,7 @@ public sealed class Animation : IEnumerable<AnimationFrame>
         get => _index;
         set
         {
-            _index = System.Math.Clamp(value, 0, _frames.Count - 1);
+            _index = int.Clamp(value, 0, _frames.Count - 1);
             _elapsed = TimeSpan.Zero;
         }
     }
@@ -54,25 +52,20 @@ public sealed class Animation : IEnumerable<AnimationFrame>
     public int StartIndex
     {
         get => _startIndex;
-        set => _startIndex = System.Math.Clamp(value, 0, _frames.Count - 1);
+        set => _startIndex = int.Clamp(value, 0, _frames.Count - 1);
     }
 
     public int? NextIndex
     {
         get => _nextIndex;
-        set => _nextIndex = value.HasValue ? System.Math.Clamp(value.Value, 0, _frames.Count - 1) : null;
+        set => _nextIndex = value.HasValue ? int.Clamp(value.Value, 0, _frames.Count - 1) : null;
     }
 
     public int FrameCount => _frames.Count;
 
-    public IEnumerator<AnimationFrame> GetEnumerator()
+    public List<AnimationFrame>.Enumerator GetEnumerator()
     {
         return _frames.GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
     }
 
     public event Action? OnComplete;

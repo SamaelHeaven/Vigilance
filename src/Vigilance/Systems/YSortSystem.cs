@@ -3,20 +3,13 @@ using Vigilance.Math;
 
 namespace Vigilance.Systems;
 
-public sealed class YSortSystem(float offset = 0) : ISystem
+public sealed class YSortSystem(float offset = 0) : GameSystem
 {
     public float Offset { get; set; } = offset;
 
-    public void Configure(Scene scene)
+    public override void RenderBegin()
     {
-        scene.OnRenderBegin(() =>
-        {
-            scene.Each(
-                (Entity entity, YSort ySort) =>
-                {
-                    entity.ZIndex = (int)(entity.WorldPosition.Y + Offset + ySort.Offset).Round();
-                }
-            );
-        });
+        foreach (var (entity, ySort) in Scene.Entries<YSort>())
+            entity.ZIndex = (int)(entity.WorldPosition.Y + Offset + ySort.Offset).Round();
     }
 }

@@ -1,12 +1,18 @@
 using Vigilance.Core;
 using Vigilance.Drawing;
-using Vigilance.Math;
 
 namespace Vigilance.UI;
 
 public class UIRectangle : UIContainer
 {
-    private readonly Rectangle _rectangle = new();
+    private Rectangle _rectangle = new();
+
+    public UIRectangle() { }
+
+    public UIRectangle(Color fill)
+    {
+        Fill = fill;
+    }
 
     public Color Fill
     {
@@ -32,10 +38,17 @@ public class UIRectangle : UIContainer
         set => _rectangle.Roundness = value;
     }
 
-    public override void Render(Graphics graphics, CameraFunc? camera)
+    protected override void Render(Graphics graphics, CameraProvider camera)
     {
         _rectangle.Camera = camera;
-        graphics.DrawRectangle(new Transform(LayoutPosition + LayoutSize * 0.5f, LayoutSize), _rectangle);
+        graphics.DrawRectangle(LayoutPosition, LayoutSize, _rectangle);
         base.Render(graphics, camera);
+    }
+
+    protected override object DeepClone()
+    {
+        var result = (UIRectangle)base.DeepClone();
+        result._rectangle = _rectangle.DeepClone();
+        return result;
     }
 }

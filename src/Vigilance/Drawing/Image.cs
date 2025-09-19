@@ -48,6 +48,24 @@ public sealed unsafe class Image
         set => Raylib.ImageFormat(ref RImage, (PixelFormat)value);
     }
 
+    public static Image GradientLinear(int width, int height, int direction, Color start, Color end)
+    {
+        var image = Raylib.GenImageGradientLinear(width, height, direction, start.RColor, end.RColor);
+        return new Image(image);
+    }
+
+    public static Image GradientRadial(int width, int height, float density, Color inner, Color outer)
+    {
+        var image = Raylib.GenImageGradientRadial(width, height, density, inner.RColor, outer.RColor);
+        return new Image(image);
+    }
+
+    public static Image GradientSquare(int width, int height, float density, Color inner, Color outer)
+    {
+        var image = Raylib.GenImageGradientSquare(width, height, density, inner.RColor, outer.RColor);
+        return new Image(image);
+    }
+
     public Texture ToTexture()
     {
         return new Texture(Raylib.LoadTextureFromImage(RImage));

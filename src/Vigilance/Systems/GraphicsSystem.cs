@@ -3,12 +3,12 @@ using Vigilance.Drawing;
 
 namespace Vigilance.Systems;
 
-public sealed class GraphicsSystem(Graphics? graphics = null) : ISystem
+public sealed class GraphicsSystem(Graphics? graphics = null) : GameSystem
 {
     public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
 
-    public void Configure(Scene scene)
+    public override void Render(Entity entity)
     {
-        scene.OnRender(entity => Graphics.DrawEntity(entity));
+        Graphics.DrawEntity(entity);
     }
 }

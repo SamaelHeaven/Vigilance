@@ -6,7 +6,7 @@ namespace Vigilance.UI;
 
 public class UIText : UIElement
 {
-    private readonly Text _text = new();
+    private Text _text = new();
     private TextOverflow _textOverflow;
     private string _value;
 
@@ -14,6 +14,12 @@ public class UIText : UIElement
     {
         _value = value;
         SetMeasureFunc(Measure);
+    }
+
+    public UIText(string value, Color fill)
+        : this(value)
+    {
+        Fill = fill;
     }
 
     public string Value
@@ -74,6 +80,16 @@ public class UIText : UIElement
         }
     }
 
+    public TextHeightMode HeightMode
+    {
+        get => _text.HeightMode;
+        set
+        {
+            _text.HeightMode = value;
+            MarkDirty();
+        }
+    }
+
     public Interpolation? Interpolation
     {
         get => _text.Interpolation;
@@ -90,10 +106,18 @@ public class UIText : UIElement
         }
     }
 
-    public override void Render(Graphics graphics, CameraFunc? camera)
+    protected override void Render(Graphics graphics, CameraProvider camera)
     {
         _text.Camera = camera;
-        graphics.DrawText(new Transform(LayoutPosition + LayoutSize * 0.5f), _text);
+        graphics.DrawText(LayoutPosition, _text);
+    }
+
+    protected override object DeepClone()
+    {
+        var result = (UIText)base.DeepClone();
+        result.SetMeasureFunc(result.Measure);
+        result._text = _text.DeepClone();
+        return result;
     }
 
     private Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
