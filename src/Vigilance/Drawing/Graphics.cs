@@ -1127,7 +1127,7 @@ public sealed unsafe class Graphics
         Color? color = null,
         Font? font = null,
         float? fontSize = null,
-        float strokeWidth = 4,
+        float? strokeWidth = null,
         Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
