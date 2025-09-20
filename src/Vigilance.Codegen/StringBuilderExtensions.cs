@@ -4,7 +4,7 @@ namespace Vigilance.Codegen;
 
 public static class StringBuilderExtensions
 {
-    public static void Region(this StringBuilder sb, string region)
+    public static void BeginRegion(this StringBuilder sb, string region)
     {
         sb.AppendLine(
             $"""

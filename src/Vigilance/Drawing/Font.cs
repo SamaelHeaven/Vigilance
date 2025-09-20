@@ -13,7 +13,7 @@ public sealed unsafe class Font
     private static readonly FreeTypeLibrary FtLibrary = new();
     private static FontConfig _config = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
-    private readonly Dictionary<int, (Texture Atlas, IReadOnlyDictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
+    private readonly Dictionary<int, (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
     private nint _buffer;
     private FT_FaceRec_* _face;
     private int _spaceSize;
@@ -62,7 +62,7 @@ public sealed unsafe class Font
 
     public string Charset { get; }
     public int Quality { get; }
-    public IReadOnlyDictionary<char, GlyphInfo> GlyphInfos => _glyphInfos.AsReadOnly();
+    public EnumerableDictionary<char, GlyphInfo> GlyphInfos => _glyphInfos;
     public Texture Atlas { get; }
 
     internal static void Initialize()
@@ -104,22 +104,22 @@ public sealed unsafe class Font
         return GetStroke(strokeWidth).GlyphInfos[c];
     }
 
-    public IReadOnlyDictionary<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
+    public EnumerableDictionary<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
     {
         return GetStroke(strokeWidth).GlyphInfos;
     }
 
     public TextBoundEnumerable GetTextBounds(
         string text,
-        float? fontSize,
-        Vector2? spacing,
-        IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
+        float? fontSize = null,
+        Vector2? spacing = null,
+        EnumerableDictionary<char, GlyphInfo>? glyphInfos = null
     )
     {
         return new TextBoundEnumerable(this, text, fontSize ?? DefaultSize, spacing ?? DefaultTextSpacing, glyphInfos);
     }
 
-    public (Texture Atlas, IReadOnlyDictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
+    public (Texture Atlas, EnumerableDictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
     {
         strokeWidth = int.Clamp(strokeWidth, 0, 50);
         if (_strokes.TryGetValue(strokeWidth, out var stroke))
@@ -138,7 +138,7 @@ public sealed unsafe class Font
             .ToList();
         var glyphInfos = new Dictionary<char, GlyphInfo>();
         var atlas = DrawAtlas(glyphs, glyphInfos);
-        var result = (atlas, glyphInfos.AsReadOnly());
+        var result = (atlas, glyphInfos);
         _strokes[strokeWidth] = result;
         return result;
     }
@@ -301,14 +301,14 @@ public sealed unsafe class Font
         private readonly string _text;
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
-        private readonly IReadOnlyDictionary<char, GlyphInfo> _glyphInfos;
+        private readonly EnumerableDictionary<char, GlyphInfo> _glyphInfos;
 
         internal TextBoundEnumerable(
             Font font,
             string text,
             float fontSize,
             Vector2 spacing,
-            IReadOnlyDictionary<char, GlyphInfo>? glyphInfos
+            EnumerableDictionary<char, GlyphInfo>? glyphInfos
         )
         {
             _font = font;
@@ -330,7 +330,7 @@ public sealed unsafe class Font
         private readonly string _text;
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
-        private readonly IReadOnlyDictionary<char, GlyphInfo> _glyphInfos;
+        private readonly EnumerableDictionary<char, GlyphInfo> _glyphInfos;
         private readonly float _aspectRatio;
         private int _index;
         private Vector2 _position;
@@ -340,7 +340,7 @@ public sealed unsafe class Font
             string text,
             float fontSize,
             Vector2 spacing,
-            IReadOnlyDictionary<char, GlyphInfo>? glyphInfos
+            EnumerableDictionary<char, GlyphInfo>? glyphInfos
         )
         {
             _font = font;

@@ -46,4 +46,9 @@ public static class DoubleExtensions
     {
         return System.Math.Abs(value);
     }
+
+    public static double Or(this double value, double defaultValue)
+    {
+        return value == 0 ? defaultValue : value;
+    }
 }

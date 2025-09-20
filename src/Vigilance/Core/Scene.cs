@@ -28,8 +28,8 @@ public sealed unsafe partial class Scene
     private Action? _onDestroy;
     private Query<ZIndex> _orderedQuery;
     private Action<Entity>? _renderAction;
-    private Action? _renderBeginAction;
-    private Action? _renderEndAction;
+    private Action? _beginRenderAction;
+    private Action? _endRenderAction;
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
@@ -185,16 +185,16 @@ public sealed unsafe partial class Scene
         _fixedUpdateAction += action;
     }
 
-    public void OnRenderBegin(Action action)
+    public void OnBeginRender(Action action)
     {
         EnsureNotInitialized();
-        _renderBeginAction += action;
+        _beginRenderAction += action;
     }
 
-    public void OnRenderEnd(Action action)
+    public void OnEndRender(Action action)
     {
         EnsureNotInitialized();
-        _renderEndAction += action;
+        _endRenderAction += action;
     }
 
     public void OnRender(Action<Entity> action)
@@ -293,7 +293,7 @@ public sealed unsafe partial class Scene
         Render();
     }
 
-    internal void DeferBegin()
+    internal void BeginDefer()
     {
         Contexts.Push(this);
         _context = this;
@@ -301,7 +301,7 @@ public sealed unsafe partial class Scene
             _world.DeferBegin();
     }
 
-    internal void DeferEnd()
+    internal void EndDefer()
     {
         if (!Deferred || !_world.DeferEnd())
             return;
@@ -353,11 +353,11 @@ public sealed unsafe partial class Scene
 
     private void Render()
     {
-        _renderBeginAction?.Invoke();
+        _beginRenderAction?.Invoke();
         if (_renderAction is not null)
             foreach (var entity in OrderedEntities)
                 _renderAction.Invoke(entity);
-        _renderEndAction?.Invoke();
+        _endRenderAction?.Invoke();
     }
 
     private static void SetComponent(Flecs.NET.Core.Entity entity, Type type, object? data)

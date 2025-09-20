@@ -314,9 +314,9 @@ public unsafe partial record struct Entity
     public ref readonly Entity Scope(Action action)
     {
         EnsureValid();
-        Scene.DeferBegin();
+        Scene.BeginDefer();
         _entity.Scope(action);
-        Scene.DeferEnd();
+        Scene.EndDefer();
         return ref this;
     }
 
@@ -413,7 +413,7 @@ public unsafe partial record struct Entity
         {
             _entity.EnsureValid();
             Dispose();
-            _entity.Scene.DeferBegin();
+            _entity.Scene.BeginDefer();
             _iter = flecs.ecs_each_id(_entity._entity.World, Ecs.Pair(flecs.EcsChildOf, _entity.Id));
             _index = 0;
             fixed (flecs.ecs_iter_t* iter = &_iter)
@@ -442,7 +442,7 @@ public unsafe partial record struct Entity
                 Ecs.TableUnlock(iter);
             }
 
-            _entity.Scene.DeferEnd();
+            _entity.Scene.EndDefer();
             _iter = default;
             _index = 0;
         }

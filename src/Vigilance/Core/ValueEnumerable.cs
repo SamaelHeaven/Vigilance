@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace Vigilance.Core;
 
@@ -62,6 +63,11 @@ public readonly struct EnumerableList<TValue>(List<TValue> list) : IEnumerableLi
     public static implicit operator EnumerableList<TValue>(List<TValue> list)
     {
         return new EnumerableList<TValue>(list);
+    }
+
+    public ReadOnlySpan<TValue> AsSpan()
+    {
+        return CollectionsMarshal.AsSpan(list);
     }
 }
 
@@ -298,18 +304,25 @@ public readonly struct EnumerableStack<TValue>(Stack<TValue> stack)
 
 public readonly struct EnumerableArray<TValue>(TValue[] array) : IEnumerableArray<TValue>, IReadOnlyList<TValue>
 {
+    private readonly TValue[] _array = array;
+
     public ArrayEnumerator<TValue> GetEnumerator()
     {
-        return new ArrayEnumerator<TValue>(array);
+        return new ArrayEnumerator<TValue>(_array);
     }
 
-    public int Count => array.Length;
+    public int Count => _array.Length;
 
-    public TValue this[int index] => array[index];
+    public TValue this[int index] => _array[index];
 
     public static implicit operator EnumerableArray<TValue>(TValue[] array)
     {
         return new EnumerableArray<TValue>(array);
+    }
+
+    public static implicit operator ReadOnlySpan<TValue>(EnumerableArray<TValue> array)
+    {
+        return array._array;
     }
 }
 

@@ -29,7 +29,7 @@ public sealed class EntityGenerator : ISourceGenerator
 
     private static void Has(StringBuilder sb)
     {
-        sb.Region("Has");
+        sb.BeginRegion("Has");
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
@@ -51,7 +51,7 @@ public sealed class EntityGenerator : ISourceGenerator
 
     private static void TryGet(StringBuilder sb)
     {
-        sb.Region("TryGet");
+        sb.BeginRegion("TryGet");
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));

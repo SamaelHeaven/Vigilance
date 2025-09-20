@@ -30,7 +30,7 @@ public sealed class SceneGenerator : ISourceGenerator
 
     private static void Entities(StringBuilder sb)
     {
-        sb.Region("Entities");
+        sb.BeginRegion("Entities");
         sb.AppendLine(QueryIterator("Entity", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
         sb.AppendLine(
             QueryIterator(
@@ -47,7 +47,7 @@ public sealed class SceneGenerator : ISourceGenerator
 
     private static void Components(StringBuilder sb)
     {
-        sb.Region("Components");
+        sb.BeginRegion("Components");
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
@@ -65,7 +65,7 @@ public sealed class SceneGenerator : ISourceGenerator
 
     private static void Entries(StringBuilder sb)
     {
-        sb.Region("Entries");
+        sb.BeginRegion("Entries");
         for (var i = 0; i < 15; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
@@ -161,7 +161,7 @@ public sealed class SceneGenerator : ISourceGenerator
                     public void Reset()
                     {
                         Dispose();
-                        _scene.DeferBegin();
+                        _scene.BeginDefer();
                         var query = {{(
                             query == "" ? $"_scene._world.QueryBuilder<{queryTypeParams}>().Build()" : query
                         )}};
@@ -185,7 +185,7 @@ public sealed class SceneGenerator : ISourceGenerator
                             Flecs.NET.Core.Ecs.TableUnlock(iter);
                         }
 
-                        _scene.DeferEnd();{{(query == "" ? "\n            _query.Value.Dispose();" : "")}}
+                        _scene.EndDefer();{{(query == "" ? "\n            _query.Value.Dispose();" : "")}}
                         _query = null;
                         _iter = default;
                         _index = 0;

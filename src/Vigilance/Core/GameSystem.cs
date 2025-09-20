@@ -28,10 +28,10 @@ public abstract class GameSystem : IGameSystem
             scene.OnUpdate(Update);
         if (IsOverridden(type, nameof(FixedUpdate)))
             scene.OnFixedUpdate(FixedUpdate);
-        if (IsOverridden(type, nameof(RenderBegin)))
-            scene.OnRenderBegin(RenderBegin);
-        if (IsOverridden(type, nameof(RenderEnd)))
-            scene.OnRenderEnd(RenderEnd);
+        if (IsOverridden(type, nameof(BeginRender)))
+            scene.OnBeginRender(BeginRender);
+        if (IsOverridden(type, nameof(EndRender)))
+            scene.OnEndRender(EndRender);
         if (IsOverridden(type, nameof(Render)))
             scene.OnRender(Render);
         Configure();
@@ -49,9 +49,9 @@ public abstract class GameSystem : IGameSystem
 
     public virtual void FixedUpdate() { }
 
-    public virtual void RenderBegin() { }
+    public virtual void BeginRender() { }
 
-    public virtual void RenderEnd() { }
+    public virtual void EndRender() { }
 
     public virtual void Render(Entity entity) { }
 

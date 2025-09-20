@@ -115,15 +115,15 @@ public sealed class Gamepad
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
         _pressedButtons.AddRange(_currentButtons);
-        _pressedButtons.RemoveAll(button => _downButtons.Contains(button));
+        _pressedButtons.RemoveAll(_downButtons.Contains);
         _releasedButtons.Clear();
         _releasedButtons.AddRange(_downButtons);
-        _releasedButtons.RemoveAll(button => _currentButtons.Contains(button));
+        _releasedButtons.RemoveAll(_currentButtons.Contains);
         _downButtons.Clear();
         _downButtons.AddRange(_currentButtons);
         _upButtons.Clear();
         _upButtons.AddRange(ButtonValues);
-        _upButtons.RemoveAll(button => _currentButtons.Contains(button));
+        _upButtons.RemoveAll(_currentButtons.Contains);
         foreach (var axis in AxisValues)
             _axes[axis] = GetGamepadAxis(Id, axis);
     }

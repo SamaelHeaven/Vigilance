@@ -46,4 +46,9 @@ public static class FloatExtensions
     {
         return MathF.Abs(value);
     }
+
+    public static float Or(this float value, float defaultValue)
+    {
+        return value == 0 ? defaultValue : value;
+    }
 }

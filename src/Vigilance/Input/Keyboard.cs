@@ -87,14 +87,14 @@ public sealed class Keyboard
                 _currentKeys.Add(key);
         _pressedKeys.Clear();
         _pressedKeys.AddRange(_currentKeys);
-        _pressedKeys.RemoveAll(key => _downKeys.Contains(key));
+        _pressedKeys.RemoveAll(_downKeys.Contains);
         _releasedKeys.Clear();
         _releasedKeys.AddRange(_downKeys);
-        _releasedKeys.RemoveAll(key => _currentKeys.Contains(key));
+        _releasedKeys.RemoveAll(_currentKeys.Contains);
         _downKeys.Clear();
         _downKeys.AddRange(_currentKeys);
         _upKeys.Clear();
         _upKeys.AddRange(KeyValues);
-        _upKeys.RemoveAll(key => _currentKeys.Contains(key));
+        _upKeys.RemoveAll(_currentKeys.Contains);
     }
 }
