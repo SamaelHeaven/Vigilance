@@ -275,7 +275,7 @@ public sealed unsafe class Graphics
 
     public void FillRectangle(Vector2 position, Vector2 size, Color? color = null, Camera? camera = null)
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         if (colorValue == Color.Transparent || !IsBoxInBounds(position, size, camera))
             return;
         BeginDrawing(camera);
@@ -336,10 +336,10 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var topLeftColorValue = topLeftColor ?? Drawing.DefaultFill;
-        var bottomLeftColorValue = bottomLeftColor ?? Drawing.DefaultFill;
-        var bottomRightColorValue = bottomRightColor ?? Drawing.DefaultFill;
-        var topRightColorValue = topRightColor ?? Drawing.DefaultFill;
+        var topLeftColorValue = topLeftColor ?? Drawing.DefaultFill.Or(Color.White);
+        var bottomLeftColorValue = bottomLeftColor ?? Drawing.DefaultFill.Or(Color.White);
+        var bottomRightColorValue = bottomRightColor ?? Drawing.DefaultFill.Or(Color.White);
+        var topRightColorValue = topRightColor ?? Drawing.DefaultFill.Or(Color.White);
         if (
             (
                 topLeftColorValue == Color.Transparent
@@ -386,7 +386,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultStroke;
+        var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || strokeWidthValue <= 0 || !IsBoxInBounds(position, size, camera))
             return;
@@ -425,7 +425,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var roundnessValue = roundness ?? Drawing.DefaultRoundness.Or(0.1f);
         if (colorValue == Color.Transparent || roundnessValue <= 0 || !IsBoxInBounds(position, size, camera))
             return;
@@ -473,7 +473,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultStroke;
+        var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
         var roundnessValue = roundness ?? Drawing.DefaultRoundness.Or(0.1f);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
         if (
@@ -591,7 +591,7 @@ public sealed unsafe class Graphics
 
     public void FillCircle(Vector2 center, float radius, Color? color = null, Camera? camera = null)
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         if (colorValue == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
         BeginDrawing(camera);
@@ -607,8 +607,8 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var innerColorValue = innerColor ?? Drawing.DefaultFill;
-        var outerColorValue = outerColor ?? Drawing.DefaultFill;
+        var innerColorValue = innerColor ?? Drawing.DefaultFill.Or(Color.White);
+        var outerColorValue = outerColor ?? Drawing.DefaultFill.Or(Color.White);
         if (
             (innerColorValue == Color.Transparent && outerColorValue == Color.Transparent)
             || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
@@ -656,7 +656,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultStroke;
+        var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
         if (
             colorValue == Color.Transparent
@@ -772,7 +772,7 @@ public sealed unsafe class Graphics
 
     public void FillRegularPolygon(Vector2 center, int sides, float radius, Color? color = null, Camera? camera = null)
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         if (color == Color.Transparent || sides < 3 || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
         BeginDrawing(camera);
@@ -802,7 +802,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultStroke;
+        var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
         if (
             colorValue == Color.Transparent
@@ -840,7 +840,7 @@ public sealed unsafe class Graphics
 
     public void FillCustomPolygonSpan(ReadOnlySpan<Vector2> points, Color? color = null, Camera? camera = null)
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         if (colorValue == Color.Transparent || points.Length < 3 || !IsPolygonInBoundsSpan(points, camera))
             return;
         BeginDrawing(camera);
@@ -869,7 +869,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultStroke;
+        var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
         if (
             colorValue == Color.Transparent
@@ -948,7 +948,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var radius = innerRadius.Max(outerRadius);
         if (colorValue == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
             return;
@@ -983,7 +983,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultStroke;
+        var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
         var radius = innerRadius.Max(outerRadius);
         if (
@@ -1047,7 +1047,7 @@ public sealed unsafe class Graphics
 
     public void DrawLine(Vector2 start, Vector2 end, Color? color = null, float? thick = null, Camera? camera = null)
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (
             colorValue == Color.Transparent
@@ -1105,7 +1105,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         if (text == "" || colorValue == Color.Transparent)
             return;
         font ??= Font.Default;
@@ -1148,7 +1148,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultStroke;
+        var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(4);
         if (text == "" || colorValue == Color.Transparent || strokeWidthValue <= 0)
             return;
@@ -1342,7 +1342,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || thickValue <= 0)
             return;
@@ -1403,7 +1403,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || points.Length < 2 || thickValue <= 0)
             return;
@@ -1438,7 +1438,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || points.Length < 4 || thickValue <= 0)
             return;
@@ -1473,7 +1473,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || points.Length < 4 || thickValue <= 0)
             return;
@@ -1508,7 +1508,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || points.Length < 3 || thickValue <= 0)
             return;
@@ -1543,7 +1543,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || points.Length < 4 || thickValue <= 0)
             return;
@@ -1569,7 +1569,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || thickValue <= 0)
             return;
@@ -1588,7 +1588,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || thickValue <= 0)
             return;
@@ -1607,7 +1607,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || thickValue <= 0)
             return;
@@ -1625,7 +1625,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || thickValue <= 0)
             return;
@@ -1644,7 +1644,7 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
         if (colorValue == Color.Transparent || thickValue <= 0)
             return;
@@ -1659,7 +1659,7 @@ public sealed unsafe class Graphics
 
     public void ClearBackground(Color? color = null)
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         if (colorValue == Color.Transparent)
             return;
         BeginDrawing();
@@ -1674,7 +1674,7 @@ public sealed unsafe class Graphics
 
     public void DrawPixel(Vector2 position, Color? color = null)
     {
-        var colorValue = color ?? Drawing.DefaultFill;
+        var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         if (colorValue == Color.Transparent)
             return;
         BeginDrawing();

@@ -309,4 +309,9 @@ public record struct Color
         result.A = (byte)((1.0f - factor) * A + factor * color.A);
         return result;
     }
+
+    public Color Or(Color value)
+    {
+        return this == Transparent ? value : this;
+    }
 }
