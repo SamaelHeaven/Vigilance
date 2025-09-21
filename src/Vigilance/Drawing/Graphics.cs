@@ -517,19 +517,36 @@ public sealed unsafe class Graphics
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         var strokeWidth = rectangle.StrokeWidth.Clamp(scale.X.Min(scale.Y) * 0.5f, 0);
+        var order = rectangle.DrawingOrder;
         PushMatrix();
         Pivot(transform, true);
         if (roundness > 0)
         {
             position += strokeWidth;
             scale -= strokeWidth * 2;
-            FillRoundedRectangle(position, scale, fill, roundness, camera);
-            StrokeRoundedRectangle(position, scale, stroke, roundness, strokeWidth, camera);
+            if (order == DrawingOrder.StrokeThenFill)
+            {
+                StrokeRoundedRectangle(position, scale, stroke, roundness, strokeWidth, camera);
+                FillRoundedRectangle(position, scale, fill, roundness, camera);
+            }
+            else
+            {
+                FillRoundedRectangle(position, scale, fill, roundness, camera);
+                StrokeRoundedRectangle(position, scale, stroke, roundness, strokeWidth, camera);
+            }
         }
         else
         {
-            FillRectangle(position + strokeWidth, scale - strokeWidth * 2, fill, camera);
-            StrokeRectangle(position, scale, stroke, strokeWidth, camera);
+            if (order == DrawingOrder.StrokeThenFill)
+            {
+                StrokeRectangle(position, scale, stroke, strokeWidth, camera);
+                FillRectangle(position + strokeWidth, scale - strokeWidth * 2, fill, camera);
+            }
+            else
+            {
+                FillRectangle(position + strokeWidth, scale - strokeWidth * 2, fill, camera);
+                StrokeRectangle(position, scale, stroke, strokeWidth, camera);
+            }
         }
 
         PopMatrix();
@@ -561,18 +578,36 @@ public sealed unsafe class Graphics
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         var strokeWidth = rectangle.StrokeWidth.Clamp(scale.X.Min(scale.Y) * 0.5f, 0);
+        var order = rectangle.DrawingOrder;
         PushMatrix();
         Pivot(transform, true);
-        FillRectangleGradient(
-            position + strokeWidth,
-            scale - strokeWidth * 2,
-            topLeftFill,
-            bottomLeftFill,
-            bottomRightFill,
-            topRightFill,
-            camera
-        );
-        StrokeRectangle(position, scale, stroke, strokeWidth, camera);
+        if (order == DrawingOrder.StrokeThenFill)
+        {
+            StrokeRectangle(position, scale, stroke, strokeWidth, camera);
+            FillRectangleGradient(
+                position + strokeWidth,
+                scale - strokeWidth * 2,
+                topLeftFill,
+                bottomLeftFill,
+                bottomRightFill,
+                topRightFill,
+                camera
+            );
+        }
+        else
+        {
+            FillRectangleGradient(
+                position + strokeWidth,
+                scale - strokeWidth * 2,
+                topLeftFill,
+                bottomLeftFill,
+                bottomRightFill,
+                topRightFill,
+                camera
+            );
+            StrokeRectangle(position, scale, stroke, strokeWidth, camera);
+        }
+
         PopMatrix();
     }
 
@@ -671,13 +706,23 @@ public sealed unsafe class Graphics
         var fill = circle.Fill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
+        var order = circle.DrawingOrder;
         var position = transform.Position;
         var scale = transform.Scale;
         var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
         PushMatrix();
         Pivot(transform, false);
-        FillCircle(position, radius, fill, camera);
-        StrokeCircle(position, radius, stroke, strokeWidth, camera);
+        if (order == DrawingOrder.StrokeThenFill)
+        {
+            StrokeCircle(position, radius, stroke, strokeWidth, camera);
+            FillCircle(position, radius, fill, camera);
+        }
+        else
+        {
+            FillCircle(position, radius, fill, camera);
+            StrokeCircle(position, radius, stroke, strokeWidth, camera);
+        }
+
         PopMatrix();
     }
 
@@ -688,13 +733,23 @@ public sealed unsafe class Graphics
         var outerFill = circle.OuterFill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
+        var order = circle.DrawingOrder;
         var position = transform.Position;
         var scale = transform.Scale;
         var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
         PushMatrix();
         Pivot(transform, false);
-        FillCircleGradient(position, radius, innerFill, outerFill, camera);
-        StrokeCircle(position, radius, stroke, strokeWidth, camera);
+        if (order == DrawingOrder.StrokeThenFill)
+        {
+            StrokeCircle(position, radius, stroke, strokeWidth, camera);
+            FillCircleGradient(position, radius, innerFill, outerFill, camera);
+        }
+        else
+        {
+            FillCircleGradient(position, radius, innerFill, outerFill, camera);
+            StrokeCircle(position, radius, stroke, strokeWidth, camera);
+        }
+
         PopMatrix();
     }
 
@@ -738,6 +793,7 @@ public sealed unsafe class Graphics
         var fill = triangle.Fill;
         var stroke = triangle.Stroke;
         var strokeWidth = triangle.StrokeWidth;
+        var order = triangle.DrawingOrder;
         PushMatrix();
         Pivot(transform, false);
         var points = stackalloc Vector2[3];
@@ -745,8 +801,17 @@ public sealed unsafe class Graphics
         foreach (var point in scaledPoints)
             points[i++] = point;
         var span = new ReadOnlySpan<Vector2>(points, 3);
-        FillCustomPolygonSpan(span, fill, camera);
-        StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+        if (order == DrawingOrder.StrokeThenFill)
+        {
+            StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+            FillCustomPolygonSpan(span, fill, camera);
+        }
+        else
+        {
+            FillCustomPolygonSpan(span, fill, camera);
+            StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+        }
+
         PopMatrix();
     }
 
@@ -819,13 +884,23 @@ public sealed unsafe class Graphics
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
+        var order = polygon.DrawingOrder;
         var position = transform.Position;
         var scale = transform.Scale;
         PushMatrix();
         Pivot(transform, false);
         var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
-        FillRegularPolygon(position, sides, radius, fill, camera);
-        StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
+        if (order == DrawingOrder.StrokeThenFill)
+        {
+            StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
+            FillRegularPolygon(position, sides, radius, fill, camera);
+        }
+        else
+        {
+            FillRegularPolygon(position, sides, radius, fill, camera);
+            StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
+        }
+
         PopMatrix();
     }
 
@@ -895,6 +970,7 @@ public sealed unsafe class Graphics
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
+        var order = polygon.DrawingOrder;
         PushMatrix();
         Pivot(transform, false);
         ReadOnlySpan<Vector2> span;
@@ -911,8 +987,17 @@ public sealed unsafe class Graphics
             span = new ReadOnlySpan<Vector2>(points, polygon.Points.Count);
         }
 
-        FillCustomPolygonSpan(span, fill, camera);
-        StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+        if (order == DrawingOrder.StrokeThenFill)
+        {
+            StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+            FillCustomPolygonSpan(span, fill, camera);
+        }
+        else
+        {
+            FillCustomPolygonSpan(span, fill, camera);
+            StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+        }
+
         PopMatrix();
     }
 
@@ -1013,14 +1098,24 @@ public sealed unsafe class Graphics
         var fill = ring.Fill;
         var stroke = ring.Stroke;
         var strokeWidth = ring.StrokeWidth;
+        var order = ring.DrawingOrder;
         var position = transform.Position;
         var scale = transform.Scale.X.Abs().Min(transform.Scale.Y.Abs());
         var innerRadius = ring.InnerRadius * scale;
         var outerRadius = ring.OuterRadius * scale;
         PushMatrix();
         Pivot(transform, false);
-        FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
-        StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, camera);
+        if (order == DrawingOrder.StrokeThenFill)
+        {
+            StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, camera);
+            FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
+        }
+        else
+        {
+            FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
+            StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, camera);
+        }
+
         PopMatrix();
     }
 
@@ -1220,14 +1315,24 @@ public sealed unsafe class Graphics
         var strokeWidth = text.StrokeWidth;
         var spacing = text.Spacing;
         var interpolation = text.Interpolation;
+        var order = text.DrawingOrder;
         var position = transform.Position;
         var scale = transform.Scale;
         fontSize *= (scale.X.Abs() + scale.Y.Abs()) * 0.5f;
         transform.Scale = text.Size;
         PushMatrix();
         Pivot(transform, true);
-        FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
-        StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
+        if (order == DrawingOrder.StrokeThenFill)
+        {
+            StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
+            FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
+        }
+        else
+        {
+            FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
+            StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
+        }
+
         PopMatrix();
     }
 
@@ -1755,10 +1860,10 @@ public sealed unsafe class Graphics
             _currentClip = clip;
             if (clip.HasValue)
                 Raylib.BeginScissorMode(
-                    (int)(clip.Value.X).Round(),
-                    (int)(clip.Value.Y).Round(),
-                    (int)(clip.Value.Width).Round(),
-                    (int)(clip.Value.Height).Round()
+                    (int)clip.Value.X.Round(),
+                    (int)clip.Value.Y.Round(),
+                    (int)clip.Value.Width.Round(),
+                    (int)clip.Value.Height.Round()
                 );
         }
 

@@ -33,6 +33,12 @@ public class UICircle : UIContainer
         set => _circle.StrokeWidth = value;
     }
 
+    public DrawingOrder DrawingOrder
+    {
+        get => _circle.DrawingOrder;
+        set => _circle.DrawingOrder = value;
+    }
+
     protected override void Render(Graphics graphics, CameraProvider camera)
     {
         var position = LayoutPosition;

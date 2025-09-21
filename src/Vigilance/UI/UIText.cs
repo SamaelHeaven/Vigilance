@@ -70,6 +70,12 @@ public class UIText : UIElement
         set => _text.StrokeWidth = value;
     }
 
+    public DrawingOrder DrawingOrder
+    {
+        get => _text.DrawingOrder;
+        set => _text.DrawingOrder = value;
+    }
+
     public Vector2 Spacing
     {
         get => _text.Spacing;

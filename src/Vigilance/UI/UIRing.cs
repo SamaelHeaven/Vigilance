@@ -40,6 +40,12 @@ public class UIRing : UIContainer
         set => _ring.StrokeWidth = value;
     }
 
+    public DrawingOrder DrawingOrder
+    {
+        get => _ring.DrawingOrder;
+        set => _ring.DrawingOrder = value;
+    }
+
     protected override void Render(Graphics graphics, CameraProvider camera)
     {
         var position = LayoutPosition;

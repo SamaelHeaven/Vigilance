@@ -22,14 +22,14 @@ public sealed unsafe partial class Scene
 
     private readonly Dictionary<Type, object> _events = new();
     private readonly GameSystemsFunc _systemsFunc;
+    private Action? _beginRenderAction;
     private Action? _deferredAction;
+    private Action? _endRenderAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
     private Action? _onDestroy;
     private Query<ZIndex> _orderedQuery;
     private Action<Entity>? _renderAction;
-    private Action? _beginRenderAction;
-    private Action? _endRenderAction;
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;

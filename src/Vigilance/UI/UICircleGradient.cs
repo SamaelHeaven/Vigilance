@@ -32,6 +32,12 @@ public class UICircleGradient : UIContainer
         set => _circle.StrokeWidth = value;
     }
 
+    public DrawingOrder DrawingOrder
+    {
+        get => _circle.DrawingOrder;
+        set => _circle.DrawingOrder = value;
+    }
+
     public Color Fill
     {
         get => _circle.Fill;

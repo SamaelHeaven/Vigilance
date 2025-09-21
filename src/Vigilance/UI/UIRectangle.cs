@@ -32,6 +32,12 @@ public class UIRectangle : UIContainer
         set => _rectangle.StrokeWidth = value;
     }
 
+    public DrawingOrder DrawingOrder
+    {
+        get => _rectangle.DrawingOrder;
+        set => _rectangle.DrawingOrder = value;
+    }
+
     public float Roundness
     {
         get => _rectangle.Roundness;
