@@ -516,7 +516,7 @@ public sealed unsafe class Graphics
         var roundness = rectangle.Roundness.Abs();
         var position = transform.Position;
         var scale = transform.Scale.Abs();
-        var strokeWidth = rectangle.StrokeWidth.Clamp(scale.X.Min(scale.Y) * 0.5f, 0);
+        var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.X.Min(scale.Y) * 0.5f);
         var order = rectangle.DrawingOrder;
         PushMatrix();
         Pivot(transform, true);
@@ -577,7 +577,7 @@ public sealed unsafe class Graphics
         var stroke = rectangle.Stroke;
         var position = transform.Position;
         var scale = transform.Scale.Abs();
-        var strokeWidth = rectangle.StrokeWidth.Clamp(scale.X.Min(scale.Y) * 0.5f, 0);
+        var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.X.Min(scale.Y) * 0.5f);
         var order = rectangle.DrawingOrder;
         PushMatrix();
         Pivot(transform, true);
@@ -1066,28 +1066,32 @@ public sealed unsafe class Graphics
     {
         var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
-        var radius = innerRadius.Max(outerRadius);
+        var maxRadius = innerRadius.Max(outerRadius);
+        var minRadius = innerRadius.Min(outerRadius);
         if (
             colorValue == Color.Transparent
             || strokeWidthValue <= 0
-            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera, strokeWidthValue * 0.5f)
+            || !IsBoxInBounds(center - maxRadius, new Vector2(maxRadius * 2), camera, strokeWidthValue)
         )
             return;
-        var lineWidth = Rlgl.GetLineWidth();
-        var changeLineWidth = !Precision.AreEqual(lineWidth, strokeWidthValue);
-        if (changeLineWidth)
-        {
-            DrawCurrentBuffer();
-            Rlgl.SetLineWidth(strokeWidthValue);
-        }
-
+        var startAngleRad = startAngle.Min(endAngle).DegToRad();
+        var endAngleRad = endAngle.Max(startAngle).DegToRad();
+        var startDirection = new Vector2(MathF.Cos(startAngleRad), MathF.Sin(startAngleRad));
+        var endDirection = new Vector2(MathF.Cos(endAngleRad), MathF.Sin(endAngleRad));
+        var startTangent = new Vector2(-startDirection.Y, startDirection.X);
+        var endTangent = new Vector2(-endDirection.Y, endDirection.X);
+        var startInner = center + startDirection * (minRadius - strokeWidthValue);
+        var endInner = center + endDirection * (minRadius - strokeWidthValue);
+        var startOuter = center + startDirection * (maxRadius + strokeWidthValue);
+        var endOuter = center + endDirection * (maxRadius + strokeWidthValue);
+        var startOffset = startTangent * (strokeWidthValue * 0.5f);
+        var endOffset = endTangent * (strokeWidthValue * 0.5f);
         BeginDrawing(camera);
-        Raylib.DrawRingLines(center, innerRadius, outerRadius, startAngle, endAngle, 0, colorValue.RColor);
+        Raylib.DrawRing(center, maxRadius, maxRadius + strokeWidthValue, startAngle, endAngle, 0, colorValue.RColor);
+        Raylib.DrawRing(center, minRadius - strokeWidthValue, minRadius, startAngle, endAngle, 0, colorValue.RColor);
+        Raylib.DrawLineEx(startInner - startOffset, startOuter - startOffset, strokeWidthValue, colorValue.RColor);
+        Raylib.DrawLineEx(endInner + endOffset, endOuter + endOffset, strokeWidthValue, colorValue.RColor);
         EndDrawing();
-        if (!changeLineWidth)
-            return;
-        DrawCurrentBuffer();
-        Rlgl.SetLineWidth(lineWidth);
     }
 
     public void DrawRing(Transform transform, Ring ring)

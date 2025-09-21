@@ -20,6 +20,8 @@ public static class Coordinates
     public static IEnumerable<Vector2> Scale(IReadOnlyCollection<Vector2> points, Vector2 scale, Vector2? offset = null)
     {
         scale = scale.Abs();
+        if (scale == Vector2.One)
+            return points;
         var center = GetCenter(points);
         return points.Select(point => (offset ?? Vector2.Zero) + (center + (point - center) * scale));
     }
