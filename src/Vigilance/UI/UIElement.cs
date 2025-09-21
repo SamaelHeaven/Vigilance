@@ -560,6 +560,14 @@ public abstract class UIElement : IDeepCloneable
         Render(LayoutTransform, graphics, Camera);
     }
 
+    public WritableTexture ToTexture()
+    {
+        CalculateLayout();
+        var texture = new WritableTexture(LayoutSize.X, LayoutSize.Y);
+        Render(texture.Graphics);
+        return texture;
+    }
+
     protected abstract void Render(Graphics graphics, CameraProvider camera);
 
     protected virtual object DeepClone()

@@ -141,10 +141,10 @@ public static unsafe partial class Logger
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static void UnmanagedLog(TraceLogLevel logLevel, sbyte* format, nint args)
+    private static void UnmanagedLog(TraceLogLevel level, sbyte* format, nint args)
     {
         var message = NativeStringFormatter.Format((nint)format, args);
-        Log((LogLevel)logLevel, message);
+        Log((LogLevel)level, message);
     }
 
     private static void EnableAnsiSupport()

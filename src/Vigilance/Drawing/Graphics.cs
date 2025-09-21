@@ -9,7 +9,6 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Graphics
 {
-    private const float PixelOffset = 0.375f;
     private static WritableTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
     private readonly WritableTexture? _buffer;
@@ -517,10 +516,7 @@ public sealed unsafe class Graphics
         var roundness = rectangle.Roundness.Abs();
         var position = transform.Position;
         var scale = transform.Scale.Abs();
-        var strokeWidth = rectangle.StrokeWidth.Clamp(
-            scale.X.Min(scale.Y) * 0.5f - (roundness > 0 ? PixelOffset : 0),
-            0
-        );
+        var strokeWidth = rectangle.StrokeWidth.Clamp(scale.X.Min(scale.Y) * 0.5f, 0);
         PushMatrix();
         Pivot(transform, true);
         if (roundness > 0)
@@ -1109,15 +1105,34 @@ public sealed unsafe class Graphics
         if (text == "" || colorValue == Color.Transparent)
             return;
         font ??= Font.Default;
+        Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
+        BeginDrawing(camera);
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing))
-            DrawTexture(
-                font.Atlas,
-                source,
-                new Box(dest.Position + position, dest.Size),
-                colorValue,
-                interpolation,
-                camera
+        {
+            var finalDest = new Box(
+                dest.Position.X + position.X,
+                dest.Position.Y + position.Y,
+                dest.Size.X,
+                dest.Size.Y
             );
+            if (!IsBoxInBounds(finalDest, camera))
+                continue;
+            Raylib.DrawTexturePro(
+                font.Atlas.Texture2D,
+                new Raylib_cs.BleedingEdge.Rectangle(source.X, source.Y, source.Width, source.Height),
+                new Raylib_cs.BleedingEdge.Rectangle(
+                    finalDest.Position.X,
+                    finalDest.Position.Y,
+                    finalDest.Size.X,
+                    finalDest.Size.Y
+                ),
+                Vector2.Zero,
+                0,
+                colorValue.RColor
+            );
+        }
+
+        EndDrawing();
     }
 
     public void StrokeText(
@@ -1149,13 +1164,39 @@ public sealed unsafe class Graphics
     )
     {
         var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
-        var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(4);
+        var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
         if (text == "" || colorValue == Color.Transparent || strokeWidthValue <= 0)
             return;
         font ??= Font.Default;
-        var (atlas, glyphInfos) = font.GetStroke((int)strokeWidthValue.Round());
+        var (atlas, glyphInfos) = font.GetStroke((int)strokeWidthValue.Ceil());
+        Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
+        BeginDrawing(camera);
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, glyphInfos))
-            DrawTexture(atlas, source, new Box(dest.Position + position, dest.Size), colorValue, interpolation, camera);
+        {
+            var finalDest = new Box(
+                dest.Position.X + position.X,
+                dest.Position.Y + position.Y,
+                dest.Size.X,
+                dest.Size.Y
+            );
+            if (!IsBoxInBounds(finalDest, camera))
+                continue;
+            Raylib.DrawTexturePro(
+                atlas.Texture2D,
+                new Raylib_cs.BleedingEdge.Rectangle(source.X, source.Y, source.Width, source.Height),
+                new Raylib_cs.BleedingEdge.Rectangle(
+                    finalDest.Position.X,
+                    finalDest.Position.Y,
+                    finalDest.Size.X,
+                    finalDest.Size.Y
+                ),
+                Vector2.Zero,
+                0,
+                colorValue.RColor
+            );
+        }
+
+        EndDrawing();
     }
 
     public void DrawText(float x, float y, Text text)
@@ -1261,7 +1302,7 @@ public sealed unsafe class Graphics
     {
         if (!IsBoxInBounds(dest, camera))
             return;
-        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Interpolation.Nearest));
+        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
         BeginDrawing(camera);
         var rSource = new Raylib_cs.BleedingEdge.Rectangle(
             source.X,
@@ -1714,10 +1755,10 @@ public sealed unsafe class Graphics
             _currentClip = clip;
             if (clip.HasValue)
                 Raylib.BeginScissorMode(
-                    (int)(clip.Value.X + PixelOffset).Round(),
-                    (int)(clip.Value.Y + PixelOffset).Round(),
-                    (int)(clip.Value.Width + PixelOffset).Round(),
-                    (int)(clip.Value.Height + PixelOffset).Round()
+                    (int)(clip.Value.X).Round(),
+                    (int)(clip.Value.Y).Round(),
+                    (int)(clip.Value.Width).Round(),
+                    (int)(clip.Value.Height).Round()
                 );
         }
 
@@ -1725,7 +1766,6 @@ public sealed unsafe class Graphics
         Rlgl.PushMatrix();
         Rlgl.Translatef(offset.X, offset.Y, 0);
         Rlgl.Scalef(scale.X, scale.Y, 1);
-        Rlgl.Translatef(PixelOffset, PixelOffset, 0);
         if (camera is not null)
             matrix *= camera.Matrix;
         Rlgl.MultMatrixf(

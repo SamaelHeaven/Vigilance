@@ -380,11 +380,13 @@ public sealed unsafe class Font
                 var sourcePosition = new Vector2(glyph.X, glyph.Y) - halfAtlasSpacing;
                 var sourceSize = new Vector2(glyph.Width, glyph.Height) + atlasSpacing;
                 var destPosition =
-                    _position
-                    + new Vector2(
-                        glyph.OffsetX - glyph.Stroke - halfAtlasSpacing,
-                        glyph.OffsetY - glyph.Stroke - halfAtlasSpacing
-                    ) / _aspectRatio;
+                    (
+                        _position
+                        + new Vector2(
+                            glyph.OffsetX - glyph.Stroke - halfAtlasSpacing,
+                            glyph.OffsetY - glyph.Stroke - halfAtlasSpacing
+                        ) / _aspectRatio
+                    ) + 0.5f;
                 var destSize = sourceSize / _aspectRatio;
                 Current = (new Box(sourcePosition, sourceSize), new Box(destPosition, destSize));
                 _position.X += glyph.Advance / _aspectRatio + _spacing.X;
