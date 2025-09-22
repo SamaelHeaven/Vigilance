@@ -14,8 +14,6 @@ public sealed class EntityGenerator : ISourceGenerator
         var sb = new StringBuilder();
         sb.AppendLine(
             """
-            #pragma warning disable CS9084
-
             namespace Vigilance.Core;
 
             public readonly partial record struct Entity
