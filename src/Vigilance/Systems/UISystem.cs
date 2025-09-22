@@ -12,8 +12,10 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem
     {
         foreach (var element in entity.Components.OfType<UIElement>())
         {
+            var layoutReady = element.LayoutReady;
             element.CalculateLayout();
-            element.Update(entity);
+            if (!layoutReady || !entity.Disabled)
+                element.Update(entity);
             element.Render(entity.WorldTransform, Graphics);
         }
     }

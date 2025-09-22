@@ -1,5 +1,6 @@
 #pragma warning disable CS9084
 
+using System.Runtime.CompilerServices;
 using System.Text;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
@@ -11,8 +12,9 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public unsafe partial record struct Entity
+public unsafe partial record struct Entity : IComparable<Entity>
 {
+    public const ulong RecycledIdFlag = 0x7FFFFFFF;
     private readonly Flecs.NET.Core.Entity _entity;
 
     internal Entity(Flecs.NET.Core.Entity entity, Scene scene)
@@ -119,6 +121,16 @@ public unsafe partial record struct Entity
         }
     }
 
+    public bool Disabled
+    {
+        get => !Valid || _entity.Has(Ecs.Disabled);
+        set
+        {
+            if (Valid)
+                flecs.ecs_enable(_entity.World, _entity.Id, value ? (byte)0 : (byte)1);
+        }
+    }
+
     public Transform WorldTransform
     {
         get
@@ -189,9 +201,21 @@ public unsafe partial record struct Entity
 
     public ChildEnumerable Children => new(this);
 
+    public int CompareTo(Entity other)
+    {
+        return Compare(this, other, Id, other.Id);
+    }
+
     public bool Equals(Entity other)
     {
         return Id == other.Id;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int Compare(Entity e1, Entity e2, ulong id1, ulong id2)
+    {
+        var result = e1.WorldZIndex.CompareTo(e2.WorldZIndex);
+        return result == 0 ? (id1 & RecycledIdFlag).CompareTo(id2 & RecycledIdFlag) : result;
     }
 
     public override int GetHashCode()
@@ -250,6 +274,12 @@ public unsafe partial record struct Entity
     public ref readonly Entity SetZIndex(int zIndex)
     {
         ZIndex = zIndex;
+        return ref this;
+    }
+
+    public ref readonly Entity SetDisabled(bool disabled = true)
+    {
+        Disabled = disabled;
         return ref this;
     }
 
@@ -355,6 +385,12 @@ public unsafe partial record struct Entity
         {
             sb.Append(", Name = ");
             sb.Append(Name);
+        }
+
+        if (Disabled)
+        {
+            sb.Append(", Disabled = ");
+            sb.Append(Disabled);
         }
 
         sb.Append(", Transform = ");

@@ -20,14 +20,14 @@ public sealed class ComponentSystem : GameSystem
 
     public override void BeginRender()
     {
-        foreach (var (entity, components) in Scene.Entries<Components>())
+        foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
         foreach (var component in components.OfType<IComponent>())
             component.BeginRender(entity);
     }
 
     public override void EndRender()
     {
-        foreach (var (entity, components) in Scene.Entries<Components>())
+        foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
         foreach (var component in components.OfType<IComponent>())
             component.EndRender(entity);
     }

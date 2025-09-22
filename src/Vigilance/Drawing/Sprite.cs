@@ -18,6 +18,7 @@ public sealed class Sprite : IFullCloneable
     public bool FlipY { get; set; } = false;
     public Box? Source { get; set; } = null;
     public Color Tint { get; set; } = Color.White;
+    public NPatchInfo? NPatchInfo { get; set; } = null;
     public Interpolation Interpolation { get; set; } = Drawing.DefaultInterpolation;
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 

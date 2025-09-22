@@ -26,30 +26,30 @@ public sealed unsafe class Graphics
 
     public void DrawEntity(Entity entity)
     {
-        if (entity.TryGet(out Rectangle rectangle))
-            DrawRectangle(entity.WorldTransform, rectangle);
-        if (entity.TryGet(out RectangleGradient rectangleGradient))
-            DrawRectangleGradient(entity.WorldTransform, rectangleGradient);
-        if (entity.TryGet(out Circle circle))
-            DrawCircle(entity.WorldTransform, circle);
-        if (entity.TryGet(out CircleGradient circleGradient))
-            DrawCircleGradient(entity.WorldTransform, circleGradient);
-        if (entity.TryGet(out Triangle triangle))
-            DrawTriangle(entity.WorldTransform, triangle);
-        if (entity.TryGet(out RegularPolygon regularPolygon))
-            DrawRegularPolygon(entity.WorldTransform, regularPolygon);
-        if (entity.TryGet(out CustomPolygon customPolygon))
-            DrawCustomPolygon(entity.WorldTransform, customPolygon);
-        if (entity.TryGet(out Ring ring))
-            DrawRing(entity.WorldTransform, ring);
-        if (entity.TryGet(out Line line))
-            DrawLine(entity.WorldTransform, line);
-        if (entity.TryGet(out Text text))
-            DrawText(entity.WorldTransform, text);
-        if (entity.TryGet(out Sprite sprite))
-            DrawSprite(entity.WorldTransform, sprite);
-        if (entity.TryGet(out Grid grid))
-            DrawGrid(entity.WorldTransform, grid);
+        if (entity.Has<Rectangle>())
+            DrawRectangle(entity.WorldTransform, entity.Get<Rectangle>());
+        if (entity.Has<RectangleGradient>())
+            DrawRectangleGradient(entity.WorldTransform, entity.Get<RectangleGradient>());
+        if (entity.Has<Circle>())
+            DrawCircle(entity.WorldTransform, entity.Get<Circle>());
+        if (entity.Has<CircleGradient>())
+            DrawCircleGradient(entity.WorldTransform, entity.Get<CircleGradient>());
+        if (entity.Has<Triangle>())
+            DrawTriangle(entity.WorldTransform, entity.Get<Triangle>());
+        if (entity.Has<RegularPolygon>())
+            DrawRegularPolygon(entity.WorldTransform, entity.Get<RegularPolygon>());
+        if (entity.Has<CustomPolygon>())
+            DrawCustomPolygon(entity.WorldTransform, entity.Get<CustomPolygon>());
+        if (entity.Has<Ring>())
+            DrawRing(entity.WorldTransform, entity.Get<Ring>());
+        if (entity.Has<Line>())
+            DrawLine(entity.WorldTransform, entity.Get<Line>());
+        if (entity.Has<Text>())
+            DrawText(entity.WorldTransform, entity.Get<Text>());
+        if (entity.Has<Sprite>())
+            DrawSprite(entity.WorldTransform, entity.Get<Sprite>());
+        if (entity.Has<Grid>())
+            DrawGrid(entity.WorldTransform, entity.Get<Grid>());
     }
 
     #endregion
@@ -517,14 +517,14 @@ public sealed unsafe class Graphics
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.X.Min(scale.Y) * 0.5f);
-        var order = rectangle.DrawingOrder;
+        var order = rectangle.DrawOrder;
         PushMatrix();
         Pivot(transform, true);
         if (roundness > 0)
         {
             position += strokeWidth;
             scale -= strokeWidth * 2;
-            if (order == DrawingOrder.StrokeThenFill)
+            if (order == DrawOrder.StrokeThenFill)
             {
                 StrokeRoundedRectangle(position, scale, stroke, roundness, strokeWidth, camera);
                 FillRoundedRectangle(position, scale, fill, roundness, camera);
@@ -537,7 +537,7 @@ public sealed unsafe class Graphics
         }
         else
         {
-            if (order == DrawingOrder.StrokeThenFill)
+            if (order == DrawOrder.StrokeThenFill)
             {
                 StrokeRectangle(position, scale, stroke, strokeWidth, camera);
                 FillRectangle(position + strokeWidth, scale - strokeWidth * 2, fill, camera);
@@ -578,10 +578,10 @@ public sealed unsafe class Graphics
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.X.Min(scale.Y) * 0.5f);
-        var order = rectangle.DrawingOrder;
+        var order = rectangle.DrawOrder;
         PushMatrix();
         Pivot(transform, true);
-        if (order == DrawingOrder.StrokeThenFill)
+        if (order == DrawOrder.StrokeThenFill)
         {
             StrokeRectangle(position, scale, stroke, strokeWidth, camera);
             FillRectangleGradient(
@@ -706,13 +706,13 @@ public sealed unsafe class Graphics
         var fill = circle.Fill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
-        var order = circle.DrawingOrder;
+        var order = circle.DrawOrder;
         var position = transform.Position;
         var scale = transform.Scale;
         var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
         PushMatrix();
         Pivot(transform, false);
-        if (order == DrawingOrder.StrokeThenFill)
+        if (order == DrawOrder.StrokeThenFill)
         {
             StrokeCircle(position, radius, stroke, strokeWidth, camera);
             FillCircle(position, radius, fill, camera);
@@ -733,13 +733,13 @@ public sealed unsafe class Graphics
         var outerFill = circle.OuterFill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
-        var order = circle.DrawingOrder;
+        var order = circle.DrawOrder;
         var position = transform.Position;
         var scale = transform.Scale;
         var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
         PushMatrix();
         Pivot(transform, false);
-        if (order == DrawingOrder.StrokeThenFill)
+        if (order == DrawOrder.StrokeThenFill)
         {
             StrokeCircle(position, radius, stroke, strokeWidth, camera);
             FillCircleGradient(position, radius, innerFill, outerFill, camera);
@@ -793,7 +793,7 @@ public sealed unsafe class Graphics
         var fill = triangle.Fill;
         var stroke = triangle.Stroke;
         var strokeWidth = triangle.StrokeWidth;
-        var order = triangle.DrawingOrder;
+        var order = triangle.DrawOrder;
         PushMatrix();
         Pivot(transform, false);
         var points = stackalloc Vector2[3];
@@ -801,7 +801,7 @@ public sealed unsafe class Graphics
         foreach (var point in scaledPoints)
             points[i++] = point;
         var span = new ReadOnlySpan<Vector2>(points, 3);
-        if (order == DrawingOrder.StrokeThenFill)
+        if (order == DrawOrder.StrokeThenFill)
         {
             StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
             FillCustomPolygonSpan(span, fill, camera);
@@ -884,13 +884,13 @@ public sealed unsafe class Graphics
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
-        var order = polygon.DrawingOrder;
+        var order = polygon.DrawOrder;
         var position = transform.Position;
         var scale = transform.Scale;
         PushMatrix();
         Pivot(transform, false);
         var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
-        if (order == DrawingOrder.StrokeThenFill)
+        if (order == DrawOrder.StrokeThenFill)
         {
             StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
             FillRegularPolygon(position, sides, radius, fill, camera);
@@ -970,7 +970,7 @@ public sealed unsafe class Graphics
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
-        var order = polygon.DrawingOrder;
+        var order = polygon.DrawOrder;
         PushMatrix();
         Pivot(transform, false);
         ReadOnlySpan<Vector2> span;
@@ -987,7 +987,7 @@ public sealed unsafe class Graphics
             span = new ReadOnlySpan<Vector2>(points, polygon.Points.Count);
         }
 
-        if (order == DrawingOrder.StrokeThenFill)
+        if (order == DrawOrder.StrokeThenFill)
         {
             StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
             FillCustomPolygonSpan(span, fill, camera);
@@ -1074,10 +1074,8 @@ public sealed unsafe class Graphics
             || !IsBoxInBounds(center - maxRadius, new Vector2(maxRadius * 2), camera, strokeWidthValue)
         )
             return;
-        var startAngleRad = startAngle.Min(endAngle).DegToRad();
-        var endAngleRad = endAngle.Max(startAngle).DegToRad();
-        var startDirection = new Vector2(MathF.Cos(startAngleRad), MathF.Sin(startAngleRad));
-        var endDirection = new Vector2(MathF.Cos(endAngleRad), MathF.Sin(endAngleRad));
+        var startDirection = Vector2.DirectionDeg(startAngle.Min(endAngle));
+        var endDirection = Vector2.DirectionDeg(endAngle.Max(startAngle));
         var startTangent = new Vector2(-startDirection.Y, startDirection.X);
         var endTangent = new Vector2(-endDirection.Y, endDirection.X);
         var startInner = center + startDirection * (minRadius - strokeWidthValue);
@@ -1102,14 +1100,14 @@ public sealed unsafe class Graphics
         var fill = ring.Fill;
         var stroke = ring.Stroke;
         var strokeWidth = ring.StrokeWidth;
-        var order = ring.DrawingOrder;
+        var order = ring.DrawOrder;
         var position = transform.Position;
         var scale = transform.Scale.X.Abs().Min(transform.Scale.Y.Abs());
         var innerRadius = ring.InnerRadius * scale;
         var outerRadius = ring.OuterRadius * scale;
         PushMatrix();
         Pivot(transform, false);
-        if (order == DrawingOrder.StrokeThenFill)
+        if (order == DrawOrder.StrokeThenFill)
         {
             StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, camera);
             FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
@@ -1319,14 +1317,14 @@ public sealed unsafe class Graphics
         var strokeWidth = text.StrokeWidth;
         var spacing = text.Spacing;
         var interpolation = text.Interpolation;
-        var order = text.DrawingOrder;
+        var order = text.DrawOrder;
         var position = transform.Position;
         var scale = transform.Scale;
         fontSize *= (scale.X.Abs() + scale.Y.Abs()) * 0.5f;
         transform.Scale = text.Size;
         PushMatrix();
         Pivot(transform, true);
-        if (order == DrawingOrder.StrokeThenFill)
+        if (order == DrawOrder.StrokeThenFill)
         {
             StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
             FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
@@ -1424,6 +1422,115 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
+    public void DrawTextureNPatch(
+        Texture texture,
+        NPatchInfo nPatchInfo,
+        float x,
+        float y,
+        Color? tint = null,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        DrawTextureNPatch(texture, nPatchInfo, new Vector2(x, y), null, tint, interpolation, camera);
+    }
+
+    public void DrawTextureNPatch(
+        Texture texture,
+        NPatchInfo nPatchInfo,
+        float x,
+        float y,
+        float width,
+        float height,
+        Color? tint = null,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        DrawTextureNPatch(
+            texture,
+            nPatchInfo,
+            new Vector2(x, y),
+            new Vector2(width, height),
+            tint,
+            interpolation,
+            camera
+        );
+    }
+
+    public void DrawTextureNPatch(
+        Texture texture,
+        NPatchInfo nPatchInfo,
+        Box box,
+        Color? tint = null,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        DrawTextureNPatch(texture, nPatchInfo, box.Position, box.Size, tint, interpolation, camera);
+    }
+
+    public void DrawTextureNPatch(
+        Texture texture,
+        NPatchInfo nPatchInfo,
+        Vector2 position,
+        Vector2? size = null,
+        Color? tint = null,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        DrawTextureNPatch(
+            texture,
+            nPatchInfo,
+            new Box(Vector2.Zero, texture.Size),
+            new Box(position, size ?? texture.Size),
+            tint,
+            interpolation,
+            camera
+        );
+    }
+
+    public void DrawTextureNPatch(
+        Texture texture,
+        NPatchInfo nPatchInfo,
+        Box source,
+        Box dest,
+        Color? tint = null,
+        Interpolation? interpolation = null,
+        Camera? camera = null
+    )
+    {
+        if (!IsBoxInBounds(dest, camera))
+            return;
+        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
+        BeginDrawing(camera);
+        var rSource = new Raylib_cs.BleedingEdge.Rectangle(
+            source.X,
+            source.Y,
+            source.Width,
+            texture.Writable ? -source.Height : source.Height
+        );
+        var rDest = new Raylib_cs.BleedingEdge.Rectangle(dest.Position, dest.Size);
+        Raylib.DrawTextureNPatch(
+            texture.Texture2D,
+            new Raylib_cs.BleedingEdge.NPatchInfo
+            {
+                Source = rSource,
+                Left = nPatchInfo.Left,
+                Top = nPatchInfo.Top,
+                Right = nPatchInfo.Right,
+                Bottom = nPatchInfo.Bottom,
+                Layout = (Raylib_cs.BleedingEdge.NPatchLayout)nPatchInfo.Layout,
+            },
+            rDest,
+            Vector2.Zero,
+            0,
+            (tint ?? Color.White).RColor
+        );
+        EndDrawing();
+    }
+
     public void DrawSprite(float x, float y, float width, float height, Sprite sprite)
     {
         DrawSprite(new Vector2(x, y), new Vector2(width, height), sprite);
@@ -1445,6 +1552,7 @@ public sealed unsafe class Graphics
         var texture = sprite.Texture;
         var interpolation = sprite.Interpolation;
         var tint = sprite.Tint;
+        var nPatchInfo = sprite.NPatchInfo;
         var flipX = sprite.FlipX;
         var flipY = sprite.FlipY;
         var position = transform.Position;
@@ -1456,7 +1564,10 @@ public sealed unsafe class Graphics
             source.Height = -source.Height;
         PushMatrix();
         Pivot(transform, true);
-        DrawTexture(texture, source, new Box(position, scale), tint, interpolation, camera);
+        if (nPatchInfo.HasValue)
+            DrawTextureNPatch(texture, nPatchInfo.Value, source, new Box(position, scale), tint, interpolation, camera);
+        else
+            DrawTexture(texture, source, new Box(position, scale), tint, interpolation, camera);
         PopMatrix();
     }
 

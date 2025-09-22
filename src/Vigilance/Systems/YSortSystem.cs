@@ -9,7 +9,7 @@ public sealed class YSortSystem(float offset = 0) : GameSystem
 
     public override void BeginRender()
     {
-        foreach (var (entity, ySort) in Scene.Entries<YSort>())
+        foreach (var (entity, ySort) in Scene.Entries<YSort>().WithDisabled())
             entity.ZIndex = (int)(entity.WorldPosition.Y + Offset + ySort.Offset).Round();
     }
 }

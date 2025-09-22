@@ -43,10 +43,10 @@ public class UIRectangleGradient : UIContainer
         set => _rectangle.StrokeWidth = value;
     }
 
-    public DrawingOrder DrawingOrder
+    public DrawOrder DrawOrder
     {
-        get => _rectangle.DrawingOrder;
-        set => _rectangle.DrawingOrder = value;
+        get => _rectangle.DrawOrder;
+        set => _rectangle.DrawOrder = value;
     }
 
     public Color Fill
