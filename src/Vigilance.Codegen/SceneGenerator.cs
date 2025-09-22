@@ -15,7 +15,7 @@ public sealed class SceneGenerator : ISourceGenerator
         sb.AppendLine(
             """
             #pragma warning disable CS9084
-            
+
             namespace Vigilance.Core;
 
             public sealed partial class Scene
