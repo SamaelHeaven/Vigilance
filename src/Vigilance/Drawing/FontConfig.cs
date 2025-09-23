@@ -5,7 +5,7 @@ namespace Vigilance.Drawing;
 
 public sealed class FontConfig
 {
-    public int DefaultQuality { get; set; } = 128;
+    public int DefaultQuality { get; set; } = 64;
     public int DefaultSize { get; set; } = 16;
     public TextHeightMode DefaultTextHeightMode { get; set; } = TextHeightMode.Character;
     public Vector2 DefaultTextSpacing { get; set; } = new(0, 4);

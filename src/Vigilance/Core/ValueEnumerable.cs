@@ -49,7 +49,10 @@ public interface IEnumerableStack<TValue> : IValueEnumerable<Stack<TValue>.Enume
 
 public interface IEnumerableArray<TValue> : IValueEnumerable<ArrayEnumerator<TValue>, TValue>;
 
-public readonly struct EnumerableList<TValue>(List<TValue> list) : IEnumerableList<TValue>
+public readonly struct EnumerableList<TValue>(List<TValue> list)
+    : IEnumerableList<TValue>,
+        IReadOnlyList<TValue>,
+        IReadOnlySpan<TValue>
 {
     public List<TValue>.Enumerator GetEnumerator()
     {
@@ -302,7 +305,10 @@ public readonly struct EnumerableStack<TValue>(Stack<TValue> stack)
     }
 }
 
-public readonly struct EnumerableArray<TValue>(TValue[] array) : IEnumerableArray<TValue>, IReadOnlyList<TValue>
+public readonly struct EnumerableArray<TValue>(TValue[] array)
+    : IEnumerableArray<TValue>,
+        IReadOnlyList<TValue>,
+        IReadOnlySpan<TValue>
 {
     private readonly TValue[] _array = array;
 
@@ -323,6 +329,11 @@ public readonly struct EnumerableArray<TValue>(TValue[] array) : IEnumerableArra
     public static implicit operator ReadOnlySpan<TValue>(EnumerableArray<TValue> array)
     {
         return array._array;
+    }
+
+    public ReadOnlySpan<TValue> AsSpan()
+    {
+        return _array;
     }
 }
 
