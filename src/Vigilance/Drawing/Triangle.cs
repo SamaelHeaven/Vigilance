@@ -78,7 +78,7 @@ public sealed class Triangle : IFullCloneable
             _index = 0;
         }
 
-        public Vector2 Current
+        public readonly Vector2 Current
         {
             get
             {

@@ -12,7 +12,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Core;
 
-public unsafe partial record struct Entity : IComparable<Entity>
+public readonly unsafe partial record struct Entity : IComparable<Entity>
 {
     public const ulong RecycledIdFlag = 0x7FFFFFFF;
     private readonly Flecs.NET.Core.Entity _entity;
@@ -458,7 +458,7 @@ public unsafe partial record struct Entity : IComparable<Entity>
             }
         }
 
-        public Entity Current
+        public readonly Entity Current
         {
             get
             {

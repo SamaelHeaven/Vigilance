@@ -347,7 +347,7 @@ public struct ArrayEnumerator<TValue> : IValueEnumerator<TValue>
         _index = -1;
     }
 
-    public TValue Current => _array[_index];
+    public readonly TValue Current => _array[_index];
 
     public void Dispose() { }
 }

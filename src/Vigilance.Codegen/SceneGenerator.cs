@@ -174,7 +174,10 @@ public sealed class SceneGenerator : ISourceGenerator
                         Dispose();
                         _scene.BeginDefer();
                         var query = {{(
-                            query == "" ? $"(_withDisabled ? _scene._world.QueryBuilder<{queryTypeParams}>().With(Flecs.NET.Core.Ecs.Disabled).Optional() : _scene._world.QueryBuilder<{queryTypeParams}>()).CacheKind(Flecs.NET.Bindings.flecs.ecs_query_cache_kind_t.EcsQueryCacheNone).Build()" : query
+                            query == "" ? $"(_withDisabled ? " +
+                                          $"_scene._world.QueryBuilder<{queryTypeParams}>().With(Flecs.NET.Core.Ecs.Disabled).Optional() " +
+                                          $": _scene._world.QueryBuilder<{queryTypeParams}>())" +
+                                          $".CacheKind(Flecs.NET.Bindings.flecs.ecs_query_cache_kind_t.EcsQueryCacheNone).Build()" : query
                         )}};
                         _query = query;
                         _iter = query.GetIter();
