@@ -105,13 +105,12 @@ public sealed class TextureAtlas : IEnumerableList<Box>, IReadOnlyList<Box>
 
     public AnimationFrameEnumerable GetAnimationFrames(int startIndex, int endIndex)
     {
-        if (startIndex < 0 || endIndex >= Count || startIndex > endIndex)
-            throw new ArgumentException("Invalid animation index range.");
-
         return new AnimationFrameEnumerable(this, startIndex, endIndex);
     }
 
-    public readonly struct AnimationFrameEnumerable : IValueEnumerable<AnimationFrameEnumerator, AnimationFrame>
+    public readonly struct AnimationFrameEnumerable
+        : IValueEnumerable<AnimationFrameEnumerator, AnimationFrame>,
+            IReadOnlyCollection<AnimationFrame>
     {
         private readonly TextureAtlas _atlas;
         private readonly int _startIndex;
@@ -119,6 +118,8 @@ public sealed class TextureAtlas : IEnumerableList<Box>, IReadOnlyList<Box>
 
         internal AnimationFrameEnumerable(TextureAtlas atlas, int startIndex, int endIndex)
         {
+            if (startIndex < 0 || endIndex >= atlas.Count || startIndex > endIndex)
+                throw new ArgumentException("Invalid animation index range.");
             _atlas = atlas;
             _startIndex = startIndex;
             _endIndex = endIndex;
@@ -128,6 +129,8 @@ public sealed class TextureAtlas : IEnumerableList<Box>, IReadOnlyList<Box>
         {
             return new AnimationFrameEnumerator(_atlas, _startIndex, _endIndex);
         }
+
+        public int Count => _endIndex - _startIndex + 1;
     }
 
     public struct AnimationFrameEnumerator : IValueEnumerator<AnimationFrame>
