@@ -1319,20 +1319,24 @@ public sealed unsafe class Graphics
         var interpolation = text.Interpolation;
         var order = text.DrawOrder;
         var position = transform.Position;
-        var scale = transform.Scale;
-        fontSize *= (scale.X.Abs() + scale.Y.Abs()) * 0.5f;
-        transform.Scale = text.Size;
+        var scale = (transform.Scale.X.Abs() + transform.Scale.Y.Abs()) * 0.5f;
+        var size = text.Size;
+        fontSize *= scale;
+        transform.Scale = size;
         PushMatrix();
         Pivot(transform, true);
-        if (order == DrawOrder.StrokeThenFill)
+        if (IsBoxInBounds(position, size * scale, camera, strokeWidth * 0.5f))
         {
-            StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
-            FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
-        }
-        else
-        {
-            FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
-            StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
+            if (order == DrawOrder.StrokeThenFill)
+            {
+                StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
+                FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
+            }
+            else
+            {
+                FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
+                StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
+            }
         }
 
         PopMatrix();
@@ -1407,10 +1411,9 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (!IsBoxInBounds(dest, camera))
+        var tintValue = tint ?? Color.White;
+        if (tintValue == Color.Transparent || !IsBoxInBounds(dest, camera))
             return;
-        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
-        BeginDrawing(camera);
         var rSource = new Raylib_cs.BleedingEdge.Rectangle(
             source.X,
             source.Y,
@@ -1418,7 +1421,9 @@ public sealed unsafe class Graphics
             texture.Writable ? -source.Height : source.Height
         );
         var rDest = new Raylib_cs.BleedingEdge.Rectangle(dest.Position, dest.Size);
-        Raylib.DrawTexturePro(texture.Texture2D, rSource, rDest, Vector2.Zero, 0, (tint ?? Color.White).RColor);
+        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
+        BeginDrawing(camera);
+        Raylib.DrawTexturePro(texture.Texture2D, rSource, rDest, Vector2.Zero, 0, tintValue.RColor);
         EndDrawing();
     }
 
@@ -1501,10 +1506,9 @@ public sealed unsafe class Graphics
         Camera? camera = null
     )
     {
-        if (!IsBoxInBounds(dest, camera))
+        var tintValue = tint ?? Color.White;
+        if (tintValue == Color.Transparent || !IsBoxInBounds(dest, camera))
             return;
-        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
-        BeginDrawing(camera);
         var rSource = new Raylib_cs.BleedingEdge.Rectangle(
             source.X,
             source.Y,
@@ -1512,22 +1516,18 @@ public sealed unsafe class Graphics
             texture.Writable ? -source.Height : source.Height
         );
         var rDest = new Raylib_cs.BleedingEdge.Rectangle(dest.Position, dest.Size);
-        Raylib.DrawTextureNPatch(
-            texture.Texture2D,
-            new Raylib_cs.BleedingEdge.NPatchInfo
-            {
-                Source = rSource,
-                Left = nPatchInfo.Left,
-                Top = nPatchInfo.Top,
-                Right = nPatchInfo.Right,
-                Bottom = nPatchInfo.Bottom,
-                Layout = (Raylib_cs.BleedingEdge.NPatchLayout)nPatchInfo.Layout,
-            },
-            rDest,
-            Vector2.Zero,
-            0,
-            (tint ?? Color.White).RColor
-        );
+        var rNPatchInfo = new Raylib_cs.BleedingEdge.NPatchInfo
+        {
+            Source = rSource,
+            Left = nPatchInfo.Left,
+            Top = nPatchInfo.Top,
+            Right = nPatchInfo.Right,
+            Bottom = nPatchInfo.Bottom,
+            Layout = (Raylib_cs.BleedingEdge.NPatchLayout)nPatchInfo.Layout,
+        };
+        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
+        BeginDrawing(camera);
+        Raylib.DrawTextureNPatch(texture.Texture2D, rNPatchInfo, rDest, Vector2.Zero, 0, tintValue.RColor);
         EndDrawing();
     }
 
@@ -1605,27 +1605,29 @@ public sealed unsafe class Graphics
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
-        if (colorValue == Color.Transparent || thickValue <= 0)
+        if (
+            colorValue == Color.Transparent
+            || thickValue <= 0
+            || !IsBoxInBounds(position, size, camera, thickValue * 0.5f)
+        )
             return;
         cellSize = cellSize.Max(1);
+        BeginDrawing(camera);
         for (var x = position.X; x <= position.X + size.X; x += cellSize)
-            DrawLine(new Vector2(x, position.Y), new Vector2(x, position.Y + size.Y), colorValue, thickValue, camera);
+            Raylib.DrawLineEx(
+                new Vector2(x, position.Y),
+                new Vector2(x, position.Y + size.Y),
+                thickValue,
+                colorValue.RColor
+            );
         for (var y = position.Y; y <= position.Y + size.Y; y += cellSize)
-            DrawLine(new Vector2(position.X, y), new Vector2(position.X + size.X, y), colorValue, thickValue, camera);
-    }
-
-    public void DrawGrid(Transform transform, Grid grid)
-    {
-        var camera = grid.Camera.Get();
-        var color = grid.Color;
-        var cellSize = grid.CellSize;
-        var thick = grid.Thick;
-        var position = transform.Position;
-        var scale = transform.Scale.Abs();
-        PushMatrix();
-        Pivot(transform, true);
-        DrawGrid(position, scale, cellSize, color, thick, camera);
-        PopMatrix();
+            Raylib.DrawLineEx(
+                new Vector2(position.X, y),
+                new Vector2(position.X + size.X, y),
+                thickValue,
+                colorValue.RColor
+            );
+        EndDrawing();
     }
 
     public void DrawGrid(float x, float y, float width, float height, Grid grid)
@@ -1641,6 +1643,20 @@ public sealed unsafe class Graphics
     public void DrawGrid(Box box, Grid grid)
     {
         DrawGrid(box.Position, box.Size, grid);
+    }
+
+    public void DrawGrid(Transform transform, Grid grid)
+    {
+        var camera = grid.Camera.Get();
+        var color = grid.Color;
+        var cellSize = grid.CellSize;
+        var thick = grid.Thick;
+        var position = transform.Position;
+        var scale = transform.Scale.Abs();
+        PushMatrix();
+        Pivot(transform, true);
+        DrawGrid(position, scale, cellSize, color, thick, camera);
+        PopMatrix();
     }
 
     #endregion
@@ -1966,7 +1982,7 @@ public sealed unsafe class Graphics
         }
 
         var clip = _clip;
-        if (clip is not null)
+        if (clip.HasValue)
             clip = new Box(clip.Value.Position * scale + offset, clip.Value.Size * scale);
         if (!Precision.AreEqual(_currentClip, clip))
         {

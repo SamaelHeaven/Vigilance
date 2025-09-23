@@ -789,9 +789,10 @@ public sealed unsafe partial class Scene
     public void OnSetDisabled(Action<Entity> action)
     {
         EnsureNotInitialized();
-        new ObserverBuilder(_world.Handle)
+        _world
+            .Observer()
             .Flags(Ecs.Disabled)
-            .Event(Ecs.OnSet)
+            .Event(Ecs.OnAdd)
             .Event(Ecs.OnRemove)
             .Each(
                 (it, i) =>
@@ -805,15 +806,16 @@ public sealed unsafe partial class Scene
     public void OnSetDisabled(Action<Entity, bool> action)
     {
         EnsureNotInitialized();
-        new ObserverBuilder(_world.Handle)
+        _world
+            .Observer()
             .Flags(Ecs.Disabled)
-            .Event(Ecs.OnSet)
+            .Event(Ecs.OnAdd)
             .Event(Ecs.OnRemove)
             .Each(
                 (it, i) =>
                 {
                     var entity = new Entity(it.Entity(i), this);
-                    action.Invoke(entity, it.Event() == Ecs.OnSet);
+                    action.Invoke(entity, it.Event() == Ecs.OnAdd);
                 }
             );
     }
