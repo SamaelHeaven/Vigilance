@@ -203,19 +203,13 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public int CompareTo(Entity other)
     {
-        return Compare(this, other, Id, other.Id);
+        var result = WorldZIndex.CompareTo(other.WorldZIndex);
+        return result == 0 ? (Id & RecycledIdFlag).CompareTo(other.Id & RecycledIdFlag) : result;
     }
 
     public bool Equals(Entity other)
     {
         return Id == other.Id;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int Compare(Entity e1, Entity e2, ulong id1, ulong id2)
-    {
-        var result = e1.WorldZIndex.CompareTo(e2.WorldZIndex);
-        return result == 0 ? (id1 & RecycledIdFlag).CompareTo(id2 & RecycledIdFlag) : result;
     }
 
     public override int GetHashCode()

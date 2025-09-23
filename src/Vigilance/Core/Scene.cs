@@ -59,7 +59,7 @@ public sealed unsafe partial class Scene
 
     public bool Initialized { get; private set; }
 
-    public bool Deferred => _world.IsDeferred();
+    public bool Deferred { get; private set; }
 
     public EntityEnumerable Entities => GetEntities();
 
@@ -71,7 +71,7 @@ public sealed unsafe partial class Scene
         var scene = _context;
         var e1 = new Entity(scene._world.Entity(id1), scene);
         var e2 = new Entity(scene._world.Entity(id2), scene);
-        return Core.Entity.Compare(e1, e2, id1, id2);
+        return e1.CompareTo(e2);
     }
 
     public static Scene Build<T>(GameSystemsFunc? systems = null)
@@ -220,6 +220,24 @@ public sealed unsafe partial class Scene
         ((Action<T>)action).Invoke(@event);
     }
 
+    public void Enqueue<T>(T @event)
+    {
+        Enqueue(ref @event);
+    }
+
+    public void Enqueue<T>(ref T @event)
+    {
+        EnsureInitialized();
+        if (!Deferred)
+        {
+            Emit(@event);
+            return;
+        }
+
+        var data = @event;
+        Defer(() => Emit(data));
+    }
+
     public int Count()
     {
         EnsureInitialized();
@@ -300,14 +318,22 @@ public sealed unsafe partial class Scene
     {
         Contexts.Push(this);
         _context = this;
-        if (!Deferred)
-            _world.DeferBegin();
+        if (Deferred)
+            return;
+        _world.DeferBegin();
+        Deferred = true;
     }
 
     internal void EndDefer()
     {
-        if (!Deferred || !_world.DeferEnd())
+        if (!Deferred)
             return;
+        Contexts.Pop();
+        Deferred = Contexts.Count != 0;
+        _context = Deferred ? Contexts.Peek() : null!;
+        if (Deferred)
+            return;
+        _world.DeferEnd();
         while (_componentOperations.TryDequeue(out var component))
             switch (component.Operation)
             {
@@ -322,7 +348,6 @@ public sealed unsafe partial class Scene
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
-        _context = Contexts.Count == 0 ? null! : Contexts.Pop();
     }
 
     private void Initialize()
