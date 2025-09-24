@@ -1,8 +1,9 @@
+using ZLinq;
+using ZLinq.Linq;
+
 namespace Vigilance.Core;
 
-public readonly record struct Components
-    : IValueEnumerable<List<Component>.Enumerator, Component>,
-        IReadOnlyList<Component>
+public readonly record struct Components : IListView<Component>, IReadOnlyList<Component>
 {
     internal readonly List<Component> Values = new();
 
@@ -10,14 +11,19 @@ public readonly record struct Components
 
     public static Components Empty { get; } = new();
 
-    public int Count => Values.Count;
-
-    public Component this[int index] => Values[index];
-
     public List<Component>.Enumerator GetEnumerator()
     {
         return Values.GetEnumerator();
     }
+
+    public ValueEnumerable<FromList<Component>, Component> AsValueEnumerable()
+    {
+        return Values.AsValueEnumerable();
+    }
+
+    public int Count => Values.Count;
+
+    public Component this[int index] => Values[index];
 
     public OfTypeEnumerable<T> OfType<T>()
     {
@@ -29,7 +35,7 @@ public readonly record struct Components
         return Values.Count == 0 ? "[]" : $"[\n  {string.Join(",\n  ", Values)}\n]";
     }
 
-    public readonly struct OfTypeEnumerable<T> : IValueEnumerable<OfTypeEnumerator<T>, T>
+    public readonly struct OfTypeEnumerable<T> : IStructEnumerable<OfTypeEnumerator<T>, T>
     {
         private readonly Components _components;
 
@@ -42,9 +48,14 @@ public readonly record struct Components
         {
             return new OfTypeEnumerator<T>(_components);
         }
+
+        public ValueEnumerable<StructEnumerator<OfTypeEnumerator<T>, T>, T> AsValueEnumerable()
+        {
+            return new StructEnumerator<OfTypeEnumerator<T>, T>(GetEnumerator());
+        }
     }
 
-    public struct OfTypeEnumerator<T> : IValueEnumerator<T>
+    public struct OfTypeEnumerator<T> : IStructEnumerator<T>
     {
         private readonly Components _components;
         private int _index;

@@ -4,7 +4,7 @@ using Vigilance.Math;
 
 namespace Vigilance.UI;
 
-public class UIText : UIElement
+public class UIText : UIElement, IMeasurable
 {
     private Text _text = new();
     private TextOverflow _textOverflow;
@@ -13,7 +13,6 @@ public class UIText : UIElement
     public UIText(string value = "")
     {
         _value = value;
-        SetMeasureFunc(Measure);
     }
 
     public UIText(string value, Color fill)
@@ -112,21 +111,7 @@ public class UIText : UIElement
         }
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
-    {
-        _text.Camera = camera;
-        graphics.DrawText(LayoutPosition, _text);
-    }
-
-    protected override object DeepClone()
-    {
-        var result = (UIText)base.DeepClone();
-        result.SetMeasureFunc(result.Measure);
-        result._text = _text.DeepClone();
-        return result;
-    }
-
-    private Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
+    public Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         var maxWidth = widthMode == MeasureMode.Undefined ? float.PositiveInfinity : width;
         switch (TextOverflow)
@@ -189,5 +174,18 @@ public class UIText : UIElement
                 _text.Value = string.Join("\n", lines);
                 return _text.Size;
         }
+    }
+
+    protected override void Render(Graphics graphics, CameraProvider camera)
+    {
+        _text.Camera = camera;
+        graphics.DrawText(LayoutPosition, _text);
+    }
+
+    protected override object DeepClone()
+    {
+        var result = (UIText)base.DeepClone();
+        result._text = _text.DeepClone();
+        return result;
     }
 }

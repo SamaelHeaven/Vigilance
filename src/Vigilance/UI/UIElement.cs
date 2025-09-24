@@ -17,6 +17,20 @@ public abstract class UIElement : IDeepCloneable
     protected UIElement()
     {
         Node.StyleSetAlignItems(FlexLayoutSharp.Align.FlexStart);
+        Measurable = this is IMeasurable;
+        if (Measurable)
+            Node.SetMeasureFunc(
+                (_, width, widthMode, height, heightMode) =>
+                {
+                    var size = ((IMeasurable)this).Measure(
+                        width,
+                        (MeasureMode)widthMode,
+                        height,
+                        (MeasureMode)heightMode
+                    );
+                    return new Size(size.X, size.Y);
+                }
+            );
     }
 
     public string Id { get; set; } = "";
@@ -58,6 +72,10 @@ public abstract class UIElement : IDeepCloneable
 
     public Transform LayoutTransform =>
         new(Translate.Calculate(LayoutSize), Scale, Rotation, PivotPoint.Calculate(LayoutSize));
+
+    public bool Dirty => Node.IsDirty;
+
+    public bool Measurable { get; }
 
     public bool RenderedOutside { get; private set; } = true;
 
@@ -107,9 +125,9 @@ public abstract class UIElement : IDeepCloneable
 
     public CameraProvider Camera { get; set; } = Core.Camera.Null;
 
-    public UIContainer? Parent { get; internal set; }
+    public UIParent? Parent { get; internal set; }
 
-    public UIContainer? Root
+    public UIParent? Root
     {
         get
         {
@@ -579,28 +597,25 @@ public abstract class UIElement : IDeepCloneable
         result.Node = Flex.CreateDefaultNode();
         Flex.NodeCopyStyle(result.Node, Node);
         result.Attributes = Attributes.DeepClone();
+        if (Measurable)
+            result.Node.SetMeasureFunc(
+                (_, width, widthMode, height, heightMode) =>
+                {
+                    var size = ((IMeasurable)result).Measure(
+                        width,
+                        (MeasureMode)widthMode,
+                        height,
+                        (MeasureMode)heightMode
+                    );
+                    return new Size(size.X, size.Y);
+                }
+            );
         return result;
     }
 
     protected void MarkDirty()
     {
         Node.MarkAsDirty();
-    }
-
-    protected void SetMeasureFunc(MeasureFunc func)
-    {
-        Node.SetMeasureFunc(
-            (_, width, widthMode, height, heightMode) =>
-            {
-                var result = func.Invoke(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
-                return new Size(result.X, result.Y);
-            }
-        );
-    }
-
-    internal virtual void MarkReady()
-    {
-        LayoutReady = true;
     }
 
     internal void Render(Transform transform, Graphics graphics, CameraProvider camera)
@@ -650,9 +665,20 @@ public abstract class UIElement : IDeepCloneable
         if (oldMatrix.HasValue)
             graphics.PushMatrix(oldMatrix.Value);
     }
-}
 
-public delegate Vector2 MeasureFunc(float width, MeasureMode widthMode, float height, MeasureMode heightMode);
+    private void MarkReady()
+    {
+        LayoutReady = true;
+        if (this is not UIParent parent)
+            return;
+        foreach (var element in parent.Children)
+        {
+            if (element.Dirty)
+                MarkDirty();
+            element.MarkReady();
+        }
+    }
+}
 
 public static class UIElementExtensions
 {

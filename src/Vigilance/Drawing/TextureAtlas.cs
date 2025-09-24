@@ -1,9 +1,11 @@
 using Vigilance.Core;
 using Vigilance.Math;
+using ZLinq;
+using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class TextureAtlas : IEnumerableList<Box>, IReadOnlyList<Box>
+public sealed class TextureAtlas : IListView<Box>, IReadOnlyList<Box>
 {
     private readonly List<Box> _boxes;
 
@@ -34,7 +36,7 @@ public sealed class TextureAtlas : IEnumerableList<Box>, IReadOnlyList<Box>
             offsetY += regionHeight + spacing;
         }
 
-        _boxes = boxes.ToList();
+        _boxes = boxes;
     }
 
     public Texture Texture { get; }
@@ -62,6 +64,11 @@ public sealed class TextureAtlas : IEnumerableList<Box>, IReadOnlyList<Box>
     public List<Box>.Enumerator GetEnumerator()
     {
         return _boxes.GetEnumerator();
+    }
+
+    public ValueEnumerable<FromList<Box>, Box> AsValueEnumerable()
+    {
+        return _boxes.AsValueEnumerable();
     }
 
     public Box this[int index] => GetRegion(index);
@@ -109,7 +116,7 @@ public sealed class TextureAtlas : IEnumerableList<Box>, IReadOnlyList<Box>
     }
 
     public readonly struct AnimationFrameEnumerable
-        : IValueEnumerable<AnimationFrameEnumerator, AnimationFrame>,
+        : IStructEnumerable<AnimationFrameEnumerator, AnimationFrame>,
             IReadOnlyCollection<AnimationFrame>
     {
         private readonly TextureAtlas _atlas;
@@ -130,10 +137,18 @@ public sealed class TextureAtlas : IEnumerableList<Box>, IReadOnlyList<Box>
             return new AnimationFrameEnumerator(_atlas, _startIndex, _endIndex);
         }
 
+        public ValueEnumerable<
+            StructEnumerator<AnimationFrameEnumerator, AnimationFrame>,
+            AnimationFrame
+        > AsValueEnumerable()
+        {
+            return new StructEnumerator<AnimationFrameEnumerator, AnimationFrame>(GetEnumerator());
+        }
+
         public int Count => _endIndex - _startIndex + 1;
     }
 
-    public struct AnimationFrameEnumerator : IValueEnumerator<AnimationFrame>
+    public struct AnimationFrameEnumerator : IStructEnumerator<AnimationFrame>
     {
         private readonly TextureAtlas _atlas;
         private readonly int _startIndex;

@@ -1,11 +1,11 @@
 #pragma warning disable CS9084
 
-using System.Runtime.CompilerServices;
 using System.Text;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
 using Flecs.NET.Utilities;
 using Vigilance.Math;
+using ZLinq;
 
 // ReSharper disable PossiblyImpureMethodCallOnReadonlyVariable
 #pragma warning disable CS8656 // Call to non-readonly member from a 'readonly' member results in an implicit copy.
@@ -394,7 +394,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return true;
     }
 
-    public readonly struct ChildEnumerable : IValueEnumerable<ChildEnumerator, Entity>
+    public readonly struct ChildEnumerable : IStructEnumerable<ChildEnumerator, Entity>
     {
         private readonly Entity _entity;
 
@@ -407,9 +407,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         {
             return new ChildEnumerator(_entity);
         }
+
+        public ValueEnumerable<StructEnumerator<ChildEnumerator, Entity>, Entity> AsValueEnumerable()
+        {
+            return new StructEnumerator<ChildEnumerator, Entity>(GetEnumerator());
+        }
     }
 
-    public struct ChildEnumerator : IValueEnumerator<Entity>
+    public struct ChildEnumerator : IStructEnumerator<Entity>
     {
         private readonly Entity _entity;
         private flecs.ecs_iter_t _iter;

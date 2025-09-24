@@ -25,10 +25,10 @@ public sealed class Mouse
 
     private Mouse() { }
 
-    public static EnumerableList<MouseButton> DownButtons => GetMouse()._downButtons;
-    public static EnumerableList<MouseButton> UpButtons => GetMouse()._upButtons;
-    public static EnumerableList<MouseButton> PressedButtons => GetMouse()._pressedButtons;
-    public static EnumerableList<MouseButton> ReleasedButtons => GetMouse()._releasedButtons;
+    public static ListView<MouseButton> DownButtons => GetMouse()._downButtons;
+    public static ListView<MouseButton> UpButtons => GetMouse()._upButtons;
+    public static ListView<MouseButton> PressedButtons => GetMouse()._pressedButtons;
+    public static ListView<MouseButton> ReleasedButtons => GetMouse()._releasedButtons;
 
     public static bool OnScreen => Raylib.IsCursorOnScreen();
 

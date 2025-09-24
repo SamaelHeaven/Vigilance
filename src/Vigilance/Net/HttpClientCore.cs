@@ -1,3 +1,5 @@
+using ZLinq;
+
 namespace Vigilance.Net;
 
 internal sealed class HttpClientCore : IHttpClient
@@ -15,9 +17,12 @@ internal sealed class HttpClientCore : IHttpClient
             requestMessage.RequestUri = new Uri(request.Url);
             requestMessage.Content = request.Body is { Length: > 0 } ? new ByteArrayContent(request.Body) : null;
             foreach (
-                var header in request.Headers.Where(header =>
-                    !requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value)
-                )
+                var header in request
+                    .Headers.AsValueEnumerable()
+                    .Where(header =>
+                        // ReSharper disable once AccessToDisposedClosure
+                        !requestMessage.Headers.TryAddWithoutValidation(header.Key, header.Value)
+                    )
             )
                 requestMessage.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value);
             HttpResponseMessage responseMessage;

@@ -1,6 +1,7 @@
 using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.Audio;
 
@@ -73,7 +74,7 @@ public sealed class Sound
         }
     }
 
-    public bool Playing => _aliases.Any(a => Raylib.IsSoundPlaying(a.Sound));
+    public bool Playing => _aliases.AsValueEnumerable().Any(a => Raylib.IsSoundPlaying(a.Sound));
 
     public bool Stopped => !Playing;
 

@@ -1,11 +1,12 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Vigilance.Core;
+using ZLinq;
 
 namespace Vigilance.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
+public record struct Quad : IStructEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
 {
     public Vector2 TopLeft { get; set; }
     public Vector2 BottomLeft { get; set; }
@@ -179,7 +180,12 @@ public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IRe
         return new PointEnumerator(this);
     }
 
-    public struct PointEnumerator : IValueEnumerator<Vector2>
+    public ValueEnumerable<StructEnumerator<PointEnumerator, Vector2>, Vector2> AsValueEnumerable()
+    {
+        return new StructEnumerator<PointEnumerator, Vector2>(GetEnumerator());
+    }
+
+    public struct PointEnumerator : IStructEnumerator<Vector2>
     {
         private readonly Quad _quad;
         private int _index;

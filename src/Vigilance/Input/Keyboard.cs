@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
+using ZLinq;
 
 namespace Vigilance.Input;
 
@@ -18,16 +19,16 @@ public sealed class Keyboard
     static Keyboard()
     {
         Game.EnsureRunning();
-        KeyValues = Enum.GetValues<Key>().Where(key => key != Key.Null).ToArray();
+        KeyValues = Enum.GetValues<Key>().AsValueEnumerable().Where(key => key != Key.Null).ToArray();
     }
 
     private Keyboard() { }
 
     public static string TypedString => GetKeyboard()._typedString.ToString();
-    public static EnumerableList<Key> DownKeys => GetKeyboard()._downKeys;
-    public static EnumerableList<Key> UpKeys => GetKeyboard()._upKeys;
-    public static EnumerableList<Key> PressedKeys => GetKeyboard()._pressedKeys;
-    public static EnumerableList<Key> ReleasedKeys => GetKeyboard()._releasedKeys;
+    public static ListView<Key> DownKeys => GetKeyboard()._downKeys;
+    public static ListView<Key> UpKeys => GetKeyboard()._upKeys;
+    public static ListView<Key> PressedKeys => GetKeyboard()._pressedKeys;
+    public static ListView<Key> ReleasedKeys => GetKeyboard()._releasedKeys;
 
     public static bool IsKeyDown(Key key)
     {

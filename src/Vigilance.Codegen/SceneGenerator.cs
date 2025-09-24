@@ -91,7 +91,7 @@ public sealed class SceneGenerator : ISourceGenerator
     )
     {
         return $$"""
-                public struct {{name}}Enumerable{{typeParams}} : IValueEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
+                public struct {{name}}Enumerable{{typeParams}} : IStructEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
                 {
                     private readonly Scene _scene;
                     private bool _withDisabled;
@@ -107,13 +107,18 @@ public sealed class SceneGenerator : ISourceGenerator
                         return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled);
                     }
                     
+                    public ZLinq.ValueEnumerable<StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>, {{type}}> AsValueEnumerable()
+                    {
+                        return new StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
+                    }
+                    
                     public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool value = true) {
                         _withDisabled = value;
                         return ref this;
                     }
                 }
                 
-                public unsafe struct {{name}}Enumerator{{typeParams}} : IValueEnumerator<{{type}}> {
+                public unsafe struct {{name}}Enumerator{{typeParams}} : IStructEnumerator<{{type}}> {
                     private readonly Scene _scene;
                     private readonly bool _withDisabled;
                     private Flecs.NET.Core.Query<{{queryTypeParams}}>? _query;

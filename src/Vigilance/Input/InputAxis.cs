@@ -1,4 +1,5 @@
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.Input;
 
@@ -17,17 +18,25 @@ public sealed class InputAxis
         get
         {
             var negative =
-                NegativeKeys.Any(Keyboard.IsKeyDown)
-                || Gamepads.Any(gamepad =>
-                    NegativeGamepadButtons.Any(gamepad.IsButtonDown)
-                    || GamepadAxes.Any(axis => (int)(gamepad.GetAxis(axis) - DeadZone).Round() <= -1)
-                );
+                NegativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
+                || Gamepads
+                    .AsValueEnumerable()
+                    .Any(gamepad =>
+                        NegativeGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown)
+                        || GamepadAxes
+                            .AsValueEnumerable()
+                            .Any(axis => (int)(gamepad.GetAxis(axis) - DeadZone).Round() <= -1)
+                    );
             var positive =
-                PositiveKeys.Any(Keyboard.IsKeyDown)
-                || Gamepads.Any(gamepad =>
-                    PositiveGamepadButtons.Any(gamepad.IsButtonDown)
-                    || GamepadAxes.Any(axis => (int)(gamepad.GetAxis(axis) + DeadZone).Round() >= 1)
-                );
+                PositiveKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
+                || Gamepads
+                    .AsValueEnumerable()
+                    .Any(gamepad =>
+                        PositiveGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown)
+                        || GamepadAxes
+                            .AsValueEnumerable()
+                            .Any(axis => (int)(gamepad.GetAxis(axis) + DeadZone).Round() >= 1)
+                    );
             if (negative && !positive)
                 return -1;
             if (positive && !negative)

@@ -1,5 +1,6 @@
 using Raylib_cs.BleedingEdge;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.Core;
 
@@ -67,7 +68,7 @@ public sealed class Time
         get
         {
             var time = GetTime();
-            return time._fpsHistory.Count == 0 ? 0 : time._fpsHistory.Average();
+            return time._fpsHistory.Count == 0 ? 0 : time._fpsHistory.AsValueEnumerable().Average();
         }
     }
 

@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
+using ZLinq;
 
 namespace Vigilance.Logging;
 
@@ -58,8 +59,8 @@ public static class ObjectPrinter
             var propertyNames = PropertyNames;
             return Type switch
             {
-                FilterType.Include => properties.Where(p => propertyNames.Contains(p.Name)),
-                FilterType.Exclude => properties.Where(p => !propertyNames.Contains(p.Name)),
+                FilterType.Include => properties.Where(p => propertyNames.AsValueEnumerable().Contains(p.Name)),
+                FilterType.Exclude => properties.Where(p => !propertyNames.AsValueEnumerable().Contains(p.Name)),
                 _ => properties,
             };
         }

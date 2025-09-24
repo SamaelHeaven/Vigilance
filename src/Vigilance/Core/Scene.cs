@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using Flecs.NET.Core;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.Core;
 
@@ -46,7 +47,7 @@ public sealed unsafe partial class Scene
         _orderedQueryWithDisabled = OrderedQueryBuilder().With(Ecs.Disabled).Optional().Build();
     }
 
-    public EnumerableList<IGameSystem> Systems
+    public ListView<IGameSystem> Systems
     {
         get
         {
@@ -147,7 +148,7 @@ public sealed unsafe partial class Scene
             return;
         }
 
-        var existing = value as Action<T>;
+        var existing = (Action<T>)value;
         existing += action;
         _events[type] = existing;
     }
@@ -352,7 +353,7 @@ public sealed unsafe partial class Scene
 
     private void Initialize()
     {
-        _systems = Game.Systems.Invoke().Concat(_systemsFunc.Invoke()).ToList();
+        _systems = Game.Systems.Invoke().AsValueEnumerable().Concat(_systemsFunc.Invoke()).ToList();
         foreach (var system in _systems)
             system.Configure(this);
         Initialized = true;
@@ -443,7 +444,7 @@ public sealed unsafe partial class Scene
         OnRemove<ZIndex>(action);
     }
 
-    private enum ComponentOperation
+    private enum ComponentOperation : byte
     {
         Set,
         Remove,

@@ -1,8 +1,10 @@
 using Vigilance.Core;
+using ZLinq;
+using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class Animation : IEnumerableList<AnimationFrame>
+public sealed class Animation : IListView<AnimationFrame>
 {
     public const int InfiniteRepeatCount = -1;
     private readonly List<AnimationFrame> _frames;
@@ -21,7 +23,7 @@ public sealed class Animation : IEnumerableList<AnimationFrame>
         Action? completeAction = null
     )
     {
-        _frames = frames.ToList();
+        _frames = frames.AsValueEnumerable().ToList();
         if (_frames.Count == 0)
             throw new ArgumentException("Animation must have at least one frame.");
         _nextIndex = null;
@@ -66,6 +68,11 @@ public sealed class Animation : IEnumerableList<AnimationFrame>
     public List<AnimationFrame>.Enumerator GetEnumerator()
     {
         return _frames.GetEnumerator();
+    }
+
+    public ValueEnumerable<FromList<AnimationFrame>, AnimationFrame> AsValueEnumerable()
+    {
+        return _frames.AsValueEnumerable();
     }
 
     public event Action? OnComplete;

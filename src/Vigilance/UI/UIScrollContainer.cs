@@ -3,6 +3,7 @@ using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.UI;
 
@@ -211,10 +212,7 @@ public class UIScrollContainer : UIContainer
         var mousePosition = Mouse.Position;
         var mousePressed = Mouse.IsButtonPressed(MouseButton.Left);
         var mouseReleased = Mouse.IsButtonReleased(MouseButton.Left);
-        foreach (var element in Children)
-        {
-            if (element.Position == Position.Absolute)
-                continue;
+        foreach (var element in Children.AsValueEnumerable().Where(element => element.Position != Position.Absolute))
             if (direction.IsVertical())
             {
                 size.X = size.X.Max(element.LayoutPosition.X + element.LayoutWidth);
@@ -225,7 +223,6 @@ public class UIScrollContainer : UIContainer
                 size.X += element.LayoutWidth;
                 size.Y = size.Y.Max(element.LayoutPosition.Y + element.LayoutHeight);
             }
-        }
 
         ChildrenLayoutSize = size;
         MouseInsideNestedScrollContainer = IsMouseInsideNestedScrollContainer(this);
@@ -431,19 +428,19 @@ public class UIScrollContainer : UIContainer
         };
     }
 
-    private bool IsMouseInsideNestedScrollContainer(UIContainer container)
+    private bool IsMouseInsideNestedScrollContainer(UIParent element)
     {
         if (
-            container != this
-            && container is UIScrollContainer { MouseInside: true } scrollContainer
-            && (scrollContainer.IsHorizontalScrollBarVisible || scrollContainer.IsVerticalScrollBarVisible)
+            element != this
+            && element is UIScrollContainer { MouseInside: true } container
+            && (container.IsHorizontalScrollBarVisible || container.IsVerticalScrollBarVisible)
         )
             return true;
-        foreach (var child in container.Children)
+        foreach (var child in element.Children)
         {
-            if (child is not UIContainer childContainer)
+            if (child is not UIParent parent)
                 continue;
-            if (IsMouseInsideNestedScrollContainer(childContainer))
+            if (IsMouseInsideNestedScrollContainer(parent))
                 return true;
         }
 

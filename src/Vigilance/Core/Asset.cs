@@ -1,6 +1,7 @@
 using System.Reflection;
 using Vigilance.Audio;
 using Vigilance.Drawing;
+using ZLinq;
 
 namespace Vigilance.Core;
 
@@ -257,6 +258,7 @@ public static class Asset
         public void Invalidate(TValue value)
         {
             var weakFilesKeys = _weakFiles
+                .AsValueEnumerable()
                 .Where(kvp =>
                     kvp.Value.TryGetTarget(out var target) && EqualityComparer<TValue>.Default.Equals(target, value)
                 )
@@ -265,6 +267,7 @@ public static class Asset
             foreach (var key in weakFilesKeys)
                 _weakFiles.Remove(key);
             var weakResourcesKeys = _weakResources
+                .AsValueEnumerable()
                 .Where(kvp =>
                     kvp.Value.TryGetTarget(out var target) && EqualityComparer<TValue>.Default.Equals(target, value)
                 )
@@ -273,12 +276,14 @@ public static class Asset
             foreach (var key in weakResourcesKeys)
                 _weakResources.Remove(key);
             var strongFilesKeys = _strongFiles
+                .AsValueEnumerable()
                 .Where(kvp => EqualityComparer<TValue>.Default.Equals(kvp.Value, value))
                 .Select(kvp => kvp.Key)
                 .ToList();
             foreach (var key in strongFilesKeys)
                 _strongFiles.Remove(key);
             var strongResourcesKeys = _strongResources
+                .AsValueEnumerable()
                 .Where(kvp => EqualityComparer<TValue>.Default.Equals(kvp.Value, value))
                 .Select(kvp => kvp.Key)
                 .ToList();
