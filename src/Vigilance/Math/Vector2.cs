@@ -103,16 +103,6 @@ public record struct Vector2
         return f == 0 ? Zero : new Vector2(v.X / f, v.Y / f);
     }
 
-    public static Vector2 DirectionDeg(float degrees)
-    {
-        return DirectionRad(degrees.DegToRad());
-    }
-
-    public static Vector2 DirectionRad(float radians)
-    {
-        return new Vector2(MathF.Cos(radians), MathF.Sin(radians));
-    }
-
     public readonly Vector2 Transform(Matrix3x2 matrix)
     {
         return System.Numerics.Vector2.Transform(this, matrix);

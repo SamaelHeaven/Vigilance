@@ -12,6 +12,16 @@ public static class FloatExtensions
         return radians * (180 / MathF.PI);
     }
 
+    public static Vector2 DirectionDeg(this float degrees)
+    {
+        return DirectionRad(degrees.DegToRad());
+    }
+
+    public static Vector2 DirectionRad(this float radians)
+    {
+        return new Vector2(MathF.Cos(radians), MathF.Sin(radians));
+    }
+
     public static float Min(this float value, float min)
     {
         return MathF.Min(value, min);
