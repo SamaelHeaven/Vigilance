@@ -14,14 +14,31 @@ public abstract class GameSystem : IGameSystem
     public void Configure(Scene scene)
     {
         Scene = scene;
-        scene.OnInitialize(Initialize);
-        scene.OnStart(Start);
-        scene.OnStop(Stop);
-        scene.OnUpdate(Update);
-        scene.OnFixedUpdate(FixedUpdate);
-        scene.OnBeginRender(BeginRender);
-        scene.OnEndRender(EndRender);
-        scene.OnRender(Render);
+        var initialize = Initialize;
+        var start = Start;
+        var stop = Stop;
+        var update = Update;
+        var fixedUpdate = FixedUpdate;
+        var beginRender = BeginRender;
+        var endRender = EndRender;
+        var render = Render;
+        var baseType = typeof(GameSystem);
+        if (initialize.Method.DeclaringType != baseType)
+            scene.OnInitialize(initialize);
+        if (start.Method.DeclaringType != baseType)
+            scene.OnStart(start);
+        if (stop.Method.DeclaringType != baseType)
+            scene.OnStop(stop);
+        if (update.Method.DeclaringType != baseType)
+            scene.OnUpdate(update);
+        if (fixedUpdate.Method.DeclaringType != baseType)
+            scene.OnFixedUpdate(fixedUpdate);
+        if (beginRender.Method.DeclaringType != baseType)
+            scene.OnBeginRender(beginRender);
+        if (endRender.Method.DeclaringType != baseType)
+            scene.OnEndRender(endRender);
+        if (render.Method.DeclaringType != baseType)
+            scene.OnRender(render);
         Configure();
     }
 

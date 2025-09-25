@@ -16,18 +16,14 @@ public abstract class UIElement : IDeepCloneable
 
     protected UIElement()
     {
+        var measure = Measure;
         Node.StyleSetAlignItems(FlexLayoutSharp.Align.FlexStart);
-        Measurable = this is IMeasurable;
+        Measurable = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
         if (Measurable)
             Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
                 {
-                    var size = ((IMeasurable)this).Measure(
-                        width,
-                        (MeasureMode)widthMode,
-                        height,
-                        (MeasureMode)heightMode
-                    );
+                    var size = Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
                     return new Size(size.X, size.Y);
                 }
             );
@@ -601,16 +597,16 @@ public abstract class UIElement : IDeepCloneable
             result.Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
                 {
-                    var size = ((IMeasurable)result).Measure(
-                        width,
-                        (MeasureMode)widthMode,
-                        height,
-                        (MeasureMode)heightMode
-                    );
+                    var size = result.Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
                     return new Size(size.X, size.Y);
                 }
             );
         return result;
+    }
+
+    protected virtual Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
+    {
+        return Vector2.Zero;
     }
 
     protected void MarkDirty()

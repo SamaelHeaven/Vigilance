@@ -335,17 +335,7 @@ public sealed unsafe partial class Scene
         if (Deferred)
             return;
         _world.DeferEnd();
-        while (_componentOperations.TryDequeue(out var component))
-            switch (component.Operation)
-            {
-                case ComponentOperation.Set:
-                    SetComponent(component.Entity, component.Type, component.Data);
-                    break;
-                case ComponentOperation.Remove:
-                    RemoveComponent(component.Entity, component.Type);
-                    break;
-            }
-
+        ExecuteComponentOperations();
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
@@ -387,6 +377,20 @@ public sealed unsafe partial class Scene
             foreach (var entity in OrderedEntities.WithDisabled())
                 _renderAction.Invoke(entity);
         _endRenderAction?.Invoke();
+    }
+
+    private void ExecuteComponentOperations()
+    {
+        while (_componentOperations.TryDequeue(out var component))
+            switch (component.Operation)
+            {
+                case ComponentOperation.Set:
+                    SetComponent(component.Entity, component.Type, component.Data);
+                    break;
+                case ComponentOperation.Remove:
+                    RemoveComponent(component.Entity, component.Type);
+                    break;
+            }
     }
 
     private static void SetComponent(Flecs.NET.Core.Entity entity, Type type, object? data)

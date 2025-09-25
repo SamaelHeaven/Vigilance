@@ -1,4 +1,5 @@
 using FlexLayoutSharp;
+using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
@@ -32,5 +33,10 @@ public class UIContainer : UIParent
     {
         get => (Wrap)Node.StyleGetFlexWrap();
         set => Node.StyleSetFlexWrap((FlexLayoutSharp.Wrap)value);
+    }
+
+    protected sealed override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
+    {
+        return base.Measure(width, widthMode, height, heightMode);
     }
 }

@@ -4,7 +4,7 @@ using Vigilance.Math;
 
 namespace Vigilance.UI;
 
-public class UIText : UIElement, IMeasurable
+public class UIText : UIElement
 {
     private Text _text = new();
     private TextOverflow _textOverflow;
@@ -111,7 +111,7 @@ public class UIText : UIElement, IMeasurable
         }
     }
 
-    public Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
+    protected override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         var maxWidth = widthMode == MeasureMode.Undefined ? float.PositiveInfinity : width;
         switch (TextOverflow)
