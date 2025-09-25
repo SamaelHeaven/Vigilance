@@ -8,7 +8,7 @@ public abstract class UIParent : UIElement
 {
     private LinkedList<UIElement> _children = new();
 
-    public UIParent this[UIElement element]
+    public UIParent this[UIElement? element]
     {
         get
         {
@@ -17,7 +17,7 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public UIParent this[params IEnumerable<UIElement> elements]
+    public UIParent this[params IEnumerable<UIElement?> elements]
     {
         get
         {
@@ -86,8 +86,10 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public void Add(UIElement element)
+    public void Add(UIElement? element)
     {
+        if (element is null)
+            return;
         element.Remove();
         _children.AddLast(element);
         element.Parent = this;
@@ -96,7 +98,7 @@ public abstract class UIParent : UIElement
         MarkDirty();
     }
 
-    public void Add(params IEnumerable<UIElement> elements)
+    public void Add(params IEnumerable<UIElement?> elements)
     {
         foreach (var element in elements)
             Add(element);

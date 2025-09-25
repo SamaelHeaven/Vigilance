@@ -5,12 +5,49 @@ namespace Vigilance.Input;
 
 public sealed class InputAxis
 {
-    public IReadOnlyList<Key> NegativeKeys { get; init; } = Array.Empty<Key>();
-    public IReadOnlyList<Key> PositiveKeys { get; init; } = Array.Empty<Key>();
-    public IReadOnlyList<GamepadButton> NegativeGamepadButtons { get; init; } = Array.Empty<GamepadButton>();
-    public IReadOnlyList<GamepadButton> PositiveGamepadButtons { get; init; } = Array.Empty<GamepadButton>();
-    public IReadOnlyList<GamepadAxis> GamepadAxes { get; init; } = Array.Empty<GamepadAxis>();
-    public IReadOnlyList<Gamepad> Gamepads { get; init; } = Gamepad.Gamepads;
+    private readonly List<GamepadAxis> _gamepadAxes = new();
+    private readonly List<Gamepad> _gamepads = Gamepad.Gamepads.AsValueEnumerable().ToList();
+    private readonly List<GamepadButton> _negativeGamepadButtons = new();
+    private readonly List<Key> _negativeKeys = new();
+    private readonly List<GamepadButton> _positiveGamepadButtons = new();
+    private readonly List<Key> _positiveKeys = new();
+
+    public IReadOnlyList<Key> NegativeKeys
+    {
+        get => _negativeKeys;
+        init => _negativeKeys = value.AsValueEnumerable().ToList();
+    }
+
+    public IReadOnlyList<Key> PositiveKeys
+    {
+        get => _positiveKeys;
+        init => _positiveKeys = value.AsValueEnumerable().ToList();
+    }
+
+    public IReadOnlyList<GamepadButton> NegativeGamepadButtons
+    {
+        get => _negativeGamepadButtons;
+        init => _negativeGamepadButtons = value.AsValueEnumerable().ToList();
+    }
+
+    public IReadOnlyList<GamepadButton> PositiveGamepadButtons
+    {
+        get => _positiveGamepadButtons;
+        init => _positiveGamepadButtons = value.AsValueEnumerable().ToList();
+    }
+
+    public IReadOnlyList<GamepadAxis> GamepadAxes
+    {
+        get => _gamepadAxes;
+        init => _gamepadAxes = value.AsValueEnumerable().ToList();
+    }
+
+    public IReadOnlyList<Gamepad> Gamepads
+    {
+        get => _gamepads;
+        init => _gamepads = value.AsValueEnumerable().ToList();
+    }
+
     public float DeadZone { get; init; } = 0;
 
     public int Value
@@ -18,22 +55,22 @@ public sealed class InputAxis
         get
         {
             var negative =
-                NegativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
-                || Gamepads
+                _negativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
+                || _gamepads
                     .AsValueEnumerable()
                     .Any(gamepad =>
-                        NegativeGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown)
-                        || GamepadAxes
+                        _negativeGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown)
+                        || _gamepadAxes
                             .AsValueEnumerable()
                             .Any(axis => (int)(gamepad.GetAxis(axis) - DeadZone).Round() <= -1)
                     );
             var positive =
-                PositiveKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
-                || Gamepads
+                _positiveKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
+                || _gamepads
                     .AsValueEnumerable()
                     .Any(gamepad =>
-                        PositiveGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown)
-                        || GamepadAxes
+                        _positiveGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown)
+                        || _gamepadAxes
                             .AsValueEnumerable()
                             .Any(axis => (int)(gamepad.GetAxis(axis) + DeadZone).Round() >= 1)
                     );

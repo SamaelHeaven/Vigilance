@@ -173,7 +173,6 @@ public sealed unsafe class Game
         _quitAction?.Invoke();
         Audio.Audio.Dispose();
         Display.Dispose();
-        Environment.Exit(0);
     }
 
     private static void UpdateFullscreen()

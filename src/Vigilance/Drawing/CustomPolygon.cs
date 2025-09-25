@@ -9,18 +9,18 @@ public sealed class CustomPolygon : IFullCloneable
 {
     public CustomPolygon() { }
 
-    public CustomPolygon(IReadOnlyList<Vector2> points)
+    public CustomPolygon(IEnumerable<Vector2> points)
     {
-        Points = points;
+        Points = points.AsValueEnumerable().ToList();
     }
 
-    public CustomPolygon(IReadOnlyList<Vector2> points, Color fill)
+    public CustomPolygon(IEnumerable<Vector2> points, Color fill)
         : this(points)
     {
         Fill = fill;
     }
 
-    public IReadOnlyList<Vector2> Points { get; set; } = Array.Empty<Vector2>();
+    public List<Vector2> Points { get; set; } = [];
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
@@ -30,7 +30,7 @@ public sealed class CustomPolygon : IFullCloneable
     object IDeepCloneable.DeepClone()
     {
         var result = this.ShallowClone();
-        result.Points = Points.AsValueEnumerable().ToArray();
+        result.Points = Points.AsValueEnumerable().ToList();
         return result;
     }
 
