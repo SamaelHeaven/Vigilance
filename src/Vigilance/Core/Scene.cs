@@ -381,6 +381,8 @@ public sealed unsafe partial class Scene
 
     private void ExecuteComponentOperations()
     {
+        if (_componentOperations.Count == 0)
+            return;
         while (_componentOperations.TryDequeue(out var component))
             switch (component.Operation)
             {
