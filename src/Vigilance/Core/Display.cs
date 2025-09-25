@@ -413,6 +413,8 @@ public sealed class Display
             flags |= ConfigFlags.WindowAlwaysRun;
         if (_config.Msaa4X)
             flags |= ConfigFlags.Msaa4XHint;
+        if (_config.Hidden)
+            flags |= ConfigFlags.WindowHidden;
         return flags;
     }
 

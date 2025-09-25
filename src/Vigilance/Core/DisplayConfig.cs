@@ -22,6 +22,7 @@ public sealed class DisplayConfig
     public bool Resizable { get; set; } = true;
     public bool RunMinimized { get; set; } = true;
     public bool Msaa4X { get; set; } = false;
+    public bool Hidden { get; set; } = false;
 }
 
 public static class DisplayConfigExtensions
