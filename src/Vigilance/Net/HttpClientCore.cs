@@ -44,9 +44,9 @@ internal sealed class HttpClientCore : IHttpClient
             response.StatusText = responseMessage.ReasonPhrase ?? "";
             response.Body = await responseMessage.Content.ReadAsByteArrayAsync();
             foreach (var header in responseMessage.Headers)
-                response.Headers[header.Key] = string.Join(", ", header.Value);
+                response.Headers[header.Key] = header.Value.AsValueEnumerable().JoinToString(", ");
             foreach (var header in responseMessage.Content.Headers)
-                response.Headers[header.Key] = string.Join(", ", header.Value);
+                response.Headers[header.Key] = header.Value.AsValueEnumerable().JoinToString(", ");
         }
         catch (Exception e)
         {

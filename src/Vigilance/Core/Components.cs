@@ -32,7 +32,7 @@ public readonly record struct Components : IListView<Component>, IReadOnlyList<C
 
     public override string ToString()
     {
-        return Values.Count == 0 ? "[]" : $"[\n  {string.Join(",\n  ", Values)}\n]";
+        return Values.Count == 0 ? "[]" : $"[\n  {Values.AsValueEnumerable().JoinToString(",\n  ")}\n]";
     }
 
     public readonly struct OfTypeEnumerable<T> : IStructEnumerable<OfTypeEnumerator<T>, T>

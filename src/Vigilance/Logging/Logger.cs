@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Raylib_cs.BleedingEdge;
 using Raylib_cs.BleedingEdge.Interop;
 using Vigilance.Core;
+using ZLinq;
 
 namespace Vigilance.Logging;
 
@@ -87,7 +88,7 @@ public static unsafe partial class Logger
     {
         if (_config.LogLevel > level)
             return;
-        Log(level, string.Join(", ", values));
+        Log(level, values.AsValueEnumerable().JoinToString(", "));
     }
 
     public static void Debug(object? value)

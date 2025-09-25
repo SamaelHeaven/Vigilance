@@ -1,6 +1,7 @@
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.UI;
 
@@ -171,7 +172,7 @@ public class UIText : UIElement
 
                 if (currentLine != "")
                     lines.Add(currentLine);
-                _text.Value = string.Join("\n", lines);
+                _text.Value = lines.AsValueEnumerable().JoinToString("\n");
                 return _text.Size;
         }
     }
