@@ -14,7 +14,7 @@ public sealed class Config
             .ToDictionary();
     }
 
-    public static Config Empty { get; } = new(Enumerable.Empty<KeyValuePair<Type, object>>());
+    public static Config Empty { get; } = new(Array.Empty<KeyValuePair<Type, object>>());
 
     public static ConfigBuilder Builder()
     {
