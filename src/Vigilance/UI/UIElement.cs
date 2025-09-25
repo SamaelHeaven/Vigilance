@@ -18,8 +18,8 @@ public abstract class UIElement : IDeepCloneable
     {
         var measure = Measure;
         Node.StyleSetAlignItems(FlexLayoutSharp.Align.FlexStart);
-        Measurable = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
-        if (Measurable)
+        LayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
+        if (LayoutCustom)
             Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
                 {
@@ -69,9 +69,9 @@ public abstract class UIElement : IDeepCloneable
     public Transform LayoutTransform =>
         new(Translate.Calculate(LayoutSize), Scale, Rotation, PivotPoint.Calculate(LayoutSize));
 
-    public bool Dirty => Node.IsDirty;
+    public bool LayoutCustom { get; }
 
-    public bool Measurable { get; }
+    public bool Dirty => Node.IsDirty;
 
     public bool RenderedOutside { get; private set; } = true;
 
@@ -593,7 +593,7 @@ public abstract class UIElement : IDeepCloneable
         result.Node = Flex.CreateDefaultNode();
         Flex.NodeCopyStyle(result.Node, Node);
         result.Attributes = Attributes.DeepClone();
-        if (Measurable)
+        if (LayoutCustom)
             result.Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
                 {
