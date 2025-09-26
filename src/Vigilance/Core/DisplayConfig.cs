@@ -6,7 +6,7 @@ namespace Vigilance.Core;
 public sealed class DisplayConfig
 {
     public string Title { get; set; } = "";
-    public Func<Image>? Icon { get; set; } = null;
+    public Image? Icon { get; set; } = null;
     public Vector2 Size { get; set; } = new(800, 600);
     public Vector2 ScreenSize { get; set; } = Vector2.Zero;
     public Vector2? MinScreenSize { get; set; } = null;
