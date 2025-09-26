@@ -29,7 +29,7 @@ public sealed class EntityGenerator : ISourceGenerator
 
     private static void Has(StringBuilder sb)
     {
-        sb.Region("Has");
+        sb.BeginRegion("Has");
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
@@ -51,12 +51,15 @@ public sealed class EntityGenerator : ISourceGenerator
 
     private static void TryGet(StringBuilder sb)
     {
-        sb.Region("TryGet");
+        sb.BeginRegion("TryGet");
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             var outParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"out T{n} t{n}"));
-            var defaultAssigns = string.Join("\n        ", Enumerable.Range(0, i + 1).Select(n => $"t{n} = default!;"));
+            var skipInits = string.Join(
+                "\n        ",
+                Enumerable.Range(0, i + 1).Select(n => $"System.Runtime.CompilerServices.Unsafe.SkipInit(out t{n});")
+            );
             var assigns = string.Join(
                 "\n            ",
                 Enumerable.Range(0, i + 1).Select(n => $"t{n} = _entity.Get<T{n}>();")
@@ -65,7 +68,7 @@ public sealed class EntityGenerator : ISourceGenerator
                 $$"""
                     public bool TryGet<{{typeParams}}>({{outParams}})
                     {
-                        {{defaultAssigns}}
+                        {{skipInits}}
                         var result = Has<{{typeParams}}>();
                         if (result) {
                             {{assigns}}

@@ -11,6 +11,7 @@ public sealed class RectangleGradient : IFullCloneable
     public Color TopRightFill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public Color Fill

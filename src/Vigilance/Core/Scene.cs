@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using Flecs.NET.Core;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.Core;
 
@@ -22,14 +23,15 @@ public sealed unsafe partial class Scene
 
     private readonly Dictionary<Type, object> _events = new();
     private readonly GameSystemsFunc _systemsFunc;
+    private Action? _beginRenderAction;
     private Action? _deferredAction;
+    private Action? _endRenderAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
-    private Action? _onDestroy;
+    private Action? _onDispose;
     private Query<ZIndex> _orderedQuery;
+    private Query<ZIndex> _orderedQueryWithDisabled;
     private Action<Entity>? _renderAction;
-    private Action? _renderBeginAction;
-    private Action? _renderEndAction;
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
@@ -41,10 +43,11 @@ public sealed unsafe partial class Scene
     public Scene(GameSystemsFunc? systems = null)
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
-        _orderedQuery = BuildOrderedQuery();
+        _orderedQuery = OrderedQueryBuilder().Build();
+        _orderedQueryWithDisabled = OrderedQueryBuilder().With(Ecs.Disabled).Optional().Build();
     }
 
-    public EnumerableList<IGameSystem> Systems
+    public ListView<IGameSystem> Systems
     {
         get
         {
@@ -57,7 +60,7 @@ public sealed unsafe partial class Scene
 
     public bool Initialized { get; private set; }
 
-    public bool Deferred => _world.IsDeferred();
+    public bool Deferred { get; private set; }
 
     public EntityEnumerable Entities => GetEntities();
 
@@ -69,8 +72,7 @@ public sealed unsafe partial class Scene
         var scene = _context;
         var e1 = new Entity(scene._world.Entity(id1), scene);
         var e2 = new Entity(scene._world.Entity(id2), scene);
-        var result = e1.WorldZIndex.CompareTo(e2.WorldZIndex);
-        return result == 0 ? id1.CompareTo(id2) : result;
+        return e1.CompareTo(e2);
     }
 
     public static Scene Build<T>(GameSystemsFunc? systems = null)
@@ -114,8 +116,6 @@ public sealed unsafe partial class Scene
     {
         EnsureInitialized();
         var entity = name == "" ? _world.Entity() : _world.Entity(name);
-        if (!entity.Has<ZIndex>())
-            entity.Set(new ZIndex());
         if (!entity.Has<Position>())
             entity.Set(new Position());
         if (!entity.Has<Scale>())
@@ -124,6 +124,10 @@ public sealed unsafe partial class Scene
             entity.Set(new Rotation());
         if (!entity.Has<PivotPoint>())
             entity.Set(new PivotPoint());
+        if (entity.Has<ZIndex>())
+            return new Entity(entity, this);
+        entity.Set(new ZIndex());
+        _world.Event<AddEvent>().Id<ZIndex>().Entity(entity).Enqueue();
         return new Entity(entity, this);
     }
 
@@ -144,7 +148,7 @@ public sealed unsafe partial class Scene
             return;
         }
 
-        var existing = value as Action<T>;
+        var existing = (Action<T>)value;
         existing += action;
         _events[type] = existing;
     }
@@ -167,10 +171,10 @@ public sealed unsafe partial class Scene
         _stopAction += action;
     }
 
-    public void OnDestroy(Action action)
+    public void OnDispose(Action action)
     {
         EnsureNotInitialized();
-        _onDestroy += action;
+        _onDispose += action;
     }
 
     public void OnUpdate(Action action)
@@ -185,16 +189,16 @@ public sealed unsafe partial class Scene
         _fixedUpdateAction += action;
     }
 
-    public void OnRenderBegin(Action action)
+    public void OnBeginRender(Action action)
     {
         EnsureNotInitialized();
-        _renderBeginAction += action;
+        _beginRenderAction += action;
     }
 
-    public void OnRenderEnd(Action action)
+    public void OnEndRender(Action action)
     {
         EnsureNotInitialized();
-        _renderEndAction += action;
+        _endRenderAction += action;
     }
 
     public void OnRender(Action<Entity> action)
@@ -215,6 +219,24 @@ public sealed unsafe partial class Scene
         if (!_events.TryGetValue(type, out var action))
             return;
         ((Action<T>)action).Invoke(@event);
+    }
+
+    public void Enqueue<T>(T @event)
+    {
+        Enqueue(ref @event);
+    }
+
+    public void Enqueue<T>(ref T @event)
+    {
+        EnsureInitialized();
+        if (!Deferred)
+        {
+            Emit(@event);
+            return;
+        }
+
+        var data = @event;
+        Defer(() => Emit(data));
     }
 
     public int Count()
@@ -293,38 +315,35 @@ public sealed unsafe partial class Scene
         Render();
     }
 
-    internal void DeferBegin()
+    internal void BeginDefer()
     {
         Contexts.Push(this);
         _context = this;
-        if (!Deferred)
-            _world.DeferBegin();
+        if (Deferred)
+            return;
+        _world.DeferBegin();
+        Deferred = true;
     }
 
-    internal void DeferEnd()
+    internal void EndDefer()
     {
-        if (!Deferred || !_world.DeferEnd())
+        if (!Deferred)
             return;
-        while (_componentOperations.TryDequeue(out var component))
-            switch (component.Operation)
-            {
-                case ComponentOperation.Set:
-                    SetComponent(component.Entity, component.Type, component.Data);
-                    break;
-                case ComponentOperation.Remove:
-                    RemoveComponent(component.Entity, component.Type);
-                    break;
-            }
-
+        Contexts.Pop();
+        Deferred = Contexts.Count != 0;
+        _context = Deferred ? Contexts.Peek() : null!;
+        if (Deferred)
+            return;
+        _world.DeferEnd();
+        ExecuteComponentOperations();
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
-        _context = Contexts.Count == 0 ? null! : Contexts.Pop();
     }
 
     private void Initialize()
     {
-        _systems = Game.Systems.Invoke().Concat(_systemsFunc.Invoke()).ToList();
+        _systems = Game.Systems.Invoke().AsValueEnumerable().Concat(_systemsFunc.Invoke()).ToList();
         foreach (var system in _systems)
             system.Configure(this);
         Initialized = true;
@@ -332,12 +351,12 @@ public sealed unsafe partial class Scene
         Time.Restart();
     }
 
-    private Query<ZIndex> BuildOrderedQuery()
+    private QueryBuilder<ZIndex> OrderedQueryBuilder()
     {
         var queryBuilder = _world.QueryBuilder<ZIndex>();
         queryBuilder.Desc.order_by = Type<ZIndex>.Id(_world);
         queryBuilder.Desc.order_by_callback = (nint)OrderByCallback;
-        return queryBuilder.Build();
+        return queryBuilder;
     }
 
     private void Start()
@@ -353,11 +372,27 @@ public sealed unsafe partial class Scene
 
     private void Render()
     {
-        _renderBeginAction?.Invoke();
+        _beginRenderAction?.Invoke();
         if (_renderAction is not null)
-            foreach (var entity in OrderedEntities)
+            foreach (var entity in OrderedEntities.WithDisabled())
                 _renderAction.Invoke(entity);
-        _renderEndAction?.Invoke();
+        _endRenderAction?.Invoke();
+    }
+
+    private void ExecuteComponentOperations()
+    {
+        if (_componentOperations.Count == 0)
+            return;
+        while (_componentOperations.TryDequeue(out var component))
+            switch (component.Operation)
+            {
+                case ComponentOperation.Set:
+                    SetComponent(component.Entity, component.Type, component.Data);
+                    break;
+                case ComponentOperation.Remove:
+                    RemoveComponent(component.Entity, component.Type);
+                    break;
+            }
     }
 
     private static void SetComponent(Flecs.NET.Core.Entity entity, Type type, object? data)
@@ -398,13 +433,24 @@ public sealed unsafe partial class Scene
     {
         Game.Defer(() =>
         {
-            _onDestroy?.Invoke();
+            _onDispose?.Invoke();
             _orderedQuery.Dispose();
+            _orderedQueryWithDisabled.Dispose();
             _world.Dispose();
         });
     }
 
-    private enum ComponentOperation
+    public void OnInstantiate(Action<Entity> action)
+    {
+        OnAdd<ZIndex>(action);
+    }
+
+    public void OnDestroy(Action<Entity> action)
+    {
+        OnRemove<ZIndex>(action);
+    }
+
+    private enum ComponentOperation : byte
     {
         Set,
         Remove,
@@ -412,45 +458,63 @@ public sealed unsafe partial class Scene
 
     #region OnAdd
 
-    public void OnAdd<T>(Action<Entity> action)
+    public void OnAdd<T>(Action<Entity> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
             .Observer<T>()
             .Event<AddEvent>()
             .Each(
-                (Iter it, int i, ref T _) =>
-                {
-                    action.Invoke(new Entity(it.Entity(i), this));
-                }
+                traverse
+                    ? (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse(action);
+                    }
+                    : (Iter it, int i, ref T _) =>
+                    {
+                        action.Invoke(new Entity(it.Entity(i), this));
+                    }
             );
     }
 
-    public void OnAdd<T>(Action<T> action)
+    public void OnAdd<T>(Action<T> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
             .Observer<T>()
             .Event<AddEvent>()
             .Each(
-                (Iter _, int _, ref T t) =>
-                {
-                    action.Invoke(t);
-                }
+                traverse
+                    ? (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse(action);
+                    }
+                    : (Iter _, int _, ref T t) =>
+                    {
+                        action.Invoke(t);
+                    }
             );
     }
 
-    public void OnAdd<T>(Action<Entity, T> action)
+    public void OnAdd<T>(Action<Entity, T> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
             .Observer<T>()
             .Event<AddEvent>()
             .Each(
-                (Iter it, int i, ref T t) =>
-                {
-                    action.Invoke(new Entity(it.Entity(i), this), t);
-                }
+                traverse
+                    ? (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse(action);
+                    }
+                    : (Iter it, int i, ref T t) =>
+                    {
+                        action.Invoke(new Entity(it.Entity(i), this), t);
+                    }
             );
     }
 
@@ -465,17 +529,17 @@ public sealed unsafe partial class Scene
             .Observer<T>()
             .Event<SetEvent>()
             .Each(
-                (Iter it, int i, ref T _) =>
-                {
-                    var entity = new Entity(it.Entity(i), this);
-                    if (!traverse)
+                traverse
+                    ? (Iter it, int i, ref T _) =>
                     {
-                        action.Invoke(entity);
-                        return;
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse<T>(action);
                     }
-
-                    entity.Traverse<T>(action);
-                }
+                    : (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        action.Invoke(entity);
+                    }
             );
     }
 
@@ -486,17 +550,16 @@ public sealed unsafe partial class Scene
             .Observer<T>()
             .Event<SetEvent>()
             .Each(
-                (Iter it, int i, ref T t) =>
-                {
-                    if (!traverse)
+                traverse
+                    ? (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse(action);
+                    }
+                    : (Iter _, int _, ref T t) =>
                     {
                         action.Invoke(t);
-                        return;
                     }
-
-                    var entity = new Entity(it.Entity(i), this);
-                    entity.Traverse(action);
-                }
             );
     }
 
@@ -507,17 +570,83 @@ public sealed unsafe partial class Scene
             .Observer<T>()
             .Event<SetEvent>()
             .Each(
-                (Iter it, int i, ref T t) =>
-                {
-                    var entity = new Entity(it.Entity(i), this);
-                    if (!traverse)
+                traverse
+                    ? (Iter it, int i, ref T _) =>
                     {
-                        action.Invoke(entity, t);
-                        return;
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse(action);
                     }
+                    : (Iter it, int i, ref T t) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        action.Invoke(entity, t);
+                    }
+            );
+    }
 
-                    entity.Traverse(action);
-                }
+    #endregion
+
+    #region OnAddOrSet
+
+    public void OnAddOrSet<T>(Action<Entity> action, bool traverse = false)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event(Ecs.OnSet)
+            .Each(
+                traverse
+                    ? (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse<T>(action);
+                    }
+                    : (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        action.Invoke(entity);
+                    }
+            );
+    }
+
+    public void OnAddOrSet<T>(Action<T> action, bool traverse = false)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event(Ecs.OnSet)
+            .Each(
+                traverse
+                    ? (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse(action);
+                    }
+                    : (Iter _, int _, ref T t) =>
+                    {
+                        action.Invoke(t);
+                    }
+            );
+    }
+
+    public void OnAddOrSet<T>(Action<Entity, T> action, bool traverse = false)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer<T>()
+            .Event(Ecs.OnSet)
+            .Each(
+                traverse
+                    ? (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse(action);
+                    }
+                    : (Iter it, int i, ref T t) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        action.Invoke(entity, t);
+                    }
             );
     }
 
@@ -525,45 +654,63 @@ public sealed unsafe partial class Scene
 
     #region OnRemove
 
-    public void OnRemove<T>(Action<Entity> action)
+    public void OnRemove<T>(Action<Entity> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
             .Observer<T>()
             .Event(Ecs.OnRemove)
             .Each(
-                (Iter it, int i, ref T _) =>
-                {
-                    action.Invoke(new Entity(it.Entity(i), this));
-                }
+                traverse
+                    ? (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse(action);
+                    }
+                    : (Iter it, int i, ref T _) =>
+                    {
+                        action.Invoke(new Entity(it.Entity(i), this));
+                    }
             );
     }
 
-    public void OnRemove<T>(Action<T> action)
+    public void OnRemove<T>(Action<T> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
             .Observer<T>()
             .Event(Ecs.OnRemove)
             .Each(
-                (Iter _, int _, ref T t) =>
-                {
-                    action.Invoke(t);
-                }
+                traverse
+                    ? (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse(action);
+                    }
+                    : (Iter _, int _, ref T t) =>
+                    {
+                        action.Invoke(t);
+                    }
             );
     }
 
-    public void OnRemove<T>(Action<Entity, T> action)
+    public void OnRemove<T>(Action<Entity, T> action, bool traverse = false)
     {
         EnsureNotInitialized();
         _world
             .Observer<T>()
             .Event(Ecs.OnRemove)
             .Each(
-                (Iter it, int i, ref T t) =>
-                {
-                    action.Invoke(new Entity(it.Entity(i), this), t);
-                }
+                traverse
+                    ? (Iter it, int i, ref T _) =>
+                    {
+                        var entity = new Entity(it.Entity(i), this);
+                        entity.Traverse(action);
+                    }
+                    : (Iter it, int i, ref T t) =>
+                    {
+                        action.Invoke(new Entity(it.Entity(i), this), t);
+                    }
             );
     }
 
@@ -573,7 +720,7 @@ public sealed unsafe partial class Scene
 
     public void OnSetPosition(Action<Entity> action, bool traverse = true)
     {
-        OnSet<Position>(action.Invoke, traverse);
+        OnSet<Position>(action, traverse);
     }
 
     public void OnSetPosition(Action<Entity, Vector2> action, bool traverse = true)
@@ -593,7 +740,7 @@ public sealed unsafe partial class Scene
 
     public void OnSetScale(Action<Entity> action, bool traverse = true)
     {
-        OnSet<Scale>(action.Invoke, traverse);
+        OnSet<Scale>(action, traverse);
     }
 
     public void OnSetScale(Action<Entity, Vector2> action, bool traverse = true)
@@ -613,7 +760,7 @@ public sealed unsafe partial class Scene
 
     public void OnSetRotation(Action<Entity> action, bool traverse = true)
     {
-        OnSet<Rotation>(action.Invoke, traverse);
+        OnSet<Rotation>(action, traverse);
     }
 
     public void OnSetRotation(Action<Entity, float> action, bool traverse = true)
@@ -633,7 +780,7 @@ public sealed unsafe partial class Scene
 
     public void OnSetPivotPoint(Action<Entity> action, bool traverse = true)
     {
-        OnSet<PivotPoint>(action.Invoke, traverse);
+        OnSet<PivotPoint>(action, traverse);
     }
 
     public void OnSetPivotPoint(Action<Entity, Vector2> action, bool traverse = true)
@@ -653,7 +800,7 @@ public sealed unsafe partial class Scene
 
     public void OnSetZIndex(Action<Entity> action, bool traverse = true)
     {
-        OnSet<ZIndex>(action.Invoke, traverse);
+        OnSet<ZIndex>(action, traverse);
     }
 
     public void OnSetZIndex(Action<Entity, int> action, bool traverse = true)
@@ -665,6 +812,44 @@ public sealed unsafe partial class Scene
             },
             traverse
         );
+    }
+
+    #endregion
+
+    #region OnSetDisabled
+
+    public void OnSetDisabled(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer()
+            .Flags(Ecs.Disabled)
+            .Event(Ecs.OnAdd)
+            .Event(Ecs.OnRemove)
+            .Each(
+                (it, i) =>
+                {
+                    var entity = new Entity(it.Entity(i), this);
+                    action.Invoke(entity);
+                }
+            );
+    }
+
+    public void OnSetDisabled(Action<Entity, bool> action)
+    {
+        EnsureNotInitialized();
+        _world
+            .Observer()
+            .Flags(Ecs.Disabled)
+            .Event(Ecs.OnAdd)
+            .Event(Ecs.OnRemove)
+            .Each(
+                (it, i) =>
+                {
+                    var entity = new Entity(it.Entity(i), this);
+                    action.Invoke(entity, it.Event() == Ecs.OnAdd);
+                }
+            );
     }
 
     #endregion

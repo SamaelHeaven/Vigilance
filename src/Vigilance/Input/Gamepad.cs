@@ -8,7 +8,7 @@ public sealed class Gamepad
 {
     private const int MaxGamepads = 4;
     private const string DefaultName = "Unknown gamepad";
-    private static readonly Gamepad[] GamepadArray = GetGamepads();
+    private static readonly List<Gamepad> GamepadList = GetGamepads();
     private static readonly GamepadButton[] ButtonValues = Enum.GetValues<GamepadButton>();
     private static readonly GamepadAxis[] AxisValues = Enum.GetValues<GamepadAxis>();
     private readonly Dictionary<GamepadAxis, float> _axes;
@@ -28,33 +28,33 @@ public sealed class Gamepad
             _axes.Add(axis, 0);
     }
 
-    public static EnumerableArray<Gamepad> Gamepads => GamepadArray;
+    public static ListView<Gamepad> Gamepads => GamepadList;
     public int Id { get; }
 
-    public static Gamepad First => GamepadArray[0];
-    public static Gamepad Second => GamepadArray[1];
-    public static Gamepad Third => GamepadArray[2];
-    public static Gamepad Fourth => GamepadArray[3];
+    public static Gamepad First => GamepadList[0];
+    public static Gamepad Second => GamepadList[1];
+    public static Gamepad Third => GamepadList[2];
+    public static Gamepad Fourth => GamepadList[3];
 
-    public EnumerableList<GamepadButton> DownButtons => _downButtons;
-    public EnumerableList<GamepadButton> UpButtons => _upButtons;
-    public EnumerableList<GamepadButton> PressedButtons => _pressedButtons;
-    public EnumerableList<GamepadButton> ReleasedButtons => _releasedButtons;
-    public EnumerableDictionary<GamepadAxis, float> Axes => _axes;
+    public ListView<GamepadButton> DownButtons => _downButtons;
+    public ListView<GamepadButton> UpButtons => _upButtons;
+    public ListView<GamepadButton> PressedButtons => _pressedButtons;
+    public ListView<GamepadButton> ReleasedButtons => _releasedButtons;
+    public DictionaryView<GamepadAxis, float> Axes => _axes;
     public bool Connected { get; private set; }
     public string Name { get; private set; }
 
     internal static void UpdateAll()
     {
-        foreach (var gamepad in GamepadArray)
+        foreach (var gamepad in GamepadList)
             gamepad.Update();
     }
 
-    private static Gamepad[] GetGamepads()
+    private static List<Gamepad> GetGamepads()
     {
-        var gamepads = new Gamepad[MaxGamepads];
+        var gamepads = new List<Gamepad>(MaxGamepads);
         for (var i = 0; i < MaxGamepads; i++)
-            gamepads[i] = new Gamepad(i);
+            gamepads.Add(new Gamepad(i));
         return gamepads;
     }
 
@@ -115,15 +115,15 @@ public sealed class Gamepad
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
         _pressedButtons.AddRange(_currentButtons);
-        _pressedButtons.RemoveAll(button => _downButtons.Contains(button));
+        _pressedButtons.RemoveAll(_downButtons.Contains);
         _releasedButtons.Clear();
         _releasedButtons.AddRange(_downButtons);
-        _releasedButtons.RemoveAll(button => _currentButtons.Contains(button));
+        _releasedButtons.RemoveAll(_currentButtons.Contains);
         _downButtons.Clear();
         _downButtons.AddRange(_currentButtons);
         _upButtons.Clear();
         _upButtons.AddRange(ButtonValues);
-        _upButtons.RemoveAll(button => _currentButtons.Contains(button));
+        _upButtons.RemoveAll(_currentButtons.Contains);
         foreach (var axis in AxisValues)
             _axes[axis] = GetGamepadAxis(Id, axis);
     }

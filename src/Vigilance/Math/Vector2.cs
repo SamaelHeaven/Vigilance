@@ -47,13 +47,13 @@ public record struct Vector2
         return new Vector2(v);
     }
 
-    public void Deconstruct(out float x, out float y)
+    public readonly void Deconstruct(out float x, out float y)
     {
         x = X;
         y = Y;
     }
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return $"<{X}, {Y}>";
     }

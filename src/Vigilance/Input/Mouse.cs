@@ -25,10 +25,10 @@ public sealed class Mouse
 
     private Mouse() { }
 
-    public static EnumerableList<MouseButton> DownButtons => GetMouse()._downButtons;
-    public static EnumerableList<MouseButton> UpButtons => GetMouse()._upButtons;
-    public static EnumerableList<MouseButton> PressedButtons => GetMouse()._pressedButtons;
-    public static EnumerableList<MouseButton> ReleasedButtons => GetMouse()._releasedButtons;
+    public static ListView<MouseButton> DownButtons => GetMouse()._downButtons;
+    public static ListView<MouseButton> UpButtons => GetMouse()._upButtons;
+    public static ListView<MouseButton> PressedButtons => GetMouse()._pressedButtons;
+    public static ListView<MouseButton> ReleasedButtons => GetMouse()._releasedButtons;
 
     public static bool OnScreen => Raylib.IsCursorOnScreen();
 
@@ -147,14 +147,14 @@ public sealed class Mouse
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
         _pressedButtons.AddRange(_currentButtons);
-        _pressedButtons.RemoveAll(button => _downButtons.Contains(button));
+        _pressedButtons.RemoveAll(_downButtons.Contains);
         _releasedButtons.Clear();
         _releasedButtons.AddRange(_downButtons);
-        _releasedButtons.RemoveAll(button => _currentButtons.Contains(button));
+        _releasedButtons.RemoveAll(_currentButtons.Contains);
         _downButtons.Clear();
         _downButtons.AddRange(_currentButtons);
         _upButtons.Clear();
         _upButtons.AddRange(ButtonValues);
-        _upButtons.RemoveAll(button => _currentButtons.Contains(button));
+        _upButtons.RemoveAll(_currentButtons.Contains);
     }
 }

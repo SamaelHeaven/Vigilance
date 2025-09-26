@@ -1,11 +1,12 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Vigilance.Core;
+using ZLinq;
 
 namespace Vigilance.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
+public record struct Quad : IStructEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
 {
     public Vector2 TopLeft { get; set; }
     public Vector2 BottomLeft { get; set; }
@@ -69,7 +70,12 @@ public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IRe
         return new ReadOnlySpan<Vector2>(&quad, quad.Count);
     }
 
-    public void Deconstruct(out Vector2 topLeft, out Vector2 bottomLeft, out Vector2 bottomRight, out Vector2 topRight)
+    public readonly void Deconstruct(
+        out Vector2 topLeft,
+        out Vector2 bottomLeft,
+        out Vector2 bottomRight,
+        out Vector2 topRight
+    )
     {
         topLeft = TopLeft;
         bottomLeft = BottomLeft;
@@ -77,7 +83,7 @@ public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IRe
         topRight = TopRight;
     }
 
-    public Quad Transform(Matrix3x2 matrix)
+    public readonly Quad Transform(Matrix3x2 matrix)
     {
         return new Quad(
             TopLeft.Transform(matrix),
@@ -87,7 +93,7 @@ public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IRe
         );
     }
 
-    public Quad Transform(Matrix4x4 matrix)
+    public readonly Quad Transform(Matrix4x4 matrix)
     {
         return new Quad(
             TopLeft.Transform(matrix),
@@ -97,7 +103,7 @@ public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IRe
         );
     }
 
-    public Quad Transform(Quaternion quaternion)
+    public readonly Quad Transform(Quaternion quaternion)
     {
         return new Quad(
             TopLeft.Transform(quaternion),
@@ -167,14 +173,19 @@ public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IRe
         );
     }
 
-    public int Count => 4;
+    public readonly int Count => 4;
 
-    public PointEnumerator GetEnumerator()
+    public readonly PointEnumerator GetEnumerator()
     {
         return new PointEnumerator(this);
     }
 
-    public struct PointEnumerator : IValueEnumerator<Vector2>
+    public ValueEnumerable<StructEnumerator<PointEnumerator, Vector2>, Vector2> AsValueEnumerable()
+    {
+        return new StructEnumerator<PointEnumerator, Vector2>(GetEnumerator());
+    }
+
+    public struct PointEnumerator : IStructEnumerator<Vector2>
     {
         private readonly Quad _quad;
         private int _index;
@@ -198,7 +209,7 @@ public record struct Quad : IValueEnumerable<Quad.PointEnumerator, Vector2>, IRe
             _index = 0;
         }
 
-        public Vector2 Current =>
+        public readonly Vector2 Current =>
             _index switch
             {
                 0 => _quad.TopLeft,

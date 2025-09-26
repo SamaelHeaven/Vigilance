@@ -5,14 +5,16 @@ using Flecs.NET.Bindings;
 using Flecs.NET.Core;
 using Flecs.NET.Utilities;
 using Vigilance.Math;
+using ZLinq;
 
 // ReSharper disable PossiblyImpureMethodCallOnReadonlyVariable
 #pragma warning disable CS8656 // Call to non-readonly member from a 'readonly' member results in an implicit copy.
 
 namespace Vigilance.Core;
 
-public unsafe partial record struct Entity
+public readonly unsafe partial record struct Entity : IComparable<Entity>
 {
+    public const ulong RecycledIdFlag = 0x7FFFFFFF;
     private readonly Flecs.NET.Core.Entity _entity;
 
     internal Entity(Flecs.NET.Core.Entity entity, Scene scene)
@@ -119,6 +121,16 @@ public unsafe partial record struct Entity
         }
     }
 
+    public bool Disabled
+    {
+        get => !Valid || _entity.Has(Ecs.Disabled);
+        set
+        {
+            if (Valid)
+                flecs.ecs_enable(_entity.World, _entity.Id, value ? (byte)0 : (byte)1);
+        }
+    }
+
     public Transform WorldTransform
     {
         get
@@ -189,6 +201,12 @@ public unsafe partial record struct Entity
 
     public ChildEnumerable Children => new(this);
 
+    public int CompareTo(Entity other)
+    {
+        var result = WorldZIndex.CompareTo(other.WorldZIndex);
+        return result == 0 ? (Id & RecycledIdFlag).CompareTo(other.Id & RecycledIdFlag) : result;
+    }
+
     public bool Equals(Entity other)
     {
         return Id == other.Id;
@@ -253,6 +271,12 @@ public unsafe partial record struct Entity
         return ref this;
     }
 
+    public ref readonly Entity SetDisabled(bool disabled = true)
+    {
+        Disabled = disabled;
+        return ref this;
+    }
+
     public T Get<T>()
     {
         EnsureValid();
@@ -314,9 +338,9 @@ public unsafe partial record struct Entity
     public ref readonly Entity Scope(Action action)
     {
         EnsureValid();
-        Scene.DeferBegin();
+        Scene.BeginDefer();
         _entity.Scope(action);
-        Scene.DeferEnd();
+        Scene.EndDefer();
         return ref this;
     }
 
@@ -357,6 +381,12 @@ public unsafe partial record struct Entity
             sb.Append(Name);
         }
 
+        if (Disabled)
+        {
+            sb.Append(", Disabled = ");
+            sb.Append(Disabled);
+        }
+
         sb.Append(", Transform = ");
         sb.Append(Transform.ToString());
         sb.Append(", Components = ");
@@ -364,7 +394,7 @@ public unsafe partial record struct Entity
         return true;
     }
 
-    public readonly struct ChildEnumerable : IValueEnumerable<ChildEnumerator, Entity>
+    public readonly struct ChildEnumerable : IStructEnumerable<ChildEnumerator, Entity>
     {
         private readonly Entity _entity;
 
@@ -377,9 +407,14 @@ public unsafe partial record struct Entity
         {
             return new ChildEnumerator(_entity);
         }
+
+        public ValueEnumerable<StructEnumerator<ChildEnumerator, Entity>, Entity> AsValueEnumerable()
+        {
+            return new StructEnumerator<ChildEnumerator, Entity>(GetEnumerator());
+        }
     }
 
-    public struct ChildEnumerator : IValueEnumerator<Entity>
+    public struct ChildEnumerator : IStructEnumerator<Entity>
     {
         private readonly Entity _entity;
         private flecs.ecs_iter_t _iter;
@@ -413,7 +448,7 @@ public unsafe partial record struct Entity
         {
             _entity.EnsureValid();
             Dispose();
-            _entity.Scene.DeferBegin();
+            _entity.Scene.BeginDefer();
             _iter = flecs.ecs_each_id(_entity._entity.World, Ecs.Pair(flecs.EcsChildOf, _entity.Id));
             _index = 0;
             fixed (flecs.ecs_iter_t* iter = &_iter)
@@ -422,7 +457,7 @@ public unsafe partial record struct Entity
             }
         }
 
-        public Entity Current
+        public readonly Entity Current
         {
             get
             {
@@ -442,7 +477,7 @@ public unsafe partial record struct Entity
                 Ecs.TableUnlock(iter);
             }
 
-            _entity.Scene.DeferEnd();
+            _entity.Scene.EndDefer();
             _iter = default;
             _index = 0;
         }

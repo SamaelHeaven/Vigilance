@@ -14,6 +14,8 @@ public sealed class SceneGenerator : ISourceGenerator
         var sb = new StringBuilder();
         sb.AppendLine(
             """
+            #pragma warning disable CS9084
+
             namespace Vigilance.Core;
 
             public sealed partial class Scene
@@ -30,7 +32,7 @@ public sealed class SceneGenerator : ISourceGenerator
 
     private static void Entities(StringBuilder sb)
     {
-        sb.Region("Entities");
+        sb.BeginRegion("Entities");
         sb.AppendLine(QueryIterator("Entity", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
         sb.AppendLine(
             QueryIterator(
@@ -39,7 +41,7 @@ public sealed class SceneGenerator : ISourceGenerator
                 "ZIndex",
                 "CurrentEntity",
                 "GetOrderedEntities",
-                query: "_scene._orderedQuery"
+                query: "_withDisabled ? _scene._orderedQueryWithDisabled : _scene._orderedQuery"
             )
         );
         sb.EndRegion();
@@ -47,7 +49,7 @@ public sealed class SceneGenerator : ISourceGenerator
 
     private static void Components(StringBuilder sb)
     {
-        sb.Region("Components");
+        sb.BeginRegion("Components");
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
@@ -65,7 +67,7 @@ public sealed class SceneGenerator : ISourceGenerator
 
     private static void Entries(StringBuilder sb)
     {
-        sb.Region("Entries");
+        sb.BeginRegion("Entries");
         for (var i = 0; i < 15; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
@@ -89,30 +91,44 @@ public sealed class SceneGenerator : ISourceGenerator
     )
     {
         return $$"""
-                public readonly struct {{name}}Enumerable{{typeParams}} : IValueEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
+                public struct {{name}}Enumerable{{typeParams}} : IStructEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
                 {
                     private readonly Scene _scene;
+                    private bool _withDisabled;
                 
                     internal {{name}}Enumerable(Scene scene)
                     {
                         _scene = scene;
+                        _withDisabled = false;
                     }
                     
                     public {{name}}Enumerator{{typeParams}} GetEnumerator()
                     {
-                        return new {{name}}Enumerator{{typeParams}}(_scene);
+                        return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled);
+                    }
+                    
+                    public ZLinq.ValueEnumerable<StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>, {{type}}> AsValueEnumerable()
+                    {
+                        return new StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
+                    }
+                    
+                    public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool value = true) {
+                        _withDisabled = value;
+                        return ref this;
                     }
                 }
                 
-                public unsafe struct {{name}}Enumerator{{typeParams}} : IValueEnumerator<{{type}}> {
+                public unsafe struct {{name}}Enumerator{{typeParams}} : IStructEnumerator<{{type}}> {
                     private readonly Scene _scene;
+                    private readonly bool _withDisabled;
                     private Flecs.NET.Core.Query<{{queryTypeParams}}>? _query;
                     private Flecs.NET.Bindings.flecs.ecs_iter_t _iter;
                     private int _index;
                     
-                    internal {{name}}Enumerator(Scene scene)
+                    internal {{name}}Enumerator(Scene scene, bool withDisabled)
                     {
                         _scene = scene;
+                        _withDisabled = withDisabled;
                         Reset();
                     }
                 
@@ -161,9 +177,12 @@ public sealed class SceneGenerator : ISourceGenerator
                     public void Reset()
                     {
                         Dispose();
-                        _scene.DeferBegin();
+                        _scene.BeginDefer();
                         var query = {{(
-                            query == "" ? $"_scene._world.QueryBuilder<{queryTypeParams}>().Build()" : query
+                            query == "" ? $"(_withDisabled ? " +
+                                          $"_scene._world.QueryBuilder<{queryTypeParams}>().With(Flecs.NET.Core.Ecs.Disabled).Optional() " +
+                                          $": _scene._world.QueryBuilder<{queryTypeParams}>())" +
+                                          $".CacheKind(Flecs.NET.Bindings.flecs.ecs_query_cache_kind_t.EcsQueryCacheNone).Build()" : query
                         )}};
                         _query = query;
                         _iter = query.GetIter();
@@ -185,7 +204,7 @@ public sealed class SceneGenerator : ISourceGenerator
                             Flecs.NET.Core.Ecs.TableUnlock(iter);
                         }
 
-                        _scene.DeferEnd();{{(query == "" ? "\n            _query.Value.Dispose();" : "")}}
+                        _scene.EndDefer();{{(query == "" ? "\n            _query.Value.Dispose();" : "")}}
                         _query = null;
                         _iter = default;
                         _index = 0;

@@ -78,7 +78,7 @@ public record struct Box
         return new Box(box.Position, box.Size);
     }
 
-    public Quad Transform(Matrix3x2 matrix)
+    public readonly Quad Transform(Matrix3x2 matrix)
     {
         var topLeft = new Vector2(X, Y).Transform(matrix);
         var bottomLeft = new Vector2(X, Y + Height).Transform(matrix);
@@ -87,7 +87,7 @@ public record struct Box
         return new Quad(topLeft, bottomLeft, bottomRight, topRight);
     }
 
-    public Quad Transform(Matrix4x4 matrix)
+    public readonly Quad Transform(Matrix4x4 matrix)
     {
         var topLeft = new Vector2(X, Y).Transform(matrix);
         var bottomLeft = new Vector2(X, Y + Height).Transform(matrix);
@@ -96,7 +96,7 @@ public record struct Box
         return new Quad(topLeft, bottomLeft, bottomRight, topRight);
     }
 
-    public Quad Transform(Quaternion quaternion)
+    public readonly Quad Transform(Quaternion quaternion)
     {
         var topLeft = new Vector2(X, Y).Transform(quaternion);
         var bottomLeft = new Vector2(X, Y + Height).Transform(quaternion);
@@ -105,7 +105,7 @@ public record struct Box
         return new Quad(topLeft, bottomLeft, bottomRight, topRight);
     }
 
-    public void Deconstruct(out float x, out float y, out float width, out float height)
+    public readonly void Deconstruct(out float x, out float y, out float width, out float height)
     {
         x = X;
         y = Y;
@@ -113,13 +113,13 @@ public record struct Box
         height = Height;
     }
 
-    public void Deconstruct(out Vector2 position, out Vector2 size)
+    public readonly void Deconstruct(out Vector2 position, out Vector2 size)
     {
         position = new Vector2(X, Y);
         size = new Vector2(Width, Height);
     }
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return $"[X={X}, Y={Y}, W={Width}, H={Height}]";
     }

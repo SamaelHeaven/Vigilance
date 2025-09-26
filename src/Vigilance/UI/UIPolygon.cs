@@ -45,6 +45,12 @@ public class UIPolygon : UIContainer
         set => _polygon.StrokeWidth = value;
     }
 
+    public DrawOrder DrawOrder
+    {
+        get => _polygon.DrawOrder;
+        set => _polygon.DrawOrder = value;
+    }
+
     protected override void Render(Graphics graphics, CameraProvider camera)
     {
         var position = LayoutPosition;

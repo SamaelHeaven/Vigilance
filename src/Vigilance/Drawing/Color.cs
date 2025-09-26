@@ -9,7 +9,7 @@ public record struct Color
 {
     public static Color White => new(255, 255, 255);
     public static Color Black => new(0, 0, 0);
-    public static Color Transparent => new(0, 0, 0, 0);
+    public static Color Transparent => default;
     public static Color LightGray => new(200, 200, 200);
     public static Color Gray => new(130, 130, 130);
     public static Color DarkGray => new(80, 80, 80);
@@ -101,14 +101,14 @@ public record struct Color
         return new Color(rgba.R, rgba.G, rgba.B, rgba.A);
     }
 
-    public void Deconstruct(out byte r, out byte g, out byte b)
+    public readonly void Deconstruct(out byte r, out byte g, out byte b)
     {
         r = R;
         g = G;
         b = B;
     }
 
-    public void Deconstruct(out byte r, out byte g, out byte b, out byte a)
+    public readonly void Deconstruct(out byte r, out byte g, out byte b, out byte a)
     {
         r = R;
         g = G;
@@ -116,24 +116,24 @@ public record struct Color
         a = A;
     }
 
-    internal Raylib_cs.BleedingEdge.Color RColor => new(R, G, B, A);
+    internal readonly Raylib_cs.BleedingEdge.Color RColor => new(R, G, B, A);
 
     public override string ToString()
     {
         return $"[R={R}, G={G}, B={B}, A={A}]";
     }
 
-    public string ToHex()
+    public readonly string ToHex()
     {
         return $"#{R:X2}{G:X2}{B:X2}{A:X2}";
     }
 
-    public int ToInt()
+    public readonly int ToInt()
     {
         return Raylib.ColorToInt(RColor);
     }
 
-    public Color Blend(Color color)
+    public readonly Color Blend(Color color)
     {
         return new Color(
             (byte)((R + color.R) / 2),
@@ -143,7 +143,7 @@ public record struct Color
         );
     }
 
-    public Color Fade(float alpha)
+    public readonly Color Fade(float alpha)
     {
         var result = this;
         alpha = alpha switch
@@ -156,7 +156,7 @@ public record struct Color
         return result;
     }
 
-    public Color Tint(Color color)
+    public readonly Color Tint(Color color)
     {
         var result = this;
         result.R = (byte)(R * color.R / 255);
@@ -166,7 +166,7 @@ public record struct Color
         return result;
     }
 
-    public Color Brightness(float factor)
+    public readonly Color Brightness(float factor)
     {
         var result = this;
         factor = factor switch
@@ -198,7 +198,7 @@ public record struct Color
         return result;
     }
 
-    public Color Contrast(float factor)
+    public readonly Color Contrast(float factor)
     {
         var result = this;
         factor = factor switch
@@ -248,7 +248,7 @@ public record struct Color
         return result;
     }
 
-    public Color Alpha(float alpha)
+    public readonly Color Alpha(float alpha)
     {
         var result = this;
         alpha = alpha switch
@@ -261,7 +261,7 @@ public record struct Color
         return result;
     }
 
-    public Color AlphaBlend(Color src, Color tint)
+    public readonly Color AlphaBlend(Color src, Color tint)
     {
         var result = White;
         src.R = (byte)(src.R * tint.R / 255);
@@ -294,7 +294,7 @@ public record struct Color
         return result;
     }
 
-    public Color Lerp(Color color, float factor)
+    public readonly Color Lerp(Color color, float factor)
     {
         var result = Transparent;
         factor = factor switch
@@ -308,5 +308,10 @@ public record struct Color
         result.B = (byte)((1.0f - factor) * B + factor * color.B);
         result.A = (byte)((1.0f - factor) * A + factor * color.A);
         return result;
+    }
+
+    public readonly Color Or(Color value)
+    {
+        return this == Transparent ? value : this;
     }
 }

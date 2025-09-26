@@ -1,8 +1,10 @@
 using Vigilance.Core;
+using ZLinq;
+using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class Animation : IEnumerableList<AnimationFrame>
+public sealed class Animation : IListView<AnimationFrame>
 {
     public const int InfiniteRepeatCount = -1;
     private readonly List<AnimationFrame> _frames;
@@ -21,7 +23,7 @@ public sealed class Animation : IEnumerableList<AnimationFrame>
         Action? completeAction = null
     )
     {
-        _frames = frames.ToList();
+        _frames = frames.AsValueEnumerable().ToList();
         if (_frames.Count == 0)
             throw new ArgumentException("Animation must have at least one frame.");
         _nextIndex = null;
@@ -68,6 +70,11 @@ public sealed class Animation : IEnumerableList<AnimationFrame>
         return _frames.GetEnumerator();
     }
 
+    public ValueEnumerable<FromList<AnimationFrame>, AnimationFrame> AsValueEnumerable()
+    {
+        return _frames.AsValueEnumerable();
+    }
+
     public event Action? OnComplete;
     public event Action? OnRepeat;
 
@@ -105,10 +112,10 @@ public sealed class Animation : IEnumerableList<AnimationFrame>
             sprite.FlipX = frame.FlipX.Value;
         if (frame.FlipY.HasValue)
             sprite.FlipY = frame.FlipY.Value;
-        if (frame.Source.HasValue)
-            sprite.Source = frame.Source.Value;
+        sprite.Source = frame.Source;
         if (frame.Tint.HasValue)
             sprite.Tint = frame.Tint.Value;
+        sprite.NPatchInfo = frame.NPatchInfo;
         if (frame.Interpolation.HasValue)
             sprite.Interpolation = frame.Interpolation.Value;
     }

@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 using FreeTypeSharp;
-using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.Drawing;
 
@@ -13,7 +13,7 @@ public sealed unsafe class Font
     private static readonly FreeTypeLibrary FtLibrary = new();
     private static FontConfig _config = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
-    private readonly Dictionary<int, (Texture Atlas, IReadOnlyDictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
+    private readonly Dictionary<int, (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
     private nint _buffer;
     private FT_FaceRec_* _face;
     private int _spaceSize;
@@ -62,7 +62,7 @@ public sealed unsafe class Font
 
     public string Charset { get; }
     public int Quality { get; }
-    public IReadOnlyDictionary<char, GlyphInfo> GlyphInfos => _glyphInfos.AsReadOnly();
+    public DictionaryView<char, GlyphInfo> GlyphInfos => _glyphInfos;
     public Texture Atlas { get; }
 
     internal static void Initialize()
@@ -85,7 +85,7 @@ public sealed unsafe class Font
         foreach (var (_, dest) in GetTextBounds(text, fontSizeValue, spacingValue))
             size = size.Max(dest.Position + dest.Size);
         if ((textHeightMode ?? DefaultTextHeightMode) == TextHeightMode.FontSize)
-            size.Y = fontSizeValue + text.Count(c => c == '\n') * (fontSizeValue + spacingValue.Y);
+            size.Y = fontSizeValue + text.AsValueEnumerable().Count(c => c == '\n') * (fontSizeValue + spacingValue.Y);
         return size;
     }
 
@@ -104,22 +104,22 @@ public sealed unsafe class Font
         return GetStroke(strokeWidth).GlyphInfos[c];
     }
 
-    public IReadOnlyDictionary<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
+    public DictionaryView<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
     {
         return GetStroke(strokeWidth).GlyphInfos;
     }
 
     public TextBoundEnumerable GetTextBounds(
         string text,
-        float? fontSize,
-        Vector2? spacing,
-        IReadOnlyDictionary<char, GlyphInfo>? glyphInfos = null
+        float? fontSize = null,
+        Vector2? spacing = null,
+        DictionaryView<char, GlyphInfo>? glyphInfos = null
     )
     {
         return new TextBoundEnumerable(this, text, fontSize ?? DefaultSize, spacing ?? DefaultTextSpacing, glyphInfos);
     }
 
-    public (Texture Atlas, IReadOnlyDictionary<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
+    public (Texture Atlas, DictionaryView<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
     {
         strokeWidth = int.Clamp(strokeWidth, 0, 50);
         if (_strokes.TryGetValue(strokeWidth, out var stroke))
@@ -132,13 +132,14 @@ public sealed unsafe class Font
             0
         );
         var glyphs = Charset
+            .AsValueEnumerable()
             .Select(c => LoadGlyph(c, strokeWidth))
             .Where(g => g.HasValue)
             .Select(g => g!.Value)
             .ToList();
         var glyphInfos = new Dictionary<char, GlyphInfo>();
         var atlas = DrawAtlas(glyphs, glyphInfos);
-        var result = (atlas, glyphInfos.AsReadOnly());
+        var result = (atlas, glyphInfos);
         _strokes[strokeWidth] = result;
         return result;
     }
@@ -165,49 +166,51 @@ public sealed unsafe class Font
             FtEnsureOk(FT.FT_Stroker_New(FtLibrary.Native, stroke));
         }
 
-        return Charset.Select(c => LoadGlyph(c, null)).Where(g => g.HasValue).Select(g => g!.Value).ToList();
+        return Charset
+            .AsValueEnumerable()
+            .Select(c => LoadGlyph(c, null))
+            .Where(g => g.HasValue)
+            .Select(g => g!.Value)
+            .ToList();
     }
 
     private Texture DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
     {
-        var colSize = glyphs.Select(glyph => glyph.Width).Prepend(0).Max();
-        var rowSize = glyphs.Select(glyph => glyph.Height).Prepend(0).Max();
+        var colSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Width).Prepend(0).Max();
+        var rowSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Height).Prepend(0).Max();
         var nbRows = (int)(glyphs.Count / (float)AtlasNbCols).Ceil();
         var width = AtlasNbCols * (colSize + AtlasSpacing) + AtlasSpacing;
         var height = nbRows * (rowSize + AtlasSpacing) + AtlasSpacing;
-        var pixels = new byte[width * height * 2];
-        var maxAscent = glyphs.Select(glyph => glyph.BearerY).Prepend(0).Max();
+        var image = new WritableImage<PixelGrayAlpha>(width, height);
+        var maxAscent = glyphs.AsValueEnumerable().Select(glyph => glyph.BearerY).Prepend(0).Max();
         var x = AtlasSpacing;
         var y = AtlasSpacing;
         var offset = 0;
         glyphInfos ??= _glyphInfos;
-        foreach (var glyph in glyphs)
+        foreach (var (bitmap, character, glyphWidth, glyphHeight, advance, bearerX, bearerY, stroke) in glyphs)
         {
-            var glyphWidth = glyph.Width;
-            var glyphHeight = glyph.Height;
             for (var i = 0; i < glyphWidth * glyphHeight; i++)
             {
                 var row = i / glyphWidth;
                 var col = i % glyphWidth;
-                var alpha = glyph.Bitmap[i];
+                var alpha = bitmap[i];
                 if (alpha != 255)
                     continue;
                 var px = x + col;
                 var py = y + row;
-                var index = (py * width + px) * 2;
-                pixels[index] = 255;
-                pixels[index + 1] = 255;
+                var index = py * width + px;
+                image[index] = new PixelGrayAlpha(255);
             }
 
-            glyphInfos[glyph.Character] = new GlyphInfo(
+            glyphInfos[character] = new GlyphInfo(
                 x,
                 y,
-                glyph.Width,
-                glyph.Height,
-                glyph.Advance,
-                glyph.BearerX,
-                maxAscent - glyph.BearerY,
-                glyph.Stroke
+                glyphWidth,
+                glyphHeight,
+                advance,
+                bearerX,
+                maxAscent - bearerY,
+                stroke
             );
             x += colSize + AtlasSpacing;
             offset++;
@@ -218,18 +221,7 @@ public sealed unsafe class Font
             offset = 0;
         }
 
-        fixed (byte* pixelsBuffer = pixels)
-        {
-            var result = new Texture2D
-            {
-                Width = width,
-                Height = height,
-                Format = PixelFormat.UncompressedGrayAlpha,
-                Mipmaps = 1,
-            };
-            result.Id = Rlgl.LoadTexture(pixelsBuffer, result.Width, result.Height, result.Format, result.Mipmaps);
-            return new Texture(result);
-        }
+        return image.ToTexture();
     }
 
     private Glyph? LoadGlyph(char c, int? stroke)
@@ -295,20 +287,20 @@ public sealed unsafe class Font
         public FT_Bitmap_ Bitmap;
     }
 
-    public readonly struct TextBoundEnumerable : IValueEnumerable<TextBoundEnumerator, (Box Source, Box Dest)>
+    public readonly struct TextBoundEnumerable : IStructEnumerable<TextBoundEnumerator, (Box Source, Box Dest)>
     {
         private readonly Font _font;
         private readonly string _text;
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
-        private readonly IReadOnlyDictionary<char, GlyphInfo> _glyphInfos;
+        private readonly DictionaryView<char, GlyphInfo> _glyphInfos;
 
         internal TextBoundEnumerable(
             Font font,
             string text,
             float fontSize,
             Vector2 spacing,
-            IReadOnlyDictionary<char, GlyphInfo>? glyphInfos
+            DictionaryView<char, GlyphInfo>? glyphInfos
         )
         {
             _font = font;
@@ -322,15 +314,23 @@ public sealed unsafe class Font
         {
             return new TextBoundEnumerator(_font, _text, _fontSize, _spacing, _glyphInfos);
         }
+
+        public ValueEnumerable<
+            StructEnumerator<TextBoundEnumerator, (Box Source, Box Dest)>,
+            (Box Source, Box Dest)
+        > AsValueEnumerable()
+        {
+            return new StructEnumerator<TextBoundEnumerator, (Box Source, Box Dest)>(GetEnumerator());
+        }
     }
 
-    public struct TextBoundEnumerator : IValueEnumerator<(Box Source, Box Dest)>
+    public struct TextBoundEnumerator : IStructEnumerator<(Box Source, Box Dest)>
     {
         private readonly Font _font;
         private readonly string _text;
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
-        private readonly IReadOnlyDictionary<char, GlyphInfo> _glyphInfos;
+        private readonly DictionaryView<char, GlyphInfo> _glyphInfos;
         private readonly float _aspectRatio;
         private int _index;
         private Vector2 _position;
@@ -340,7 +340,7 @@ public sealed unsafe class Font
             string text,
             float fontSize,
             Vector2 spacing,
-            IReadOnlyDictionary<char, GlyphInfo>? glyphInfos
+            DictionaryView<char, GlyphInfo>? glyphInfos
         )
         {
             _font = font;

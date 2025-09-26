@@ -1,9 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
 using Vigilance.Core;
+using ZLinq;
+using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class AnimationController : IEnumerableDictionary<string, Animation>
+public sealed class AnimationController : IDictionaryView<string, Animation>
 {
     private readonly Dictionary<string, Animation> _animations;
 
@@ -12,7 +14,8 @@ public sealed class AnimationController : IEnumerableDictionary<string, Animatio
 
     public AnimationController(IEnumerable<KeyValuePair<string, Animation>> animations)
     {
-        var list = animations as IReadOnlyList<KeyValuePair<string, Animation>> ?? animations.ToList();
+        var list =
+            animations as IReadOnlyList<KeyValuePair<string, Animation>> ?? animations.AsValueEnumerable().ToList();
         if (list.Count == 0)
             throw new ArgumentException("AnimationController must have at least one animation.");
         _animations = list.ToDictionary();
@@ -28,6 +31,11 @@ public sealed class AnimationController : IEnumerableDictionary<string, Animatio
     public Dictionary<string, Animation>.Enumerator GetEnumerator()
     {
         return _animations.GetEnumerator();
+    }
+
+    public ValueEnumerable<FromDictionary<string, Animation>, KeyValuePair<string, Animation>> AsValueEnumerable()
+    {
+        return _animations.AsValueEnumerable();
     }
 
     public bool IsUsing(string animation)
@@ -57,7 +65,7 @@ public sealed class AnimationController : IEnumerableDictionary<string, Animatio
         Current = animation;
         if (!resetOthers)
             return;
-        foreach (var key in _animations.Keys.Where(key => key != animation))
+        foreach (var key in _animations.Keys.AsValueEnumerable().Where(key => key != animation))
         {
             var value = _animations[key];
             value.Reset();

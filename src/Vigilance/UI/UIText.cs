@@ -1,6 +1,7 @@
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.UI;
 
@@ -13,7 +14,6 @@ public class UIText : UIElement
     public UIText(string value = "")
     {
         _value = value;
-        SetMeasureFunc(Measure);
     }
 
     public UIText(string value, Color fill)
@@ -70,6 +70,12 @@ public class UIText : UIElement
         set => _text.StrokeWidth = value;
     }
 
+    public DrawOrder DrawOrder
+    {
+        get => _text.DrawOrder;
+        set => _text.DrawOrder = value;
+    }
+
     public Vector2 Spacing
     {
         get => _text.Spacing;
@@ -106,21 +112,7 @@ public class UIText : UIElement
         }
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
-    {
-        _text.Camera = camera;
-        graphics.DrawText(LayoutPosition, _text);
-    }
-
-    protected override object DeepClone()
-    {
-        var result = (UIText)base.DeepClone();
-        result.SetMeasureFunc(result.Measure);
-        result._text = _text.DeepClone();
-        return result;
-    }
-
-    private Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
+    protected override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         var maxWidth = widthMode == MeasureMode.Undefined ? float.PositiveInfinity : width;
         switch (TextOverflow)
@@ -180,8 +172,21 @@ public class UIText : UIElement
 
                 if (currentLine != "")
                     lines.Add(currentLine);
-                _text.Value = string.Join("\n", lines);
+                _text.Value = lines.AsValueEnumerable().JoinToString("\n");
                 return _text.Size;
         }
+    }
+
+    protected override void Render(Graphics graphics, CameraProvider camera)
+    {
+        _text.Camera = camera;
+        graphics.DrawText(LayoutPosition, _text);
+    }
+
+    protected override object DeepClone()
+    {
+        var result = (UIText)base.DeepClone();
+        result._text = _text.DeepClone();
+        return result;
     }
 }

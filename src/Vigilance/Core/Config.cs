@@ -1,3 +1,5 @@
+using ZLinq;
+
 namespace Vigilance.Core;
 
 public sealed class Config
@@ -6,10 +8,13 @@ public sealed class Config
 
     internal Config(IEnumerable<KeyValuePair<Type, object>> configs)
     {
-        _configs = configs.Select(config => (config.Key, Cloner.MemberwiseClone(config.Value))).ToDictionary();
+        _configs = configs
+            .AsValueEnumerable()
+            .Select(config => (config.Key, Cloner.MemberwiseClone(config.Value)))
+            .ToDictionary();
     }
 
-    public static Config Empty { get; } = new(Enumerable.Empty<KeyValuePair<Type, object>>());
+    public static Config Empty { get; } = new(Array.Empty<KeyValuePair<Type, object>>());
 
     public static ConfigBuilder Builder()
     {

@@ -1,6 +1,7 @@
 using Vigilance.Core;
 using Vigilance.Logging;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.Drawing;
 
@@ -27,6 +28,7 @@ public sealed class Triangle : IFullCloneable
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public PointEnumerable Points => new(this);
@@ -36,7 +38,7 @@ public sealed class Triangle : IFullCloneable
         return ObjectPrinter.Print(this);
     }
 
-    public readonly struct PointEnumerable : IValueEnumerable<PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
+    public readonly struct PointEnumerable : IStructEnumerable<PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
     {
         private readonly Triangle _triangle;
 
@@ -50,10 +52,15 @@ public sealed class Triangle : IFullCloneable
             return new PointEnumerator(_triangle);
         }
 
+        public ValueEnumerable<StructEnumerator<PointEnumerator, Vector2>, Vector2> AsValueEnumerable()
+        {
+            return new StructEnumerator<PointEnumerator, Vector2>(GetEnumerator());
+        }
+
         public int Count => 3;
     }
 
-    public struct PointEnumerator : IValueEnumerator<Vector2>
+    public struct PointEnumerator : IStructEnumerator<Vector2>
     {
         private readonly Triangle _triangle;
         private int _index;
@@ -77,7 +84,7 @@ public sealed class Triangle : IFullCloneable
             _index = 0;
         }
 
-        public Vector2 Current
+        public readonly Vector2 Current
         {
             get
             {

@@ -1,6 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
-
 namespace Vigilance.Core;
 
 public delegate IEnumerable<IGameSystem> GameSystemsFunc();
@@ -17,23 +14,31 @@ public abstract class GameSystem : IGameSystem
     public void Configure(Scene scene)
     {
         Scene = scene;
-        var type = GetType();
-        if (IsOverridden(type, nameof(Initialize)))
-            scene.OnInitialize(Initialize);
-        if (IsOverridden(type, nameof(Start)))
-            scene.OnStart(Start);
-        if (IsOverridden(type, nameof(Stop)))
-            scene.OnStop(Stop);
-        if (IsOverridden(type, nameof(Update)))
-            scene.OnUpdate(Update);
-        if (IsOverridden(type, nameof(FixedUpdate)))
-            scene.OnFixedUpdate(FixedUpdate);
-        if (IsOverridden(type, nameof(RenderBegin)))
-            scene.OnRenderBegin(RenderBegin);
-        if (IsOverridden(type, nameof(RenderEnd)))
-            scene.OnRenderEnd(RenderEnd);
-        if (IsOverridden(type, nameof(Render)))
-            scene.OnRender(Render);
+        var initialize = Initialize;
+        var start = Start;
+        var stop = Stop;
+        var update = Update;
+        var fixedUpdate = FixedUpdate;
+        var beginRender = BeginRender;
+        var endRender = EndRender;
+        var render = Render;
+        var baseType = typeof(GameSystem);
+        if (initialize.Method.DeclaringType != baseType)
+            scene.OnInitialize(initialize);
+        if (start.Method.DeclaringType != baseType)
+            scene.OnStart(start);
+        if (stop.Method.DeclaringType != baseType)
+            scene.OnStop(stop);
+        if (update.Method.DeclaringType != baseType)
+            scene.OnUpdate(update);
+        if (fixedUpdate.Method.DeclaringType != baseType)
+            scene.OnFixedUpdate(fixedUpdate);
+        if (beginRender.Method.DeclaringType != baseType)
+            scene.OnBeginRender(beginRender);
+        if (endRender.Method.DeclaringType != baseType)
+            scene.OnEndRender(endRender);
+        if (render.Method.DeclaringType != baseType)
+            scene.OnRender(render);
         Configure();
     }
 
@@ -49,18 +54,11 @@ public abstract class GameSystem : IGameSystem
 
     public virtual void FixedUpdate() { }
 
-    public virtual void RenderBegin() { }
+    public virtual void BeginRender() { }
 
-    public virtual void RenderEnd() { }
+    public virtual void EndRender() { }
 
     public virtual void Render(Entity entity) { }
-
-    [UnconditionalSuppressMessage("Trimming", "IL2070")]
-    private static bool IsOverridden(Type type, string methodName)
-    {
-        var method = type.GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        return method is null || method.DeclaringType != typeof(GameSystem);
-    }
 }
 
 public static class GameSystemConfigExtensions

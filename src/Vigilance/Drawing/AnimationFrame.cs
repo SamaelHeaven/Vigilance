@@ -10,5 +10,6 @@ public sealed record AnimationFrame
     public bool? FlipY { get; init; } = null;
     public Box? Source { get; init; } = null;
     public Color? Tint { get; init; } = null;
+    public NPatchInfo? NPatchInfo { get; set; } = null;
     public Interpolation? Interpolation { get; init; } = null;
 }

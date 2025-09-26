@@ -18,18 +18,18 @@ public sealed class ComponentSystem : GameSystem
             component.FixedUpdate(entity);
     }
 
-    public override void RenderBegin()
+    public override void BeginRender()
     {
-        foreach (var (entity, components) in Scene.Entries<Components>())
+        foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
         foreach (var component in components.OfType<IComponent>())
-            component.RenderBegin(entity);
+            component.BeginRender(entity);
     }
 
-    public override void RenderEnd()
+    public override void EndRender()
     {
-        foreach (var (entity, components) in Scene.Entries<Components>())
+        foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
         foreach (var component in components.OfType<IComponent>())
-            component.RenderEnd(entity);
+            component.EndRender(entity);
     }
 
     public override void Render(Entity entity)

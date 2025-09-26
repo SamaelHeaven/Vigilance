@@ -22,6 +22,7 @@ public sealed class RegularPolygon : IFullCloneable
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public override string ToString()

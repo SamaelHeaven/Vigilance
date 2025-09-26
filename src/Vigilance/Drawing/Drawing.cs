@@ -24,6 +24,18 @@ public static class Drawing
         set => _config.DefaultStrokeWidth = value;
     }
 
+    public static DrawOrder DefaultOrder
+    {
+        get => _config.DefaultOrder;
+        set => _config.DefaultOrder = value;
+    }
+
+    public static float DefaultRoundness
+    {
+        get => _config.DefaultRoundness;
+        set => _config.DefaultRoundness = value;
+    }
+
     public static Interpolation DefaultInterpolation
     {
         get => _config.DefaultInterpolation;
@@ -51,6 +63,8 @@ public sealed class DrawingConfig
     public Color DefaultFill { get; set; } = Color.White;
     public Color DefaultStroke { get; set; } = Color.Transparent;
     public float DefaultStrokeWidth { get; set; } = 0;
+    public DrawOrder DefaultOrder { get; set; } = DrawOrder.FillThenStroke;
+    public float DefaultRoundness { get; set; } = 0;
     public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
     public CameraProvider DefaultCamera { get; set; } = Camera.Scene;
     public Func<Texture> DefaultTexture { get; set; } = () => Texture.Empty;

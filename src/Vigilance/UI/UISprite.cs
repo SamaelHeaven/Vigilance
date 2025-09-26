@@ -13,6 +13,7 @@ public class UISprite : UIContainer
     public UISprite(Texture texture)
     {
         Texture = texture;
+        Size = texture.Size;
     }
 
     public Texture Texture
@@ -43,6 +44,12 @@ public class UISprite : UIContainer
     {
         get => _sprite.Tint;
         set => _sprite.Tint = value;
+    }
+
+    public NPatchInfo? NPatchInfo
+    {
+        get => _sprite.NPatchInfo;
+        set => _sprite.NPatchInfo = value;
     }
 
     public Interpolation Interpolation

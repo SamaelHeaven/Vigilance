@@ -7,14 +7,14 @@ namespace Vigilance.Drawing;
 public sealed unsafe class Texture
 {
     private static Texture? _empty;
-    private readonly object? _owner;
+    private readonly WritableTexture? _writableTexture;
     internal readonly Texture2D Texture2D;
 
-    internal Texture(Texture2D texture2D, object? owner = null)
+    internal Texture(Texture2D texture2D, WritableTexture? writableTexture = null)
     {
         Game.EnsureRunning();
         Texture2D = texture2D;
-        _owner = owner;
+        _writableTexture = writableTexture;
     }
 
     public Texture(string fileType, IEnumerable<byte> bytes)
@@ -40,7 +40,7 @@ public sealed unsafe class Texture
         {
             Width = width,
             Height = height,
-            Format = PixelFormat.UncompressedR8G8B8A8,
+            Format = Raylib_cs.BleedingEdge.PixelFormat.UncompressedR8G8B8A8,
             Mipmaps = 1,
         };
         fixed (Color* pixelsBuffer = span)
@@ -61,16 +61,18 @@ public sealed unsafe class Texture
 
     public Vector2 Size => new(Width, Height);
 
-    public bool Writable => _owner is WritableTexture;
+    public PixelFormat Format => (PixelFormat)Texture2D.Format;
 
-    public Image ToImage()
+    public bool Writable => _writableTexture is not null;
+
+    public WritableImage ToImage()
     {
-        if (_owner is WritableTexture buffer && Graphics.IsBufferCurrent(buffer))
+        if (_writableTexture is not null && Graphics.IsBufferCurrent(_writableTexture))
             Graphics.DrawCurrentBuffer();
         var image = Raylib.LoadImageFromTexture(Texture2D);
         if (Writable)
             Raylib.ImageFlipVertical(ref image);
-        return new Image(image);
+        return new WritableImage(new Image(image));
     }
 
     public Texture Copy()
@@ -81,8 +83,12 @@ public sealed unsafe class Texture
 
     ~Texture()
     {
-        if (_owner is not null)
-            return;
-        Game.Defer(() => Raylib.UnloadTexture(Texture2D));
+        Game.Defer(() =>
+        {
+            if (_writableTexture is null)
+                Raylib.UnloadTexture(Texture2D);
+            else
+                Raylib.UnloadRenderTexture(_writableTexture.RenderTexture2D);
+        });
     }
 }

@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Raylib_cs.BleedingEdge;
 using Raylib_cs.BleedingEdge.Interop;
 using Vigilance.Core;
+using ZLinq;
 
 namespace Vigilance.Logging;
 
@@ -87,7 +88,7 @@ public static unsafe partial class Logger
     {
         if (_config.LogLevel > level)
             return;
-        Log(level, string.Join(", ", values));
+        Log(level, values.AsValueEnumerable().JoinToString(", "));
     }
 
     public static void Debug(object? value)
@@ -141,10 +142,10 @@ public static unsafe partial class Logger
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static void UnmanagedLog(TraceLogLevel logLevel, sbyte* format, nint args)
+    private static void UnmanagedLog(TraceLogLevel level, sbyte* format, nint args)
     {
         var message = NativeStringFormatter.Format((nint)format, args);
-        Log((LogLevel)logLevel, message);
+        Log((LogLevel)level, message);
     }
 
     private static void EnableAnsiSupport()
