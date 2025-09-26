@@ -20,6 +20,11 @@ public static unsafe partial class FileSystem
 
     public static string[] DroppedFiles => !Raylib.IsFileDropped() ? Array.Empty<string>() : Raylib.GetDroppedFiles();
 
+    static FileSystem()
+    {
+        WorkingNamespace = new FileSystemConfig().WorkingNamespace;
+    }
+
     internal static void Initialize()
     {
         FileSystemConfig config;

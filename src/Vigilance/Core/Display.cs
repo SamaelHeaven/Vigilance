@@ -419,7 +419,7 @@ public sealed class Display
             Raylib.SetTargetFPS(_config.FpsTarget);
         if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon is null)
             return;
-        _icon = _config.Icon.Invoke().Copy<PixelR8G8B8A8>();
+        _icon = _config.Icon.Copy<PixelR8G8B8A8>();
         Raylib.SetWindowIcon(_icon.RImage);
     }
 

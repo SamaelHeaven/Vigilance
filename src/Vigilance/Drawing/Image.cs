@@ -13,13 +13,11 @@ public sealed unsafe class Image
 
     internal Image(Raylib_cs.BleedingEdge.Image image)
     {
-        Game.EnsureRunning();
         RImage = image;
     }
 
     public Image(string fileType, IEnumerable<byte> bytes)
     {
-        Game.EnsureRunning();
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)
@@ -149,7 +147,6 @@ public readonly struct WritableImage
 
     public WritableImage(string fileType, IEnumerable<byte> bytes)
     {
-        Game.EnsureRunning();
         Image = new Image(fileType, bytes);
     }
 
@@ -158,7 +155,6 @@ public readonly struct WritableImage
 
     public WritableImage(int width, int height, Color? color = null)
     {
-        Game.EnsureRunning();
         Image = new Image(Raylib.GenImageColor(width, height, (color ?? Color.Transparent).RColor));
     }
 
@@ -350,7 +346,6 @@ public readonly unsafe struct WritableImage<T>
 
     public WritableImage(int width, int height)
     {
-        Game.EnsureRunning();
         _image = new WritableImage(
             new Image(
                 new Raylib_cs.BleedingEdge.Image
