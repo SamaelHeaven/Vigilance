@@ -30,28 +30,7 @@ public sealed unsafe class Texture
         }
     }
 
-    public Texture(IEnumerable<Color> pixels, int width, int height)
-    {
-        Game.EnsureRunning();
-        var span = pixels.AsSpan();
-        if (span.Length != width * height)
-            throw new ArgumentException("Pixels length must be equal to width * height.");
-        var result = new Texture2D
-        {
-            Width = width,
-            Height = height,
-            Format = Raylib_cs.BleedingEdge.PixelFormat.UncompressedR8G8B8A8,
-            Mipmaps = 1,
-        };
-        fixed (Color* pixelsBuffer = span)
-        {
-            result.Id = Rlgl.LoadTexture(pixelsBuffer, result.Width, result.Height, result.Format, result.Mipmaps);
-        }
-
-        Texture2D = result;
-    }
-
-    public static Texture Empty => _empty ??= new Texture([Color.Transparent], 1, 1);
+    public static Texture Empty => _empty ??= new WritableImage<PixelGrayAlpha>(1, 1).ToTexture();
 
     public uint Id => Texture2D.Id;
 
