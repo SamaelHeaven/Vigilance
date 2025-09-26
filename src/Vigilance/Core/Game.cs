@@ -7,6 +7,7 @@ using Vigilance.Input;
 using Vigilance.Logging;
 using Image = Vigilance.Drawing.Image;
 using Music = Vigilance.Audio.Music;
+using PixelFormat = Raylib_cs.BleedingEdge.PixelFormat;
 using Sound = Vigilance.Audio.Sound;
 
 namespace Vigilance.Core;
@@ -79,7 +80,7 @@ public sealed unsafe class Game
         _quitAction += action;
     }
 
-    public static Image Screenshot()
+    public static WritableImage<PixelR8G8B8A8> Screenshot()
     {
         EnsureRunning();
         var width = Display.ScreenWidth;
@@ -95,7 +96,7 @@ public sealed unsafe class Game
             Mipmaps = 1,
             Format = PixelFormat.UncompressedR8G8B8A8,
         };
-        return new Image(rImage);
+        return new WritableImage<PixelR8G8B8A8>(new WritableImage(new Image(rImage)));
     }
 
     public static void Launch(Config config, Scene scene)

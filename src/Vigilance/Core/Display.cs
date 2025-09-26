@@ -2,6 +2,7 @@ using Raylib_cs.BleedingEdge;
 using Vigilance.Drawing;
 using Vigilance.Math;
 using Color = Vigilance.Drawing.Color;
+using Image = Vigilance.Drawing.Image;
 
 namespace Vigilance.Core;
 
@@ -9,6 +10,7 @@ public sealed class Display
 {
     private static Display? _display;
     private DisplayConfig _config = null!;
+    private Image? _icon;
     private Box _previousScreen;
     private bool _resetScreen;
 
@@ -24,6 +26,27 @@ public sealed class Display
         {
             GetDisplay()._config.Title = value;
             Raylib.SetWindowTitle(value);
+        }
+    }
+
+    public static Image? Icon
+    {
+        get => GetDisplay()._icon;
+        set
+        {
+            var display = GetDisplay();
+            if (display._icon == value)
+                return;
+            display._icon = value?.Copy<PixelR8G8B8A8>();
+            if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS())
+                return;
+            if (display._icon is null)
+            {
+                Raylib.SetWindowIcons(ReadOnlySpan<Raylib_cs.BleedingEdge.Image>.Empty);
+                return;
+            }
+
+            Raylib.SetWindowIcon(display._icon.RImage);
         }
     }
 
@@ -392,12 +415,12 @@ public sealed class Display
             Maximize();
         if (_config.Fullscreen)
             ToggleFullscreen();
-        Raylib.SetTargetFPS(_config.FpsTarget);
+        if (_config.FpsTarget > 0)
+            Raylib.SetTargetFPS(_config.FpsTarget);
         if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon is null)
             return;
-        var icon = _config.Icon!.Invoke().Copy();
-        icon.Format = ImageFormat.UncompressedR8G8B8A8;
-        Raylib.SetWindowIcon(icon.RImage);
+        _icon = _config.Icon.Invoke().Copy<PixelR8G8B8A8>();
+        Raylib.SetWindowIcon(_icon.RImage);
     }
 
     private ConfigFlags GetConfigFlags()

@@ -143,12 +143,16 @@ public static unsafe partial class FileSystem
 
     public static bool WriteBytes(string path, IEnumerable<byte> bytes)
     {
+        return WriteBytesSpan(path, bytes.AsSpan());
+    }
+
+    public static bool WriteBytesSpan(string path, ReadOnlySpan<byte> bytes)
+    {
         path = FormatPath(path);
-        var span = bytes.AsSpan();
         using var pathBuffer = path.ToUtf8Buffer();
-        fixed (byte* byteBuffer = span)
+        fixed (byte* byteBuffer = bytes)
         {
-            return Raylib.SaveFileData(pathBuffer.AsPointer(), byteBuffer, span.Length);
+            return Raylib.SaveFileData(pathBuffer.AsPointer(), byteBuffer, bytes.Length);
         }
     }
 

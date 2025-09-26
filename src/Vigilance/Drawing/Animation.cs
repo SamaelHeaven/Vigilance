@@ -112,10 +112,10 @@ public sealed class Animation : IListView<AnimationFrame>
             sprite.FlipX = frame.FlipX.Value;
         if (frame.FlipY.HasValue)
             sprite.FlipY = frame.FlipY.Value;
-        if (frame.Source.HasValue)
-            sprite.Source = frame.Source.Value;
+        sprite.Source = frame.Source;
         if (frame.Tint.HasValue)
             sprite.Tint = frame.Tint.Value;
+        sprite.NPatchInfo = frame.NPatchInfo;
         if (frame.Interpolation.HasValue)
             sprite.Interpolation = frame.Interpolation.Value;
     }

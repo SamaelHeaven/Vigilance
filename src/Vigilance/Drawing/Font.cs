@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using FreeTypeSharp;
-using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
 using ZLinq;
@@ -177,44 +176,41 @@ public sealed unsafe class Font
 
     private Texture DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
     {
-        var colSize = glyphs.Select(glyph => glyph.Width).Prepend(0).Max();
-        var rowSize = glyphs.Select(glyph => glyph.Height).Prepend(0).Max();
+        var colSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Width).Prepend(0).Max();
+        var rowSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Height).Prepend(0).Max();
         var nbRows = (int)(glyphs.Count / (float)AtlasNbCols).Ceil();
         var width = AtlasNbCols * (colSize + AtlasSpacing) + AtlasSpacing;
         var height = nbRows * (rowSize + AtlasSpacing) + AtlasSpacing;
-        var pixels = new byte[width * height * 2];
-        var maxAscent = glyphs.Select(glyph => glyph.BearerY).Prepend(0).Max();
+        var image = new WritableImage<PixelGrayAlpha>(width, height);
+        var maxAscent = glyphs.AsValueEnumerable().Select(glyph => glyph.BearerY).Prepend(0).Max();
         var x = AtlasSpacing;
         var y = AtlasSpacing;
         var offset = 0;
         glyphInfos ??= _glyphInfos;
-        foreach (var glyph in glyphs)
+        foreach (var (bitmap, character, glyphWidth, glyphHeight, advance, bearerX, bearerY, stroke) in glyphs)
         {
-            var glyphWidth = glyph.Width;
-            var glyphHeight = glyph.Height;
             for (var i = 0; i < glyphWidth * glyphHeight; i++)
             {
                 var row = i / glyphWidth;
                 var col = i % glyphWidth;
-                var alpha = glyph.Bitmap[i];
+                var alpha = bitmap[i];
                 if (alpha != 255)
                     continue;
                 var px = x + col;
                 var py = y + row;
-                var index = (py * width + px) * 2;
-                pixels[index] = 255;
-                pixels[index + 1] = 255;
+                var index = py * width + px;
+                image[index] = new PixelGrayAlpha(255);
             }
 
-            glyphInfos[glyph.Character] = new GlyphInfo(
+            glyphInfos[character] = new GlyphInfo(
                 x,
                 y,
-                glyph.Width,
-                glyph.Height,
-                glyph.Advance,
-                glyph.BearerX,
-                maxAscent - glyph.BearerY,
-                glyph.Stroke
+                glyphWidth,
+                glyphHeight,
+                advance,
+                bearerX,
+                maxAscent - bearerY,
+                stroke
             );
             x += colSize + AtlasSpacing;
             offset++;
@@ -225,18 +221,7 @@ public sealed unsafe class Font
             offset = 0;
         }
 
-        fixed (byte* pixelsBuffer = pixels)
-        {
-            var result = new Texture2D
-            {
-                Width = width,
-                Height = height,
-                Format = PixelFormat.UncompressedGrayAlpha,
-                Mipmaps = 1,
-            };
-            result.Id = Rlgl.LoadTexture(pixelsBuffer, result.Width, result.Height, result.Format, result.Mipmaps);
-            return new Texture(result);
-        }
+        return image.ToTexture();
     }
 
     private Glyph? LoadGlyph(char c, int? stroke)
