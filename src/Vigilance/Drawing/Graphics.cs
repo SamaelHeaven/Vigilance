@@ -1074,8 +1074,8 @@ public sealed unsafe class Graphics
             || !IsBoxInBounds(center - maxRadius, new Vector2(maxRadius * 2), camera, strokeWidthValue)
         )
             return;
-        var startDirection = startAngle.Min(endAngle).DirectionDeg();
-        var endDirection = endAngle.Max(startAngle).DirectionDeg();
+        var startDirection = startAngle.Min(endAngle).DegToDirection();
+        var endDirection = endAngle.Max(startAngle).DegToDirection();
         var startTangent = new Vector2(-startDirection.Y, startDirection.X);
         var endTangent = new Vector2(-endDirection.Y, endDirection.X);
         var startInner = center + startDirection * (minRadius - strokeWidthValue);

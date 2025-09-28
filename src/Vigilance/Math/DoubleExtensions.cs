@@ -12,12 +12,12 @@ public static class DoubleExtensions
         return radians * (180 / System.Math.PI);
     }
 
-    public static Vector2 DirectionDeg(this double degrees)
+    public static Vector2 DegToDirection(this double degrees)
     {
-        return DirectionRad(degrees.DegToRad());
+        return RadToDirection(degrees.DegToRad());
     }
 
-    public static Vector2 DirectionRad(this double radians)
+    public static Vector2 RadToDirection(this double radians)
     {
         return new Vector2((float)System.Math.Cos(radians), (float)System.Math.Sin(radians));
     }

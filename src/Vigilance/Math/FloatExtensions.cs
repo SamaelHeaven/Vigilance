@@ -12,12 +12,12 @@ public static class FloatExtensions
         return radians * (180 / MathF.PI);
     }
 
-    public static Vector2 DirectionDeg(this float degrees)
+    public static Vector2 DegToDirection(this float degrees)
     {
-        return DirectionRad(degrees.DegToRad());
+        return RadToDirection(degrees.DegToRad());
     }
 
-    public static Vector2 DirectionRad(this float radians)
+    public static Vector2 RadToDirection(this float radians)
     {
         return new Vector2(MathF.Cos(radians), MathF.Sin(radians));
     }
