@@ -358,7 +358,7 @@ public readonly unsafe struct WritableImage<T>
                     Width = width,
                     Height = height,
                     Format = (Raylib_cs.BleedingEdge.PixelFormat)T.Format,
-                    Mipmaps = 1
+                    Mipmaps = 1,
                 }
             )
         );
