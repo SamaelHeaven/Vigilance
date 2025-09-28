@@ -88,7 +88,7 @@ public sealed unsafe class Game
         Graphics.Reset();
         Graphics.DrawCurrentBuffer();
         var data = Rlgl.ReadScreenPixels(width, height);
-        var rImage = new Raylib_cs.BleedingEdge.Image
+        var image = new Raylib_cs.BleedingEdge.Image
         {
             Data = data,
             Width = width,
@@ -96,7 +96,7 @@ public sealed unsafe class Game
             Mipmaps = 1,
             Format = PixelFormat.UncompressedR8G8B8A8,
         };
-        return new WritableImage<PixelR8G8B8A8>(new WritableImage(new Image(rImage)));
+        return new WritableImage<PixelR8G8B8A8>(new WritableImage(new Image(image)));
     }
 
     public static void Launch(Config config, Scene scene)
