@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
@@ -349,7 +348,6 @@ public readonly unsafe struct WritableImage<T>
     {
         var size = (uint)(width * height * sizeof(T));
         var data = Raylib.MemAlloc(size);
-        Unsafe.InitBlock(data, 0, size);
         _image = new WritableImage(
             new Image(
                 new Raylib_cs.BleedingEdge.Image
