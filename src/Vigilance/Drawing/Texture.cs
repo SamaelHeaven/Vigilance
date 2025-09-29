@@ -7,6 +7,7 @@ namespace Vigilance.Drawing;
 public sealed unsafe class Texture
 {
     private static Texture? _empty;
+    private static Texture? _white;
     internal readonly RenderTexture? RenderTexture;
     internal readonly Texture2D Texture2D;
 
@@ -31,6 +32,18 @@ public sealed unsafe class Texture
     }
 
     public static Texture Empty => _empty ??= new WritableImage<PixelGrayAlpha>(1, 1).ToTexture();
+
+    public static Texture White =>
+        _white ??= new Texture(
+            new Texture2D
+            {
+                Id = 1,
+                Width = 1,
+                Height = 1,
+                Format = Raylib_cs.BleedingEdge.PixelFormat.UncompressedR8G8B8A8,
+                Mipmaps = 1,
+            }
+        );
 
     public uint Id => Texture2D.Id;
 
