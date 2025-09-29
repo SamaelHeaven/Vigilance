@@ -4,39 +4,57 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed unsafe class WritableTexture
+public readonly unsafe struct WritableTexture
 {
-    internal readonly RenderTexture2D RenderTexture2D;
+    private readonly Texture _texture;
 
-    public WritableTexture(Vector2 size, float scale = 1)
-        : this(size.X, size.Y, scale) { }
+    public uint Id => _texture.Id;
 
-    public WritableTexture(float width, float height, float scale = 1)
+    public int Width => _texture.Width;
+
+    public int Height => _texture.Height;
+
+    public Vector2 Size => _texture.Size;
+
+    public PixelFormat Format => _texture.Format;
+
+    internal WritableTexture(Texture texture)
     {
-        Game.EnsureRunning();
-        RenderTexture2D = Raylib.LoadRenderTexture((int)(width * scale), (int)(height * scale));
-        Texture = new Texture(RenderTexture2D.Texture, this);
-        Graphics = new Graphics(this);
-        Scale = scale.Max(1);
+        _texture = texture;
     }
 
-    public Texture Texture { get; }
-    public Graphics Graphics { get; }
-    public float Scale { get; }
+    public WritableTexture(string fileType, IEnumerable<byte> bytes)
+        : this(new Texture(fileType, bytes)) { }
 
-    public float Width => RenderTexture2D.Texture.Width / Scale;
+    public WritableTexture(int width, int height, PixelFormat format = PixelFormat.UncompressedR8G8B8A8)
+    {
+        Game.EnsureRunning();
+        var id = Rlgl.LoadTexture(null, width, height, (Raylib_cs.BleedingEdge.PixelFormat)format, 1);
+        var texture2D = new Texture2D
+        {
+            Id = id,
+            Width = width,
+            Height = height,
+            Format = (Raylib_cs.BleedingEdge.PixelFormat)format,
+            Mipmaps = 1,
+        };
+        _texture = new Texture(texture2D);
+    }
 
-    public float Height => RenderTexture2D.Texture.Height / Scale;
+    public static implicit operator Texture(WritableTexture writableTexture)
+    {
+        return writableTexture._texture;
+    }
 
-    public Vector2 Size => new(Width, Height);
+    public WritableImage ToImage()
+    {
+        return _texture.ToImage();
+    }
 
-    public int ScaledWidth => RenderTexture2D.Texture.Width;
-
-    public int ScaledHeight => RenderTexture2D.Texture.Height;
-
-    public Vector2 ScaledSize => new(ScaledWidth, ScaledHeight);
-
-    public PixelFormat Format => (PixelFormat)RenderTexture2D.Texture.Format;
+    public WritableTexture Copy()
+    {
+        return _texture.Copy();
+    }
 
     public void Update(Image image, Box? box = null)
     {
@@ -57,32 +75,11 @@ public sealed unsafe class WritableTexture
     public void Update<T>(ReadOnlySpan<T> pixels, Box? box = null)
         where T : unmanaged, IPixel
     {
-        if (Graphics.IsBufferCurrent(this))
-            Graphics.DrawCurrentBuffer();
-        var source = box ?? new Box(Vector2.Zero, ScaledSize);
+        var source = box ?? new Box(Vector2.Zero, Size);
         Raylib.UpdateTextureRec(
-            RenderTexture2D.Texture,
+            _texture.Texture2D,
             new Raylib_cs.BleedingEdge.Rectangle(source.Position, source.Size),
             pixels
         );
-    }
-
-    public static implicit operator Texture(WritableTexture writableTexture)
-    {
-        return writableTexture.Texture;
-    }
-
-    public WritableImage ToImage(Interpolation? interpolation = null)
-    {
-        var image = Texture.ToImage();
-        if (Precision.AreEqual(Scale, 1))
-            return image;
-        image.Resize(Width, Height, interpolation);
-        return image;
-    }
-
-    public WritableImage ToScaledImage()
-    {
-        return Texture.ToImage();
     }
 }

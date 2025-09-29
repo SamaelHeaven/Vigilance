@@ -8,7 +8,7 @@ namespace Vigilance.Drawing;
 public sealed class Renderer
 {
     private static Renderer? _renderer;
-    private readonly WritableTexture? _buffer;
+    private readonly RenderTexture? _buffer;
     private readonly Graphics _graphics;
     private Vector2 _offset;
     private Vector2 _scale;
@@ -18,7 +18,7 @@ public sealed class Renderer
         Game.EnsureRunning();
         var mode = Display.RenderingMode;
         if (mode.ModeType == RenderingModeType.Buffer)
-            _buffer = new WritableTexture(Display.Size, mode.Scale);
+            _buffer = new RenderTexture(Display.Size, mode.Scale);
         _graphics = new Graphics(_buffer);
     }
 

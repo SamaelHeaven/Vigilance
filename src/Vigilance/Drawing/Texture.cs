@@ -7,14 +7,14 @@ namespace Vigilance.Drawing;
 public sealed unsafe class Texture
 {
     private static Texture? _empty;
-    private readonly WritableTexture? _writableTexture;
+    internal readonly RenderTexture? RenderTexture;
     internal readonly Texture2D Texture2D;
 
-    internal Texture(Texture2D texture2D, WritableTexture? writableTexture = null)
+    internal Texture(Texture2D texture2D, RenderTexture? renderTexture = null)
     {
         Game.EnsureRunning();
         Texture2D = texture2D;
-        _writableTexture = writableTexture;
+        RenderTexture = renderTexture;
     }
 
     public Texture(string fileType, IEnumerable<byte> bytes)
@@ -42,32 +42,30 @@ public sealed unsafe class Texture
 
     public PixelFormat Format => (PixelFormat)Texture2D.Format;
 
-    public bool Writable => _writableTexture is not null;
-
     public WritableImage ToImage()
     {
-        if (_writableTexture is not null && Graphics.IsBufferCurrent(_writableTexture))
+        if (RenderTexture is not null && Graphics.IsBufferCurrent(RenderTexture))
             Graphics.DrawCurrentBuffer();
         var image = Raylib.LoadImageFromTexture(Texture2D);
-        if (Writable)
+        if (RenderTexture is not null)
             Raylib.ImageFlipVertical(ref image);
         return new WritableImage(new Image(image));
     }
 
-    public Texture Copy()
+    public WritableTexture Copy()
     {
         var image = ToImage();
-        return image.ToTexture();
+        return new WritableTexture(image.ToTexture());
     }
 
     ~Texture()
     {
         Game.Defer(() =>
         {
-            if (_writableTexture is null)
+            if (RenderTexture is null)
                 Raylib.UnloadTexture(Texture2D);
             else
-                Raylib.UnloadRenderTexture(_writableTexture.RenderTexture2D);
+                Raylib.UnloadRenderTexture(RenderTexture.RenderTexture2D);
         });
     }
 }

@@ -574,10 +574,10 @@ public abstract class UIElement : IDeepCloneable
         Render(LayoutTransform, graphics, Camera);
     }
 
-    public WritableTexture ToTexture()
+    public RenderTexture ToTexture()
     {
         CalculateLayout();
-        var texture = new WritableTexture(LayoutSize.X, LayoutSize.Y);
+        var texture = new RenderTexture(LayoutSize.X, LayoutSize.Y);
         Render(texture.Graphics);
         return texture;
     }
