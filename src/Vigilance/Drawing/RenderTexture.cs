@@ -43,17 +43,17 @@ public sealed class RenderTexture
         return renderTexture.Texture;
     }
 
-    public WritableImage ToImage(Interpolation? interpolation = null)
+    public WritableImage<PixelR8G8B8A8> ToImage(Interpolation? interpolation = null)
     {
-        var image = Texture.ToImage();
+        var image = new WritableImage<PixelR8G8B8A8>(Texture.ToImage());
         if (Precision.AreEqual(Scale, 1))
             return image;
         image.Resize(Width, Height, interpolation);
         return image;
     }
 
-    public WritableImage ToScaledImage()
+    public WritableImage<PixelR8G8B8A8> ToScaledImage()
     {
-        return Texture.ToImage();
+        return new WritableImage<PixelR8G8B8A8>(Texture.ToImage());
     }
 }

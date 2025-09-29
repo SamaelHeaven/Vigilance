@@ -10,6 +10,11 @@ public static unsafe partial class FileSystem
 {
     private static readonly Dictionary<Assembly, string[]> ResourceNames = new();
 
+    static FileSystem()
+    {
+        WorkingNamespace = new FileSystemConfig().WorkingNamespace;
+    }
+
     public static string ApplicationDirectory { get; } =
         FormatPath(Marshal.PtrToStringUTF8((nint)Raylib.GetApplicationDirectory()) ?? "");
 
@@ -19,11 +24,6 @@ public static unsafe partial class FileSystem
         FormatPath(Marshal.PtrToStringUTF8((nint)Raylib.GetWorkingDirectory()) ?? "");
 
     public static string[] DroppedFiles => !Raylib.IsFileDropped() ? Array.Empty<string>() : Raylib.GetDroppedFiles();
-
-    static FileSystem()
-    {
-        WorkingNamespace = new FileSystemConfig().WorkingNamespace;
-    }
 
     internal static void Initialize()
     {

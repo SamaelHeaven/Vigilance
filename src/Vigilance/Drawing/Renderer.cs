@@ -9,6 +9,7 @@ public sealed class Renderer
 {
     private static Renderer? _renderer;
     private readonly RenderTexture? _buffer;
+    private readonly Graphics _displayGraphics;
     private readonly Graphics _graphics;
     private Vector2 _offset;
     private Vector2 _scale;
@@ -20,6 +21,7 @@ public sealed class Renderer
         if (mode.ModeType == RenderingModeType.Buffer)
             _buffer = new RenderTexture(Display.Size, mode.Scale);
         _graphics = new Graphics(_buffer);
+        _displayGraphics = new Graphics(null);
     }
 
     public static Graphics Graphics => GetRenderer()._graphics;
@@ -31,8 +33,8 @@ public sealed class Renderer
     internal static void BeginDrawing()
     {
         Graphics.Reset();
-        Raylib.ClearBackground(Display.Background.RColor);
         var renderer = GetRenderer();
+        renderer._displayGraphics.ClearBackground(Display.Background);
         var screenWidth = (float)Display.ScreenWidth;
         var screenHeight = (float)Display.ScreenHeight;
         var width = Display.Width;

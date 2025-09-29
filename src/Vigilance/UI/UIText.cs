@@ -112,7 +112,7 @@ public class UIText : UIElement
         }
     }
 
-    protected override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
+    public override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         var maxWidth = widthMode == MeasureMode.Undefined ? float.PositiveInfinity : width;
         switch (TextOverflow)

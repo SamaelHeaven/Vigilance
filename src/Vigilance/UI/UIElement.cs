@@ -509,10 +509,15 @@ public abstract class UIElement : IDeepCloneable
         return Parent?.Closest<T>(selector);
     }
 
-    public void CalculateLayout()
+    public void CalculateLayout(Vector2 size)
+    {
+        CalculateLayout(size.X, size.Y);
+    }
+
+    public void CalculateLayout(float? width = null, float? height = null)
     {
         MarkReady();
-        Flex.CalculateLayout(Node, float.NaN, float.NaN, FlexLayoutSharp.Direction.LTR);
+        Flex.CalculateLayout(Node, width ?? float.NaN, height ?? float.NaN, FlexLayoutSharp.Direction.LTR);
     }
 
     public virtual void Update(Entity entity)
@@ -574,12 +579,28 @@ public abstract class UIElement : IDeepCloneable
         Render(LayoutTransform, graphics, Camera);
     }
 
-    public RenderTexture ToTexture()
+    public RenderTexture ToTexture(Vector2 size)
     {
-        CalculateLayout();
-        var texture = new RenderTexture(LayoutSize.X, LayoutSize.Y);
-        Render(texture.Graphics);
+        return ToTexture(size.X, size.Y);
+    }
+
+    public RenderTexture ToTexture(float? width = null, float? height = null)
+    {
+        var el = (UIElement)DeepClone();
+        el.CalculateLayout(width, height);
+        var texture = new RenderTexture(el.LayoutSize.X, el.LayoutSize.Y);
+        el.Render(texture.Graphics);
         return texture;
+    }
+
+    public virtual Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
+    {
+        return new Vector2(
+            Width.Calculate(width).Clamp(MinWidth.Calculate(0), MaxWidth.Calculate(width, float.PositiveInfinity)),
+            Height
+                .Calculate(height)
+                .Clamp(MinHeight.Calculate(height), MaxHeight.Calculate(height, float.PositiveInfinity))
+        );
     }
 
     protected abstract void Render(Graphics graphics, CameraProvider camera);
@@ -602,11 +623,6 @@ public abstract class UIElement : IDeepCloneable
                 }
             );
         return result;
-    }
-
-    protected virtual Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
-    {
-        return Vector2.Zero;
     }
 
     protected void MarkDirty()

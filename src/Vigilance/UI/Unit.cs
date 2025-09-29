@@ -31,13 +31,13 @@ public record struct Unit(UnitType Type, float Value = 0)
         return new Unit(unit.Type, -unit.Value);
     }
 
-    public readonly float Calculate(float size)
+    public readonly float Calculate(float size, float defaultValue = 0)
     {
         return Type switch
         {
             UnitType.Fixed => Value,
             UnitType.Percent => Value * size / 100f,
-            _ => 0,
+            _ => defaultValue,
         };
     }
 
