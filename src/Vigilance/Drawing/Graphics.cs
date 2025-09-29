@@ -9,15 +9,15 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Graphics
 {
-    private static WritableTexture? _currentBuffer = null;
+    private static RenderTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
-    private readonly WritableTexture? _buffer;
+    private readonly RenderTexture? _buffer;
     private readonly Stack<Matrix3x2> _matrixStack = new();
     private Box? _clip = null;
     private bool _drawing = false;
     private Matrix3x2 _matrix = Matrix3x2.Identity;
 
-    internal Graphics(WritableTexture? buffer)
+    internal Graphics(RenderTexture? buffer)
     {
         _buffer = buffer;
     }
@@ -1074,8 +1074,8 @@ public sealed unsafe class Graphics
             || !IsBoxInBounds(center - maxRadius, new Vector2(maxRadius * 2), camera, strokeWidthValue)
         )
             return;
-        var startDirection = startAngle.Min(endAngle).DirectionDeg();
-        var endDirection = endAngle.Max(startAngle).DirectionDeg();
+        var startDirection = startAngle.Min(endAngle).DegToDirection();
+        var endDirection = endAngle.Max(startAngle).DegToDirection();
         var startTangent = new Vector2(-startDirection.Y, startDirection.X);
         var endTangent = new Vector2(-endDirection.Y, endDirection.X);
         var startInner = center + startDirection * (minRadius - strokeWidthValue);
@@ -1418,7 +1418,7 @@ public sealed unsafe class Graphics
             source.X,
             source.Y,
             source.Width,
-            texture.Writable ? -source.Height : source.Height
+            texture.RenderTexture is null ? source.Height : -source.Height
         );
         var rDest = new Raylib_cs.BleedingEdge.Rectangle(dest.Position, dest.Size);
         Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
@@ -1513,7 +1513,7 @@ public sealed unsafe class Graphics
             source.X,
             source.Y,
             source.Width,
-            texture.Writable ? -source.Height : source.Height
+            texture.RenderTexture is null ? source.Height : -source.Height
         );
         var rDest = new Raylib_cs.BleedingEdge.Rectangle(dest.Position, dest.Size);
         var rNPatchInfo = new Raylib_cs.BleedingEdge.NPatchInfo
@@ -2038,7 +2038,7 @@ public sealed unsafe class Graphics
 
     #region Internal
 
-    internal static bool IsBufferCurrent(WritableTexture? buffer)
+    internal static bool IsBufferCurrent(RenderTexture? buffer)
     {
         return _currentBuffer == buffer;
     }

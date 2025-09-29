@@ -198,8 +198,7 @@ public sealed unsafe class Font
                     continue;
                 var px = x + col;
                 var py = y + row;
-                var index = py * width + px;
-                image[index] = new PixelGrayAlpha(255);
+                image[px, py] = new PixelGrayAlpha(255);
             }
 
             glyphInfos[character] = new GlyphInfo(
