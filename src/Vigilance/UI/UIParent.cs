@@ -30,7 +30,7 @@ public abstract class UIParent : UIElement
 
     protected override void Render(Graphics graphics, CameraProvider camera)
     {
-        foreach (var element in Children)
+        foreach (var element in Children.AsValueEnumerable().OrderBy(e => e.ZIndex))
             element.Render(element.LayoutTransform, graphics, camera);
     }
 

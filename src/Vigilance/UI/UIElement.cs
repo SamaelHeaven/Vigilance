@@ -73,6 +73,8 @@ public abstract class UIElement : IDeepCloneable
 
     public bool Dirty => Node.IsDirty;
 
+    public int ZIndex { get; set; }
+
     public bool RenderedOutside { get; private set; } = true;
 
     public Quad RenderedBounds { get; private set; }
@@ -595,12 +597,7 @@ public abstract class UIElement : IDeepCloneable
 
     public virtual Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
-        return new Vector2(
-            Width.Calculate(width).Clamp(MinWidth.Calculate(0), MaxWidth.Calculate(width, float.PositiveInfinity)),
-            Height
-                .Calculate(height)
-                .Clamp(MinHeight.Calculate(height), MaxHeight.Calculate(height, float.PositiveInfinity))
-        );
+        return Vector2.NaN;
     }
 
     protected abstract void Render(Graphics graphics, CameraProvider camera);
