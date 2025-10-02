@@ -1939,18 +1939,9 @@ public sealed unsafe class Graphics
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         if (colorValue == Color.Transparent)
             return;
-        var clip = GetClip();
-        SetClip(null);
         BeginDrawing();
-        Rlgl.PopMatrix();
-        Rlgl.PushMatrix();
-        Raylib.DrawRectangleV(
-            Vector2.Zero,
-            new Vector2(_buffer?.ScaledWidth ?? Display.ScreenWidth, _buffer?.ScaledHeight ?? Display.ScreenHeight),
-            colorValue.RColor
-        );
+        Raylib.ClearBackground(colorValue.RColor);
         EndDrawing();
-        SetClip(clip);
     }
 
     public void DrawPixel(float x, float y, Color? color = null)
