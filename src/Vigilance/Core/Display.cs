@@ -3,10 +3,11 @@ using Vigilance.Drawing;
 using Vigilance.Math;
 using Color = Vigilance.Drawing.Color;
 using Image = Vigilance.Drawing.Image;
+using PixelFormat = Raylib_cs.BleedingEdge.PixelFormat;
 
 namespace Vigilance.Core;
 
-public sealed class Display
+public sealed unsafe class Display
 {
     private static Display? _display;
     private DisplayConfig _config = null!;
@@ -73,8 +74,6 @@ public sealed class Display
             Game.EnsureRunning();
             if (!Platform.Desktop.IsCurrent())
                 return;
-            if (Fullscreen)
-                return;
             var size = value.Round();
             if (ScreenSize == size)
                 return;
@@ -96,8 +95,6 @@ public sealed class Display
             Game.EnsureRunning();
             if (!Platform.Desktop.IsCurrent())
                 return;
-            if (Fullscreen)
-                return;
             if (ScreenWidth == value)
                 return;
             Raylib.SetWindowSize(value, ScreenHeight);
@@ -117,8 +114,6 @@ public sealed class Display
         {
             Game.EnsureRunning();
             if (!Platform.Desktop.IsCurrent())
-                return;
-            if (Fullscreen)
                 return;
             if (ScreenHeight == value)
                 return;
@@ -316,7 +311,7 @@ public sealed class Display
             Raylib.SetWindowFocused();
     }
 
-    public static void ToggleFullscreen()
+    public static void ToggleFullscreen(bool resizeScreen = true)
     {
         var display = GetDisplay();
         if (Platform.Web.IsCurrent())
@@ -329,14 +324,15 @@ public sealed class Display
             var monitorSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
             if (Fullscreen)
             {
-                display._resetScreen = true;
+                display._resetScreen = resizeScreen;
             }
             else
             {
                 display._previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
                 if (OperatingSystem.IsMacOS() && !Raylib.IsWindowMaximized())
                     Raylib.MaximizeWindow();
-                ScreenSize = monitorSize;
+                if (resizeScreen)
+                    ScreenSize = monitorSize;
             }
 
             var fullscreen = Fullscreen;
@@ -349,6 +345,24 @@ public sealed class Display
             )
                 Raylib.ToggleFullscreen();
         }
+    }
+
+    public static WritableImage<PixelR8G8B8A8> Screenshot()
+    {
+        var width = ScreenWidth;
+        var height = ScreenHeight;
+        Graphics.Reset();
+        Graphics.DrawCurrentBuffer();
+        var data = Rlgl.ReadScreenPixels(width, height);
+        var image = new Raylib_cs.BleedingEdge.Image
+        {
+            Data = data,
+            Width = width,
+            Height = height,
+            Mipmaps = 1,
+            Format = PixelFormat.UncompressedR8G8B8A8,
+        };
+        return new WritableImage<PixelR8G8B8A8>(new WritableImage(new Image(image)));
     }
 
     internal static void Initialize()
@@ -414,7 +428,7 @@ public sealed class Display
         if (_config.Maximized)
             Maximize();
         if (_config.Fullscreen)
-            ToggleFullscreen();
+            ToggleFullscreen(_config.ScreenSize.X <= 0 || _config.ScreenSize.Y <= 0);
         if (_config.FpsTarget > 0)
             Raylib.SetTargetFPS(_config.FpsTarget);
         if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon is null)
