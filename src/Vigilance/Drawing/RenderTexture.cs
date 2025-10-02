@@ -14,6 +14,7 @@ public sealed class RenderTexture
     public RenderTexture(float width, float height, float scale = 1)
     {
         Game.EnsureRunning();
+        Graphics.Reset();
         RenderTexture2D = Raylib.LoadRenderTexture((int)(width * scale), (int)(height * scale));
         Texture = new Texture(RenderTexture2D.Texture, this);
         Graphics = new Graphics(this);

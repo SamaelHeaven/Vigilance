@@ -595,7 +595,7 @@ public abstract class UIElement : IDeepCloneable
         return texture;
     }
 
-    public virtual Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
+    protected virtual Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         return Vector2.NaN;
     }
