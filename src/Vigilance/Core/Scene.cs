@@ -450,7 +450,7 @@ public sealed unsafe partial class Scene
         OnRemove<ZIndex>(action);
     }
 
-    private enum ComponentOperation : byte
+    private enum ComponentOperation
     {
         Set,
         Remove,

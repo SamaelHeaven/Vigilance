@@ -17,7 +17,7 @@ public sealed class Renderer
     {
         Game.EnsureRunning();
         var mode = Display.RenderingMode;
-        if (mode.ModeType == RenderingModeType.Buffer)
+        if (mode.Type == RenderingModeType.Buffer)
             _buffer = new RenderTexture(Display.Size, mode.Scale);
         _graphics = new Graphics(_buffer);
     }
