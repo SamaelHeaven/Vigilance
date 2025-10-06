@@ -121,26 +121,6 @@ public record struct Color
         return new Color(rgba.R, rgba.G, rgba.B, rgba.A);
     }
 
-    public static implicit operator (float H, float S, float V)(Color color)
-    {
-        return color.ToHsv();
-    }
-
-    public static implicit operator Color((float H, float S, float V) hsv)
-    {
-        return new Color(hsv.H, hsv.S, hsv.V);
-    }
-
-    public static implicit operator (float H, float S, float V, float A)(Color color)
-    {
-        return color.ToHsva();
-    }
-
-    public static implicit operator Color((float H, float S, float V, float A) hsva)
-    {
-        return new Color(hsva.H, hsva.S, hsva.V, hsva.A);
-    }
-
     public readonly void Deconstruct(out byte r, out byte g, out byte b)
     {
         r = R;
@@ -401,6 +381,11 @@ public record struct Color
     {
         var (h, s, v) = ToHsv();
         return (h, s, v, A / 255.0f);
+    }
+
+    public readonly (float R, float G, float B, float A) Normalize()
+    {
+        return (R / 255.0f, G / 255.0f, B / 255.0f, A / 255.0f);
     }
 
     public readonly Color Or(Color value)

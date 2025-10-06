@@ -12,12 +12,14 @@ public sealed unsafe class Graphics
     private static RenderTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
     private static BlendMode? _currentBlendMode = null;
+    private static Shader? _currentShader = null;
     private readonly RenderTexture? _buffer;
     private readonly Stack<Matrix3x2> _matrixStack = new();
     private BlendMode _blendMode = BlendMode.Alpha;
     private Box? _clip = null;
     private bool _drawing = false;
     private Matrix3x2 _matrix = Matrix3x2.Identity;
+    private Shader? _shader = null;
 
     internal Graphics(RenderTexture? buffer)
     {
@@ -272,6 +274,20 @@ public sealed unsafe class Graphics
     public BlendMode GetBlendMode()
     {
         return _blendMode;
+    }
+
+    #endregion
+
+    #region Shader
+
+    public void SetShader(Shader? shader)
+    {
+        _shader = shader;
+    }
+
+    public Shader? GetShader()
+    {
+        return _shader;
     }
 
     #endregion
@@ -2025,8 +2041,17 @@ public sealed unsafe class Graphics
                 (RlglEnum)_blendMode.EqRgb,
                 (RlglEnum)_blendMode.EqAlpha
             );
-            Raylib.BeginBlendMode(Raylib_cs.BleedingEdge.BlendMode.CustomSeparate);
             _currentBlendMode = _blendMode;
+            Raylib.BeginBlendMode(Raylib_cs.BleedingEdge.BlendMode.CustomSeparate);
+        }
+
+        if (_currentShader != _shader)
+        {
+            if (_currentShader is not null)
+                Raylib.EndShaderMode();
+            _currentShader = _shader;
+            if (_shader is not null)
+                Raylib.BeginShaderMode(_shader.RShader);
         }
 
         var matrix = GetMatrix();
@@ -2088,10 +2113,16 @@ public sealed unsafe class Graphics
             _currentClip = null;
         }
 
-        if (!_currentBlendMode.HasValue)
+        if (_currentBlendMode.HasValue)
+        {
+            Raylib.EndBlendMode();
+            _currentBlendMode = null;
+        }
+
+        if (_currentShader is null)
             return;
-        Raylib.EndBlendMode();
-        _currentBlendMode = null;
+        Raylib.EndShaderMode();
+        _currentShader = null;
     }
 
     internal static void DrawCurrentBuffer()
