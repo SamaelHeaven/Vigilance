@@ -51,6 +51,12 @@ public readonly unsafe struct WritableTexture
         return _texture.ToImage();
     }
 
+    public WritableImage<T> ToImage<T>()
+        where T : unmanaged, IPixel
+    {
+        return _texture.ToImage<T>();
+    }
+
     public WritableTexture Copy()
     {
         return _texture.Copy();

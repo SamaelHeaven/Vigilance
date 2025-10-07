@@ -15,10 +15,10 @@ public sealed class RenderTexture
     {
         Game.EnsureRunning();
         Graphics.Reset();
-        RenderTexture2D = Raylib.LoadRenderTexture((int)(width * scale), (int)(height * scale));
+        Scale = scale.Max(1);
+        RenderTexture2D = Raylib.LoadRenderTexture((int)(width * Scale), (int)(height * Scale));
         Texture = new Texture(RenderTexture2D.Texture, this);
         Graphics = new Graphics(this);
-        Scale = scale.Max(1);
     }
 
     public Texture Texture { get; }
@@ -49,7 +49,7 @@ public sealed class RenderTexture
         var image = new WritableImage<PixelR8G8B8A8>(Texture.ToImage());
         if (Precision.AreEqual(Scale, 1))
             return image;
-        image.Resize(Width, Height, interpolation);
+        image.Resize(Size, interpolation);
         return image;
     }
 

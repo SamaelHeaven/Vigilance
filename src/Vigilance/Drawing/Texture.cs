@@ -59,10 +59,16 @@ public sealed unsafe class Texture
     {
         if (RenderTexture is not null && Graphics.IsBufferCurrent(RenderTexture))
             Graphics.DrawCurrentBuffer();
-        var image = Raylib.LoadImageFromTexture(Texture2D);
+        var image = new WritableImage(new Image(Raylib.LoadImageFromTexture(Texture2D)));
         if (RenderTexture is not null)
-            Raylib.ImageFlipVertical(ref image);
-        return new WritableImage(new Image(image));
+            image.FlipVertically();
+        return image;
+    }
+
+    public WritableImage<T> ToImage<T>()
+        where T : unmanaged, IPixel
+    {
+        return new WritableImage<T>(ToImage());
     }
 
     public WritableTexture Copy()

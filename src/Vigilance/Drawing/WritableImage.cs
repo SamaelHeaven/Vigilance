@@ -103,7 +103,7 @@ public readonly struct WritableImage
         Raylib.ImageColorReplace(ref Image.RImage, from.RColor, to.RColor);
     }
 
-    public void Crop(float x, float y, float width, float height)
+    public void Crop(int x, int y, int width, int height)
     {
         Crop(new Vector2(x, y), new Vector2(width, height));
     }
@@ -118,22 +118,24 @@ public readonly struct WritableImage
         Raylib.ImageCrop(ref Image.RImage, new Raylib_cs.BleedingEdge.Rectangle(position, size));
     }
 
-    public void Resize(float width, float height, Interpolation? interpolation = null)
+    public void Resize(int width, int height, Interpolation? interpolation = null)
     {
-        Resize(new Vector2(width, height), interpolation);
+        if (width == Width && height == Height)
+            return;
+        switch (interpolation ?? Interpolation.Nearest)
+        {
+            case Interpolation.Bilinear:
+                Raylib.ImageResize(ref Image.RImage, width, height);
+                break;
+            default:
+                Raylib.ImageResizeNN(ref Image.RImage, width, height);
+                break;
+        }
     }
 
     public void Resize(Vector2 size, Interpolation? interpolation = null)
     {
-        switch (interpolation ?? Interpolation.Nearest)
-        {
-            case Interpolation.Bilinear:
-                Raylib.ImageResize(ref Image.RImage, (int)size.X, (int)size.Y);
-                break;
-            default:
-                Raylib.ImageResizeNN(ref Image.RImage, (int)size.X, (int)size.Y);
-                break;
-        }
+        Resize((int)size.X, (int)size.Y, interpolation);
     }
 
     public void FlipHorizontally()
@@ -389,7 +391,7 @@ public readonly unsafe struct WritableImage<T>
         _image.ReplaceColor(from, to);
     }
 
-    public void Crop(float x, float y, float width, float height)
+    public void Crop(int x, int y, int width, int height)
     {
         _image.Crop(x, y, width, height);
     }
@@ -404,7 +406,7 @@ public readonly unsafe struct WritableImage<T>
         _image.Crop(position, size);
     }
 
-    public void Resize(float width, float height, Interpolation? interpolation = null)
+    public void Resize(int width, int height, Interpolation? interpolation = null)
     {
         _image.Resize(width, height, interpolation);
     }

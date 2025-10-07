@@ -27,6 +27,8 @@ public class UIText : UIElement
         get => _value;
         set
         {
+            if (value == _value)
+                return;
             _value = value;
             MarkDirty();
         }
@@ -53,6 +55,8 @@ public class UIText : UIElement
         get => _text.FontSize;
         set
         {
+            if (Precision.AreEqual(_text.FontSize, value))
+                return;
             _text.FontSize = value;
             MarkDirty();
         }
@@ -81,6 +85,8 @@ public class UIText : UIElement
         get => _text.Spacing;
         set
         {
+            if (Precision.AreEqual(_text.Spacing, value))
+                return;
             _text.Spacing = value;
             MarkDirty();
         }
@@ -91,6 +97,8 @@ public class UIText : UIElement
         get => _text.HeightMode;
         set
         {
+            if (value == _text.HeightMode)
+                return;
             _text.HeightMode = value;
             MarkDirty();
         }
@@ -107,6 +115,8 @@ public class UIText : UIElement
         get => _textOverflow;
         set
         {
+            if (value == _textOverflow)
+                return;
             _textOverflow = value;
             MarkDirty();
         }

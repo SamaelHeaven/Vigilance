@@ -38,6 +38,8 @@ public sealed class Text : IFullCloneable
         get => _value;
         set
         {
+            if (_value == value)
+                return;
             _value = value;
             _sizeCache = null;
         }
@@ -48,6 +50,8 @@ public sealed class Text : IFullCloneable
         get => _font;
         set
         {
+            if (_font == value)
+                return;
             _font = value;
             _sizeCache = null;
         }
@@ -58,6 +62,8 @@ public sealed class Text : IFullCloneable
         get => _fontSize;
         set
         {
+            if (Precision.AreEqual(_fontSize, value))
+                return;
             _fontSize = value;
             _sizeCache = null;
         }
@@ -68,6 +74,8 @@ public sealed class Text : IFullCloneable
         get => _spacing;
         set
         {
+            if (Precision.AreEqual(_spacing, value))
+                return;
             _spacing = value;
             _sizeCache = null;
         }
@@ -78,6 +86,8 @@ public sealed class Text : IFullCloneable
         get => _heightMode;
         set
         {
+            if (_heightMode == value)
+                return;
             _heightMode = value;
             _sizeCache = null;
         }

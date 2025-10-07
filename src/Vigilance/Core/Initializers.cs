@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime;
 using System.Runtime.CompilerServices;
 using Raylib_cs.BleedingEdge;
 using Vigilance.Logging;
@@ -18,8 +19,9 @@ public static class Initializers
         if (_initialized)
             return;
         _initialized = true;
+        InitializeGC();
         InitializeCultureInfo();
-        Raylib.SetTraceLogLevel(TraceLogLevel.None);
+        InitializeRaylib();
         Game.Defer(() =>
         {
             FileSystem.Initialize();
@@ -33,6 +35,11 @@ public static class Initializers
         });
     }
 
+    private static void InitializeGC()
+    {
+        GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
+    }
+
     private static void InitializeCultureInfo()
     {
         var cultureInfo = CultureInfo.InvariantCulture;
@@ -40,5 +47,10 @@ public static class Initializers
         CultureInfo.CurrentUICulture = cultureInfo;
         CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
         CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
+    }
+
+    private static void InitializeRaylib()
+    {
+        Raylib.SetTraceLogLevel(TraceLogLevel.None);
     }
 }
