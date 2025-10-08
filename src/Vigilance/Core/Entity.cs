@@ -12,7 +12,7 @@ using ZLinq;
 
 namespace Vigilance.Core;
 
-public readonly unsafe partial record struct Entity
+public readonly unsafe partial record struct Entity : IComparable<Entity>
 {
     public const ulong RecycledIdFlag = 0x7FFFFFFF;
     private readonly Flecs.NET.Core.Entity _entity;
@@ -205,9 +205,14 @@ public readonly unsafe partial record struct Entity
     {
         get
         {
-            var zIndex = WorldZIndex;
-            return (ulong)((long)zIndex << 32) | (Id & RecycledIdFlag);
+            var zIndex = (uint)(WorldZIndex ^ int.MinValue);
+            return ((ulong)zIndex << 32) | (Id & RecycledIdFlag);
         }
+    }
+
+    public int CompareTo(Entity other)
+    {
+        return Order.CompareTo(other.Order);
     }
 
     public bool Equals(Entity other)
