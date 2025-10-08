@@ -307,7 +307,7 @@ public sealed unsafe class Graphics
     public void FillRectangle(Vector2 position, Vector2 size, Color? color = null, Camera? camera = null)
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
-        if (colorValue == Color.Transparent || !IsBoxInBounds(position, size, camera))
+        if (colorValue == Color.Transparent || (Drawing.Culling && !IsBoxInBounds(position, size, camera)))
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRec(new Raylib_cs.BleedingEdge.Rectangle(position, size), colorValue.RColor);
@@ -377,7 +377,7 @@ public sealed unsafe class Graphics
                 && bottomLeftColorValue == Color.Transparent
                 && bottomRightColorValue == Color.Transparent
                 && topRightColorValue == Color.Transparent
-            ) || !IsBoxInBounds(position, size, camera)
+            ) || (Drawing.Culling && !IsBoxInBounds(position, size, camera))
         )
             return;
         BeginDrawing(camera);
@@ -419,7 +419,11 @@ public sealed unsafe class Graphics
     {
         var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
-        if (colorValue == Color.Transparent || strokeWidthValue <= 0 || !IsBoxInBounds(position, size, camera))
+        if (
+            colorValue == Color.Transparent
+            || strokeWidthValue <= 0
+            || (Drawing.Culling && !IsBoxInBounds(position, size, camera))
+        )
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleLinesEx(
@@ -458,7 +462,11 @@ public sealed unsafe class Graphics
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var roundnessValue = roundness ?? Drawing.DefaultRoundness.Or(0.1f);
-        if (colorValue == Color.Transparent || roundnessValue <= 0 || !IsBoxInBounds(position, size, camera))
+        if (
+            colorValue == Color.Transparent
+            || roundnessValue <= 0
+            || (Drawing.Culling && !IsBoxInBounds(position, size, camera))
+        )
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRounded(
@@ -511,7 +519,7 @@ public sealed unsafe class Graphics
             colorValue == Color.Transparent
             || roundnessValue <= 0
             || strokeWidthValue <= 0
-            || !IsBoxInBounds(position, size, camera, strokeWidthValue)
+            || (Drawing.Culling && !IsBoxInBounds(position, size, camera, strokeWidthValue))
         )
             return;
         BeginDrawing(camera);
@@ -655,7 +663,10 @@ public sealed unsafe class Graphics
     public void FillCircle(Vector2 center, float radius, Color? color = null, Camera? camera = null)
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
-        if (colorValue == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+        if (
+            colorValue == Color.Transparent
+            || (Drawing.Culling && !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+        )
             return;
         BeginDrawing(camera);
         Raylib.DrawCircleV(center, radius, colorValue.RColor);
@@ -674,7 +685,7 @@ public sealed unsafe class Graphics
         var outerColorValue = outerColor ?? Drawing.DefaultFill.Or(Color.White);
         if (
             (innerColorValue == Color.Transparent && outerColorValue == Color.Transparent)
-            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
+            || (Drawing.Culling && !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
         )
             return;
         BeginDrawing(camera);
@@ -724,7 +735,7 @@ public sealed unsafe class Graphics
         if (
             colorValue == Color.Transparent
             || strokeWidthValue <= 0
-            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
+            || (Drawing.Culling && !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
         )
             return;
         BeginDrawing(camera);
@@ -866,7 +877,11 @@ public sealed unsafe class Graphics
     public void FillRegularPolygon(Vector2 center, int sides, float radius, Color? color = null, Camera? camera = null)
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
-        if (color == Color.Transparent || sides < 3 || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+        if (
+            color == Color.Transparent
+            || sides < 3
+            || (Drawing.Culling && !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+        )
             return;
         BeginDrawing(camera);
         Raylib.DrawPoly(center, sides, radius, 0, colorValue.RColor);
@@ -901,7 +916,7 @@ public sealed unsafe class Graphics
             colorValue == Color.Transparent
             || sides < 3
             || strokeWidthValue <= 0
-            || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
+            || (Drawing.Culling && !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
         )
             return;
         BeginDrawing(camera);
@@ -944,7 +959,11 @@ public sealed unsafe class Graphics
     public void FillCustomPolygonSpan(ReadOnlySpan<Vector2> points, Color? color = null, Camera? camera = null)
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
-        if (colorValue == Color.Transparent || points.Length < 3 || !IsPolygonInBoundsSpan(points, camera))
+        if (
+            colorValue == Color.Transparent
+            || points.Length < 3
+            || (Drawing.Culling && !IsPolygonInBoundsSpan(points, camera))
+        )
             return;
         BeginDrawing(camera);
         fixed (Vector2* pointsBuffer = points)
@@ -978,7 +997,7 @@ public sealed unsafe class Graphics
             colorValue == Color.Transparent
             || strokeWidthValue <= 0
             || points.Length < 3
-            || !IsPolygonInBoundsSpan(points, camera, strokeWidthValue * 0.5f)
+            || (Drawing.Culling && !IsPolygonInBoundsSpan(points, camera, strokeWidthValue * 0.5f))
         )
             return;
         BeginDrawing(camera);
@@ -1063,7 +1082,10 @@ public sealed unsafe class Graphics
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         var radius = innerRadius.Max(outerRadius);
-        if (colorValue == Color.Transparent || !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+        if (
+            colorValue == Color.Transparent
+            || (Drawing.Culling && !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+        )
             return;
         BeginDrawing(camera);
         Raylib.DrawRing(center, innerRadius, outerRadius, startAngle, endAngle, 0, colorValue.RColor);
@@ -1103,7 +1125,10 @@ public sealed unsafe class Graphics
         if (
             colorValue == Color.Transparent
             || strokeWidthValue <= 0
-            || !IsBoxInBounds(center - maxRadius, new Vector2(maxRadius * 2), camera, strokeWidthValue)
+            || (
+                Drawing.Culling
+                && !IsBoxInBounds(center - maxRadius, new Vector2(maxRadius * 2), camera, strokeWidthValue)
+            )
         )
             return;
         var startDirection = startAngle.Min(endAngle).DegToDirection();
@@ -1177,7 +1202,7 @@ public sealed unsafe class Graphics
         if (
             colorValue == Color.Transparent
             || thickValue <= 0
-            || !IsPolygonInBoundsSpan(new Quad(start, start, end, end), camera, thickValue * 0.5f)
+            || (Drawing.Culling && !IsPolygonInBoundsSpan(new Quad(start, start, end, end), camera, thickValue * 0.5f))
         )
             return;
         BeginDrawing(camera);
@@ -1244,7 +1269,7 @@ public sealed unsafe class Graphics
                 dest.Size.X,
                 dest.Size.Y
             );
-            if (!IsBoxInBounds(finalDest, camera))
+            if (Drawing.Culling && !IsBoxInBounds(finalDest, camera))
                 continue;
             Raylib.DrawTexturePro(
                 font.Atlas.Texture2D,
@@ -1308,7 +1333,7 @@ public sealed unsafe class Graphics
                 dest.Size.X,
                 dest.Size.Y
             );
-            if (!IsBoxInBounds(finalDest, camera))
+            if (Drawing.Culling && !IsBoxInBounds(finalDest, camera))
                 continue;
             Raylib.DrawTexturePro(
                 atlas.Texture2D,
@@ -1357,7 +1382,7 @@ public sealed unsafe class Graphics
         transform.Scale = size;
         PushMatrix();
         Pivot(transform, true);
-        if (IsBoxInBounds(position, size * scale, camera, strokeWidth * 0.5f))
+        if (!Drawing.Culling || IsBoxInBounds(position, size * scale, camera, strokeWidth * 0.5f))
         {
             if (order == DrawOrder.StrokeThenFill)
             {
@@ -1444,7 +1469,7 @@ public sealed unsafe class Graphics
     )
     {
         var tintValue = tint ?? Color.White;
-        if (tintValue == Color.Transparent || !IsBoxInBounds(dest, camera))
+        if (tintValue == Color.Transparent || (Drawing.Culling && !IsBoxInBounds(dest, camera)))
             return;
         var rSource = new Raylib_cs.BleedingEdge.Rectangle(
             source.X,
@@ -1539,7 +1564,7 @@ public sealed unsafe class Graphics
     )
     {
         var tintValue = tint ?? Color.White;
-        if (tintValue == Color.Transparent || !IsBoxInBounds(dest, camera))
+        if (tintValue == Color.Transparent || (Drawing.Culling && !IsBoxInBounds(dest, camera)))
             return;
         var rSource = new Raylib_cs.BleedingEdge.Rectangle(
             source.X,
@@ -1640,7 +1665,7 @@ public sealed unsafe class Graphics
         if (
             colorValue == Color.Transparent
             || thickValue <= 0
-            || !IsBoxInBounds(position, size, camera, thickValue * 0.5f)
+            || (Drawing.Culling && !IsBoxInBounds(position, size, camera, thickValue * 0.5f))
         )
             return;
         cellSize = cellSize.Max(1);

@@ -1,19 +1,11 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using Flecs.NET.Core;
+﻿using Flecs.NET.Core;
 using Vigilance.Math;
 using ZLinq;
 
 namespace Vigilance.Core;
 
-public sealed unsafe partial class Scene
+public sealed partial class Scene
 {
-    private static readonly delegate* unmanaged[Cdecl]<ulong, void*, ulong, void*, int> OrderByCallback =
-        &CompareEntities;
-
-    private static readonly Stack<Scene> Contexts = new();
-    private static Scene _context = null!;
-
     private readonly Queue<(
         ComponentOperation Operation,
         Flecs.NET.Core.Entity Entity,
@@ -24,13 +16,12 @@ public sealed unsafe partial class Scene
     private readonly Dictionary<Type, object> _events = new();
     private readonly GameSystemsFunc _systemsFunc;
     private Action? _beginRenderAction;
+    private int _deferred;
     private Action? _deferredAction;
     private Action? _endRenderAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
     private Action? _onDispose;
-    private Query<ZIndex> _orderedQuery;
-    private Query<ZIndex> _orderedQueryWithDisabled;
     private Action<Entity>? _renderAction;
     private Action? _startAction;
     private bool _started;
@@ -43,8 +34,6 @@ public sealed unsafe partial class Scene
     public Scene(GameSystemsFunc? systems = null)
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
-        _orderedQuery = OrderedQueryBuilder().Build();
-        _orderedQueryWithDisabled = OrderedQueryBuilder().With(Ecs.Disabled).Optional().Build();
     }
 
     public ListView<IGameSystem> Systems
@@ -60,20 +49,9 @@ public sealed unsafe partial class Scene
 
     public bool Initialized { get; private set; }
 
-    public bool Deferred { get; private set; }
+    public bool Deferred => _deferred != 0;
 
     public EntityEnumerable Entities => GetEntities();
-
-    public OrderedEntityEnumerable OrderedEntities => GetOrderedEntities();
-
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static int CompareEntities(ulong id1, void* zIndex1, ulong id2, void* zIndex2)
-    {
-        var scene = _context;
-        var e1 = new Entity(scene._world.Entity(id1), scene);
-        var e2 = new Entity(scene._world.Entity(id2), scene);
-        return e1.CompareTo(e2);
-    }
 
     public static Scene Build<T>(GameSystemsFunc? systems = null)
         where T : IGameSystem, new()
@@ -317,22 +295,16 @@ public sealed unsafe partial class Scene
 
     internal void BeginDefer()
     {
-        Contexts.Push(this);
-        _context = this;
-        if (Deferred)
+        if (0 != _deferred++)
             return;
         _world.DeferBegin();
-        Deferred = true;
     }
 
     internal void EndDefer()
     {
         if (!Deferred)
             return;
-        Contexts.Pop();
-        Deferred = Contexts.Count != 0;
-        _context = Deferred ? Contexts.Peek() : null!;
-        if (Deferred)
+        if (--_deferred != 0)
             return;
         _world.DeferEnd();
         ExecuteComponentOperations();
@@ -351,14 +323,6 @@ public sealed unsafe partial class Scene
         Time.Restart();
     }
 
-    private QueryBuilder<ZIndex> OrderedQueryBuilder()
-    {
-        var queryBuilder = _world.QueryBuilder<ZIndex>();
-        queryBuilder.Desc.order_by = Type<ZIndex>.Id(_world);
-        queryBuilder.Desc.order_by_callback = (nint)OrderByCallback;
-        return queryBuilder;
-    }
-
     private void Start()
     {
         _startAction?.Invoke();
@@ -374,7 +338,7 @@ public sealed unsafe partial class Scene
     {
         _beginRenderAction?.Invoke();
         if (_renderAction is not null)
-            foreach (var entity in OrderedEntities.WithDisabled())
+            foreach (var entity in Entities.WithDisabled().OrderBy(e => e.Order))
                 _renderAction.Invoke(entity);
         _endRenderAction?.Invoke();
     }
@@ -434,8 +398,6 @@ public sealed unsafe partial class Scene
         Game.Defer(() =>
         {
             _onDispose?.Invoke();
-            _orderedQuery.Dispose();
-            _orderedQueryWithDisabled.Dispose();
             _world.Dispose();
         });
     }

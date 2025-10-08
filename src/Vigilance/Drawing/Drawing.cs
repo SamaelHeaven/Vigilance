@@ -50,6 +50,12 @@ public static class Drawing
 
     public static Texture DefaultTexture { get; set; } = null!;
 
+    public static bool Culling
+    {
+        get => _config.Culling;
+        set => _config.Culling = value;
+    }
+
     internal static void Initialize()
     {
         if (Game.Config.TryTake(out DrawingConfig config))
@@ -68,6 +74,7 @@ public sealed class DrawingConfig
     public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
     public CameraProvider DefaultCamera { get; set; } = Camera.Scene;
     public Func<Texture> DefaultTexture { get; set; } = () => Texture.Empty;
+    public bool Culling { get; set; } = false;
 }
 
 public static class DrawingConfigExtensions

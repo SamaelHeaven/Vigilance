@@ -505,7 +505,7 @@ public abstract class UIElement : IDeepCloneable
     public T? Closest<T>(UISelector? selector = null)
         where T : UIElement
     {
-        selector ??= static _ => true;
+        selector ??= _ => true;
         if (this is T t && selector.Invoke(t))
             return t;
         return Parent?.Closest<T>(selector);

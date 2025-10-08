@@ -18,7 +18,7 @@ public sealed class SceneGenerator : ISourceGenerator
 
             namespace Vigilance.Core;
 
-            public sealed partial class Scene
+            public sealed unsafe partial class Scene
             {
 
             """
@@ -34,16 +34,6 @@ public sealed class SceneGenerator : ISourceGenerator
     {
         sb.BeginRegion("Entities");
         sb.AppendLine(QueryIterator("Entity", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
-        sb.AppendLine(
-            QueryIterator(
-                "OrderedEntity",
-                "Entity",
-                "ZIndex",
-                "CurrentEntity",
-                "GetOrderedEntities",
-                query: "_withDisabled ? _scene._orderedQueryWithDisabled : _scene._orderedQuery"
-            )
-        );
         sb.EndRegion();
     }
 
@@ -86,8 +76,7 @@ public sealed class SceneGenerator : ISourceGenerator
         string queryTypeParams,
         string current,
         string methodName,
-        string typeParams = "",
-        string query = ""
+        string typeParams = ""
     )
     {
         return $$"""
@@ -178,12 +167,10 @@ public sealed class SceneGenerator : ISourceGenerator
                     {
                         Dispose();
                         _scene.BeginDefer();
-                        var query = {{(
-                            query == "" ? $"(_withDisabled ? " +
-                                          $"_scene._world.QueryBuilder<{queryTypeParams}>().With(Flecs.NET.Core.Ecs.Disabled).Optional() " +
-                                          $": _scene._world.QueryBuilder<{queryTypeParams}>())" +
-                                          $".CacheKind(Flecs.NET.Bindings.flecs.ecs_query_cache_kind_t.EcsQueryCacheNone).Build()" : query
-                        )}};
+                        var query = {{$"(_withDisabled ? " +
+                                      $"_scene._world.QueryBuilder<{queryTypeParams}>().With(Flecs.NET.Core.Ecs.Disabled).Optional() " +
+                                      $": _scene._world.QueryBuilder<{queryTypeParams}>())" +
+                                      $".CacheKind(Flecs.NET.Bindings.flecs.ecs_query_cache_kind_t.EcsQueryCacheNone).Build()"}};
                         _query = query;
                         _iter = query.GetIter();
                         _index = 0;
@@ -204,7 +191,8 @@ public sealed class SceneGenerator : ISourceGenerator
                             Flecs.NET.Core.Ecs.TableUnlock(iter);
                         }
 
-                        _scene.EndDefer();{{(query == "" ? "\n            _query.Value.Dispose();" : "")}}
+                        _scene.EndDefer();
+                        _query.Value.Dispose();
                         _query = null;
                         _iter = default;
                         _index = 0;
