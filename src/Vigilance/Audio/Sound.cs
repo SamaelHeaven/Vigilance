@@ -5,13 +5,13 @@ using ZLinq;
 
 namespace Vigilance.Audio;
 
-public sealed class Sound
+public sealed class Sound : IDisposable
 {
     private static readonly List<Sound> Sounds = [];
     private readonly List<(Raylib_cs.BleedingEdge.Sound Sound, double LastUsed)> _aliases = [];
-    private readonly Raylib_cs.BleedingEdge.Sound _sound;
     private float _pan = 0.5f;
     private float _pitch = 1;
+    private Raylib_cs.BleedingEdge.Sound _sound;
     private float _volume = 1;
 
     public unsafe Sound(string fileType, IEnumerable<byte> bytes, int? maxAliases = null)
@@ -28,7 +28,7 @@ public sealed class Sound
         }
     }
 
-    public int MaxAliases { get; }
+    public int MaxAliases { get; private set; }
 
     public float Volume
     {
@@ -77,6 +77,20 @@ public sealed class Sound
     public bool Playing => _aliases.AsValueEnumerable().Any(a => Raylib.IsSoundPlaying(a.Sound));
 
     public bool Stopped => !Playing;
+
+    public unsafe bool Valid => _sound.Stream.Buffer != null;
+
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+        _aliases.Clear();
+        _sound = default;
+        _pan = 0;
+        _pitch = 0;
+        _volume = 0;
+        MaxAliases = 0;
+    }
 
     public Sound SetVolume(float volume)
     {
@@ -150,13 +164,15 @@ public sealed class Sound
         }
     }
 
+    private void ReleaseUnmanagedResources()
+    {
+        foreach (var (sound, _) in _aliases)
+            Raylib.UnloadSoundAlias(sound);
+        Raylib.UnloadSound(_sound);
+    }
+
     ~Sound()
     {
-        Game.Defer(() =>
-        {
-            foreach (var (sound, _) in _aliases)
-                Raylib.UnloadSoundAlias(sound);
-            Raylib.UnloadSound(_sound);
-        });
+        Game.Defer(ReleaseUnmanagedResources);
     }
 }

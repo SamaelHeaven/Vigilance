@@ -4,7 +4,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public readonly unsafe struct WritableTexture
+public readonly unsafe struct WritableTexture : IDisposable
 {
     private readonly Texture _texture;
 
@@ -17,6 +17,8 @@ public readonly unsafe struct WritableTexture
     public Vector2 Size => _texture.Size;
 
     public PixelFormat Format => _texture.Format;
+
+    public bool Valid => _texture.Valid;
 
     internal WritableTexture(Texture texture)
     {
@@ -87,5 +89,10 @@ public readonly unsafe struct WritableTexture
             new Raylib_cs.BleedingEdge.Rectangle(source.Position, source.Size),
             pixels
         );
+    }
+
+    public void Dispose()
+    {
+        _texture.Dispose();
     }
 }

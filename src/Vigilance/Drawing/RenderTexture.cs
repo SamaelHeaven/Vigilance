@@ -4,9 +4,9 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class RenderTexture
+public sealed class RenderTexture : IDisposable
 {
-    internal readonly RenderTexture2D RenderTexture2D;
+    internal RenderTexture2D RenderTexture2D;
 
     public RenderTexture(Vector2 size, float scale = 1)
         : this(size.X, size.Y, scale) { }
@@ -21,9 +21,9 @@ public sealed class RenderTexture
         Graphics = new Graphics(this);
     }
 
-    public Texture Texture { get; }
-    public Graphics Graphics { get; }
-    public float Scale { get; }
+    public Texture Texture { get; private set; }
+    public Graphics Graphics { get; private set; }
+    public float Scale { get; private set; }
 
     public float Width => RenderTexture2D.Texture.Width / Scale;
 
@@ -38,6 +38,17 @@ public sealed class RenderTexture
     public Vector2 ScaledSize => new(ScaledWidth, ScaledHeight);
 
     public PixelFormat Format => (PixelFormat)RenderTexture2D.Texture.Format;
+
+    public bool Valid => RenderTexture2D.Texture.Id != 0;
+
+    public void Dispose()
+    {
+        Texture.Dispose();
+        RenderTexture2D = default;
+        Texture = Texture.Empty;
+        Graphics = null!;
+        Scale = 0;
+    }
 
     public static implicit operator Texture(RenderTexture renderTexture)
     {

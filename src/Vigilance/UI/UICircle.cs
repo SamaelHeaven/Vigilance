@@ -39,13 +39,12 @@ public class UICircle : UIContainer
         set => _circle.DrawOrder = value;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
     {
         var position = LayoutPosition;
         var size = LayoutSize;
         _circle.Camera = camera;
         graphics.DrawCircle(new Transform(position + size * 0.5f, size), _circle);
-        base.Render(graphics, camera);
     }
 
     protected override object DeepClone()

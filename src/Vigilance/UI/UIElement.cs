@@ -75,6 +75,8 @@ public abstract class UIElement : IDeepCloneable
 
     public int ZIndex { get; set; }
 
+    public bool? Culling { get; set; } = null;
+
     public bool RenderedOutside { get; private set; } = true;
 
     public Quad RenderedBounds { get; private set; }
@@ -667,7 +669,13 @@ public abstract class UIElement : IDeepCloneable
         }
 
         RenderedClip = graphics.GetClip();
+        var oldCulling = graphics.GetCulling();
+        var hasCulling = Culling.HasValue;
+        if (hasCulling)
+            graphics.SetCulling(Culling!.Value);
         Render(graphics, camera);
+        if (hasCulling)
+            graphics.SetCulling(oldCulling);
         if (overflowHidden)
             graphics.SetClip(oldClip);
         graphics.PopMatrix();

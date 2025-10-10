@@ -5,10 +5,10 @@ using Vigilance.Math;
 
 namespace Vigilance.Audio;
 
-public sealed class Music
+public sealed class Music : IDisposable
 {
     private static readonly List<Music> Musics = [];
-    private readonly nint _buffer;
+    private nint _buffer;
     private Raylib_cs.BleedingEdge.Music _music;
     private float _pan = 0.5f;
     private float _pitch = 1;
@@ -81,6 +81,20 @@ public sealed class Music
     public TimeSpan TimeLength => TimeSpan.FromSeconds(Raylib.GetMusicTimeLength(_music));
 
     public TimeSpan TimePlayed => TimeSpan.FromSeconds(Raylib.GetMusicTimePlayed(_music));
+
+    public bool Valid => _buffer != 0;
+
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+        _buffer = 0;
+        _music = default;
+        _pan = 0;
+        _pitch = 0;
+        _volume = 0;
+        Paused = false;
+    }
 
     public Music SetVolume(float volume)
     {
@@ -169,12 +183,14 @@ public sealed class Music
         }
     }
 
+    private void ReleaseUnmanagedResources()
+    {
+        Raylib.UnloadMusicStream(_music);
+        Marshal.FreeHGlobal(_buffer);
+    }
+
     ~Music()
     {
-        Game.Defer(() =>
-        {
-            Raylib.UnloadMusicStream(_music);
-            Marshal.FreeHGlobal(_buffer);
-        });
+        Game.Defer(ReleaseUnmanagedResources);
     }
 }

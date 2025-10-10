@@ -6,7 +6,7 @@ using ZLinq;
 
 namespace Vigilance.Drawing;
 
-public sealed unsafe class Font
+public sealed unsafe class Font : IDisposable
 {
     private const int AtlasSpacing = 4;
     private const int AtlasNbCols = 10;
@@ -60,10 +60,26 @@ public sealed unsafe class Font
         set => _config.DefaultCharset = value;
     }
 
-    public string Charset { get; }
-    public int Quality { get; }
+    public string Charset { get; private set; }
+    public int Quality { get; private set; }
     public DictionaryView<char, GlyphInfo> GlyphInfos => _glyphInfos;
-    public Texture Atlas { get; }
+    public Texture Atlas { get; private set; }
+    public bool Valid => _buffer != 0;
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+        _glyphInfos.Clear();
+        _strokes.Clear();
+        _buffer = 0;
+        _face = null;
+        _spaceSize = 0;
+        _stroker = null;
+        Charset = "";
+        Quality = 0;
+        Atlas = Texture.Empty;
+    }
 
     internal static void Initialize()
     {
@@ -269,12 +285,21 @@ public sealed unsafe class Font
 
     ~Font()
     {
-        Game.Defer(() =>
-        {
-            FT.FT_Stroker_Done(_stroker);
-            FT.FT_Done_Face(_face);
-            Marshal.FreeHGlobal(_buffer);
-        });
+        Game.Defer(() => Dispose(false));
+    }
+
+    private void ReleaseUnmanagedResources()
+    {
+        FT.FT_Stroker_Done(_stroker);
+        FT.FT_Done_Face(_face);
+        Marshal.FreeHGlobal(_buffer);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        ReleaseUnmanagedResources();
+        if (disposing)
+            Atlas.Dispose();
     }
 
     [StructLayout(LayoutKind.Sequential)]

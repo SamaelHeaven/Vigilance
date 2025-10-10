@@ -198,14 +198,10 @@ public class UIScrollContainer : UIContainer
 
     public bool MouseInsideNestedScrollContainer { get; set; }
 
-    public override void Update(Entity entity)
+    protected override void UpdateSelf(Entity entity)
     {
         if (!LayoutReady)
-        {
-            base.Update(entity);
             return;
-        }
-
         var offset = Vector2.Zero;
         var size = Vector2.Zero;
         var direction = Direction;
@@ -283,7 +279,6 @@ public class UIScrollContainer : UIContainer
                     ? (ScrollOffset.Y + scroll.Y).Clamp(0, -minSize.Y)
                     : (ScrollOffset.Y + scroll.Y).Clamp(minSize.Y, 0);
         ScrollOffset = offset;
-        base.Update(entity);
     }
 
     public void ScrollTo(Vector2 offset)

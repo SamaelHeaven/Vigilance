@@ -38,11 +38,10 @@ public class UIGrid : UIContainer
         set => _grid.Color = value;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
     {
         _grid.Camera = camera;
         graphics.DrawGrid(LayoutPosition, LayoutSize, _grid);
-        base.Render(graphics, camera);
     }
 
     protected override object DeepClone()

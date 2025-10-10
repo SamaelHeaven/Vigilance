@@ -44,11 +44,10 @@ public class UIRectangle : UIContainer
         set => _rectangle.Roundness = value;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
     {
         _rectangle.Camera = camera;
         graphics.DrawRectangle(LayoutPosition, LayoutSize, _rectangle);
-        base.Render(graphics, camera);
     }
 
     protected override object DeepClone()

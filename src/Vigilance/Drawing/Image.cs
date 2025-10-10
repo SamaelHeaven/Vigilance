@@ -5,7 +5,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed unsafe class Image
+public sealed unsafe class Image : IDisposable
 {
     internal Raylib_cs.BleedingEdge.Image RImage;
 
@@ -34,9 +34,16 @@ public sealed unsafe class Image
 
     public int DataSize => Raylib.GetPixelDataSize(Width, Height, RImage.Format);
 
-    public bool Valid => Raylib.IsImageValid(RImage);
+    public bool Valid => RImage.Data != null;
 
     public PixelFormat Format => (PixelFormat)RImage.Format;
+
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+        RImage = default;
+    }
 
     public WritableTexture ToTexture()
     {
@@ -128,8 +135,13 @@ public sealed unsafe class Image
         return new WritableImage<PixelR8G8B8A8>(new WritableImage(new Image(image)));
     }
 
+    private void ReleaseUnmanagedResources()
+    {
+        Raylib.UnloadImage(RImage);
+    }
+
     ~Image()
     {
-        Game.Defer(() => Raylib.UnloadImage(RImage));
+        Game.Defer(ReleaseUnmanagedResources);
     }
 }

@@ -30,16 +30,22 @@ public abstract class UIParent : UIElement
 
     protected override void Render(Graphics graphics, CameraProvider camera)
     {
+        RenderSelf(graphics, camera);
         foreach (var element in _children.AsValueEnumerable().OrderBy(e => e.ZIndex))
             element.Render(element.LayoutTransform, graphics, camera);
     }
+
+    protected virtual void RenderSelf(Graphics graphics, CameraProvider camera) { }
 
     public override void Update(Entity entity)
     {
         foreach (var element in Children)
             element.Update(entity);
         base.Update(entity);
+        UpdateSelf(entity);
     }
+
+    protected virtual void UpdateSelf(Entity entity) { }
 
     public UIElement? Select(UISelector? selector = null)
     {

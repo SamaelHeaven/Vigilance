@@ -4,12 +4,12 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed unsafe class Texture
+public sealed unsafe class Texture : IDisposable
 {
     private static Texture? _empty;
     private static Texture? _white;
-    internal readonly RenderTexture? RenderTexture;
-    internal readonly Texture2D Texture2D;
+    internal RenderTexture? RenderTexture;
+    internal Texture2D Texture2D;
 
     internal Texture(Texture2D texture2D, RenderTexture? renderTexture = null)
     {
@@ -55,6 +55,16 @@ public sealed unsafe class Texture
 
     public PixelFormat Format => (PixelFormat)Texture2D.Format;
 
+    public bool Valid => Texture2D.Id != 0;
+
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+        RenderTexture = null;
+        Texture2D = default;
+    }
+
     public WritableImage ToImage()
     {
         if (RenderTexture is not null && Graphics.IsBufferCurrent(RenderTexture))
@@ -77,14 +87,16 @@ public sealed unsafe class Texture
         return new WritableTexture(image.ToTexture());
     }
 
+    private void ReleaseUnmanagedResources()
+    {
+        if (RenderTexture is not null)
+            Raylib.UnloadRenderTexture(RenderTexture.RenderTexture2D);
+        else
+            Raylib.UnloadTexture(Texture2D);
+    }
+
     ~Texture()
     {
-        Game.Defer(() =>
-        {
-            if (RenderTexture is null)
-                Raylib.UnloadTexture(Texture2D);
-            else
-                Raylib.UnloadRenderTexture(RenderTexture.RenderTexture2D);
-        });
+        Game.Defer(ReleaseUnmanagedResources);
     }
 }

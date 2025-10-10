@@ -5,12 +5,12 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Drawing;
 
-public sealed unsafe class Shader
+public sealed unsafe class Shader : IDisposable
 {
     private static readonly string VertexHeader;
     private static readonly string FragmentHeader;
     private readonly Dictionary<string, int> _locations = new();
-    internal readonly Raylib_cs.BleedingEdge.Shader RShader;
+    internal Raylib_cs.BleedingEdge.Shader RShader;
 
     static Shader()
     {
@@ -50,6 +50,15 @@ public sealed unsafe class Shader
     }
 
     public uint Id => RShader.Id;
+
+    public bool Valid => RShader.Id != 0;
+
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+        RShader = default;
+    }
 
     public void SetFloat(string uniform, float value)
     {
@@ -220,8 +229,13 @@ public sealed unsafe class Shader
         return location;
     }
 
-    ~Shader()
+    private void ReleaseUnmanagedResources()
     {
         Raylib.UnloadShader(RShader);
+    }
+
+    ~Shader()
+    {
+        Game.Defer(ReleaseUnmanagedResources);
     }
 }

@@ -41,10 +41,11 @@ public class UIDropShadow : UIElement
     protected override void Render(Graphics graphics, CameraProvider camera)
     {
         var offset = 1 + _blur * _blur;
-        if (TextureDirty || Dirty || Target.Dirty)
+        if (TextureDirty)
         {
             TextureDirty = false;
-            var image = Target.ToTexture(Target.LayoutSize).ToImage();
+            using var targetTexture = Target.ToTexture(Target.LayoutSize);
+            var image = targetTexture.ToImage();
             var result = new WritableImage<PixelGrayAlpha>(image.Width + offset * 2, image.Height + offset * 2);
             for (var y = 0; y < image.Height; y++)
             for (var x = 0; x < image.Width; x++)
@@ -57,6 +58,8 @@ public class UIDropShadow : UIElement
             Texture = result.ToTexture();
         }
 
+        if (Dirty || Target.Dirty)
+            MarkTextureDirty();
         graphics.DrawTexture(Texture, LayoutPosition - offset, null, Color, camera: camera);
     }
 
@@ -76,10 +79,15 @@ public static class UIDropShadowExtensions
     )
     {
         var result = new UIContainer();
-        result.Add(
-            new UIDropShadow(element, blur, color) { Position = Position.Absolute, Translate = translate ?? default }
-        );
         result.Add(element);
+        result.Add(
+            new UIDropShadow(element, blur, color)
+            {
+                ZIndex = -1,
+                Position = Position.Absolute,
+                Translate = translate ?? default,
+            }
+        );
         return result;
     }
 }

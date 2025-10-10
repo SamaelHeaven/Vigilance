@@ -6,7 +6,7 @@ using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public readonly struct WritableImage
+public readonly struct WritableImage : IDisposable
 {
     internal readonly Image Image;
 
@@ -193,12 +193,18 @@ public readonly struct WritableImage
     {
         Raylib.ImageRotate(ref Image.RImage, angle);
     }
+
+    public void Dispose()
+    {
+        Image.Dispose();
+    }
 }
 
 public readonly unsafe struct WritableImage<T>
     : IStructEnumerable<WritableImage<T>.PixelEnumerator, T>,
         IReadOnlyList<T>,
-        IReadOnlySpan<T>
+        IReadOnlySpan<T>,
+        IDisposable
     where T : unmanaged, IPixel
 {
     private readonly WritableImage _image;
@@ -499,5 +505,10 @@ public readonly unsafe struct WritableImage<T>
     public void SetPixel(int index, T pixel)
     {
         this[index] = pixel;
+    }
+
+    public void Dispose()
+    {
+        _image.Dispose();
     }
 }
