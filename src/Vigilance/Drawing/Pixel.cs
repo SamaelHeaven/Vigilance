@@ -61,7 +61,7 @@ public record struct PixelR5G6B5(ushort Value) : IPixel
     }
 }
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 public record struct PixelR8G8B8(byte R, byte G, byte B) : IPixel
 {
     public static PixelFormat Format => PixelFormat.UncompressedR8G8B8;
@@ -161,7 +161,7 @@ public record struct PixelR32(float R) : IPixel
     }
 }
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 public record struct PixelR32G32B32(float R, float G, float B) : IPixel
 {
     public static PixelFormat Format => PixelFormat.UncompressedR32G32B32;
@@ -213,7 +213,7 @@ public record struct PixelR16(ushort R) : IPixel
     }
 }
 
-[StructLayout(LayoutKind.Sequential)]
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 public record struct PixelR16G16B16(ushort R, ushort G, ushort B) : IPixel
 {
     public static PixelFormat Format => PixelFormat.UncompressedR16G16B16;
