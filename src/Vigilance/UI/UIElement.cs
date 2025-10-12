@@ -674,32 +674,41 @@ public static class UIElementExtensions
     {
         public Action<UIEvent<T>> OnUpdate
         {
-            set => element.OnUpdateEvent += e => value(e);
+            set => element.OnUpdateEvent += e => value.Invoke(e);
+        }
+
+        public Action<UIEvent<T>> OnUpdateImmediate
+        {
+            set
+            {
+                element.OnUpdateEvent += e => value.Invoke(e);
+                value.Invoke(new UIEvent<T>(Entity.Null, element));
+            }
         }
 
         public Action<UIEvent<T>> OnClick
         {
-            set => element.OnClickEvent += e => value(e);
+            set => element.OnClickEvent += e => value.Invoke(e);
         }
 
         public Action<UIEvent<T>> OnPress
         {
-            set => element.OnPressEvent += e => value(e);
+            set => element.OnPressEvent += e => value.Invoke(e);
         }
 
         public Action<UIEvent<T>> OnRelease
         {
-            set => element.OnReleaseEvent += e => value(e);
+            set => element.OnReleaseEvent += e => value.Invoke(e);
         }
 
         public Action<UIEvent<T>> OnMouseEnter
         {
-            set => element.OnMouseEnterEvent += e => value(e);
+            set => element.OnMouseEnterEvent += e => value.Invoke(e);
         }
 
         public Action<UIEvent<T>> OnMouseLeave
         {
-            set => element.OnMouseLeaveEvent += e => value(e);
+            set => element.OnMouseLeaveEvent += e => value.Invoke(e);
         }
 
         public T Ref(out T el)
