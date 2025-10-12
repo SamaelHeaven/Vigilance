@@ -30,10 +30,10 @@ public static class Drawing
         set => _config.DefaultOrder = value;
     }
 
-    public static float DefaultRoundness
+    public static float DefaultRadius
     {
-        get => _config.DefaultRoundness;
-        set => _config.DefaultRoundness = value;
+        get => _config.DefaultRadius;
+        set => _config.DefaultRadius = value;
     }
 
     public static Interpolation DefaultInterpolation
@@ -70,7 +70,7 @@ public sealed class DrawingConfig
     public Color DefaultStroke { get; set; } = Color.Transparent;
     public float DefaultStrokeWidth { get; set; } = 0;
     public DrawOrder DefaultOrder { get; set; } = DrawOrder.FillThenStroke;
-    public float DefaultRoundness { get; set; } = 0;
+    public float DefaultRadius { get; set; } = 0;
     public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
     public CameraProvider DefaultCamera { get; set; } = Camera.Scene;
     public Func<Texture> DefaultTexture { get; set; } = () => Texture.Empty;

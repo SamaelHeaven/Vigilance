@@ -16,7 +16,7 @@ public sealed class Rectangle : IFullCloneable
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
-    public float Roundness { get; set; } = Drawing.DefaultRoundness;
+    public float Radius { get; set; } = Drawing.DefaultRadius;
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public override string ToString()

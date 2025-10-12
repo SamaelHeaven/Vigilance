@@ -455,38 +455,34 @@ public sealed unsafe class Graphics
         float width,
         float height,
         Color? color = null,
-        float? roundness = null,
+        float? radius = null,
         Camera? camera = null
     )
     {
-        FillRoundedRectangle(new Vector2(x, y), new Vector2(width, height), color, roundness, camera);
+        FillRoundedRectangle(new Vector2(x, y), new Vector2(width, height), color, radius, camera);
     }
 
-    public void FillRoundedRectangle(Box box, Color? color = null, float? roundness = null, Camera? camera = null)
+    public void FillRoundedRectangle(Box box, Color? color = null, float? radius = null, Camera? camera = null)
     {
-        FillRoundedRectangle(box.Position, box.Size, color, roundness, camera);
+        FillRoundedRectangle(box.Position, box.Size, color, radius, camera);
     }
 
     public void FillRoundedRectangle(
         Vector2 position,
         Vector2 size,
         Color? color = null,
-        float? roundness = null,
+        float? radius = null,
         Camera? camera = null
     )
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
-        var roundnessValue = roundness ?? Drawing.DefaultRoundness.Or(0.1f);
-        if (
-            colorValue == Color.Transparent
-            || roundnessValue <= 0
-            || (_culling && !IsBoxInBounds(position, size, camera))
-        )
+        var radiusValue = radius ?? Drawing.DefaultRadius.Or(1f);
+        if (colorValue == Color.Transparent || radiusValue <= 0 || (_culling && !IsBoxInBounds(position, size, camera)))
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRounded(
             new Raylib_cs.BleedingEdge.Rectangle(position, size),
-            roundnessValue,
+            radiusValue == 0 ? 0 : radiusValue / size.X.Abs().Min(size.Y.Abs()),
             0,
             colorValue.RColor
         );
@@ -499,40 +495,40 @@ public sealed unsafe class Graphics
         float width,
         float height,
         Color? color = null,
-        float? roundness = null,
+        float? radius = null,
         float? strokeWidth = null,
         Camera? camera = null
     )
     {
-        StrokeRoundedRectangle(new Vector2(x, y), new Vector2(width, height), color, roundness, strokeWidth, camera);
+        StrokeRoundedRectangle(new Vector2(x, y), new Vector2(width, height), color, radius, strokeWidth, camera);
     }
 
     public void StrokeRoundedRectangle(
         Box box,
         Color? color = null,
-        float? roundness = null,
+        float? radius = null,
         float? strokeWidth = null,
         Camera? camera = null
     )
     {
-        StrokeRoundedRectangle(box.Position, box.Size, color, roundness, strokeWidth, camera);
+        StrokeRoundedRectangle(box.Position, box.Size, color, radius, strokeWidth, camera);
     }
 
     public void StrokeRoundedRectangle(
         Vector2 position,
         Vector2 size,
         Color? color = null,
-        float? roundness = null,
+        float? radius = null,
         float? strokeWidth = null,
         Camera? camera = null
     )
     {
         var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
-        var roundnessValue = roundness ?? Drawing.DefaultRoundness.Or(0.1f);
+        var radiusValue = radius ?? Drawing.DefaultRadius.Or(0.1f);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
         if (
             colorValue == Color.Transparent
-            || roundnessValue <= 0
+            || radiusValue <= 0
             || strokeWidthValue <= 0
             || (_culling && !IsBoxInBounds(position, size, camera, strokeWidthValue))
         )
@@ -540,7 +536,7 @@ public sealed unsafe class Graphics
         BeginDrawing(camera);
         Raylib.DrawRectangleRoundedLinesEx(
             new Raylib_cs.BleedingEdge.Rectangle(position, size),
-            roundnessValue,
+            radiusValue == 0 ? 0 : radiusValue / size.X.Abs().Min(size.Y.Abs()),
             0,
             strokeWidthValue,
             colorValue.RColor
@@ -568,26 +564,26 @@ public sealed unsafe class Graphics
         var camera = rectangle.Camera.Get();
         var fill = rectangle.Fill;
         var stroke = rectangle.Stroke;
-        var roundness = rectangle.Roundness.Abs();
+        var radius = rectangle.Radius.Abs();
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.X.Min(scale.Y) * 0.5f);
         var order = rectangle.DrawOrder;
         PushMatrix();
         Pivot(transform, true);
-        if (roundness > 0)
+        if (radius > 0)
         {
             position += strokeWidth;
             scale -= strokeWidth * 2;
             if (order == DrawOrder.StrokeThenFill)
             {
-                StrokeRoundedRectangle(position, scale, stroke, roundness, strokeWidth, camera);
-                FillRoundedRectangle(position, scale, fill, roundness, camera);
+                StrokeRoundedRectangle(position, scale, stroke, radius, strokeWidth, camera);
+                FillRoundedRectangle(position, scale, fill, radius, camera);
             }
             else
             {
-                FillRoundedRectangle(position, scale, fill, roundness, camera);
-                StrokeRoundedRectangle(position, scale, stroke, roundness, strokeWidth, camera);
+                FillRoundedRectangle(position, scale, fill, radius, camera);
+                StrokeRoundedRectangle(position, scale, stroke, radius, strokeWidth, camera);
             }
         }
         else

@@ -19,7 +19,7 @@ public class UIScrollContainer : UIContainer
         Overflow = Overflow.Hidden;
         ScrollBarTrackFill = Color.DarkGray;
         ScrollBarThumbFill = Color.Gray;
-        ScrollBarThumbRoundness = 1;
+        ScrollBarThumbRadius = 1;
     }
 
     public Vector2 ChildrenLayoutSize { get; private set; }
@@ -166,10 +166,10 @@ public class UIScrollContainer : UIContainer
         set => _scrollBarTrackRectangle.StrokeWidth = value;
     }
 
-    public float ScrollBarTrackRoundness
+    public float ScrollBarTrackRadius
     {
-        get => _scrollBarTrackRectangle.Roundness;
-        set => _scrollBarTrackRectangle.Roundness = value;
+        get => _scrollBarTrackRectangle.Radius;
+        set => _scrollBarTrackRectangle.Radius = value;
     }
 
     public Color ScrollBarThumbFill
@@ -190,10 +190,10 @@ public class UIScrollContainer : UIContainer
         set => _scrollBarThumbRectangle.StrokeWidth = value;
     }
 
-    public float ScrollBarThumbRoundness
+    public float ScrollBarThumbRadius
     {
-        get => _scrollBarThumbRectangle.Roundness;
-        set => _scrollBarThumbRectangle.Roundness = value;
+        get => _scrollBarThumbRectangle.Radius;
+        set => _scrollBarThumbRectangle.Radius = value;
     }
 
     public bool MouseInsideNestedScrollContainer { get; set; }

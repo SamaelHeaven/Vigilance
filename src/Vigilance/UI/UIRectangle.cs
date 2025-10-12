@@ -1,5 +1,6 @@
 using Vigilance.Core;
 using Vigilance.Drawing;
+using Vigilance.Math;
 
 namespace Vigilance.UI;
 
@@ -38,15 +39,12 @@ public class UIRectangle : UIContainer
         set => _rectangle.DrawOrder = value;
     }
 
-    public float Roundness
-    {
-        get => _rectangle.Roundness;
-        set => _rectangle.Roundness = value;
-    }
+    public Unit Radius { get; set; }
 
     protected override void RenderSelf(Graphics graphics, CameraProvider camera)
     {
         _rectangle.Camera = camera;
+        _rectangle.Radius = Radius.Calculate(LayoutSize.X.Abs().Min(LayoutSize.Y.Abs()));
         graphics.DrawRectangle(LayoutPosition, LayoutSize, _rectangle);
     }
 
