@@ -500,6 +500,7 @@ public abstract class UIElement : IDeepCloneable
         var oldMouseInside = MouseInside;
         MouseInside =
             RenderedGraphics == Renderer.Graphics
+            && Mouse.OnScreen
             && Visible
             && Collision.CheckPointQuad(Mouse.Position, RenderedBounds);
         OnUpdateEvent?.Invoke(e);
@@ -659,11 +660,7 @@ public abstract class UIElement : IDeepCloneable
         if (this is not UIParent parent)
             return;
         foreach (var element in parent.Children)
-        {
-            if (element.Dirty)
-                MarkDirty();
             element.MarkReady();
-        }
     }
 }
 
