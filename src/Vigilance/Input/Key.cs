@@ -98,10 +98,16 @@ public enum Key
 
 public static class KeyExtensions
 {
-    public static string GetName(this Key key)
+    extension(Key key)
     {
-        Game.EnsureRunning();
-        var name = Raylib.GetKeyName_((KeyboardKey)key).ToUpper();
-        return name == "" ? key.ToString() : name;
+        public string Name
+        {
+            get
+            {
+                Game.EnsureRunning();
+                var name = Raylib.GetKeyName_((KeyboardKey)key).ToUpper();
+                return name == "" ? key.ToString() : name;
+            }
+        }
     }
 }

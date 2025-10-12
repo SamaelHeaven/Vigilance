@@ -22,27 +22,33 @@ public enum GamepadButton
 
 public static class GamepadButtonExtensions
 {
-    public static int GetJSValue(this GamepadButton button)
+    extension(GamepadButton button)
     {
-        return button switch
+        public int JSValue
         {
-            GamepadButton.A => 0,
-            GamepadButton.B => 1,
-            GamepadButton.X => 2,
-            GamepadButton.Y => 3,
-            GamepadButton.LeftBumper => 4,
-            GamepadButton.RightBumper => 5,
-            GamepadButton.LeftTrigger => 6,
-            GamepadButton.RightTrigger => 7,
-            GamepadButton.Select => 8,
-            GamepadButton.Start => 9,
-            GamepadButton.LeftThumb => 10,
-            GamepadButton.RightThumb => 11,
-            GamepadButton.DPadUp => 12,
-            GamepadButton.DPadDown => 13,
-            GamepadButton.DPadLeft => 14,
-            GamepadButton.DPadRight => 15,
-            _ => -1,
-        };
+            get
+            {
+                return button switch
+                {
+                    GamepadButton.A => 0,
+                    GamepadButton.B => 1,
+                    GamepadButton.X => 2,
+                    GamepadButton.Y => 3,
+                    GamepadButton.LeftBumper => 4,
+                    GamepadButton.RightBumper => 5,
+                    GamepadButton.LeftTrigger => 6,
+                    GamepadButton.RightTrigger => 7,
+                    GamepadButton.Select => 8,
+                    GamepadButton.Start => 9,
+                    GamepadButton.LeftThumb => 10,
+                    GamepadButton.RightThumb => 11,
+                    GamepadButton.DPadUp => 12,
+                    GamepadButton.DPadDown => 13,
+                    GamepadButton.DPadLeft => 14,
+                    GamepadButton.DPadRight => 15,
+                    _ => -1,
+                };
+            }
+        }
     }
 }

@@ -153,7 +153,7 @@ public sealed class Gamepad
         return Game.Platform switch
         {
             Platform.Web => JSEngine.Eval(
-                $"navigator.getGamepads()[{id}]?.buttons[{button.GetJSValue()}]?.pressed ?? false"
+                $"navigator.getGamepads()[{id}]?.buttons[{button.JSValue}]?.pressed ?? false"
             ),
             _ => Raylib.IsGamepadButtonDown(id, (Raylib_cs.BleedingEdge.GamepadButton)button),
         };
@@ -163,7 +163,7 @@ public sealed class Gamepad
     {
         return Game.Platform switch
         {
-            Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{id}]?.axes[{axis.GetJSValue()}] ?? 0"),
+            Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{id}]?.axes[{axis.JSValue}] ?? 0"),
             _ => Raylib.GetGamepadAxisMovement(id, (Raylib_cs.BleedingEdge.GamepadAxis)axis),
         };
     }

@@ -18,7 +18,7 @@ public static unsafe partial class FileSystem
     public static string ApplicationDirectory { get; } =
         FormatPath(Marshal.PtrToStringUTF8((nint)Raylib.GetApplicationDirectory()) ?? "");
 
-    public static string WorkingNamespace { get; set; } = "";
+    public static string WorkingNamespace { get; set; }
 
     public static string WorkingDirectory =>
         FormatPath(Marshal.PtrToStringUTF8((nint)Raylib.GetWorkingDirectory()) ?? "");

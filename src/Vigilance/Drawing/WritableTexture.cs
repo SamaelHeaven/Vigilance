@@ -77,7 +77,7 @@ public readonly unsafe struct WritableTexture : IDisposable
     public void Update<T>(WritableImage<T> image, Box? box = null)
         where T : unmanaged, IPixel
     {
-        Update((ReadOnlySpan<T>)image.AsSpan(), box);
+        Update(image.AsSpan(), box);
     }
 
     public void Update<T>(ReadOnlySpan<T> pixels, Box? box = null)

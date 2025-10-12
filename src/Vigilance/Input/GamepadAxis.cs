@@ -12,8 +12,8 @@ public enum GamepadAxis
 
 public static class GamepadAxisExtensions
 {
-    public static int GetJSValue(this GamepadAxis axis)
+    extension(GamepadAxis axis)
     {
-        return (int)axis;
+        public int JSValue => (int)axis;
     }
 }

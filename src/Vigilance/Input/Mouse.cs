@@ -139,7 +139,7 @@ public sealed class Mouse
     {
         _screenPosition = ((Vector2)Raylib.GetMousePosition()).Clamp(Vector2.Zero, Display.ScreenSize).Round();
         _scroll = Raylib.GetMouseWheelMoveV();
-        if (Platform.Web.IsCurrent())
+        if (Platform.Web.IsCurrent)
             _scroll.X = -_scroll.X;
         _currentButtons.Clear();
         foreach (var button in ButtonValues)

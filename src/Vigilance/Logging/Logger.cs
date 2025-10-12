@@ -34,7 +34,7 @@ public static unsafe partial class Logger
         try
         {
             EnableAnsiSupport();
-            if (Platform.Web.IsCurrent())
+            if (Platform.Web.IsCurrent)
                 throw new PlatformNotSupportedException();
             Raylib.SetTraceLogCallback(&UnmanagedLog);
             Raylib.TraceLog(TraceLogLevel.Info, message);

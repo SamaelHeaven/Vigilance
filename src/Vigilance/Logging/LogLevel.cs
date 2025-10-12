@@ -16,16 +16,22 @@ public enum LogLevel
 
 public static class LogLevelExtensions
 {
-    public static ConsoleColor? GetConsoleColor(this LogLevel level)
+    extension(LogLevel level)
     {
-        return level switch
+        public ConsoleColor? ConsoleColor
         {
-            LogLevel.Debug => ConsoleColor.Cyan,
-            LogLevel.Info => ConsoleColor.Green,
-            LogLevel.Warning => ConsoleColor.Yellow,
-            LogLevel.Error => ConsoleColor.Red,
-            LogLevel.Fatal => ConsoleColor.DarkRed,
-            _ => null,
-        };
+            get
+            {
+                return level switch
+                {
+                    LogLevel.Debug => ConsoleColor.Cyan,
+                    LogLevel.Info => ConsoleColor.Green,
+                    LogLevel.Warning => ConsoleColor.Yellow,
+                    LogLevel.Error => ConsoleColor.Red,
+                    LogLevel.Fatal => ConsoleColor.DarkRed,
+                    _ => null,
+                };
+            }
+        }
     }
 }

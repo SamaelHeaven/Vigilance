@@ -19,7 +19,7 @@ public static class Clipboard
         set
         {
             Game.EnsureRunning();
-            if (Platform.Web.IsCurrent())
+            if (Platform.Web.IsCurrent)
                 JSEngine.Eval($"navigator.clipboard.writeText({value.ToJson()})");
             else
                 Raylib.SetClipboardText(value);

@@ -8,7 +8,7 @@ public sealed class ConsoleLogger : ILogger
         Console.Write(" ");
         if (level is > LogLevel.All and < LogLevel.None)
         {
-            var color = level.GetConsoleColor();
+            var color = level.ConsoleColor;
             if (color.HasValue)
             {
                 Console.ForegroundColor = ConsoleColor.Black;

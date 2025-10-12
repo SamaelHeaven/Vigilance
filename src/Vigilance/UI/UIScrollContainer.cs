@@ -209,7 +209,7 @@ public class UIScrollContainer : UIContainer
         var mousePressed = Mouse.IsButtonPressed(MouseButton.Left);
         var mouseReleased = Mouse.IsButtonReleased(MouseButton.Left);
         foreach (var element in Children.AsValueEnumerable().Where(element => element.Position != Position.Absolute))
-            if (direction.IsVertical())
+            if (direction.IsVertical)
             {
                 size.X = size.X.Max(element.LayoutPosition.X + element.LayoutWidth);
                 size.Y += element.LayoutHeight;

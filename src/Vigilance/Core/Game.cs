@@ -28,7 +28,7 @@ public sealed unsafe class Game
     public static bool Running { get; private set; }
 
     public static Platform Platform { get; } =
-        Enum.GetValues<Platform>().FirstOrDefault(platform => platform.IsCurrent());
+        Enum.GetValues<Platform>().FirstOrDefault(platform => platform.IsCurrent);
 
     public static Scene Scene
     {
@@ -109,7 +109,7 @@ public sealed unsafe class Game
 
     private void Loop()
     {
-        if (Platform.Web.IsCurrent())
+        if (Platform.Web.IsCurrent)
         {
             Emscripten.SetMainLoop(&UnmanagedFrame, 0, 1);
             return;

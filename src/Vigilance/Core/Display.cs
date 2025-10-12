@@ -39,7 +39,7 @@ public sealed unsafe class Display
             if (display._icon == value)
                 return;
             display._icon = value?.Copy<PixelR8G8B8A8>();
-            if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS())
+            if (!Platform.Desktop.IsCurrent || OperatingSystem.IsMacOS())
                 return;
             if (display._icon is null)
             {
@@ -72,7 +72,7 @@ public sealed unsafe class Display
         set
         {
             Game.EnsureRunning();
-            if (!Platform.Desktop.IsCurrent())
+            if (!Platform.Desktop.IsCurrent)
                 return;
             var size = value.Round();
             if (ScreenSize == size)
@@ -86,14 +86,14 @@ public sealed unsafe class Display
         get
         {
             Game.EnsureRunning();
-            if (Platform.Desktop.IsCurrent() && Fullscreen)
+            if (Platform.Desktop.IsCurrent && Fullscreen)
                 return Raylib.GetMonitorWidth(Raylib.GetCurrentMonitor());
             return Raylib.GetScreenWidth();
         }
         set
         {
             Game.EnsureRunning();
-            if (!Platform.Desktop.IsCurrent())
+            if (!Platform.Desktop.IsCurrent)
                 return;
             if (ScreenWidth == value)
                 return;
@@ -106,14 +106,14 @@ public sealed unsafe class Display
         get
         {
             Game.EnsureRunning();
-            if (Platform.Desktop.IsCurrent() && Fullscreen)
+            if (Platform.Desktop.IsCurrent && Fullscreen)
                 return Raylib.GetMonitorHeight(Raylib.GetCurrentMonitor());
             return Raylib.GetScreenHeight();
         }
         set
         {
             Game.EnsureRunning();
-            if (!Platform.Desktop.IsCurrent())
+            if (!Platform.Desktop.IsCurrent)
                 return;
             if (ScreenHeight == value)
                 return;
@@ -131,7 +131,7 @@ public sealed unsafe class Display
             if (value == display._config.MinScreenSize)
                 return;
             display._config.MinScreenSize = value;
-            if (Platform.Desktop.IsCurrent())
+            if (Platform.Desktop.IsCurrent)
                 Raylib.SetWindowMinSize((int)(value?.X ?? 0), (int)(value?.Y ?? 0));
         }
     }
@@ -146,7 +146,7 @@ public sealed unsafe class Display
             if (value == display._config.MaxScreenSize)
                 return;
             display._config.MaxScreenSize = value;
-            if (Platform.Desktop.IsCurrent())
+            if (Platform.Desktop.IsCurrent)
                 Raylib.SetWindowMaxSize((int)(value?.X ?? 0), (int)(value?.Y ?? 0));
         }
     }
@@ -284,28 +284,28 @@ public sealed unsafe class Display
     public static void Maximize()
     {
         Game.EnsureRunning();
-        if (!Maximized && Platform.Desktop.IsCurrent())
+        if (!Maximized && Platform.Desktop.IsCurrent)
             Raylib.MaximizeWindow();
     }
 
     public static void Minimize()
     {
         Game.EnsureRunning();
-        if (!Minimized && Platform.Desktop.IsCurrent())
+        if (!Minimized && Platform.Desktop.IsCurrent)
             Raylib.MinimizeWindow();
     }
 
     public static void Restore()
     {
         Game.EnsureRunning();
-        if (Platform.Desktop.IsCurrent() && (Maximized || Minimized))
+        if (Platform.Desktop.IsCurrent && (Maximized || Minimized))
             Raylib.RestoreWindow();
     }
 
     public static void Focus()
     {
         Game.EnsureRunning();
-        if (Platform.Web.IsCurrent())
+        if (Platform.Web.IsCurrent)
             JSEngine.Eval("Module.canvas.focus()");
         else
             Raylib.SetWindowFocused();
@@ -314,11 +314,11 @@ public sealed unsafe class Display
     public static void ToggleFullscreen(bool resizeScreen = true)
     {
         var display = GetDisplay();
-        if (Platform.Web.IsCurrent())
+        if (Platform.Web.IsCurrent)
         {
             JSEngine.Eval(Fullscreen ? "document.exitFullscreen()" : "Module.canvas.requestFullscreen()");
         }
-        else if (Platform.Desktop.IsCurrent())
+        else if (Platform.Desktop.IsCurrent)
         {
             var monitor = Raylib.GetCurrentMonitor();
             var monitorSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
@@ -390,7 +390,7 @@ public sealed unsafe class Display
 
     private static void ToggleWindowState(ConfigFlags flag, bool value)
     {
-        if (!Platform.Desktop.IsCurrent())
+        if (!Platform.Desktop.IsCurrent)
             return;
         if (value)
         {
@@ -405,10 +405,10 @@ public sealed unsafe class Display
     {
         Raylib.SetConfigFlags(GetConfigFlags());
         var width = (int)(
-            _config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.X : _config.ScreenSize.X
+            _config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent ? _config.Size.X : _config.ScreenSize.X
         );
         var height = (int)(
-            _config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent() ? _config.Size.Y : _config.ScreenSize.Y
+            _config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent ? _config.Size.Y : _config.ScreenSize.Y
         );
         if (OperatingSystem.IsMacOS())
         {
@@ -421,9 +421,9 @@ public sealed unsafe class Display
             Raylib.InitWindow(width, height, _config.Title);
         }
 
-        if (Platform.Desktop.IsCurrent() && _config.MinScreenSize.HasValue)
+        if (Platform.Desktop.IsCurrent && _config.MinScreenSize.HasValue)
             Raylib.SetWindowMinSize((int)_config.MinScreenSize.Value.X, (int)_config.MinScreenSize.Value.Y);
-        if (Platform.Desktop.IsCurrent() && _config.MaxScreenSize.HasValue)
+        if (Platform.Desktop.IsCurrent && _config.MaxScreenSize.HasValue)
             Raylib.SetWindowMaxSize((int)_config.MaxScreenSize.Value.X, (int)_config.MaxScreenSize.Value.Y);
         if (_config.Maximized)
             Maximize();
@@ -431,7 +431,7 @@ public sealed unsafe class Display
             ToggleFullscreen(_config.ScreenSize.X <= 0 || _config.ScreenSize.Y <= 0);
         if (_config.FpsTarget > 0)
             Raylib.SetTargetFPS(_config.FpsTarget);
-        if (!Platform.Desktop.IsCurrent() || OperatingSystem.IsMacOS() || _config.Icon is null)
+        if (!Platform.Desktop.IsCurrent || OperatingSystem.IsMacOS() || _config.Icon is null)
             return;
         _icon = _config.Icon.Copy<PixelR8G8B8A8>();
         Raylib.SetWindowIcon(_icon.RImage);

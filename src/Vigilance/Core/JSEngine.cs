@@ -6,7 +6,7 @@ public static class JSEngine
 {
     public static JSResult Eval(string script)
     {
-        if (!Platform.Web.IsCurrent())
+        if (!Platform.Web.IsCurrent)
             throw new PlatformNotSupportedException();
         var ptr = Emscripten.RunScriptString(script);
         return new JSResult { Value = Marshal.PtrToStringUTF8(ptr) ?? "" };

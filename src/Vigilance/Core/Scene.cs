@@ -428,12 +428,12 @@ public sealed partial class Scene
             .Event<AddEvent>()
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse(action);
                     }
-                    : (Iter it, int i, ref T _) =>
+                    : (it, i, ref _) =>
                     {
                         action.Invoke(new Entity(it.Entity(i), this));
                     }
@@ -448,12 +448,12 @@ public sealed partial class Scene
             .Event<AddEvent>()
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse(action);
                     }
-                    : (Iter _, int _, ref T t) =>
+                    : (_, _, ref t) =>
                     {
                         action.Invoke(t);
                     }
@@ -468,12 +468,12 @@ public sealed partial class Scene
             .Event<AddEvent>()
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse(action);
                     }
-                    : (Iter it, int i, ref T t) =>
+                    : (it, i, ref t) =>
                     {
                         action.Invoke(new Entity(it.Entity(i), this), t);
                     }
@@ -492,12 +492,12 @@ public sealed partial class Scene
             .Event<SetEvent>()
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse<T>(action);
                     }
-                    : (Iter it, int i, ref T _) =>
+                    : (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         action.Invoke(entity);
@@ -513,12 +513,12 @@ public sealed partial class Scene
             .Event<SetEvent>()
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse(action);
                     }
-                    : (Iter _, int _, ref T t) =>
+                    : (_, _, ref t) =>
                     {
                         action.Invoke(t);
                     }
@@ -533,12 +533,12 @@ public sealed partial class Scene
             .Event<SetEvent>()
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse(action);
                     }
-                    : (Iter it, int i, ref T t) =>
+                    : (it, i, ref t) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         action.Invoke(entity, t);
@@ -558,12 +558,12 @@ public sealed partial class Scene
             .Event(Ecs.OnSet)
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse<T>(action);
                     }
-                    : (Iter it, int i, ref T _) =>
+                    : (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         action.Invoke(entity);
@@ -579,12 +579,12 @@ public sealed partial class Scene
             .Event(Ecs.OnSet)
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse(action);
                     }
-                    : (Iter _, int _, ref T t) =>
+                    : (_, _, ref t) =>
                     {
                         action.Invoke(t);
                     }
@@ -599,12 +599,12 @@ public sealed partial class Scene
             .Event(Ecs.OnSet)
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse(action);
                     }
-                    : (Iter it, int i, ref T t) =>
+                    : (it, i, ref t) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         action.Invoke(entity, t);
@@ -624,12 +624,12 @@ public sealed partial class Scene
             .Event(Ecs.OnRemove)
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse(action);
                     }
-                    : (Iter it, int i, ref T _) =>
+                    : (it, i, ref _) =>
                     {
                         action.Invoke(new Entity(it.Entity(i), this));
                     }
@@ -644,12 +644,12 @@ public sealed partial class Scene
             .Event(Ecs.OnRemove)
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse(action);
                     }
-                    : (Iter _, int _, ref T t) =>
+                    : (_, _, ref t) =>
                     {
                         action.Invoke(t);
                     }
@@ -664,12 +664,12 @@ public sealed partial class Scene
             .Event(Ecs.OnRemove)
             .Each(
                 traverse
-                    ? (Iter it, int i, ref T _) =>
+                    ? (it, i, ref _) =>
                     {
                         var entity = new Entity(it.Entity(i), this);
                         entity.Traverse(action);
                     }
-                    : (Iter it, int i, ref T t) =>
+                    : (it, i, ref t) =>
                     {
                         action.Invoke(new Entity(it.Entity(i), this), t);
                     }

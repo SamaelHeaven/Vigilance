@@ -93,36 +93,6 @@ public abstract class UIElement : IDeepCloneable
 
     public bool MouseInside { get; private set; }
 
-    public Action<UIEvent> OnUpdate
-    {
-        init => OnUpdateEvent += value;
-    }
-
-    public Action<UIEvent> OnClick
-    {
-        init => OnClickEvent += value;
-    }
-
-    public Action<UIEvent> OnPress
-    {
-        init => OnPressEvent += value;
-    }
-
-    public Action<UIEvent> OnRelease
-    {
-        init => OnReleaseEvent += value;
-    }
-
-    public Action<UIEvent> OnMouseEnter
-    {
-        init => OnMouseEnterEvent += value;
-    }
-
-    public Action<UIEvent> OnMouseLeave
-    {
-        init => OnMouseLeaveEvent += value;
-    }
-
     public CameraProvider Camera { get; set; } = Core.Camera.Null;
 
     public UIParent? Parent { get; internal set; }
@@ -699,10 +669,43 @@ public abstract class UIElement : IDeepCloneable
 
 public static class UIElementExtensions
 {
-    public static T Ref<T>(this T self, out T element)
+    extension<T>(T element)
         where T : UIElement
     {
-        element = self;
-        return element;
+        public Action<UIEvent<T>> OnUpdate
+        {
+            set => element.OnUpdateEvent += e => value(e);
+        }
+
+        public Action<UIEvent<T>> OnClick
+        {
+            set => element.OnClickEvent += e => value(e);
+        }
+
+        public Action<UIEvent<T>> OnPress
+        {
+            set => element.OnPressEvent += e => value(e);
+        }
+
+        public Action<UIEvent<T>> OnRelease
+        {
+            set => element.OnReleaseEvent += e => value(e);
+        }
+
+        public Action<UIEvent<T>> OnMouseEnter
+        {
+            set => element.OnMouseEnterEvent += e => value(e);
+        }
+
+        public Action<UIEvent<T>> OnMouseLeave
+        {
+            set => element.OnMouseLeaveEvent += e => value(e);
+        }
+
+        public T Ref(out T el)
+        {
+            el = element;
+            return el;
+        }
     }
 }
