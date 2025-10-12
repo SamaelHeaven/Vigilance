@@ -338,7 +338,7 @@ public sealed partial class Scene
     {
         _beginRenderAction?.Invoke();
         if (_renderAction is not null)
-            foreach (var entity in Entities.WithDisabled().OrderBy(e => e.Order))
+            foreach (var entity in Entities.WithDisabled().AsEnumerable().AsValueEnumerable().OrderBy(e => e.Order))
                 _renderAction.Invoke(entity);
         _endRenderAction?.Invoke();
     }
