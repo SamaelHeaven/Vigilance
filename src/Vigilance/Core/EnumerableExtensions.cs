@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using ZLinq;
 
 namespace Vigilance.Core;
 
@@ -11,7 +12,7 @@ public static class EnumerableExtensions
             T[] array => array,
             List<T> list => CollectionsMarshal.AsSpan(list),
             IReadOnlySpan<T> span => span.AsSpan(),
-            _ => enumerable.ToArray(),
+            _ => enumerable.AsValueEnumerable().ToArray(),
         };
     }
 }
