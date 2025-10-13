@@ -1,8 +1,8 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
 using Raylib_cs.BleedingEdge;
+using Vigilance.Logging;
 
 namespace Vigilance.Core;
 
@@ -35,12 +35,16 @@ public static unsafe partial class FileSystem
 
     public static string FormatPath(string path)
     {
-        return DuplicatedSlashRegex().Replace(path.Replace('\\', '/'), "/").Trim('/');
+        path = path.Trim();
+        path = path.Replace('\\', '/');
+        while (path.Contains("//"))
+            path = path.Replace("//", "/");
+        return path.Trim('/');
     }
 
     public static string FormatResource(string resource, string @namespace = "")
     {
-        return @namespace == "" ? resource : @namespace + "." + resource;
+        return @namespace == "" ? resource : $"{@namespace}.{resource}";
     }
 
     public static bool ChangeDirectory(string path)
@@ -100,8 +104,6 @@ public static unsafe partial class FileSystem
     public static string ReadText(string path)
     {
         path = FormatPath(path);
-        if (!FileExists(path))
-            return "";
         using var buffer = path.ToUtf8Buffer();
         var bytes = Raylib.LoadFileText(buffer.AsPointer());
         var result = Marshal.PtrToStringUTF8((nint)bytes) ?? "";
@@ -125,8 +127,6 @@ public static unsafe partial class FileSystem
     public static byte[] ReadBytes(string path)
     {
         path = FormatPath(path);
-        if (!FileExists(path))
-            return Array.Empty<byte>();
         var data = Raylib.LoadFileData(path, out var bytesRead);
         var bytes = new byte[bytesRead];
         Marshal.Copy((nint)data, bytes, 0, bytesRead);
@@ -136,11 +136,14 @@ public static unsafe partial class FileSystem
 
     public static byte[] ReadResourceBytes(string resource, string? @namespace = null, Assembly? assembly = null)
     {
-        using var stream = (assembly ?? Assemblies.Game).GetManifestResourceStream(
-            FormatResource(resource, @namespace ?? WorkingNamespace)
-        );
+        resource = FormatResource(resource, @namespace ?? WorkingNamespace);
+        using var stream = (assembly ?? Assemblies.Game).GetManifestResourceStream(resource);
         if (stream is null)
+        {
+            Logger.Warning($"FILEIO: [{resource}] Failed to read resource");
             return Array.Empty<byte>();
+        }
+
         using var ms = new MemoryStream();
         stream.CopyTo(ms);
         return ms.ToArray();
@@ -173,9 +176,6 @@ public static unsafe partial class FileSystem
         Raylib.UnloadDirectoryFiles(filePathList);
         return result;
     }
-
-    [GeneratedRegex(@"(\/{2,})")]
-    private static partial Regex DuplicatedSlashRegex();
 
     [LibraryImport("raylib", StringMarshalling = StringMarshalling.Utf8)]
     private static partial long GetFileModTime(string path);
