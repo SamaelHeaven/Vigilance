@@ -10,7 +10,7 @@ public sealed unsafe class Font : IDisposable
 {
     private const int AtlasSpacing = 4;
     private const int AtlasNbCols = 10;
-    private static readonly FreeTypeLibrary FtLibrary = new();
+    private static readonly FreeTypeLibrary _ftLibrary = new();
     private static FontConfig _config = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
     private readonly Dictionary<int, (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
@@ -171,7 +171,7 @@ public sealed unsafe class Font : IDisposable
 
         fixed (FT_FaceRec_** face = &_face)
         {
-            FtEnsureOk(FT.FT_New_Memory_Face(FtLibrary.Native, (byte*)_buffer, span.Length, 0, face));
+            FtEnsureOk(FT.FT_New_Memory_Face(_ftLibrary.Native, (byte*)_buffer, span.Length, 0, face));
         }
 
         FtEnsureOk(FT.FT_Set_Char_Size(_face, 0, Quality * 64, 0, 0));
@@ -179,7 +179,7 @@ public sealed unsafe class Font : IDisposable
         _spaceSize = _face->glyph->metrics.horiAdvance.ToInt32() / 64;
         fixed (FT_StrokerRec_** stroke = &_stroker)
         {
-            FtEnsureOk(FT.FT_Stroker_New(FtLibrary.Native, stroke));
+            FtEnsureOk(FT.FT_Stroker_New(_ftLibrary.Native, stroke));
         }
 
         return Charset

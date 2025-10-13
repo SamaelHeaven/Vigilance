@@ -5,34 +5,31 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class Renderer
+public static class Renderer
 {
-    private static Renderer? _renderer;
-    private readonly RenderTexture? _buffer;
-    private readonly Graphics _graphics;
-    private Vector2 _offset;
-    private Vector2 _scale;
+    private static readonly RenderTexture? _buffer;
+    private static Vector2 _offset;
+    private static Vector2 _scale;
 
-    private Renderer()
+    static Renderer()
     {
         Game.EnsureRunning();
         var mode = Display.RenderingMode;
         if (mode.Type == RenderingModeType.Buffer)
             _buffer = new RenderTexture(Display.Size, mode.Scale);
-        _graphics = new Graphics(_buffer);
+        Graphics = new Graphics(_buffer);
     }
 
-    public static Graphics Graphics => GetRenderer()._graphics;
+    public static Graphics Graphics { get; }
 
-    public static Vector2 Offset => GetRenderer()._offset;
+    public static Vector2 Offset => _offset;
 
-    public static Vector2 Scale => GetRenderer()._scale;
+    public static Vector2 Scale => _scale;
 
     internal static void BeginDrawing()
     {
         Graphics.Reset();
         Raylib.ClearBackground(Display.Background.RColor);
-        var renderer = GetRenderer();
         var screenWidth = (float)Display.ScreenWidth;
         var screenHeight = (float)Display.ScreenHeight;
         var width = Display.Width;
@@ -42,7 +39,7 @@ public sealed class Renderer
         var minScale = scaleX.Min(scaleY);
         var maxScale = scaleX.Max(scaleY);
         var viewport = Display.Viewport;
-        renderer._scale = viewport switch
+        _scale = viewport switch
         {
             Viewport.Fit => new Vector2(minScale),
             Viewport.Stretch => new Vector2(scaleX, scaleY),
@@ -53,7 +50,7 @@ public sealed class Renderer
                 typeof(Viewport)
             ),
         };
-        renderer._offset = (
+        _offset = (
             Display.Viewport switch
             {
                 Viewport.Fit => new Vector2(
@@ -76,19 +73,18 @@ public sealed class Renderer
 
     internal static void EndDrawing()
     {
-        var renderer = GetRenderer();
         var screenWidth = Display.ScreenWidth;
         var screenHeight = Display.ScreenHeight;
         var width = Display.Width;
         var height = Display.Height;
-        var scaleX = renderer._scale.X;
-        var scaleY = renderer._scale.Y;
-        var offsetX = (int)renderer._offset.X;
-        var offsetY = (int)renderer._offset.Y;
+        var scaleX = _scale.X;
+        var scaleY = _scale.Y;
+        var offsetX = (int)_offset.X;
+        var offsetY = (int)_offset.Y;
         var background = Display.Background.RColor;
         var mode = Display.RenderingMode;
         Graphics.Reset();
-        if (renderer._buffer is null)
+        if (_buffer is null)
         {
             Raylib.DrawRectangle(0, 0, offsetX, screenHeight, background);
             Raylib.DrawRectangle(screenWidth - offsetX, 0, offsetX, screenHeight, background);
@@ -97,7 +93,7 @@ public sealed class Renderer
         }
         else
         {
-            var texture = renderer._buffer.Texture.Texture2D;
+            var texture = _buffer.Texture.Texture2D;
             var source = new Raylib_cs.BleedingEdge.Rectangle(0, 0, texture.Width, -texture.Height);
             var dest = new Raylib_cs.BleedingEdge.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
             Raylib.SetTextureFilter(texture, (TextureFilter)mode.Interpolation);
@@ -106,10 +102,5 @@ public sealed class Renderer
 
         Graphics.DrawCurrentBuffer();
         Raylib.SwapScreenBuffer();
-    }
-
-    private static Renderer GetRenderer()
-    {
-        return _renderer ??= new Renderer();
     }
 }

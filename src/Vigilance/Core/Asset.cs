@@ -7,11 +7,11 @@ namespace Vigilance.Core;
 
 public static class Asset
 {
-    private static readonly Container<string, Texture> TextureContainer = new();
-    private static readonly Container<string, Image> ImageContainer = new();
-    private static readonly Container<(string Key, int Quality, string Charset), Font> FontContainer = new();
-    private static readonly Container<string, Music> MusicContainer = new();
-    private static readonly Container<(string Key, int MaxAliases), Sound> SoundContainer = new();
+    private static readonly Container<string, Texture> _textureContainer = new();
+    private static readonly Container<string, Image> _imageContainer = new();
+    private static readonly Container<(string Key, int Quality, string Charset), Font> _fontContainer = new();
+    private static readonly Container<string, Music> _musicContainer = new();
+    private static readonly Container<(string Key, int MaxAliases), Sound> _soundContainer = new();
     private static AssetConfig _config = new();
 
     public static CacheType DefaultCacheType
@@ -28,7 +28,7 @@ public static class Asset
 
     public static Texture TextureFile(string path, CacheType? cacheType = null)
     {
-        return TextureContainer.File(
+        return _textureContainer.File(
             ref path,
             () => path,
             bytes => new Texture(Path.GetExtension(path), bytes),
@@ -43,7 +43,7 @@ public static class Asset
         CacheType? cacheType = null
     )
     {
-        return TextureContainer.Resource(
+        return _textureContainer.Resource(
             ref resource,
             @namespace,
             assembly,
@@ -55,12 +55,17 @@ public static class Asset
 
     public static void InvalidateTexture(Texture texture)
     {
-        TextureContainer.Invalidate(texture);
+        _textureContainer.Invalidate(texture);
     }
 
     public static Image ImageFile(string path, CacheType? cacheType = null)
     {
-        return ImageContainer.File(ref path, () => path, bytes => new Image(Path.GetExtension(path), bytes), cacheType);
+        return _imageContainer.File(
+            ref path,
+            () => path,
+            bytes => new Image(Path.GetExtension(path), bytes),
+            cacheType
+        );
     }
 
     public static Image ImageResource(
@@ -70,7 +75,7 @@ public static class Asset
         CacheType? cacheType = null
     )
     {
-        return ImageContainer.Resource(
+        return _imageContainer.Resource(
             ref resource,
             @namespace,
             assembly,
@@ -82,12 +87,12 @@ public static class Asset
 
     public static void InvalidateImage(Image image)
     {
-        ImageContainer.Invalidate(image);
+        _imageContainer.Invalidate(image);
     }
 
     public static Font FontFile(string path, int? quality = null, string? charset = null, CacheType? cacheType = null)
     {
-        return FontContainer.File(
+        return _fontContainer.File(
             ref path,
             () => (path, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
             bytes => new Font(bytes, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
@@ -104,7 +109,7 @@ public static class Asset
         CacheType? cacheType = null
     )
     {
-        return FontContainer.Resource(
+        return _fontContainer.Resource(
             ref resource,
             @namespace,
             assembly,
@@ -116,12 +121,17 @@ public static class Asset
 
     public static void InvalidateFont(Font font)
     {
-        FontContainer.Invalidate(font);
+        _fontContainer.Invalidate(font);
     }
 
     public static Music MusicFile(string path, CacheType? cacheType = null)
     {
-        return MusicContainer.File(ref path, () => path, bytes => new Music(Path.GetExtension(path), bytes), cacheType);
+        return _musicContainer.File(
+            ref path,
+            () => path,
+            bytes => new Music(Path.GetExtension(path), bytes),
+            cacheType
+        );
     }
 
     public static Music MusicResource(
@@ -131,7 +141,7 @@ public static class Asset
         CacheType? cacheType = null
     )
     {
-        return MusicContainer.Resource(
+        return _musicContainer.Resource(
             ref resource,
             @namespace,
             assembly,
@@ -143,12 +153,12 @@ public static class Asset
 
     public static void InvalidateMusic(Music music)
     {
-        MusicContainer.Invalidate(music);
+        _musicContainer.Invalidate(music);
     }
 
     public static Sound SoundFile(string path, int? maxAliases = null, CacheType? cacheType = null)
     {
-        return SoundContainer.File(
+        return _soundContainer.File(
             ref path,
             () => (path, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
             bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
@@ -164,7 +174,7 @@ public static class Asset
         CacheType? cacheType = null
     )
     {
-        return SoundContainer.Resource(
+        return _soundContainer.Resource(
             ref resource,
             @namespace,
             assembly,
@@ -176,7 +186,7 @@ public static class Asset
 
     public static void InvalidateSound(Sound sound)
     {
-        SoundContainer.Invalidate(sound);
+        _soundContainer.Invalidate(sound);
     }
 
     private sealed class Container<TKey, TValue>

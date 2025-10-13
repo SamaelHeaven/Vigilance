@@ -7,7 +7,7 @@ namespace Vigilance.Audio;
 
 public sealed class Sound : IDisposable
 {
-    private static readonly List<Sound> Sounds = [];
+    private static readonly List<Sound> _sounds = [];
     private readonly List<(Raylib_cs.BleedingEdge.Sound Sound, double LastUsed)> _aliases = [];
     private float _pan = 0.5f;
     private float _pitch = 1;
@@ -141,8 +141,8 @@ public sealed class Sound : IDisposable
         }
 
         Raylib.PlaySound(alias);
-        if (!Sounds.Contains(this))
-            Sounds.Add(this);
+        if (!_sounds.Contains(this))
+            _sounds.Add(this);
         return this;
     }
 
@@ -156,11 +156,11 @@ public sealed class Sound : IDisposable
 
     internal static void UpdateAll()
     {
-        for (var i = Sounds.Count - 1; i >= 0; i--)
+        for (var i = _sounds.Count - 1; i >= 0; i--)
         {
-            var sound = Sounds[i];
+            var sound = _sounds[i];
             if (!sound.Playing)
-                Sounds.RemoveAt(i);
+                _sounds.RemoveAt(i);
         }
     }
 

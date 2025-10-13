@@ -8,12 +8,10 @@ namespace Vigilance.UI;
 public class UIText : UIElement
 {
     private Text _text = new();
-    private TextOverflow _textOverflow;
-    private string _value;
 
     public UIText(string value = "")
     {
-        _value = value;
+        Value = value;
     }
 
     public UIText(string value, Color fill)
@@ -24,12 +22,12 @@ public class UIText : UIElement
 
     public string Value
     {
-        get => _value;
+        get;
         set
         {
-            if (value == _value)
+            if (value == field)
                 return;
-            _value = value;
+            field = value;
             MarkDirty();
         }
     }
@@ -112,12 +110,12 @@ public class UIText : UIElement
 
     public TextOverflow TextOverflow
     {
-        get => _textOverflow;
+        get;
         set
         {
-            if (value == _textOverflow)
+            if (value == field)
                 return;
-            _textOverflow = value;
+            field = value;
             MarkDirty();
         }
     }

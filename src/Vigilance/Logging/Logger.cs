@@ -11,7 +11,7 @@ public static unsafe partial class Logger
 {
     private const int StdOutputHandle = -11;
     private const uint EnableVirtualTerminalProcessing = 0x0004;
-    private static readonly Lock LogLock = new();
+    private static readonly Lock _logLock = new();
     private static LoggingConfig _config = new();
 
     public static LogLevel LogLevel
@@ -62,7 +62,7 @@ public static unsafe partial class Logger
     {
         if (_config.LogLevel > level)
             return;
-        lock (LogLock)
+        lock (_logLock)
         {
             var message = value is Exception e
                 ? $"{e.GetType()}: {e.Message}{(e.StackTrace is null ? "" : $"\n{e.StackTrace}")}"

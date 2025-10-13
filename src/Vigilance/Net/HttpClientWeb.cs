@@ -8,7 +8,7 @@ namespace Vigilance.Net;
 
 internal sealed unsafe class HttpClientWeb : IHttpClient
 {
-    private static readonly ConcurrentDictionary<nint, HttpRequest> Requests = new();
+    private static readonly ConcurrentDictionary<nint, HttpRequest> _requests = new();
     private static long _requestId = 0;
 
     public void Fetch(HttpRequest request)
@@ -51,7 +51,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
                 attr.RequestDataSize = (nuint)(request.Body?.Length ?? 0);
                 attr.OnSuccess = &OnFetchComplete;
                 attr.OnError = &OnFetchComplete;
-                Requests[id] = request;
+                _requests[id] = request;
                 Emscripten.Fetch(ref attr, request.Url);
             }
         }
@@ -108,8 +108,8 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         finally
         {
             Emscripten.FetchClose(fetch);
-            Http.CompleteFetch(Requests[id], response);
-            Requests.Remove(id, out _);
+            Http.CompleteFetch(_requests[id], response);
+            _requests.Remove(id, out _);
         }
     }
 }

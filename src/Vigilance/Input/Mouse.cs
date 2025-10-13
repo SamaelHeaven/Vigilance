@@ -5,38 +5,34 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Input;
 
-public sealed class Mouse
+public static class Mouse
 {
-    private static readonly MouseButton[] ButtonValues = Enum.GetValues<MouseButton>();
-    private static Mouse? _mouse;
-    private readonly List<MouseButton> _currentButtons = [];
-    private readonly List<MouseButton> _downButtons = [];
-    private readonly List<MouseButton> _pressedButtons = [];
-    private readonly List<MouseButton> _releasedButtons = [];
-    private readonly List<MouseButton> _upButtons = [];
-    private Cursor _cursor = Cursor.Default;
-    private Vector2 _screenPosition = Vector2.Zero;
-    private Vector2 _scroll = Vector2.Zero;
+    private static readonly MouseButton[] _buttonValues = Enum.GetValues<MouseButton>();
+    private static readonly List<MouseButton> _currentButtons = [];
+    private static readonly List<MouseButton> _downButtons = [];
+    private static readonly List<MouseButton> _pressedButtons = [];
+    private static readonly List<MouseButton> _releasedButtons = [];
+    private static readonly List<MouseButton> _upButtons = [];
+    private static Vector2 _screenPosition = Vector2.Zero;
+    private static Vector2 _scroll = Vector2.Zero;
 
     static Mouse()
     {
         Game.EnsureRunning();
     }
 
-    private Mouse() { }
-
-    public static ListView<MouseButton> DownButtons => GetMouse()._downButtons;
-    public static ListView<MouseButton> UpButtons => GetMouse()._upButtons;
-    public static ListView<MouseButton> PressedButtons => GetMouse()._pressedButtons;
-    public static ListView<MouseButton> ReleasedButtons => GetMouse()._releasedButtons;
+    public static ListView<MouseButton> DownButtons => _downButtons;
+    public static ListView<MouseButton> UpButtons => _upButtons;
+    public static ListView<MouseButton> PressedButtons => _pressedButtons;
+    public static ListView<MouseButton> ReleasedButtons => _releasedButtons;
 
     public static bool OnScreen => Raylib.IsCursorOnScreen();
 
-    public static Vector2 Scroll => GetMouse()._scroll;
+    public static Vector2 Scroll => _scroll;
 
     public static Vector2 Position
     {
-        get => Coordinates.ScreenToLocal(GetMouse()._screenPosition).Clamp(Vector2.Zero, Display.Size);
+        get => Coordinates.ScreenToLocal(_screenPosition).Clamp(Vector2.Zero, Display.Size);
         set
         {
             value = value.Clamp(Vector2.Zero, Display.Size);
@@ -52,97 +48,89 @@ public sealed class Mouse
 
     public static Vector2 ScreenPosition
     {
-        get => GetMouse()._screenPosition;
+        get => _screenPosition;
         set
         {
-            var mouse = GetMouse();
             if (!Display.Focused)
                 return;
             value = value.Clamp(Vector2.Zero, Display.ScreenSize).Round();
-            if (Precision.AreEqual(mouse._screenPosition, value))
+            if (Precision.AreEqual(_screenPosition, value))
                 return;
-            mouse._screenPosition = value;
+            _screenPosition = value;
             Raylib.SetMousePosition((int)value.X, (int)value.Y);
         }
     }
 
     public static Cursor Cursor
     {
-        get => GetMouse()._cursor;
+        get;
         set
         {
-            var mouse = GetMouse();
-            if (value == mouse._cursor)
+            if (value == field)
                 return;
             if (value == Cursor.None)
             {
                 Raylib.HideCursor();
-                mouse._cursor = value;
+                field = value;
                 return;
             }
 
-            if (mouse._cursor == Cursor.None)
+            if (field == Cursor.None)
                 Raylib.ShowCursor();
             Raylib.SetMouseCursor((MouseCursor)value);
-            mouse._cursor = value;
+            field = value;
         }
-    }
+    } = Cursor.Default;
 
     public static bool IsButtonDown(MouseButton button)
     {
-        return GetMouse()._downButtons.Contains(button);
+        return _downButtons.Contains(button);
     }
 
     public static bool IsButtonUp(MouseButton button)
     {
-        return GetMouse()._upButtons.Contains(button);
+        return _upButtons.Contains(button);
     }
 
     public static bool IsButtonPressed(MouseButton button)
     {
-        return GetMouse()._pressedButtons.Contains(button);
+        return _pressedButtons.Contains(button);
     }
 
     public static bool IsButtonReleased(MouseButton button)
     {
-        return GetMouse()._releasedButtons.Contains(button);
-    }
-
-    private static Mouse GetMouse()
-    {
-        return _mouse ??= new Mouse();
+        return _releasedButtons.Contains(button);
     }
 
     internal static void Update()
     {
-        var mouse = GetMouse();
         if (!Display.Focused)
         {
-            mouse.Reset();
+            Reset();
             return;
         }
 
-        mouse.UpdateState();
+        UpdateState();
     }
 
-    private void Reset()
+    private static void Reset()
     {
         _downButtons.Clear();
         _upButtons.Clear();
-        _upButtons.AddRange(ButtonValues);
+        _upButtons.AddRange(_buttonValues);
         _pressedButtons.Clear();
         _releasedButtons.Clear();
         _scroll = Vector2.Zero;
     }
 
-    private void UpdateState()
+    private static void UpdateState()
     {
         _screenPosition = ((Vector2)Raylib.GetMousePosition()).Clamp(Vector2.Zero, Display.ScreenSize).Round();
         _scroll = Raylib.GetMouseWheelMoveV();
         if (Platform.Web.IsCurrent)
             _scroll.X = -_scroll.X;
         _currentButtons.Clear();
-        foreach (var button in ButtonValues)
+        foreach (var button in _buttonValues)
             if (Raylib.IsMouseButtonDown((Raylib_cs.BleedingEdge.MouseButton)button))
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
@@ -154,7 +142,7 @@ public sealed class Mouse
         _downButtons.Clear();
         _downButtons.AddRange(_currentButtons);
         _upButtons.Clear();
-        _upButtons.AddRange(ButtonValues);
+        _upButtons.AddRange(_buttonValues);
         _upButtons.RemoveAll(_currentButtons.Contains);
     }
 }

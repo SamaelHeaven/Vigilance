@@ -7,71 +7,61 @@ using PixelFormat = Raylib_cs.BleedingEdge.PixelFormat;
 
 namespace Vigilance.Core;
 
-public sealed unsafe class Display
+public static unsafe class Display
 {
-    private static Display? _display;
-    private DisplayConfig _config = null!;
-    private Image? _icon;
-    private Box _previousScreen;
-    private bool _resetScreen;
+    private static DisplayConfig _config = null!;
+    private static Image? _icon;
+    private static Box _previousScreen;
+    private static bool _resetScreen;
 
-    private Display()
+    static Display()
     {
         Game.EnsureRunning();
     }
 
     public static string Title
     {
-        get => GetDisplay()._config.Title;
+        get => _config.Title;
         set
         {
-            GetDisplay()._config.Title = value;
+            _config.Title = value;
             Raylib.SetWindowTitle(value);
         }
     }
 
     public static Image? Icon
     {
-        get => GetDisplay()._icon;
+        get => _icon;
         set
         {
-            var display = GetDisplay();
-            if (display._icon == value)
+            if (_icon == value)
                 return;
-            display._icon = value?.Copy<PixelR8G8B8A8>();
+            _icon = value?.Copy<PixelR8G8B8A8>();
             if (!Platform.Desktop.IsCurrent || OperatingSystem.IsMacOS())
                 return;
-            if (display._icon is null)
+            if (_icon is null)
             {
                 Raylib.SetWindowIcons(ReadOnlySpan<Raylib_cs.BleedingEdge.Image>.Empty);
                 return;
             }
 
-            Raylib.SetWindowIcon(display._icon.RImage);
+            Raylib.SetWindowIcon(_icon.RImage);
         }
     }
 
-    public static Vector2 Size => GetDisplay()._config.Size;
+    public static Vector2 Size => _config.Size;
 
-    public static float Width => GetDisplay()._config.Size.X;
+    public static float Width => _config.Size.X;
 
-    public static float Height => GetDisplay()._config.Size.Y;
+    public static float Height => _config.Size.Y;
 
-    public static int RefreshRate
-    {
-        get
-        {
-            Game.EnsureRunning();
-            return Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor());
-        }
-    }
+    public static int RefreshRate => Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor());
 
     public static Vector2 ScreenSize
     {
         get => new(ScreenWidth, ScreenHeight);
         set
         {
-            Game.EnsureRunning();
             if (!Platform.Desktop.IsCurrent)
                 return;
             var size = value.Round();
@@ -85,14 +75,12 @@ public sealed unsafe class Display
     {
         get
         {
-            Game.EnsureRunning();
             if (Platform.Desktop.IsCurrent && Fullscreen)
                 return Raylib.GetMonitorWidth(Raylib.GetCurrentMonitor());
             return Raylib.GetScreenWidth();
         }
         set
         {
-            Game.EnsureRunning();
             if (!Platform.Desktop.IsCurrent)
                 return;
             if (ScreenWidth == value)
@@ -105,14 +93,12 @@ public sealed unsafe class Display
     {
         get
         {
-            Game.EnsureRunning();
             if (Platform.Desktop.IsCurrent && Fullscreen)
                 return Raylib.GetMonitorHeight(Raylib.GetCurrentMonitor());
             return Raylib.GetScreenHeight();
         }
         set
         {
-            Game.EnsureRunning();
             if (!Platform.Desktop.IsCurrent)
                 return;
             if (ScreenHeight == value)
@@ -123,14 +109,14 @@ public sealed unsafe class Display
 
     public static Vector2? MinScreenSize
     {
-        get => GetDisplay()._config.MinScreenSize;
+        get => _config.MinScreenSize;
         set
         {
             value = value?.Round();
-            var display = GetDisplay();
-            if (value == display._config.MinScreenSize)
+
+            if (value == _config.MinScreenSize)
                 return;
-            display._config.MinScreenSize = value;
+            _config.MinScreenSize = value;
             if (Platform.Desktop.IsCurrent)
                 Raylib.SetWindowMinSize((int)(value?.X ?? 0), (int)(value?.Y ?? 0));
         }
@@ -138,14 +124,14 @@ public sealed unsafe class Display
 
     public static Vector2? MaxScreenSize
     {
-        get => GetDisplay()._config.MaxScreenSize;
+        get => _config.MaxScreenSize;
         set
         {
             value = value?.Round();
-            var display = GetDisplay();
-            if (value == display._config.MaxScreenSize)
+
+            if (value == _config.MaxScreenSize)
                 return;
-            display._config.MaxScreenSize = value;
+            _config.MaxScreenSize = value;
             if (Platform.Desktop.IsCurrent)
                 Raylib.SetWindowMaxSize((int)(value?.X ?? 0), (int)(value?.Y ?? 0));
         }
@@ -153,33 +139,28 @@ public sealed unsafe class Display
 
     public static Viewport Viewport
     {
-        get => GetDisplay()._config.Viewport;
-        set
-        {
-            Game.EnsureRunning();
-            Game.Defer(() => GetDisplay()._config.Viewport = value);
-        }
+        get => _config.Viewport;
+        set { Game.Defer(() => _config.Viewport = value); }
     }
 
-    public static RenderingMode RenderingMode => GetDisplay()._config.RenderingMode;
+    public static RenderingMode RenderingMode => _config.RenderingMode;
 
     public static Color Background
     {
-        get => GetDisplay()._config.Background;
-        set => GetDisplay()._config.Background = value;
+        get => _config.Background;
+        set => _config.Background = value;
     }
 
     public static int FpsTarget
     {
-        get => GetDisplay()._config.FpsTarget;
+        get => _config.FpsTarget;
         set
         {
-            var display = GetDisplay();
             if (value < 1)
                 value = 0;
             if (value == FpsTarget)
                 return;
-            display._config.FpsTarget = value;
+            _config.FpsTarget = value;
             Raylib.SetTargetFPS(value);
         }
     }
@@ -188,7 +169,6 @@ public sealed unsafe class Display
     {
         get
         {
-            Game.EnsureRunning();
             return Game.Platform switch
             {
                 Platform.Web => JSEngine.Eval("!!document.fullscreenElement"),
@@ -202,109 +182,74 @@ public sealed unsafe class Display
         }
     }
 
-    public static bool Hidden
-    {
-        get
-        {
-            Game.EnsureRunning();
-            return Raylib.IsWindowHidden();
-        }
-    }
+    public static bool Hidden => Raylib.IsWindowHidden();
 
-    public static bool Maximized
-    {
-        get
-        {
-            Game.EnsureRunning();
-            return Raylib.IsWindowMaximized();
-        }
-    }
+    public static bool Maximized => Raylib.IsWindowMaximized();
 
-    public static bool Minimized
-    {
-        get
-        {
-            Game.EnsureRunning();
-            return Raylib.IsWindowMinimized();
-        }
-    }
+    public static bool Minimized => Raylib.IsWindowMinimized();
 
     public static bool Decorated
     {
-        get => GetDisplay()._config.Decorated;
+        get => _config.Decorated;
         set
         {
-            var display = GetDisplay();
-            if (value == display._config.Decorated)
+            if (value == _config.Decorated)
                 return;
-            display._config.Decorated = value;
+            _config.Decorated = value;
             ToggleWindowState(ConfigFlags.WindowUndecorated, !value);
         }
     }
 
     public static bool Vsync
     {
-        get => GetDisplay()._config.Vsync;
+        get => _config.Vsync;
         set
         {
-            var display = GetDisplay();
-            if (value == display._config.Vsync)
+            if (value == _config.Vsync)
                 return;
-            display._config.Vsync = value;
+            _config.Vsync = value;
             ToggleWindowState(ConfigFlags.VSyncHint, value);
         }
     }
 
     public static bool Resizable
     {
-        get => GetDisplay()._config.Resizable;
+        get => _config.Resizable;
         set
         {
-            var display = GetDisplay();
-            if (value == display._config.Resizable)
+            if (value == _config.Resizable)
                 return;
-            display._config.Resizable = value;
+            _config.Resizable = value;
             ToggleWindowState(ConfigFlags.WindowResizable, value);
         }
     }
 
-    public static bool RunMinimized => GetDisplay()._config.RunMinimized;
+    public static bool RunMinimized => _config.RunMinimized;
 
-    public static bool Msaa4X => GetDisplay()._config.Msaa4X;
+    public static bool Msaa4X => _config.Msaa4X;
 
-    public static bool Focused
-    {
-        get
-        {
-            Game.EnsureRunning();
-            return Raylib.IsWindowFocused();
-        }
-    }
+    public static bool Focused => Raylib.IsWindowFocused();
 
     public static void Maximize()
     {
-        Game.EnsureRunning();
         if (!Maximized && Platform.Desktop.IsCurrent)
             Raylib.MaximizeWindow();
     }
 
     public static void Minimize()
     {
-        Game.EnsureRunning();
         if (!Minimized && Platform.Desktop.IsCurrent)
             Raylib.MinimizeWindow();
     }
 
     public static void Restore()
     {
-        Game.EnsureRunning();
         if (Platform.Desktop.IsCurrent && (Maximized || Minimized))
             Raylib.RestoreWindow();
     }
 
     public static void Focus()
     {
-        Game.EnsureRunning();
         if (Platform.Web.IsCurrent)
             JSEngine.Eval("Module.canvas.focus()");
         else
@@ -313,7 +258,6 @@ public sealed unsafe class Display
 
     public static void ToggleFullscreen(bool resizeScreen = true)
     {
-        var display = GetDisplay();
         if (Platform.Web.IsCurrent)
         {
             JSEngine.Eval(Fullscreen ? "document.exitFullscreen()" : "Module.canvas.requestFullscreen()");
@@ -324,11 +268,11 @@ public sealed unsafe class Display
             var monitorSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
             if (Fullscreen)
             {
-                display._resetScreen = resizeScreen;
+                _resetScreen = resizeScreen;
             }
             else
             {
-                display._previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
+                _previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
                 if (OperatingSystem.IsMacOS() && !Raylib.IsWindowMaximized())
                     Raylib.MaximizeWindow();
                 if (resizeScreen)
@@ -367,25 +311,18 @@ public sealed unsafe class Display
 
     internal static void Initialize()
     {
-        var display = GetDisplay();
-        display._config = Game.Config.Take<DisplayConfig>() ?? new DisplayConfig();
-        display.InitializeWindow();
+        _config = Game.Config.Take<DisplayConfig>() ?? new DisplayConfig();
+        InitializeWindow();
     }
 
     internal static void Update()
     {
-        var display = GetDisplay();
-        display.UpdateSize();
+        UpdateSize();
     }
 
     internal static void Dispose()
     {
         Raylib.CloseWindow();
-    }
-
-    private static Display GetDisplay()
-    {
-        return _display ??= new Display();
     }
 
     private static void ToggleWindowState(ConfigFlags flag, bool value)
@@ -401,7 +338,7 @@ public sealed unsafe class Display
         Raylib.ClearWindowState(flag);
     }
 
-    private void InitializeWindow()
+    private static void InitializeWindow()
     {
         Raylib.SetConfigFlags(GetConfigFlags());
         var width = (int)(
@@ -437,7 +374,7 @@ public sealed unsafe class Display
         Raylib.SetWindowIcon(_icon.RImage);
     }
 
-    private ConfigFlags GetConfigFlags()
+    private static ConfigFlags GetConfigFlags()
     {
         ConfigFlags flags = 0;
         if (_config.Resizable)
@@ -455,7 +392,7 @@ public sealed unsafe class Display
         return flags;
     }
 
-    private void UpdateSize()
+    private static void UpdateSize()
     {
         if (!_resetScreen)
             return;

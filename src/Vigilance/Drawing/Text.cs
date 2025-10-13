@@ -6,12 +6,7 @@ namespace Vigilance.Drawing;
 
 public sealed class Text : IFullCloneable
 {
-    private Font _font = Font.Default;
-    private float _fontSize = Font.DefaultSize;
-    private TextHeightMode _heightMode = Font.DefaultTextHeightMode;
     private Vector2? _sizeCache = null;
-    private Vector2 _spacing = Font.DefaultTextSpacing;
-    private string _value = "";
 
     public Text() { }
 
@@ -35,65 +30,65 @@ public sealed class Text : IFullCloneable
 
     public string Value
     {
-        get => _value;
+        get;
         set
         {
-            if (_value == value)
+            if (field == value)
                 return;
-            _value = value;
+            field = value;
             _sizeCache = null;
         }
-    }
+    } = "";
 
     public Font Font
     {
-        get => _font;
+        get;
         set
         {
-            if (_font == value)
+            if (field == value)
                 return;
-            _font = value;
+            field = value;
             _sizeCache = null;
         }
-    }
+    } = Font.Default;
 
     public float FontSize
     {
-        get => _fontSize;
+        get;
         set
         {
-            if (Precision.AreEqual(_fontSize, value))
+            if (Precision.AreEqual(field, value))
                 return;
-            _fontSize = value;
+            field = value;
             _sizeCache = null;
         }
-    }
+    } = Font.DefaultSize;
 
     public Vector2 Spacing
     {
-        get => _spacing;
+        get;
         set
         {
-            if (Precision.AreEqual(_spacing, value))
+            if (Precision.AreEqual(field, value))
                 return;
-            _spacing = value;
+            field = value;
             _sizeCache = null;
         }
-    }
+    } = Font.DefaultTextSpacing;
 
     public TextHeightMode HeightMode
     {
-        get => _heightMode;
+        get;
         set
         {
-            if (_heightMode == value)
+            if (field == value)
                 return;
-            _heightMode = value;
+            field = value;
             _sizeCache = null;
         }
-    }
+    } = Font.DefaultTextHeightMode;
 
-    public Vector2 Size => _sizeCache ??= _font.MeasureText(_value, _fontSize, _spacing, _heightMode);
+    public Vector2 Size => _sizeCache ??= Font.MeasureText(Value, FontSize, Spacing, HeightMode);
 
     public override string ToString()
     {

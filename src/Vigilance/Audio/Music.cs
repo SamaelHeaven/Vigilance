@@ -7,7 +7,7 @@ namespace Vigilance.Audio;
 
 public sealed class Music : IDisposable
 {
-    private static readonly List<Music> Musics = [];
+    private static readonly List<Music> _musics = [];
     private nint _buffer;
     private Raylib_cs.BleedingEdge.Music _music;
     private float _pan = 0.5f;
@@ -134,8 +134,8 @@ public sealed class Music : IDisposable
         }
 
         Raylib.PlayMusicStream(_music);
-        if (!Musics.Contains(this))
-            Musics.Add(this);
+        if (!_musics.Contains(this))
+            _musics.Add(this);
         return this;
     }
 
@@ -161,8 +161,8 @@ public sealed class Music : IDisposable
             return this;
         Paused = false;
         Raylib.ResumeMusicStream(_music);
-        if (!Musics.Contains(this))
-            Musics.Add(this);
+        if (!_musics.Contains(this))
+            _musics.Add(this);
         return this;
     }
 
@@ -174,12 +174,12 @@ public sealed class Music : IDisposable
 
     internal static void UpdateAll()
     {
-        for (var i = Musics.Count - 1; i >= 0; i--)
+        for (var i = _musics.Count - 1; i >= 0; i--)
         {
-            var music = Musics[i];
+            var music = _musics[i];
             Raylib.UpdateMusicStream(music._music);
             if (!Raylib.IsMusicStreamPlaying(music._music))
-                Musics.RemoveAt(i);
+                _musics.RemoveAt(i);
         }
     }
 

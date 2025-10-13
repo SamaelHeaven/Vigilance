@@ -8,9 +8,9 @@ public sealed class Gamepad
 {
     private const int MaxGamepads = 4;
     private const string DefaultName = "Unknown gamepad";
-    private static readonly List<Gamepad> GamepadList = GetGamepads();
-    private static readonly GamepadButton[] ButtonValues = Enum.GetValues<GamepadButton>();
-    private static readonly GamepadAxis[] AxisValues = Enum.GetValues<GamepadAxis>();
+    private static readonly List<Gamepad> _gamepadList = GetGamepads();
+    private static readonly GamepadButton[] _buttonValues = Enum.GetValues<GamepadButton>();
+    private static readonly GamepadAxis[] _axisValues = Enum.GetValues<GamepadAxis>();
     private readonly Dictionary<GamepadAxis, float> _axes;
     private readonly List<GamepadButton> _currentButtons = [];
     private readonly List<GamepadButton> _downButtons = [];
@@ -28,13 +28,13 @@ public sealed class Gamepad
             _axes.Add(axis, 0);
     }
 
-    public static ListView<Gamepad> Gamepads => GamepadList;
+    public static ListView<Gamepad> Gamepads => _gamepadList;
     public int Id { get; }
 
-    public static Gamepad First => GamepadList[0];
-    public static Gamepad Second => GamepadList[1];
-    public static Gamepad Third => GamepadList[2];
-    public static Gamepad Fourth => GamepadList[3];
+    public static Gamepad First => _gamepadList[0];
+    public static Gamepad Second => _gamepadList[1];
+    public static Gamepad Third => _gamepadList[2];
+    public static Gamepad Fourth => _gamepadList[3];
 
     public ListView<GamepadButton> DownButtons => _downButtons;
     public ListView<GamepadButton> UpButtons => _upButtons;
@@ -46,7 +46,7 @@ public sealed class Gamepad
 
     internal static void UpdateAll()
     {
-        foreach (var gamepad in GamepadList)
+        foreach (var gamepad in _gamepadList)
             gamepad.Update();
     }
 
@@ -99,7 +99,7 @@ public sealed class Gamepad
     private void Reset()
     {
         _upButtons.Clear();
-        _upButtons.AddRange(ButtonValues);
+        _upButtons.AddRange(_buttonValues);
         _downButtons.Clear();
         _pressedButtons.Clear();
         _releasedButtons.Clear();
@@ -110,7 +110,7 @@ public sealed class Gamepad
     private void UpdateState()
     {
         _currentButtons.Clear();
-        foreach (var button in ButtonValues)
+        foreach (var button in _buttonValues)
             if (IsButtonDown(Id, button))
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
@@ -122,9 +122,9 @@ public sealed class Gamepad
         _downButtons.Clear();
         _downButtons.AddRange(_currentButtons);
         _upButtons.Clear();
-        _upButtons.AddRange(ButtonValues);
+        _upButtons.AddRange(_buttonValues);
         _upButtons.RemoveAll(_currentButtons.Contains);
-        foreach (var axis in AxisValues)
+        foreach (var axis in _axisValues)
             _axes[axis] = GetGamepadAxis(Id, axis);
     }
 

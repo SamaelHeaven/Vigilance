@@ -7,19 +7,19 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Shader : IDisposable
 {
-    private static readonly string VertexHeader;
-    private static readonly string FragmentHeader;
+    private static readonly string _vertexHeader;
+    private static readonly string _fragmentHeader;
     private readonly Dictionary<string, int> _locations = new();
     internal Raylib_cs.BleedingEdge.Shader RShader;
 
     static Shader()
     {
-        VertexHeader = Game.Platform switch
+        _vertexHeader = Game.Platform switch
         {
             Platform.Desktop => "#version 120\n",
             _ => "",
         };
-        FragmentHeader = Game.Platform switch
+        _fragmentHeader = Game.Platform switch
         {
             Platform.Web => "precision mediump float;\n",
             Platform.Desktop => "#version 120\n",
@@ -42,10 +42,10 @@ public sealed unsafe class Shader : IDisposable
         RShader = Raylib.LoadShaderFromMemory(
             raw ? vertex!
                 : vertex is null ? null!
-                : $"{VertexHeader}{vertex}",
+                : $"{_vertexHeader}{vertex}",
             raw ? fragment!
                 : fragment is null ? null!
-                : $"{FragmentHeader}{fragment}"
+                : $"{_fragmentHeader}{fragment}"
         );
     }
 

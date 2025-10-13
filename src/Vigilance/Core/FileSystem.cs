@@ -8,7 +8,7 @@ namespace Vigilance.Core;
 
 public static unsafe partial class FileSystem
 {
-    private static readonly Dictionary<Assembly, string[]> ResourceNames = new();
+    private static readonly Dictionary<Assembly, string[]> _resourceNames = new();
 
     static FileSystem()
     {
@@ -73,10 +73,10 @@ public static unsafe partial class FileSystem
     public static bool ResourceExists(string resource, string? @namespace = null, Assembly? assembly = null)
     {
         assembly ??= Assemblies.Game;
-        if (ResourceNames.TryGetValue(assembly, out var names))
+        if (_resourceNames.TryGetValue(assembly, out var names))
             return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
         names = assembly.GetManifestResourceNames();
-        ResourceNames[assembly] = names;
+        _resourceNames[assembly] = names;
         return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
     }
 

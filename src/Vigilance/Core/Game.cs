@@ -14,7 +14,7 @@ public sealed unsafe class Game
 {
     private static Game? _game;
     private static Action? _quitAction = null;
-    private static readonly ConcurrentStack<Action> Actions = [];
+    private static readonly ConcurrentStack<Action> _actions = [];
     private Config _config = null!;
     private bool _quit;
     private Scene _scene = null!;
@@ -70,7 +70,7 @@ public sealed unsafe class Game
 
     public static void Defer(Action action)
     {
-        Actions.Push(action);
+        _actions.Push(action);
     }
 
     public static void OnQuit(Action action)
@@ -139,11 +139,11 @@ public sealed unsafe class Game
 
     private static void UpdateActions()
     {
-        var length = Actions.Count;
+        var length = _actions.Count;
         if (length == 0)
             return;
         var actions = new Action[length];
-        var amount = Actions.TryPopRange(actions, 0, length);
+        var amount = _actions.TryPopRange(actions, 0, length);
         for (var i = amount - 1; i >= 0; i--)
             actions[i].Invoke();
     }

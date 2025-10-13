@@ -6,11 +6,11 @@ namespace Vigilance.Net;
 
 public static class Http
 {
-    private static readonly IHttpClient Client;
+    private static readonly IHttpClient _client;
 
     static Http()
     {
-        Client = Game.Platform switch
+        _client = Game.Platform switch
         {
             Platform.Web => new HttpClientWeb(),
             _ => new HttpClientCore(),
@@ -19,7 +19,7 @@ public static class Http
 
     public static void Fetch(HttpRequest request)
     {
-        Client.Fetch(request);
+        _client.Fetch(request);
     }
 
     internal static void CompleteFetch(HttpRequest request, HttpResponse response)
