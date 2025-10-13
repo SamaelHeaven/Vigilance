@@ -1,51 +1,39 @@
 using System.Numerics;
+using System.Text.RegularExpressions;
 using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Drawing;
 
-public sealed unsafe class Shader : IDisposable
+public sealed unsafe partial class Shader : IDisposable
 {
-    private static readonly string _vertexHeader;
-    private static readonly string _fragmentHeader;
+    private static readonly Dictionary<string, string> _vertexVersions = new()
+    {
+        { "vigilance_100", Platform.Web.IsCurrent ? "\n" : "#version 120\n" },
+        { "vigilance_300", Platform.Web.IsCurrent ? "#version 300 es\n" : "#version 300\n" },
+    };
+
+    private static readonly Dictionary<string, string> _fragmentVersions = new()
+    {
+        { "vigilance_100", Platform.Web.IsCurrent ? "precision mediump float;\n" : "#version 120\n" },
+        { "vigilance_300", Platform.Web.IsCurrent ? "#version 300 es\n" : "#version 300\n" },
+    };
+
     private readonly Dictionary<string, int> _locations = new();
     internal Raylib_cs.BleedingEdge.Shader RShader;
-
-    static Shader()
-    {
-        _vertexHeader = Game.Platform switch
-        {
-            Platform.Desktop => "#version 120\n",
-            _ => "",
-        };
-        _fragmentHeader = Game.Platform switch
-        {
-            Platform.Web => "precision mediump float;\n",
-            Platform.Desktop => "#version 120\n",
-            _ => "",
-        };
-    }
 
     internal Shader(Raylib_cs.BleedingEdge.Shader shader)
     {
         RShader = shader;
     }
 
-    public Shader(string? vertex = null, string? fragment = null, bool raw = false)
+    public Shader(string? vertex = null, string? fragment = null)
     {
         Game.EnsureRunning();
-        if (vertex == "")
-            throw new ArgumentException("Vertex shader cannot be empty.", nameof(vertex));
-        if (fragment == "")
-            throw new ArgumentException("Fragment shader cannot be empty.", nameof(fragment));
         RShader = Raylib.LoadShaderFromMemory(
-            raw ? vertex!
-                : vertex is null ? null!
-                : $"{_vertexHeader}{vertex}",
-            raw ? fragment!
-                : fragment is null ? null!
-                : $"{_fragmentHeader}{fragment}"
+            FormatShader(vertex, _vertexVersions),
+            FormatShader(fragment, _fragmentVersions)
         );
     }
 
@@ -234,8 +222,26 @@ public sealed unsafe class Shader : IDisposable
         Raylib.UnloadShader(RShader);
     }
 
+    private static string FormatShader(string? shader, Dictionary<string, string> versions)
+    {
+        if (shader is null)
+            return null!;
+        return VersionRegex()
+            .Replace(
+                shader,
+                match =>
+                {
+                    var key = match.Groups[1].Value.ToLower();
+                    return versions.TryGetValue(key, out var replacement) ? replacement : match.Value;
+                }
+            );
+    }
+
     ~Shader()
     {
         Game.Defer(ReleaseUnmanagedResources);
     }
+
+    [GeneratedRegex(@"^\s*#version\s+(\S+)\s*$", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
+    private static partial Regex VersionRegex();
 }
