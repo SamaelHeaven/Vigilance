@@ -31,30 +31,33 @@ public sealed unsafe class Graphics
 
     public void DrawEntity(Entity entity)
     {
-        if (entity.Has<Rectangle>())
-            DrawRectangle(entity.WorldTransform, entity.Get<Rectangle>());
-        if (entity.Has<RectangleGradient>())
-            DrawRectangleGradient(entity.WorldTransform, entity.Get<RectangleGradient>());
-        if (entity.Has<Circle>())
-            DrawCircle(entity.WorldTransform, entity.Get<Circle>());
-        if (entity.Has<CircleGradient>())
-            DrawCircleGradient(entity.WorldTransform, entity.Get<CircleGradient>());
-        if (entity.Has<Triangle>())
-            DrawTriangle(entity.WorldTransform, entity.Get<Triangle>());
-        if (entity.Has<RegularPolygon>())
-            DrawRegularPolygon(entity.WorldTransform, entity.Get<RegularPolygon>());
-        if (entity.Has<CustomPolygon>())
-            DrawCustomPolygon(entity.WorldTransform, entity.Get<CustomPolygon>());
-        if (entity.Has<Ring>())
-            DrawRing(entity.WorldTransform, entity.Get<Ring>());
-        if (entity.Has<Line>())
-            DrawLine(entity.WorldTransform, entity.Get<Line>());
-        if (entity.Has<Text>())
-            DrawText(entity.WorldTransform, entity.Get<Text>());
-        if (entity.Has<Sprite>())
-            DrawSprite(entity.WorldTransform, entity.Get<Sprite>());
-        if (entity.Has<Grid>())
-            DrawGrid(entity.WorldTransform, entity.Get<Grid>());
+        foreach (var component in entity.Components)
+        {
+            if (component.TryGet(out Rectangle rectangle))
+                DrawRectangle(entity.WorldTransform, rectangle);
+            if (component.TryGet(out RectangleGradient rectangleGradient))
+                DrawRectangleGradient(entity.WorldTransform, rectangleGradient);
+            if (component.TryGet(out Circle circle))
+                DrawCircle(entity.WorldTransform, circle);
+            if (component.TryGet(out CircleGradient circleGradient))
+                DrawCircleGradient(entity.WorldTransform, circleGradient);
+            if (component.TryGet(out Triangle triangle))
+                DrawTriangle(entity.WorldTransform, triangle);
+            if (component.TryGet(out RegularPolygon regularPolygon))
+                DrawRegularPolygon(entity.WorldTransform, regularPolygon);
+            if (component.TryGet(out CustomPolygon customPolygon))
+                DrawCustomPolygon(entity.WorldTransform, customPolygon);
+            if (component.TryGet(out Ring ring))
+                DrawRing(entity.WorldTransform, ring);
+            if (component.TryGet(out Line line))
+                DrawLine(entity.WorldTransform, line);
+            if (component.TryGet(out Text text))
+                DrawText(entity.WorldTransform, text);
+            if (component.TryGet(out Sprite sprite))
+                DrawSprite(entity.WorldTransform, sprite);
+            if (component.TryGet(out Grid grid))
+                DrawGrid(entity.WorldTransform, grid);
+        }
     }
 
     #endregion

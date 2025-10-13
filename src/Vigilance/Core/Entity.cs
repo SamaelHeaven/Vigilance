@@ -1,9 +1,11 @@
 #pragma warning disable CS9084
 
+using System.Diagnostics;
 using System.Text;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
 using Flecs.NET.Utilities;
+using Vigilance.Logging;
 using Vigilance.Math;
 using ZLinq;
 
@@ -365,10 +367,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return _entity.Has(Ecs.ChildOf, parent.Id);
     }
 
+    [Conditional("DEBUG")]
     public void EnsureValid()
     {
         if (!_entity.IsValid())
-            throw new InvalidOperationException("Entity is not valid.");
+            Logger.Fatal($"Entity is not valid.\n{new StackTrace(true).ToString().TrimEnd()}");
     }
 
     private bool PrintMembers(StringBuilder sb)
