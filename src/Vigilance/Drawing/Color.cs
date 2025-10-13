@@ -46,59 +46,9 @@ public record struct Color
         A = a;
     }
 
-    public Color(uint hex)
-    {
-        R = (byte)((hex >> 24) & 0xff);
-        G = (byte)((hex >> 16) & 0xff);
-        B = (byte)((hex >> 8) & 0xff);
-        A = (byte)(hex & 0xff);
-    }
-
-    public Color(float hue, float saturation, float value, float alpha = 1F)
-    {
-        var k = (5.0f + hue / 60.0f) % 6;
-        var t = 4.0f - k;
-        k = t < k ? t : k;
-        k = k < 1 ? k : 1;
-        k = k > 0 ? k : 0;
-        R = (byte)((value - value * saturation * k) * 255.0f);
-        k = (3.0f + hue / 60.0f) % 6;
-        t = 4.0f - k;
-        k = t < k ? t : k;
-        k = k < 1 ? k : 1;
-        k = k > 0 ? k : 0;
-        G = (byte)((value - value * saturation * k) * 255.0f);
-        k = (1.0f + hue / 60.0f) % 6;
-        t = 4.0f - k;
-        k = t < k ? t : k;
-        k = k < 1 ? k : 1;
-        k = k > 0 ? k : 0;
-        B = (byte)((value - value * saturation * k) * 255.0f);
-        A = (byte)(255 * alpha);
-    }
-
-    public Color(string hex)
-    {
-        try
-        {
-            if (hex.StartsWith('#'))
-                hex = hex[1..];
-            if (hex.Length != 6 && hex.Length != 8)
-                throw new Exception();
-            R = Convert.ToByte(hex[..2], 16);
-            G = Convert.ToByte(hex[2..4], 16);
-            B = Convert.ToByte(hex[4..6], 16);
-            A = hex.Length == 8 ? Convert.ToByte(hex[6..8], 16) : (byte)255;
-        }
-        catch (Exception)
-        {
-            throw new ArgumentException($"Invalid hexadecimal color code: '{hex}'.");
-        }
-    }
-
     public static implicit operator Color(string hex)
     {
-        return new Color(hex);
+        return FromHex(hex);
     }
 
     public static implicit operator (byte R, byte G, byte B)(Color color)
@@ -119,6 +69,70 @@ public record struct Color
     public static implicit operator Color((byte R, byte G, byte B, byte A) rgba)
     {
         return new Color(rgba.R, rgba.G, rgba.B, rgba.A);
+    }
+
+    public static Color FromInt(uint hex)
+    {
+        return new Color
+        {
+            R = (byte)((hex >> 24) & 0xff),
+            G = (byte)((hex >> 16) & 0xff),
+            B = (byte)((hex >> 8) & 0xff),
+            A = (byte)(hex & 0xff),
+        };
+    }
+
+    public static Color FromHex(string hex)
+    {
+        try
+        {
+            if (hex.StartsWith('#'))
+                hex = hex[1..];
+            if (hex.Length != 6 && hex.Length != 8)
+                throw new Exception();
+            var result = new Color
+            {
+                R = Convert.ToByte(hex[..2], 16),
+                G = Convert.ToByte(hex[2..4], 16),
+                B = Convert.ToByte(hex[4..6], 16),
+                A = hex.Length == 8 ? Convert.ToByte(hex[6..8], 16) : (byte)255,
+            };
+            return result;
+        }
+        catch (Exception)
+        {
+            throw new ArgumentException($"Invalid hexadecimal color code: '{hex}'.");
+        }
+    }
+
+    public static Color FromHsv(float hue, float saturation, float value)
+    {
+        return FromHsva(hue, saturation, value, 1.0f);
+    }
+
+    public static Color FromHsva(float hue, float saturation, float value, float alpha)
+    {
+        var result = new Color();
+        var k = (5.0f + hue / 60.0f) % 6;
+        var t = 4.0f - k;
+        k = t < k ? t : k;
+        k = k < 1 ? k : 1;
+        k = k > 0 ? k : 0;
+        result.R = (byte)((value - value * saturation * k) * 255.0f);
+        k = (3.0f + hue / 60.0f) % 6;
+        t = 4.0f - k;
+        k = t < k ? t : k;
+        k = k < 1 ? k : 1;
+        k = k > 0 ? k : 0;
+        result.G = (byte)((value - value * saturation * k) * 255.0f);
+        k = (1.0f + hue / 60.0f) % 6;
+        t = 4.0f - k;
+        k = t < k ? t : k;
+        k = k < 1 ? k : 1;
+        k = k > 0 ? k : 0;
+        result.B = (byte)((value - value * saturation * k) * 255.0f);
+        result.A = (byte)(255 * alpha);
+        return result;
     }
 
     public readonly void Deconstruct(out byte r, out byte g, out byte b)
@@ -148,10 +162,61 @@ public record struct Color
         return $"#{R:X2}{G:X2}{B:X2}{A:X2}";
     }
 
-    public readonly int ToInt()
+    public readonly uint ToInt()
     {
-        var result = (int)(((uint)R << 24) | ((uint)G << 16) | ((uint)B << 8) | A);
-        return result;
+        return ((uint)R << 24) | ((uint)G << 16) | ((uint)B << 8) | A;
+    }
+
+    public readonly (float H, float S, float V) ToHsv()
+    {
+        (float H, float S, float V) hsv = (0, 0, 0);
+        (float R, float G, float B) rgb = (R / 255.0f, G / 255.0f, B / 255.0f);
+        var min = rgb.R < rgb.G ? rgb.R : rgb.G;
+        min = min < rgb.B ? min : rgb.B;
+        var max = rgb.R > rgb.G ? rgb.R : rgb.G;
+        max = max > rgb.B ? max : rgb.B;
+        hsv.V = max;
+        var delta = max - min;
+        if (delta < 0.00001f)
+        {
+            hsv.S = 0.0f;
+            hsv.H = 0.0f;
+            return hsv;
+        }
+
+        if (max > 0.0f)
+        {
+            hsv.S = delta / max;
+        }
+        else
+        {
+            hsv.S = 0.0f;
+            hsv.H = float.NaN;
+            return hsv;
+        }
+
+        if (rgb.R >= max)
+        {
+            hsv.H = (rgb.G - rgb.B) / delta;
+        }
+        else
+        {
+            if (rgb.G >= max)
+                hsv.H = 2.0f + (rgb.B - rgb.R) / delta;
+            else
+                hsv.H = 4.0f + (rgb.R - rgb.G) / delta;
+        }
+
+        hsv.H *= 60.0f;
+        if (hsv.H < 0.0f)
+            hsv.H += 360.0f;
+        return hsv;
+    }
+
+    public readonly (float H, float S, float V, float A) ToHsva()
+    {
+        var (h, s, v) = ToHsv();
+        return (h, s, v, A / 255.0f);
     }
 
     public readonly Color Blend(Color color)
@@ -329,58 +394,6 @@ public record struct Color
         result.B = (byte)((1.0f - factor) * B + factor * color.B);
         result.A = (byte)((1.0f - factor) * A + factor * color.A);
         return result;
-    }
-
-    public readonly (float H, float S, float V) ToHsv()
-    {
-        (float H, float S, float V) hsv = (0, 0, 0);
-        (float R, float G, float B) rgb = (R / 255.0f, G / 255.0f, B / 255.0f);
-        var min = rgb.R < rgb.G ? rgb.R : rgb.G;
-        min = min < rgb.B ? min : rgb.B;
-        var max = rgb.R > rgb.G ? rgb.R : rgb.G;
-        max = max > rgb.B ? max : rgb.B;
-        hsv.V = max;
-        var delta = max - min;
-        if (delta < 0.00001f)
-        {
-            hsv.S = 0.0f;
-            hsv.H = 0.0f;
-            return hsv;
-        }
-
-        if (max > 0.0f)
-        {
-            hsv.S = delta / max;
-        }
-        else
-        {
-            hsv.S = 0.0f;
-            hsv.H = float.NaN;
-            return hsv;
-        }
-
-        if (rgb.R >= max)
-        {
-            hsv.H = (rgb.G - rgb.B) / delta;
-        }
-        else
-        {
-            if (rgb.G >= max)
-                hsv.H = 2.0f + (rgb.B - rgb.R) / delta;
-            else
-                hsv.H = 4.0f + (rgb.R - rgb.G) / delta;
-        }
-
-        hsv.H *= 60.0f;
-        if (hsv.H < 0.0f)
-            hsv.H += 360.0f;
-        return hsv;
-    }
-
-    public readonly (float H, float S, float V, float A) ToHsva()
-    {
-        var (h, s, v) = ToHsv();
-        return (h, s, v, A / 255.0f);
     }
 
     public readonly (float R, float G, float B, float A) Normalize()
