@@ -17,7 +17,7 @@ public sealed class FontConfig
         () =>
         {
             var assembly = Assemblies.Engine;
-            return Asset.FontResource(
+            return Asset.Font.Resource(
                 "Font.Default.ttf",
                 @namespace: $"{assembly.GetName().Name}.Resources",
                 assembly: assembly
