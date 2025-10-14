@@ -109,6 +109,12 @@ public sealed partial class Scene
         return new Entity(entity, this);
     }
 
+    public unsafe Entity Entity(ulong id)
+    {
+        EnsureInitialized();
+        return new Entity(new Flecs.NET.Core.Entity(_world.Handle, id), this);
+    }
+
     public Entity Lookup(string name)
     {
         EnsureInitialized();
