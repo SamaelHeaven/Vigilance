@@ -100,12 +100,14 @@ public sealed unsafe partial class Scene
     public Entity Entity(string name = "")
     {
         EnsureInitialized();
-        var entity =
-            name == "" ? _world.Entity()
-            : _world.Lookup(name) == Flecs.NET.Core.Entity.Null() ? _world.Entity(name)
-            : throw new InvalidOperationException($"Entity \"{name}\" already exists.");
-        if (entity.Has<ZIndex>())
-            return new Entity(entity, this);
+        Flecs.NET.Core.Entity entity;
+        if (name == "")
+            entity = _world.Entity();
+        else
+            entity =
+                _world.Lookup(name) != Flecs.NET.Core.Entity.Null()
+                    ? throw new InvalidOperationException($"Entity \"{name}\" already exists.")
+                    : _world.Entity(name);
         entity.Set(new Position());
         entity.Set(new Scale());
         entity.Set(new Rotation());
