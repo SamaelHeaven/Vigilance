@@ -8,7 +8,7 @@ public sealed unsafe partial class Scene
 {
     private readonly Queue<(
         ComponentOperation Operation,
-        Flecs.NET.Core.Entity Entity,
+        ulong EntityId,
         Type Type,
         object? Data
     )> _componentOperations = new();
@@ -363,10 +363,10 @@ public sealed unsafe partial class Scene
             switch (component.Operation)
             {
                 case ComponentOperation.Set:
-                    SetComponent(component.Entity, component.Type, component.Data);
+                    SetComponent(new Flecs.NET.Core.Entity(_world, component.EntityId), component.Type, component.Data);
                     break;
                 case ComponentOperation.Remove:
-                    RemoveComponent(component.Entity, component.Type);
+                    RemoveComponent(new Flecs.NET.Core.Entity(_world, component.EntityId), component.Type);
                     break;
             }
     }
