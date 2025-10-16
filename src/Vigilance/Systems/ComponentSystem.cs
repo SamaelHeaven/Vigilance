@@ -6,14 +6,14 @@ public sealed class ComponentSystem : GameSystem
 {
     public override void Update()
     {
-        foreach (var (entity, components) in Scene.Entries<Components>())
+        foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
         foreach (var component in components.OfType<IComponent>())
             component.Update(entity);
     }
 
     public override void FixedUpdate()
     {
-        foreach (var (entity, components) in Scene.Entries<Components>())
+        foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
         foreach (var component in components.OfType<IComponent>())
             component.FixedUpdate(entity);
     }

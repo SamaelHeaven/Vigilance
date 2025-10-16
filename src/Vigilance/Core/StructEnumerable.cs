@@ -5,7 +5,7 @@ using ZLinq;
 namespace Vigilance.Core;
 
 public interface IStructEnumerable<TEnumerator, TValue> : IEnumerable<TValue>
-    where TEnumerator : struct, IEnumerator<TValue>
+    where TEnumerator : IEnumerator<TValue>
 {
     IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
     {
@@ -22,8 +22,15 @@ public interface IStructEnumerable<TEnumerator, TValue> : IEnumerable<TValue>
     ValueEnumerable<StructEnumerator<TEnumerator, TValue>, TValue> AsValueEnumerable();
 }
 
+public interface IStructEnumerator<out TValue> : IEnumerator<TValue>
+{
+    new TValue Current { get; }
+
+    object? IEnumerator.Current => Current;
+}
+
 public struct StructEnumerator<TEnumerator, TValue> : IStructEnumerator<TValue>, IValueEnumerator<TValue>
-    where TEnumerator : struct, IEnumerator<TValue>
+    where TEnumerator : IEnumerator<TValue>
 {
     private TEnumerator _enumerator;
 
@@ -84,11 +91,4 @@ public struct StructEnumerator<TEnumerator, TValue> : IStructEnumerator<TValue>,
     {
         return new ValueEnumerable<StructEnumerator<TEnumerator, TValue>, TValue>(enumerator);
     }
-}
-
-public interface IStructEnumerator<out TValue> : IEnumerator<TValue>
-{
-    new TValue Current { get; }
-
-    object? IEnumerator.Current => Current;
 }

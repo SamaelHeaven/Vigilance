@@ -1,10 +1,11 @@
-﻿using Flecs.NET.Core;
+﻿using C5;
+using Flecs.NET.Core;
 using Vigilance.Math;
 using ZLinq;
 
 namespace Vigilance.Core;
 
-public sealed partial class Scene
+public sealed unsafe partial class Scene
 {
     private readonly Queue<(
         ComponentOperation Operation,
@@ -13,7 +14,9 @@ public sealed partial class Scene
         object? Data
     )> _componentOperations = new();
 
+    private readonly Dictionary<ulong, ulong> _entityOrderMap = [];
     private readonly Dictionary<Type, object> _events = new();
+    private readonly SortedArray<SortedEntity> _sortedEntities = [];
     private readonly GameSystemsFunc _systemsFunc;
     private Action? _beginRenderAction;
     private int _deferred;
@@ -34,6 +37,9 @@ public sealed partial class Scene
     public Scene(GameSystemsFunc? systems = null)
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
+        OnInstantiate(AddSortedEntity);
+        OnSetZIndex(UpdateSortedEntity);
+        OnDestroy(RemoveSortedEntity);
     }
 
     public ListView<IGameSystem> Systems
@@ -44,6 +50,8 @@ public sealed partial class Scene
             return _systems;
         }
     }
+
+    public SortedEntityEnumerable SortedEntities => new(this);
 
     public Camera Camera { get; } = new();
 
@@ -109,7 +117,7 @@ public sealed partial class Scene
         return new Entity(entity, this);
     }
 
-    public unsafe Entity Entity(ulong id)
+    public Entity Entity(ulong id)
     {
         EnsureInitialized();
         return new Entity(new Flecs.NET.Core.Entity(_world.Handle, id), this);
@@ -226,7 +234,7 @@ public sealed partial class Scene
     public int Count()
     {
         EnsureInitialized();
-        return _world.Count<ZIndex>();
+        return _sortedEntities.Count;
     }
 
     public int Count<T>()
@@ -344,7 +352,7 @@ public sealed partial class Scene
     {
         _beginRenderAction?.Invoke();
         if (_renderAction is not null)
-            foreach (var entity in Entities.WithDisabled().OrderBy(e => e.Order))
+            foreach (var entity in SortedEntities)
                 _renderAction.Invoke(entity);
         _endRenderAction?.Invoke();
     }
@@ -363,6 +371,30 @@ public sealed partial class Scene
                     RemoveComponent(component.Entity, component.Type);
                     break;
             }
+    }
+
+    private void AddSortedEntity(Entity entity)
+    {
+        var id = entity.Id;
+        _sortedEntities.Add(new SortedEntity(id, entity.Order));
+        _entityOrderMap[id] = entity.Order;
+    }
+
+    private void UpdateSortedEntity(Entity entity)
+    {
+        var id = entity.Id;
+        var oldOrder = _entityOrderMap[id];
+        _sortedEntities.Remove(new SortedEntity(id, oldOrder));
+        _sortedEntities.Add(new SortedEntity(id, entity.Order));
+        _entityOrderMap[id] = entity.Order;
+    }
+
+    private void RemoveSortedEntity(Entity entity)
+    {
+        var id = entity.Id;
+        var oldOrder = _entityOrderMap[id];
+        _sortedEntities.Remove(new SortedEntity(id, oldOrder));
+        _entityOrderMap.Remove(id);
     }
 
     private static void SetComponent(Flecs.NET.Core.Entity entity, Type type, object? data)
@@ -418,6 +450,71 @@ public sealed partial class Scene
         OnRemove<ZIndex>(action);
     }
 
+    public readonly struct SortedEntityEnumerable
+        : IStructEnumerable<SortedEntityEnumerator, Entity>,
+            IReadOnlyList<Entity>
+    {
+        private readonly Scene _scene;
+
+        internal SortedEntityEnumerable(Scene scene)
+        {
+            _scene = scene;
+        }
+
+        public SortedEntityEnumerator GetEnumerator()
+        {
+            return new SortedEntityEnumerator(_scene);
+        }
+
+        public ValueEnumerable<StructEnumerator<SortedEntityEnumerator, Entity>, Entity> AsValueEnumerable()
+        {
+            return new StructEnumerator<SortedEntityEnumerator, Entity>(GetEnumerator());
+        }
+
+        public int Count => _scene._sortedEntities.Count;
+
+        public Entity this[int index] =>
+            new(new Flecs.NET.Core.Entity(_scene._world, _scene._sortedEntities[index].EntityId), _scene);
+    }
+
+    public struct SortedEntityEnumerator : IStructEnumerator<Entity>
+    {
+        private readonly Scene _scene;
+        private IEnumerator<SortedEntity> _enumerator = null!;
+
+        internal SortedEntityEnumerator(Scene scene)
+        {
+            _scene = scene;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            return _enumerator.MoveNext();
+        }
+
+        public void Reset()
+        {
+            Dispose();
+            _enumerator = _scene._sortedEntities.GetEnumerator();
+        }
+
+        public Entity Current => new(new Flecs.NET.Core.Entity(_scene._world, _enumerator.Current.EntityId), _scene);
+
+        public void Dispose()
+        {
+            _enumerator?.Dispose();
+        }
+    }
+
+    private readonly record struct SortedEntity(ulong EntityId, ulong Order) : IComparable<SortedEntity>
+    {
+        public int CompareTo(SortedEntity other)
+        {
+            return Order.CompareTo(other.Order);
+        }
+    }
+
     private enum ComponentOperation
     {
         Set,
@@ -431,6 +528,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event<AddEvent>()
             .Each(
                 traverse
@@ -451,6 +550,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event<AddEvent>()
             .Each(
                 traverse
@@ -471,6 +572,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event<AddEvent>()
             .Each(
                 traverse
@@ -495,6 +598,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event<SetEvent>()
             .Each(
                 traverse
@@ -516,6 +621,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event<SetEvent>()
             .Each(
                 traverse
@@ -536,6 +643,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event<SetEvent>()
             .Each(
                 traverse
@@ -561,6 +670,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event(Ecs.OnSet)
             .Each(
                 traverse
@@ -582,6 +693,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event(Ecs.OnSet)
             .Each(
                 traverse
@@ -602,6 +715,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event(Ecs.OnSet)
             .Each(
                 traverse
@@ -627,6 +742,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event(Ecs.OnRemove)
             .Each(
                 traverse
@@ -647,6 +764,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event(Ecs.OnRemove)
             .Each(
                 traverse
@@ -667,6 +786,8 @@ public sealed partial class Scene
         EnsureNotInitialized();
         _world
             .Observer<T>()
+            .With(Ecs.Disabled)
+            .Optional()
             .Event(Ecs.OnRemove)
             .Each(
                 traverse

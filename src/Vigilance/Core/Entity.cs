@@ -398,6 +398,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             sb.Append(Disabled);
         }
 
+        sb.Append(", ZIndex = ");
+        sb.Append(ZIndex);
         sb.Append(", Transform = ");
         sb.Append(Transform.ToString());
         sb.Append(", Components = ");
