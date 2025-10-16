@@ -1,7 +1,6 @@
 ﻿using Flecs.NET.Core;
 using Vigilance.Math;
 using ZLinq;
-using ZLinq.Linq;
 
 namespace Vigilance.Core;
 
@@ -101,17 +100,16 @@ public sealed unsafe partial class Scene
     public Entity Entity(string name = "")
     {
         EnsureInitialized();
-        var entity = name == "" ? _world.Entity() : _world.Entity(name);
-        if (!entity.Has<Position>())
-            entity.Set(new Position());
-        if (!entity.Has<Scale>())
-            entity.Set(new Scale());
-        if (!entity.Has<Rotation>())
-            entity.Set(new Rotation());
-        if (!entity.Has<PivotPoint>())
-            entity.Set(new PivotPoint());
+        var entity =
+            name == "" ? _world.Entity()
+            : _world.Lookup(name) == Flecs.NET.Core.Entity.Null() ? _world.Entity(name)
+            : throw new InvalidOperationException($"Entity \"{name}\" already exists.");
         if (entity.Has<ZIndex>())
             return new Entity(entity, this);
+        entity.Set(new Position());
+        entity.Set(new Scale());
+        entity.Set(new Rotation());
+        entity.Set(new PivotPoint());
         entity.Set(new ZIndex());
         _world.Event<AddEvent>().Id<ZIndex>().Entity(entity).Enqueue();
         return new Entity(entity, this);
@@ -480,7 +478,7 @@ public sealed unsafe partial class Scene
 
     public readonly struct SortedEntityEnumerable
         : IStructEnumerable<SortedEntityEnumerator, Entity>,
-            IReadOnlyList<Entity>
+            IReadOnlyCollection<Entity>
     {
         private readonly Scene _scene;
 
@@ -494,22 +492,12 @@ public sealed unsafe partial class Scene
             return new SortedEntityEnumerator(_scene);
         }
 
-        public ValueEnumerable<ListSelect<SortedEntity, Entity>, Entity> AsValueEnumerable()
-        {
-            return _scene._sortedEntities.AsValueEnumerable().Select(_scene.GetSortedEntity);
-        }
-
-        ValueEnumerable<StructEnumerator<SortedEntityEnumerator, Entity>, Entity> IStructEnumerable<
-            SortedEntityEnumerator,
-            Entity
-        >.AsValueEnumerable()
+        public ValueEnumerable<StructEnumerator<SortedEntityEnumerator, Entity>, Entity> AsValueEnumerable()
         {
             return new StructEnumerator<SortedEntityEnumerator, Entity>(GetEnumerator());
         }
 
         public int Count => _scene._sortedEntities.Count;
-
-        public Entity this[int index] => _scene.GetSortedEntity(_scene._sortedEntities[index]);
     }
 
     public struct SortedEntityEnumerator : IStructEnumerator<Entity>
@@ -531,14 +519,19 @@ public sealed unsafe partial class Scene
         public void Reset()
         {
             _enumerator = _scene._sortedEntities.GetEnumerator();
+            _scene.BeginDefer();
         }
 
         public Entity Current => _scene.GetSortedEntity(_enumerator.Current);
 
-        public void Dispose() { }
+        public void Dispose()
+        {
+            _scene.EndDefer();
+            _enumerator = default;
+        }
     }
 
-    public readonly record struct SortedEntity(ulong EntityId, ulong Order) : IComparable<SortedEntity>
+    private readonly record struct SortedEntity(ulong EntityId, ulong Order) : IComparable<SortedEntity>
     {
         public int CompareTo(SortedEntity other)
         {

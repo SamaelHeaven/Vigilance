@@ -74,9 +74,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get => Has<Position>() ? _entity.Get<Position>().Value : Vector2.Zero;
         set
         {
-            EnsureValid();
             if (!Precision.AreEqual(Position, value))
-                Set(new Position(value), false);
+                SetInternal(new Position(value));
         }
     }
 
@@ -85,9 +84,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get => Has<Scale>() ? _entity.Get<Scale>().Value : Vector2.One;
         set
         {
-            EnsureValid();
             if (!Precision.AreEqual(Scale, value))
-                Set(new Scale(value), false);
+                SetInternal(new Scale(value));
         }
     }
 
@@ -96,9 +94,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get => Has<Rotation>() ? _entity.Get<Rotation>().Value : 0;
         set
         {
-            EnsureValid();
             if (!Precision.AreEqual(Rotation, value))
-                Set(new Rotation(value), false);
+                SetInternal(new Rotation(value));
         }
     }
 
@@ -107,9 +104,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get => Has<PivotPoint>() ? _entity.Get<PivotPoint>().Value : Vector2.Zero;
         set
         {
-            EnsureValid();
             if (!Precision.AreEqual(PivotPoint, value))
-                Set(new PivotPoint(value), false);
+                SetInternal(new PivotPoint(value));
         }
     }
 
@@ -119,17 +115,21 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         set
         {
             if (ZIndex != value)
-                Set(new ZIndex(value), false);
+                SetInternal(new ZIndex(value));
         }
     }
 
     public bool Disabled
     {
-        get => !Valid || _entity.Has(Ecs.Disabled);
+        get
+        {
+            EnsureValid();
+            return _entity.Has(Ecs.Disabled);
+        }
         set
         {
-            if (Valid)
-                flecs.ecs_enable(_entity.World, _entity.Id, value ? (byte)0 : (byte)1);
+            EnsureValid();
+            flecs.ecs_enable(_entity.World, _entity.Id, value ? (byte)0 : (byte)1);
         }
     }
 
@@ -295,31 +295,18 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public ref readonly Entity Set<T>(T data)
     {
-        Set(data, true);
+        Set(ref data);
         return ref this;
     }
 
     public ref readonly Entity Set<T>(ref T data)
-    {
-        Set(data, true);
-        return ref this;
-    }
-
-    private ref readonly Entity Set<T>(T data, bool updateComponents)
-    {
-        Set(ref data, updateComponents);
-        return ref this;
-    }
-
-    private ref readonly Entity Set<T>(ref T data, bool updateComponents)
     {
         EnsureValid();
         var type = typeof(T);
         if (type == typeof(Components))
             throw new InvalidOperationException("Components cannot be set.");
         var hadT = _entity.Has<T>();
-        if (updateComponents)
-            Scene.DeferSetComponent(_entity, type, data);
+        Scene.DeferSetComponent(_entity, type, data);
         _entity.Set(ref data);
         if (hadT)
             _entity.CsWorld().Event<SetEvent>().Id<T>().Entity(_entity).Enqueue();
@@ -405,6 +392,13 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         sb.Append(", Components = ");
         sb.Append(Components.ToString());
         return true;
+    }
+
+    private ref readonly Entity SetInternal<T>(T data)
+    {
+        _entity.Set(ref data);
+        _entity.CsWorld().Event<SetEvent>().Id<T>().Entity(_entity).Enqueue();
+        return ref this;
     }
 
     public readonly struct ChildEnumerable : IStructEnumerable<ChildEnumerator, Entity>
