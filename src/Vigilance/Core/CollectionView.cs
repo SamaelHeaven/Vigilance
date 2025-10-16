@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
 using ZLinq;
 using ZLinq.Linq;
 
@@ -154,7 +153,7 @@ public readonly struct ListView<TValue>(List<TValue> list)
 
     public ReadOnlySpan<TValue> AsSpan()
     {
-        return CollectionsMarshal.AsSpan(list);
+        return list.AsSpan();
     }
 }
 

@@ -10,9 +10,14 @@ public static class EnumerableExtensions
         return enumerable switch
         {
             T[] array => array,
-            List<T> list => CollectionsMarshal.AsSpan(list),
+            List<T> list => list.AsSpan(),
             IReadOnlySpan<T> span => span.AsSpan(),
             _ => enumerable.AsValueEnumerable().ToArray(),
         };
+    }
+
+    public static Span<T> AsSpan<T>(this List<T> list)
+    {
+        return CollectionsMarshal.AsSpan(list);
     }
 }

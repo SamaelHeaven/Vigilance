@@ -503,31 +503,35 @@ public sealed unsafe partial class Scene
     public struct SortedEntityEnumerator : IStructEnumerator<Entity>
     {
         private readonly Scene _scene;
-        private List<SortedEntity>.Enumerator _enumerator = default;
+        private readonly List<SortedEntity> _sortedEntities;
+        private int _index;
 
         internal SortedEntityEnumerator(Scene scene)
         {
             _scene = scene;
+            _sortedEntities = scene._sortedEntities;
             Reset();
         }
 
         public bool MoveNext()
         {
-            return _enumerator.MoveNext();
+            return ++_index < _sortedEntities.Count;
         }
 
         public void Reset()
         {
-            _enumerator = _scene._sortedEntities.GetEnumerator();
+            _index = -1;
             _scene.BeginDefer();
         }
 
-        public Entity Current => _scene.GetSortedEntity(_enumerator.Current);
+        public Entity Current => _scene.GetSortedEntity(_sortedEntities[_index]);
 
         public void Dispose()
         {
+            if (_index == -1)
+                return;
             _scene.EndDefer();
-            _enumerator = default;
+            _index = -1;
         }
     }
 
