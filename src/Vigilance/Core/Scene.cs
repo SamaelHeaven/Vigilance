@@ -13,9 +13,10 @@ public sealed unsafe partial class Scene
         object? Data
     )> _componentOperations = new();
 
+    private readonly Dictionary<ulong, ulong> _entityOrderMap = [];
+
     private readonly Dictionary<Type, object> _events = new();
-    private readonly List<ulong> _sortedEntities = [];
-    private readonly Dictionary<ulong, int> _sortedEntityIndex = [];
+    private readonly List<SortedEntity> _sortedEntities = [];
     private readonly GameSystemsFunc _systemsFunc;
     private Action? _beginRenderAction;
     private int _deferred;
@@ -377,39 +378,40 @@ public sealed unsafe partial class Scene
     private void AddSortedEntity(Entity entity)
     {
         var id = entity.Id;
-        var index = BinarySearchSortedEntity(entity);
-        _sortedEntities.Insert(index, id);
-        _sortedEntityIndex[id] = index;
+        var sortedEntity = new SortedEntity(id, entity.Order);
+        var index = BinarySearchSortedEntity(sortedEntity);
+        _sortedEntities.Insert(index, sortedEntity);
+        _entityOrderMap[id] = entity.Order;
     }
 
     private void UpdateSortedEntity(Entity entity)
     {
         var id = entity.Id;
-        var oldIndex = _sortedEntityIndex[id];
+        var oldIndex = BinarySearchSortedEntity(new SortedEntity(id, _entityOrderMap[id]));
         _sortedEntities.RemoveAt(oldIndex);
-        var index = BinarySearchSortedEntity(entity);
-        _sortedEntities.Insert(index, id);
-        _sortedEntityIndex[id] = index;
+        var sortedEntity = new SortedEntity(id, entity.Order);
+        var index = BinarySearchSortedEntity(sortedEntity);
+        _sortedEntities.Insert(index, sortedEntity);
+        _entityOrderMap[id] = entity.Order;
     }
 
     private void RemoveSortedEntity(Entity entity)
     {
         var id = entity.Id;
-        var oldIndex = _sortedEntityIndex[id];
+        var oldIndex = BinarySearchSortedEntity(new SortedEntity(id, _entityOrderMap[id]));
         _sortedEntities.RemoveAt(oldIndex);
+        _entityOrderMap.Remove(id);
     }
 
-    private int BinarySearchSortedEntity(in Entity entity)
+    private int BinarySearchSortedEntity(in SortedEntity entity)
     {
-        var order = entity.Order;
         var start = 0;
         var end = _sortedEntities.Count;
         var middle = end / 2;
         while (end > start)
         {
             int comparison;
-            var otherEntity = new Entity(new Flecs.NET.Core.Entity(_world, _sortedEntities[middle]), this);
-            if ((comparison = otherEntity.Order.CompareTo(order)) == 0)
+            if ((comparison = _sortedEntities[middle].CompareTo(entity)) == 0)
                 return middle;
             if (comparison > 0)
                 end = middle;
@@ -495,7 +497,7 @@ public sealed unsafe partial class Scene
     public struct SortedEntityEnumerator : IStructEnumerator<Entity>
     {
         private readonly Scene _scene;
-        private readonly List<ulong> _sortedEntities;
+        private readonly List<SortedEntity> _sortedEntities;
         private int _index;
 
         internal SortedEntityEnumerator(Scene scene)
@@ -516,7 +518,8 @@ public sealed unsafe partial class Scene
             _scene.BeginDefer();
         }
 
-        public Entity Current => new(new Flecs.NET.Core.Entity(_scene._world, _sortedEntities[_index]), _scene);
+        public Entity Current =>
+            new(new Flecs.NET.Core.Entity(_scene._world, _sortedEntities[_index].EntityId), _scene);
 
         public void Dispose()
         {
@@ -524,6 +527,14 @@ public sealed unsafe partial class Scene
                 return;
             _scene.EndDefer();
             _index = -1;
+        }
+    }
+
+    private readonly record struct SortedEntity(ulong EntityId, ulong Order) : IComparable<SortedEntity>
+    {
+        public int CompareTo(SortedEntity other)
+        {
+            return Order.CompareTo(other.Order);
         }
     }
 
