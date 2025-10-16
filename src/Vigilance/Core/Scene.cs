@@ -418,11 +418,6 @@ public sealed unsafe partial class Scene
         return middle;
     }
 
-    private Entity GetSortedEntity(SortedEntity sortedEntity)
-    {
-        return new Entity(new Flecs.NET.Core.Entity(_world, sortedEntity.EntityId), this);
-    }
-
     private static void SetComponent(Flecs.NET.Core.Entity entity, Type type, object? data)
     {
         Components components;
@@ -524,7 +519,8 @@ public sealed unsafe partial class Scene
             _scene.BeginDefer();
         }
 
-        public Entity Current => _scene.GetSortedEntity(_sortedEntities[_index]);
+        public Entity Current =>
+            new(new Flecs.NET.Core.Entity(_scene._world, _sortedEntities[_index].EntityId), _scene);
 
         public void Dispose()
         {
