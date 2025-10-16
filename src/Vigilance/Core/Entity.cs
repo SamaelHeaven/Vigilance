@@ -363,6 +363,12 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     private bool PrintMembers(StringBuilder sb)
     {
+        if (this == Null)
+        {
+            sb.Append("Null");
+            return true;
+        }
+
         sb.Append("Id = ");
         sb.Append(Id);
         if (!Valid)

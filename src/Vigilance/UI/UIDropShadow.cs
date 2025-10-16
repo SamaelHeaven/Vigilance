@@ -71,7 +71,7 @@ public class UIDropShadow : UIElement
 
 public static class UIDropShadowExtensions
 {
-    public static UIContainer DropShadow(
+    public static UIElement DropShadow(
         this UIElement element,
         int blur = 1,
         Color? color = null,
