@@ -1,7 +1,7 @@
-﻿using C5;
-using Flecs.NET.Core;
+﻿using Flecs.NET.Core;
 using Vigilance.Math;
 using ZLinq;
+using ZLinq.Linq;
 
 namespace Vigilance.Core;
 
@@ -16,7 +16,7 @@ public sealed unsafe partial class Scene
 
     private readonly Dictionary<ulong, ulong> _entityOrderMap = [];
     private readonly Dictionary<Type, object> _events = new();
-    private readonly SortedArray<SortedEntity> _sortedEntities = [];
+    private readonly List<SortedEntity> _sortedEntities = [];
     private readonly GameSystemsFunc _systemsFunc;
     private Action? _beginRenderAction;
     private int _deferred;
@@ -376,25 +376,53 @@ public sealed unsafe partial class Scene
     private void AddSortedEntity(Entity entity)
     {
         var id = entity.Id;
-        _sortedEntities.Add(new SortedEntity(id, entity.Order));
+        var sortedEntity = new SortedEntity(id, entity.Order);
+        var index = BinarySearchSortedEntity(sortedEntity);
+        _sortedEntities.Insert(index, sortedEntity);
         _entityOrderMap[id] = entity.Order;
     }
 
     private void UpdateSortedEntity(Entity entity)
     {
         var id = entity.Id;
-        var oldOrder = _entityOrderMap[id];
-        _sortedEntities.Remove(new SortedEntity(id, oldOrder));
-        _sortedEntities.Add(new SortedEntity(id, entity.Order));
+        var oldIndex = BinarySearchSortedEntity(new SortedEntity(id, _entityOrderMap[id]));
+        _sortedEntities.RemoveAt(oldIndex);
+        var sortedEntity = new SortedEntity(id, entity.Order);
+        var index = BinarySearchSortedEntity(sortedEntity);
+        _sortedEntities.Insert(index, sortedEntity);
         _entityOrderMap[id] = entity.Order;
     }
 
     private void RemoveSortedEntity(Entity entity)
     {
         var id = entity.Id;
-        var oldOrder = _entityOrderMap[id];
-        _sortedEntities.Remove(new SortedEntity(id, oldOrder));
-        _entityOrderMap.Remove(id);
+        var oldIndex = BinarySearchSortedEntity(new SortedEntity(id, _entityOrderMap[id]));
+        _sortedEntities.RemoveAt(oldIndex);
+    }
+
+    private int BinarySearchSortedEntity(SortedEntity item)
+    {
+        var start = 0;
+        var end = _sortedEntities.Count;
+        var middle = end / 2;
+        while (end > start)
+        {
+            int comparison;
+            if ((comparison = _sortedEntities[middle].CompareTo(item)) == 0)
+                return middle;
+            if (comparison > 0)
+                end = middle;
+            else
+                start = middle + 1;
+            middle = start + (end - start) / 2;
+        }
+
+        return middle;
+    }
+
+    private Entity GetSortedEntity(SortedEntity sortedEntity)
+    {
+        return new Entity(new Flecs.NET.Core.Entity(_world, sortedEntity.EntityId), this);
     }
 
     private static void SetComponent(Flecs.NET.Core.Entity entity, Type type, object? data)
@@ -466,21 +494,28 @@ public sealed unsafe partial class Scene
             return new SortedEntityEnumerator(_scene);
         }
 
-        public ValueEnumerable<StructEnumerator<SortedEntityEnumerator, Entity>, Entity> AsValueEnumerable()
+        public ValueEnumerable<ListSelect<SortedEntity, Entity>, Entity> AsValueEnumerable()
+        {
+            return _scene._sortedEntities.AsValueEnumerable().Select(_scene.GetSortedEntity);
+        }
+
+        ValueEnumerable<StructEnumerator<SortedEntityEnumerator, Entity>, Entity> IStructEnumerable<
+            SortedEntityEnumerator,
+            Entity
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<SortedEntityEnumerator, Entity>(GetEnumerator());
         }
 
         public int Count => _scene._sortedEntities.Count;
 
-        public Entity this[int index] =>
-            new(new Flecs.NET.Core.Entity(_scene._world, _scene._sortedEntities[index].EntityId), _scene);
+        public Entity this[int index] => _scene.GetSortedEntity(_scene._sortedEntities[index]);
     }
 
     public struct SortedEntityEnumerator : IStructEnumerator<Entity>
     {
         private readonly Scene _scene;
-        private IEnumerator<SortedEntity> _enumerator = null!;
+        private List<SortedEntity>.Enumerator _enumerator = default;
 
         internal SortedEntityEnumerator(Scene scene)
         {
@@ -495,19 +530,15 @@ public sealed unsafe partial class Scene
 
         public void Reset()
         {
-            Dispose();
             _enumerator = _scene._sortedEntities.GetEnumerator();
         }
 
-        public Entity Current => new(new Flecs.NET.Core.Entity(_scene._world, _enumerator.Current.EntityId), _scene);
+        public Entity Current => _scene.GetSortedEntity(_enumerator.Current);
 
-        public void Dispose()
-        {
-            _enumerator?.Dispose();
-        }
+        public void Dispose() { }
     }
 
-    private readonly record struct SortedEntity(ulong EntityId, ulong Order) : IComparable<SortedEntity>
+    public readonly record struct SortedEntity(ulong EntityId, ulong Order) : IComparable<SortedEntity>
     {
         public int CompareTo(SortedEntity other)
         {
