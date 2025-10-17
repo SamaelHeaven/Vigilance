@@ -364,7 +364,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     [Conditional("DEBUG")]
     public void EnsureValid()
     {
-        if (!_entity.IsValid())
+        if (!Valid)
             Logger.Fatal($"Entity is not valid.\n{new StackTrace(true).ToString().TrimEnd()}");
     }
 
