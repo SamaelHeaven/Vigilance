@@ -336,8 +336,15 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         EnsureValid();
         Scene.BeginDefer();
-        _entity.Scope(action);
-        Scene.EndDefer();
+        try
+        {
+            _entity.Scope(action);
+        }
+        finally
+        {
+            Scene.EndDefer();
+        }
+
         return ref this;
     }
 
