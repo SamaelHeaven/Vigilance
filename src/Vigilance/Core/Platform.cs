@@ -9,8 +9,13 @@ public enum Platform
 
 public static class PlatformExtensions
 {
+    private static readonly Platform _current = Enum.GetValues<Platform>()
+        .FirstOrDefault(platform => platform.IsCurrent);
+
     extension(Platform platform)
     {
+        public static Platform Current => _current;
+
         public bool IsCurrent
         {
             get

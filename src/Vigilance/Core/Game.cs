@@ -10,45 +10,38 @@ using Sound = Vigilance.Audio.Sound;
 
 namespace Vigilance.Core;
 
-public sealed unsafe class Game
+public static unsafe class Game
 {
-    private static Game? _game;
     private static Action? _quitAction = null;
     private static readonly ConcurrentStack<Action> _actions = [];
-    private Config _config = null!;
-    private bool _quit;
-    private Scene _scene = null!;
-    private GameSystemsFunc _systems = null!;
-
-    private Game()
-    {
-        EnsureRunning();
-    }
-
-    public static bool Running { get; private set; }
-
-    public static Platform Platform { get; } =
-        Enum.GetValues<Platform>().FirstOrDefault(platform => platform.IsCurrent);
+    private static bool _quit;
+    private static Scene _scene = null!;
 
     public static Scene Scene
     {
-        get => GetGame()._scene;
+        get
+        {
+            EnsureRunning();
+            return _scene;
+        }
         set
         {
-            var game = GetGame();
-            if (game._scene == value)
+            EnsureRunning();
+            if (_scene == value)
                 return;
             Defer(() =>
             {
-                game._scene.Stop();
-                game._scene = value;
+                _scene.Stop();
+                _scene = value;
             });
         }
     }
 
-    public static Config Config => _game?._config ?? Config.Empty;
+    public static bool Running { get; private set; }
 
-    internal static GameSystemsFunc Systems => GetGame()._systems;
+    public static Config Config { get; private set; } = Config.Empty;
+
+    internal static GameSystemsFunc Systems { get; private set; } = null!;
 
     public static void OpenUrl(string url)
     {
@@ -82,14 +75,13 @@ public sealed unsafe class Game
     {
         EnsureNotRunning();
         Running = true;
-        var game = GetGame();
-        game._config = config;
-        game._systems = config.Take<GameSystemsFunc>() ?? (() => []);
-        game._scene = scene;
+        Config = config;
+        Systems = config.Take<GameSystemsFunc>() ?? (() => []);
+        _scene = scene;
         UpdateActions();
         try
         {
-            game.Loop();
+            Loop();
         }
         catch (Exception e)
         {
@@ -99,15 +91,11 @@ public sealed unsafe class Game
 
     public static void Quit()
     {
-        GetGame()._quit = true;
+        EnsureRunning();
+        _quit = true;
     }
 
-    private static Game GetGame()
-    {
-        return _game ??= new Game();
-    }
-
-    private void Loop()
+    private static void Loop()
     {
         if (Platform.Web.IsCurrent)
         {
@@ -120,7 +108,7 @@ public sealed unsafe class Game
         Dispose();
     }
 
-    private void Frame()
+    private static void Frame()
     {
         Time.Update();
         Keyboard.Update();
@@ -164,6 +152,6 @@ public sealed unsafe class Game
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void UnmanagedFrame()
     {
-        GetGame().Frame();
+        Frame();
     }
 }

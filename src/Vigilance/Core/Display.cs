@@ -169,7 +169,7 @@ public static unsafe class Display
     {
         get
         {
-            return Game.Platform switch
+            return Platform.Current switch
             {
                 Platform.Web => JSEngine.Eval("!!document.fullscreenElement"),
                 _ => Raylib.IsWindowFullscreen(),

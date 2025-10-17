@@ -130,7 +130,7 @@ public sealed class Gamepad
 
     private bool IsConnected()
     {
-        return Game.Platform switch
+        return Platform.Current switch
         {
             Platform.Web => JSEngine.Eval($"!!navigator.getGamepads()[{Id}]"),
             _ => Raylib.IsGamepadAvailable(Id),
@@ -141,7 +141,7 @@ public sealed class Gamepad
     {
         if (!Connected)
             return DefaultName;
-        return Game.Platform switch
+        return Platform.Current switch
         {
             Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{Id}]?.id ?? {DefaultName.ToJson()}"),
             _ => Marshal.PtrToStringUTF8((nint)Raylib.GetGamepadName(Id)) ?? DefaultName,
@@ -150,7 +150,7 @@ public sealed class Gamepad
 
     private static bool IsButtonDown(int id, GamepadButton button)
     {
-        return Game.Platform switch
+        return Platform.Current switch
         {
             Platform.Web => JSEngine.Eval(
                 $"navigator.getGamepads()[{id}]?.buttons[{button.JSValue}]?.pressed ?? false"
@@ -161,7 +161,7 @@ public sealed class Gamepad
 
     private static float GetGamepadAxis(int id, GamepadAxis axis)
     {
-        return Game.Platform switch
+        return Platform.Current switch
         {
             Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{id}]?.axes[{axis.JSValue}] ?? 0"),
             _ => Raylib.GetGamepadAxisMovement(id, (Raylib_cs.BleedingEdge.GamepadAxis)axis),

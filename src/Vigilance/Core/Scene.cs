@@ -109,11 +109,11 @@ public sealed unsafe partial class Scene
                 _world.Lookup(name) != Flecs.NET.Core.Entity.Null()
                     ? throw new InvalidOperationException($"Entity \"{name}\" already exists.")
                     : _world.Entity(name);
+        entity.Set(new ZIndex());
         entity.Set(new Position());
         entity.Set(new Scale());
         entity.Set(new Rotation());
         entity.Set(new PivotPoint());
-        entity.Set(new ZIndex());
         _world.Event<AddEvent>().Id<ZIndex>().Entity(entity).Enqueue();
         return new Entity(entity, this);
     }

@@ -4,9 +4,6 @@ namespace Vigilance.UI;
 
 public sealed class Attributes : Dictionary<string, object>, IDeepCloneable
 {
-    public Attributes()
-        : base(StringComparer.OrdinalIgnoreCase) { }
-
     object IDeepCloneable.DeepClone()
     {
         var result = new Attributes();

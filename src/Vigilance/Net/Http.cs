@@ -10,7 +10,7 @@ public static class Http
 
     static Http()
     {
-        _client = Game.Platform switch
+        _client = Platform.Current switch
         {
             Platform.Web => new HttpClientWeb(),
             _ => new HttpClientCore(),

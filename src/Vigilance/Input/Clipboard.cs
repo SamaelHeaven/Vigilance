@@ -10,7 +10,7 @@ public static class Clipboard
         get
         {
             Game.EnsureRunning();
-            return Game.Platform switch
+            return Platform.Current switch
             {
                 Platform.Web => "",
                 _ => Raylib.GetClipboardText_(),

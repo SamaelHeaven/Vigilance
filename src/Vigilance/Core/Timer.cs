@@ -9,7 +9,8 @@ public sealed class Timer
         TimeSpan delay,
         int repeatCount = InfiniteRepeatCount,
         Action? repeatAction = null,
-        Action? completeAction = null
+        Action? completeAction = null,
+        bool immediate = false
     )
     {
         OnComplete = completeAction;
@@ -17,6 +18,8 @@ public sealed class Timer
         Elapsed = delay;
         Delay = delay;
         RepeatCount = repeatCount;
+        if (immediate)
+            repeatAction?.Invoke();
     }
 
     public bool Finished => Elapsed <= TimeSpan.Zero;
