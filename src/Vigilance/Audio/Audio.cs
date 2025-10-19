@@ -14,9 +14,10 @@ public static class Audio
         set
         {
             value = value.Clamp(0, 1);
+            if (!Game.Running || Precision.AreEqual(value, MasterVolume))
+                return;
             _config.MasterVolume = value;
-            if (Game.Running)
-                Raylib.SetMasterVolume(value);
+            Raylib.SetMasterVolume(value);
         }
     }
 
@@ -42,7 +43,7 @@ public static class Audio
 
         if (Game.Config.TryTake(out AudioConfig config))
             _config = config;
-        MasterVolume = _config.MasterVolume;
+        Raylib.SetMasterVolume(_config.MasterVolume);
         DefaultSoundMaxAliases = _config.DefaultSoundMaxAliases;
     }
 

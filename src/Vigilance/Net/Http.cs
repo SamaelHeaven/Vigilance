@@ -29,8 +29,7 @@ public static class Http
         var statusCode = response.StatusCode;
         var statusText = response.StatusText;
         var logLevel = response.Success ? LogLevel.Info : LogLevel.Error;
-        var logMessage = $"FETCH: {method} \"{url}\"{(statusCode == 0 ? "" : $" {statusCode}")} ({statusText})";
-        Logger.Log(logLevel, logMessage);
+        Logger.Log(logLevel, $"FETCH: {method} \"{url}\"{(statusCode == 0 ? "" : $" {statusCode}")} ({statusText})");
         Game.Defer(() => request.OnComplete?.Invoke(response));
     }
 }

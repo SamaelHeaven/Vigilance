@@ -33,5 +33,21 @@ public static class LogLevelExtensions
                 };
             }
         }
+
+        public string ToUpperString()
+        {
+            return level switch
+            {
+                LogLevel.All => "ALL",
+                LogLevel.Trace => "TRACE",
+                LogLevel.Debug => "DEBUG",
+                LogLevel.Info => "INFO",
+                LogLevel.Warning => "WARNING",
+                LogLevel.Error => "ERROR",
+                LogLevel.Fatal => "FATAL",
+                LogLevel.None => "NONE",
+                _ => "",
+            };
+        }
     }
 }

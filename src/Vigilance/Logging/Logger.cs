@@ -3,7 +3,6 @@ using System.Runtime.InteropServices;
 using Raylib_cs.BleedingEdge;
 using Raylib_cs.BleedingEdge.Interop;
 using Vigilance.Core;
-using ZLinq;
 
 namespace Vigilance.Logging;
 
@@ -20,7 +19,7 @@ public static unsafe partial class Logger
         set
         {
             _config.LogLevel = value;
-            if (Game.Running)
+            if (Game.Running && value != LogLevel)
                 Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
         }
     }
@@ -28,7 +27,7 @@ public static unsafe partial class Logger
     internal static void Initialize()
     {
         _config = Game.Config.TryTake(out LoggingConfig config) ? config : new LoggingConfig();
-        LogLevel = _config.LogLevel;
+        Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
         var engine = Assemblies.Engine.GetName();
         var message = $"Initializing {engine.Name} {engine.Version}";
         try
@@ -43,24 +42,24 @@ public static unsafe partial class Logger
         {
             _config.Logger = null;
             Raylib.SetTraceLogCallback(null);
-            Log(LogLevel.Warning, "Failed to initialize custom logging");
-            Log(message);
+            Warning("Failed to initialize custom logging");
+            Info(message);
         }
     }
 
-    public static void Log(object? value)
+    public static void Log<T>(T value)
     {
         Log(value is Exception ? LogLevel.Error : LogLevel.Info, value);
     }
 
-    public static void Log(params object?[] values)
+    public static void Log(InfoLogHandler handler)
     {
-        Log(LogLevel.Info, values);
+        Log(LogLevel.Info, handler.GetFormattedText());
     }
 
-    public static void Log(LogLevel level, object? value)
+    public static void Log<T>(LogLevel level, T value)
     {
-        if (_config.LogLevel > level)
+        if (LogLevel > level)
             return;
         lock (_logLock)
         {
@@ -70,7 +69,11 @@ public static unsafe partial class Logger
             if (_config.Logger is null)
             {
                 if (level is > LogLevel.All and < LogLevel.None)
-                    Console.Write($"{level.ToString().ToUpper()}: ");
+                {
+                    Console.Write(level.ToUpperString());
+                    Console.Write(": ");
+                }
+
                 Console.WriteLine(message);
                 Console.Out.Flush();
             }
@@ -84,61 +87,59 @@ public static unsafe partial class Logger
         }
     }
 
-    public static void Log(LogLevel level, params object?[] values)
+    public static void Log(LogLevel level, [InterpolatedStringHandlerArgument(nameof(level))] LogHandler handler)
     {
-        if (_config.LogLevel > level)
-            return;
-        Log(level, values.AsValueEnumerable().JoinToString(", "));
+        Log(level, handler.GetFormattedText());
     }
 
-    public static void Debug(object? value)
+    public static void Debug<T>(T value)
     {
         Log(LogLevel.Debug, value);
     }
 
-    public static void Debug(params object?[] values)
+    public static void Debug(DebugLogHandler handler)
     {
-        Log(LogLevel.Debug, values);
+        Log(LogLevel.Debug, handler.GetFormattedText());
     }
 
-    public static void Info(object? value)
+    public static void Info<T>(T value)
     {
         Log(LogLevel.Info, value);
     }
 
-    public static void Info(params object?[] values)
+    public static void Info(InfoLogHandler handler)
     {
-        Log(LogLevel.Info, values);
+        Log(LogLevel.Info, handler.GetFormattedText());
     }
 
-    public static void Warning(object? value)
+    public static void Warning<T>(T value)
     {
         Log(LogLevel.Warning, value);
     }
 
-    public static void Warning(params object?[] values)
+    public static void Warning(WarningLogHandler handler)
     {
-        Log(LogLevel.Warning, values);
+        Log(LogLevel.Warning, handler.GetFormattedText());
     }
 
-    public static void Error(object? value)
+    public static void Error<T>(T value)
     {
         Log(LogLevel.Error, value);
     }
 
-    public static void Error(params object?[] values)
+    public static void Error(ErrorLogHandler handler)
     {
-        Log(LogLevel.Error, values);
+        Log(LogLevel.Error, handler.GetFormattedText());
     }
 
-    public static void Fatal(object? value)
+    public static void Fatal<T>(T value)
     {
         Log(LogLevel.Fatal, value);
     }
 
-    public static void Fatal(params object?[] values)
+    public static void Fatal(FatalLogHandler handler)
     {
-        Log(LogLevel.Fatal, values);
+        Log(LogLevel.Fatal, handler.GetFormattedText());
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
@@ -158,12 +159,12 @@ public static unsafe partial class Logger
     }
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
-    private static partial void SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+    private static partial void SetConsoleMode(nint hConsoleHandle, uint dwMode);
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     private static partial nint GetStdHandle(int nStdHandle);
 
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static partial bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+    private static partial bool GetConsoleMode(nint hConsoleHandle, out uint lpMode);
 }

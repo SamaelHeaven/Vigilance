@@ -16,7 +16,7 @@ public sealed class ConsoleLogger : ILogger
             }
 
             Console.Write("\e[1m ");
-            Console.Write(level.ToString().ToUpper());
+            Console.Write(level.ToUpperString());
             Console.Write(" \e[0m");
             Console.ResetColor();
             Console.Write(" ");

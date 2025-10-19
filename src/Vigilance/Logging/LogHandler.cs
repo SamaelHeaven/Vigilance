@@ -1,0 +1,165 @@
+using System.Runtime.CompilerServices;
+
+namespace Vigilance.Logging;
+
+[InterpolatedStringHandler]
+public ref struct LogHandler
+{
+    private DefaultInterpolatedStringHandler _inner;
+    private readonly LogLevel _level;
+
+    public bool Enabled => _level > Logger.LogLevel;
+
+    public LogHandler(int literalLength, int formattedCount, LogLevel level)
+    {
+        _level = level;
+        _inner = Enabled ? new DefaultInterpolatedStringHandler(literalLength, formattedCount) : default;
+    }
+
+    public void AppendLiteral(string str)
+    {
+        if (Enabled)
+            _inner.AppendLiteral(str);
+    }
+
+    public void AppendFormatted<T>(T value)
+    {
+        if (Enabled)
+            _inner.AppendFormatted(value);
+    }
+
+    public string GetFormattedText()
+    {
+        return Enabled ? _inner.ToStringAndClear() : "";
+    }
+}
+
+[InterpolatedStringHandler]
+public ref struct DebugLogHandler
+{
+    private LogHandler _handler;
+
+    public DebugLogHandler(int literalLength, int formattedCount)
+    {
+        _handler = new LogHandler(literalLength, formattedCount, LogLevel.Debug);
+    }
+
+    public void AppendLiteral(string str)
+    {
+        _handler.AppendLiteral(str);
+    }
+
+    public void AppendFormatted<T>(T value)
+    {
+        _handler.AppendFormatted(value);
+    }
+
+    public string GetFormattedText()
+    {
+        return _handler.GetFormattedText();
+    }
+}
+
+[InterpolatedStringHandler]
+public ref struct InfoLogHandler
+{
+    private LogHandler _handler;
+
+    public InfoLogHandler(int literalLength, int formattedCount)
+    {
+        _handler = new LogHandler(literalLength, formattedCount, LogLevel.Info);
+    }
+
+    public void AppendLiteral(string str)
+    {
+        _handler.AppendLiteral(str);
+    }
+
+    public void AppendFormatted<T>(T value)
+    {
+        _handler.AppendFormatted(value);
+    }
+
+    public string GetFormattedText()
+    {
+        return _handler.GetFormattedText();
+    }
+}
+
+[InterpolatedStringHandler]
+public ref struct WarningLogHandler
+{
+    private LogHandler _handler;
+
+    public WarningLogHandler(int literalLength, int formattedCount)
+    {
+        _handler = new LogHandler(literalLength, formattedCount, LogLevel.Warning);
+    }
+
+    public void AppendLiteral(string str)
+    {
+        _handler.AppendLiteral(str);
+    }
+
+    public void AppendFormatted<T>(T value)
+    {
+        _handler.AppendFormatted(value);
+    }
+
+    public string GetFormattedText()
+    {
+        return _handler.GetFormattedText();
+    }
+}
+
+[InterpolatedStringHandler]
+public ref struct ErrorLogHandler
+{
+    private LogHandler _handler;
+
+    public ErrorLogHandler(int literalLength, int formattedCount)
+    {
+        _handler = new LogHandler(literalLength, formattedCount, LogLevel.Error);
+    }
+
+    public void AppendLiteral(string str)
+    {
+        _handler.AppendLiteral(str);
+    }
+
+    public void AppendFormatted<T>(T value)
+    {
+        _handler.AppendFormatted(value);
+    }
+
+    public string GetFormattedText()
+    {
+        return _handler.GetFormattedText();
+    }
+}
+
+[InterpolatedStringHandler]
+public ref struct FatalLogHandler
+{
+    private LogHandler _handler;
+
+    public FatalLogHandler(int literalLength, int formattedCount)
+    {
+        _handler = new LogHandler(literalLength, formattedCount, LogLevel.Fatal);
+    }
+
+    public void AppendLiteral(string str)
+    {
+        _handler.AppendLiteral(str);
+    }
+
+    public void AppendFormatted<T>(T value)
+    {
+        _handler.AppendFormatted(value);
+    }
+
+    public string GetFormattedText()
+    {
+        return _handler.GetFormattedText();
+    }
+}
