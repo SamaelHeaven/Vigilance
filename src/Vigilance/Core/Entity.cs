@@ -305,13 +305,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         var type = typeof(T);
         if (type == typeof(Components))
             throw new InvalidOperationException("Components cannot be set.");
-        var hadT = _entity.Has<T>();
-        Scene.DeferSetComponent(_entity, type, data);
+        var id = Type<T>.Id(_entity.World);
+        var hadT = _entity.Has(id);
+        Scene.DeferSetComponent(_entity, type, data, id);
         _entity.Set(ref data);
         if (hadT)
-            _entity.CsWorld().Event<SetEvent>().Id<T>().Entity(_entity).Enqueue();
+            _entity.CsWorld().Event<SetEvent>().Id(id).Entity(_entity).Enqueue();
         else
-            _entity.CsWorld().Event<AddEvent>().Id<T>().Entity(_entity).Enqueue();
+            _entity.CsWorld().Event<AddEvent>().Id(id).Entity(_entity).Enqueue();
         return ref this;
     }
 
@@ -321,8 +322,17 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         var type = typeof(T);
         if (type == typeof(Components))
             throw new InvalidOperationException("Components cannot be removed.");
-        Scene.DeferRemoveComponent(_entity, type);
-        _entity.Remove<T>();
+        var id = Type<T>.Id(_entity.World);
+        Scene.DeferRemoveComponent(_entity, id);
+        _entity.Remove(id);
+        return ref this;
+    }
+
+    public ref readonly Entity Remove(in Component component)
+    {
+        EnsureValid();
+        Scene.DeferRemoveComponent(_entity, component.Id);
+        _entity.Remove(component.Id);
         return ref this;
     }
 

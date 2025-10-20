@@ -10,7 +10,8 @@ public sealed unsafe partial class Scene
         ComponentOperation Operation,
         ulong EntityId,
         Type Type,
-        object? Data
+        object? Data,
+        ulong Id
     )> _componentOperations = new();
 
     private readonly Dictionary<ulong, ulong> _entityOrderMap = [];
@@ -269,26 +270,46 @@ public sealed unsafe partial class Scene
             throw new InvalidOperationException("Scene has been initialized.");
     }
 
-    internal void DeferSetComponent(Flecs.NET.Core.Entity entity, Type type, object? date)
+    public void BeginDefer()
     {
-        if (Deferred)
-        {
-            _componentOperations.Enqueue((ComponentOperation.Set, entity, type, date));
+        if (0 != _deferred++)
             return;
-        }
-
-        SetComponent(entity, type, date);
+        _world.DeferBegin();
     }
 
-    internal void DeferRemoveComponent(Flecs.NET.Core.Entity entity, Type type)
+    public void EndDefer()
+    {
+        if (!Deferred)
+            return;
+        if (--_deferred != 0)
+            return;
+        _world.DeferEnd();
+        ExecuteComponentOperations();
+        var action = _deferredAction;
+        _deferredAction = null;
+        action?.Invoke();
+    }
+
+    internal void DeferSetComponent(Flecs.NET.Core.Entity entity, Type type, object? data, ulong id)
     {
         if (Deferred)
         {
-            _componentOperations.Enqueue((ComponentOperation.Remove, entity, type, null));
+            _componentOperations.Enqueue((ComponentOperation.Set, entity, type, data, id));
             return;
         }
 
-        RemoveComponent(entity, type);
+        SetComponent(entity, type, data, id);
+    }
+
+    internal void DeferRemoveComponent(Flecs.NET.Core.Entity entity, ulong id)
+    {
+        if (Deferred)
+        {
+            _componentOperations.Enqueue((ComponentOperation.Remove, entity, null!, null, id));
+            return;
+        }
+
+        RemoveComponent(entity, id);
     }
 
     internal void Stop()
@@ -307,26 +328,6 @@ public sealed unsafe partial class Scene
         for (_time += Time.DeltaSeconds; _time >= Time.FixedDeltaSeconds; _time -= Time.FixedDeltaSeconds)
             FixedUpdate();
         Render();
-    }
-
-    internal void BeginDefer()
-    {
-        if (0 != _deferred++)
-            return;
-        _world.DeferBegin();
-    }
-
-    internal void EndDefer()
-    {
-        if (!Deferred)
-            return;
-        if (--_deferred != 0)
-            return;
-        _world.DeferEnd();
-        ExecuteComponentOperations();
-        var action = _deferredAction;
-        _deferredAction = null;
-        action?.Invoke();
     }
 
     private void Initialize()
@@ -367,10 +368,15 @@ public sealed unsafe partial class Scene
             switch (component.Operation)
             {
                 case ComponentOperation.Set:
-                    SetComponent(new Flecs.NET.Core.Entity(_world, component.EntityId), component.Type, component.Data);
+                    SetComponent(
+                        new Flecs.NET.Core.Entity(_world, component.EntityId),
+                        component.Type,
+                        component.Data,
+                        component.Id
+                    );
                     break;
                 case ComponentOperation.Remove:
-                    RemoveComponent(new Flecs.NET.Core.Entity(_world, component.EntityId), component.Type);
+                    RemoveComponent(new Flecs.NET.Core.Entity(_world, component.EntityId), component.Id);
                     break;
             }
     }
@@ -423,7 +429,7 @@ public sealed unsafe partial class Scene
         return middle;
     }
 
-    private static void SetComponent(Flecs.NET.Core.Entity entity, Type type, object? data)
+    private static void SetComponent(Flecs.NET.Core.Entity entity, Type type, object? data, ulong id)
     {
         Components components;
         if (!entity.Has<Components>())
@@ -436,17 +442,17 @@ public sealed unsafe partial class Scene
             components = entity.Get<Components>();
         }
 
-        var component = new Component(type, data);
+        var component = new Component(type, data, id);
         components.Values.Remove(component);
         components.Values.Add(component);
     }
 
-    private static void RemoveComponent(Flecs.NET.Core.Entity entity, Type type)
+    private static void RemoveComponent(Flecs.NET.Core.Entity entity, ulong id)
     {
         if (!entity.Has<Components>())
             return;
         var components = entity.Get<Components>();
-        components.Values.Remove(new Component(type));
+        components.Values.Remove(new Component(null!, null, id));
         if (components.Count == 0)
             entity.Remove<Components>();
     }

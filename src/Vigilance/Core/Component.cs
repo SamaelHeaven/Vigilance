@@ -3,16 +3,27 @@ using System.Text;
 
 namespace Vigilance.Core;
 
-public readonly record struct Component(Type Type, object? Data = null)
+public readonly record struct Component
 {
+    public Type Type { get; }
+    public object? Data { get; }
+    public ulong Id { get; }
+
+    internal Component(Type type, object? data, ulong id)
+    {
+        Type = type;
+        Data = data;
+        Id = id;
+    }
+
     public bool Equals(Component other)
     {
-        return Type == other.Type;
+        return Id == other.Id;
     }
 
     public override int GetHashCode()
     {
-        return Type.GetHashCode();
+        return Id.GetHashCode();
     }
 
     public bool TryGet<T>(out T t)
