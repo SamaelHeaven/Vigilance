@@ -71,7 +71,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public Vector2 Position
     {
-        get => Has<Position>() ? _entity.Get<Position>().Value : Vector2.Zero;
+        get
+        {
+            EnsureValid();
+            return _entity.Get<Position>().Value;
+        }
         set
         {
             if (!Precision.AreEqual(Position, value))
@@ -81,7 +85,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public Vector2 Scale
     {
-        get => Has<Scale>() ? _entity.Get<Scale>().Value : Vector2.One;
+        get
+        {
+            EnsureValid();
+            return _entity.Get<Scale>().Value;
+        }
         set
         {
             if (!Precision.AreEqual(Scale, value))
@@ -91,7 +99,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public float Rotation
     {
-        get => Has<Rotation>() ? _entity.Get<Rotation>().Value : 0;
+        get
+        {
+            EnsureValid();
+            return _entity.Get<Rotation>().Value;
+        }
         set
         {
             if (!Precision.AreEqual(Rotation, value))
@@ -101,7 +113,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public Vector2 PivotPoint
     {
-        get => Has<PivotPoint>() ? _entity.Get<PivotPoint>().Value : Vector2.Zero;
+        get
+        {
+            EnsureValid();
+            return _entity.Get<PivotPoint>().Value;
+        }
         set
         {
             if (!Precision.AreEqual(PivotPoint, value))
@@ -111,7 +127,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public int ZIndex
     {
-        get => Has<ZIndex>() ? _entity.Get<ZIndex>().Value : 0;
+        get
+        {
+            EnsureValid();
+            return _entity.Get<ZIndex>().Value;
+        }
         set
         {
             if (ZIndex != value)
