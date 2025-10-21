@@ -53,6 +53,7 @@ public sealed unsafe partial class Scene
     public Scene(GameSystemsFunc? systems = null)
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
+        OnInstantiate(InstantiateCallback);
         OnSetZIndex(SetZIndexTraverseCallback);
         OnSetZIndex(SetZIndexCallback, false);
         OnSetPosition(SetPositionCallback, false);
@@ -136,7 +137,6 @@ public sealed unsafe partial class Scene
         entity.Set(new PivotPoint());
         var id = entity.Id.Value;
         var result = new Entity(id, this);
-        InstantiateCallback(result);
         World.Event<AddEvent>().Id<ZIndex>().Entity(id).Enqueue();
         return result;
     }
