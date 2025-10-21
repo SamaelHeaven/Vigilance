@@ -32,9 +32,10 @@ public sealed class ComponentSystem : GameSystem
             component.EndRender(entity);
     }
 
-    public override void Render(Entity entity)
+    public override void Render(RenderCommands commands)
     {
-        foreach (var component in entity.Components.OfType<IComponent>())
-            component.Render(entity);
+        foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
+        foreach (var component in components.OfType<IComponent>())
+            commands.Add(entity, component.Render);
     }
 }

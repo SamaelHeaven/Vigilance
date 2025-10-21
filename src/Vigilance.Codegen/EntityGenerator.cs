@@ -33,12 +33,13 @@ public sealed class EntityGenerator : ISourceGenerator
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"_entity.Has<T{n}>()"));
+            var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"entity.Has<T{n}>()"));
             sb.AppendLine(
                 $$"""
                     public bool Has<{{typeParams}}>()
                     {
                         EnsureValid();
+                        var entity = FlecsEntity;
                         return {{hasChecks}};
                     }
                     
@@ -60,16 +61,18 @@ public sealed class EntityGenerator : ISourceGenerator
                 "\n        ",
                 Enumerable.Range(0, i + 1).Select(n => $"System.Runtime.CompilerServices.Unsafe.SkipInit(out t{n});")
             );
+            var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"entity.Has<T{n}>()"));
             var assigns = string.Join(
                 "\n            ",
-                Enumerable.Range(0, i + 1).Select(n => $"t{n} = _entity.Get<T{n}>();")
+                Enumerable.Range(0, i + 1).Select(n => $"t{n} = entity.Get<T{n}>();")
             );
             sb.AppendLine(
                 $$"""
                     public bool TryGet<{{typeParams}}>({{outParams}})
                     {
                         {{skipInits}}
-                        var result = Has<{{typeParams}}>();
+                        var entity = FlecsEntity;
+                        var result = {{hasChecks}};
                         if (result) {
                             {{assigns}}
                         }

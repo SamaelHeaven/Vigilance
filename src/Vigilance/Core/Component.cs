@@ -5,16 +5,16 @@ namespace Vigilance.Core;
 
 public readonly record struct Component
 {
-    public Type Type { get; }
-    public object? Data { get; }
-    public ulong Id { get; }
-
     internal Component(Type type, object? data, ulong id)
     {
         Type = type;
         Data = data;
         Id = id;
     }
+
+    public Type Type { get; }
+    public object? Data { get; }
+    public ulong Id { get; }
 
     public bool Equals(Component other)
     {

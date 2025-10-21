@@ -14,11 +14,26 @@ public sealed unsafe partial class Scene
         ulong Id
     )> _componentOperations = new();
 
-    private readonly Dictionary<ulong, ulong> _entityOrderMap = [];
-
     private readonly Dictionary<Type, object> _events = new();
-    private readonly List<SortedEntity> _sortedEntities = [];
+    private readonly RenderCommands _renderCommands = new();
     private readonly GameSystemsFunc _systemsFunc;
+    internal readonly Dictionary<ulong, Components> ComponentMap = new();
+    internal readonly HashSet<ulong> DisabledSet = new();
+    internal readonly HashSet<ulong> ImmediateDisabledSet = new();
+    internal readonly Dictionary<ulong, Vector2> ImmediatePivotPointMap = new();
+    internal readonly Dictionary<ulong, Vector2> ImmediatePositionMap = new();
+    internal readonly Dictionary<ulong, float> ImmediateRotationMap = new();
+    internal readonly Dictionary<ulong, Vector2> ImmediateScaleMap = new();
+    internal readonly Dictionary<ulong, int> ImmediateZIndexMap = new();
+    internal readonly Dictionary<ulong, string> NameMap = new();
+    internal readonly Dictionary<ulong, ulong> OrderMap = new();
+    internal readonly Dictionary<ulong, Entity> ParentMap = new();
+    internal readonly Dictionary<ulong, Vector2> PivotPointMap = new();
+    internal readonly Dictionary<ulong, Vector2> PositionMap = new();
+    internal readonly Dictionary<ulong, float> RotationMap = new();
+    internal readonly Dictionary<ulong, Vector2> ScaleMap = new();
+    internal readonly Dictionary<ulong, Transform> TransformMap = new();
+    internal readonly Dictionary<ulong, int> ZIndexMap = new();
     private Action? _beginRenderAction;
     private int _deferred;
     private Action? _deferredAction;
@@ -26,21 +41,27 @@ public sealed unsafe partial class Scene
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
     private Action? _onDispose;
-    private Action<Entity>? _renderAction;
+    private Action<RenderCommands>? _renderAction;
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
     private List<IGameSystem> _systems = [];
     private float _time;
     private Action? _updateAction;
-    private World _world = World.Create();
+    internal World World = World.Create();
 
     public Scene(GameSystemsFunc? systems = null)
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
-        OnInstantiate(AddSortedEntity);
-        OnSetZIndex(UpdateSortedEntity);
-        OnDestroy(RemoveSortedEntity);
+        OnSetZIndex(SetZIndexTraverseCallback);
+        OnSetZIndex(SetZIndexCallback, false);
+        OnSetPosition(SetPositionCallback, false);
+        OnSetScale(SetScaleCallback, false);
+        OnSetRotation(SetRotationCallback, false);
+        OnSetPivotPoint(SetPivotPointCallback, false);
+        OnSetDisabledTrue(SetDisabledTrueCallback);
+        OnSetDisabledFalse(SetDisabledFalseCallback);
+        OnAddOrSet<Components>(AddOrSetComponentsCallback);
     }
 
     public ListView<IGameSystem> Systems
@@ -51,8 +72,6 @@ public sealed unsafe partial class Scene
             return _systems;
         }
     }
-
-    public SortedEntityEnumerable SortedEntities => new(this);
 
     public Camera Camera { get; } = new();
 
@@ -104,32 +123,35 @@ public sealed unsafe partial class Scene
         EnsureInitialized();
         Flecs.NET.Core.Entity entity;
         if (name == "")
-            entity = _world.Entity();
+            entity = World.Entity();
         else
             entity =
-                _world.Lookup(name) != Flecs.NET.Core.Entity.Null()
+                World.Lookup(name) != Flecs.NET.Core.Entity.Null()
                     ? throw new InvalidOperationException($"Entity \"{name}\" already exists.")
-                    : _world.Entity(name);
+                    : World.Entity(name);
         entity.Set(new ZIndex());
         entity.Set(new Position());
         entity.Set(new Scale());
         entity.Set(new Rotation());
         entity.Set(new PivotPoint());
-        _world.Event<AddEvent>().Id<ZIndex>().Entity(entity).Enqueue();
-        return new Entity(entity, this);
+        var id = entity.Id.Value;
+        var result = new Entity(id, this);
+        InstantiateCallback(result);
+        World.Event<AddEvent>().Id<ZIndex>().Entity(id).Enqueue();
+        return result;
     }
 
     public Entity Lookup(ulong id)
     {
         EnsureInitialized();
-        var result = new Entity(new Flecs.NET.Core.Entity(_world.Handle, id), this);
+        var result = new Entity(new Flecs.NET.Core.Entity(World.Handle, id), this);
         return result.Valid ? result : Core.Entity.Null;
     }
 
     public Entity Lookup(string name)
     {
         EnsureInitialized();
-        return new Entity(_world.Lookup(name), this);
+        return new Entity(World.Lookup(name), this);
     }
 
     public void On<T>(Action<T> action)
@@ -196,7 +218,7 @@ public sealed unsafe partial class Scene
         _endRenderAction += action;
     }
 
-    public void OnRender(Action<Entity> action)
+    public void OnRender(Action<RenderCommands> action)
     {
         EnsureNotInitialized();
         _renderAction += action;
@@ -218,7 +240,14 @@ public sealed unsafe partial class Scene
 
     public void Enqueue<T>(T @event)
     {
-        Enqueue(ref @event);
+        EnsureInitialized();
+        if (!Deferred)
+        {
+            Emit(@event);
+            return;
+        }
+
+        Defer(() => Emit(@event));
     }
 
     public void Enqueue<T>(ref T @event)
@@ -237,18 +266,17 @@ public sealed unsafe partial class Scene
     public int Count()
     {
         EnsureInitialized();
-        return _sortedEntities.Count;
+        return World.Count<ZIndex>();
     }
 
     public int Count<T>()
     {
         EnsureInitialized();
-        return _world.Count<T>();
+        return World.Count<T>();
     }
 
     public void Defer(Action action)
     {
-        EnsureInitialized();
         if (Deferred)
         {
             _deferredAction += action;
@@ -274,7 +302,7 @@ public sealed unsafe partial class Scene
     {
         if (0 != _deferred++)
             return;
-        _world.DeferBegin();
+        World.DeferBegin();
     }
 
     public void EndDefer()
@@ -283,29 +311,35 @@ public sealed unsafe partial class Scene
             return;
         if (--_deferred != 0)
             return;
-        _world.DeferEnd();
+        World.DeferEnd();
         ExecuteComponentOperations();
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
     }
 
-    internal void DeferSetComponent(Flecs.NET.Core.Entity entity, Type type, object? data, ulong id)
+    public Entity SetScope(in Entity entity)
+    {
+        var oldScope = World.SetScope(entity.Id);
+        return new Entity(oldScope.Id.Value, this);
+    }
+
+    internal void DeferSetComponent(in Entity entity, Type type, object? data, ulong id)
     {
         if (Deferred)
         {
-            _componentOperations.Enqueue((ComponentOperation.Set, entity, type, data, id));
+            _componentOperations.Enqueue((ComponentOperation.Set, entity.Id, type, data, id));
             return;
         }
 
         SetComponent(entity, type, data, id);
     }
 
-    internal void DeferRemoveComponent(Flecs.NET.Core.Entity entity, ulong id)
+    internal void DeferRemoveComponent(in Entity entity, ulong id)
     {
         if (Deferred)
         {
-            _componentOperations.Enqueue((ComponentOperation.Remove, entity, null!, null, id));
+            _componentOperations.Enqueue((ComponentOperation.Remove, entity.Id, null!, null, id));
             return;
         }
 
@@ -333,8 +367,14 @@ public sealed unsafe partial class Scene
     private void Initialize()
     {
         _systems = Game.Systems.Invoke().AsValueEnumerable().Concat(_systemsFunc.Invoke()).ToList();
+        BeginDefer();
         foreach (var system in _systems)
             system.Configure(this);
+        EndDefer();
+        OnRemoveParent(RemoveParentCallback);
+        OnSetParent(SetParentCallback);
+        OnRemove<Components>(RemoveComponentsCallback);
+        OnDestroy(DestroyCallback);
         Initialized = true;
         _initializeAction?.Invoke();
         Time.Restart();
@@ -354,92 +394,31 @@ public sealed unsafe partial class Scene
     private void Render()
     {
         _beginRenderAction?.Invoke();
-        if (_renderAction is not null)
-            foreach (var entity in SortedEntities)
-                _renderAction.Invoke(entity);
+        _renderAction?.Invoke(_renderCommands);
+        _renderCommands.Execute();
         _endRenderAction?.Invoke();
     }
 
     private void ExecuteComponentOperations()
     {
-        if (_componentOperations.Count == 0)
-            return;
         while (_componentOperations.TryDequeue(out var component))
             switch (component.Operation)
             {
                 case ComponentOperation.Set:
-                    SetComponent(
-                        new Flecs.NET.Core.Entity(_world, component.EntityId),
-                        component.Type,
-                        component.Data,
-                        component.Id
-                    );
+                    SetComponent(new Entity(component.EntityId, this), component.Type, component.Data, component.Id);
                     break;
                 case ComponentOperation.Remove:
-                    RemoveComponent(new Flecs.NET.Core.Entity(_world, component.EntityId), component.Id);
+                    RemoveComponent(new Entity(component.EntityId, this), component.Id);
                     break;
             }
     }
 
-    private void AddSortedEntity(Entity entity)
+    private static void SetComponent(in Entity entity, Type type, object? data, ulong id)
     {
-        var id = entity.Id;
-        var sortedEntity = new SortedEntity(id, entity.Order);
-        var index = BinarySearchSortedEntity(sortedEntity);
-        _sortedEntities.Insert(index, sortedEntity);
-        _entityOrderMap[id] = entity.Order;
-    }
-
-    private void UpdateSortedEntity(Entity entity)
-    {
-        var id = entity.Id;
-        var oldIndex = BinarySearchSortedEntity(new SortedEntity(id, _entityOrderMap[id]));
-        _sortedEntities.RemoveAt(oldIndex);
-        var sortedEntity = new SortedEntity(id, entity.Order);
-        var index = BinarySearchSortedEntity(sortedEntity);
-        _sortedEntities.Insert(index, sortedEntity);
-        _entityOrderMap[id] = entity.Order;
-    }
-
-    private void RemoveSortedEntity(Entity entity)
-    {
-        var id = entity.Id;
-        var oldIndex = BinarySearchSortedEntity(new SortedEntity(id, _entityOrderMap[id]));
-        _sortedEntities.RemoveAt(oldIndex);
-        _entityOrderMap.Remove(id);
-    }
-
-    private int BinarySearchSortedEntity(in SortedEntity entity)
-    {
-        var start = 0;
-        var end = _sortedEntities.Count;
-        var middle = end / 2;
-        while (end > start)
-        {
-            int comparison;
-            if ((comparison = _sortedEntities[middle].CompareTo(entity)) == 0)
-                return middle;
-            if (comparison > 0)
-                end = middle;
-            else
-                start = middle + 1;
-            middle = start + (end - start) / 2;
-        }
-
-        return middle;
-    }
-
-    private static void SetComponent(Flecs.NET.Core.Entity entity, Type type, object? data, ulong id)
-    {
-        Components components;
-        if (!entity.Has<Components>())
+        if (!entity.Scene.ComponentMap.TryGetValue(entity.Id, out var components))
         {
             components = new Components();
-            entity.Set(components);
-        }
-        else
-        {
-            components = entity.Get<Components>();
+            entity.FlecsEntity.Set(components);
         }
 
         var component = new Component(type, data, id);
@@ -447,11 +426,10 @@ public sealed unsafe partial class Scene
         components.Values.Add(component);
     }
 
-    private static void RemoveComponent(Flecs.NET.Core.Entity entity, ulong id)
+    private static void RemoveComponent(in Entity entity, ulong id)
     {
-        if (!entity.Has<Components>())
+        if (!entity.Scene.ComponentMap.TryGetValue(entity.Id, out var components))
             return;
-        var components = entity.Get<Components>();
         components.Values.Remove(new Component(null!, null, id));
         if (components.Count == 0)
             entity.Remove<Components>();
@@ -462,7 +440,7 @@ public sealed unsafe partial class Scene
         Game.Defer(() =>
         {
             _onDispose?.Invoke();
-            _world.Dispose();
+            World.Dispose();
         });
     }
 
@@ -476,86 +454,127 @@ public sealed unsafe partial class Scene
         OnRemove<ZIndex>(action);
     }
 
-    public readonly struct SortedEntityEnumerable
-        : IStructEnumerable<SortedEntityEnumerator, Entity>,
-            IReadOnlyCollection<Entity>
-    {
-        private readonly Scene _scene;
-
-        internal SortedEntityEnumerable(Scene scene)
-        {
-            _scene = scene;
-        }
-
-        public SortedEntityEnumerator GetEnumerator()
-        {
-            return new SortedEntityEnumerator(_scene);
-        }
-
-        public ValueEnumerable<StructEnumerator<SortedEntityEnumerator, Entity>, Entity> AsValueEnumerable()
-        {
-            return new StructEnumerator<SortedEntityEnumerator, Entity>(GetEnumerator());
-        }
-
-        public int Count => _scene._sortedEntities.Count;
-    }
-
-    public struct SortedEntityEnumerator : IStructEnumerator<Entity>
-    {
-        private readonly Scene _scene;
-        private readonly List<SortedEntity> _sortedEntities;
-        private int _index;
-
-        internal SortedEntityEnumerator(Scene scene)
-        {
-            _scene = scene;
-            _sortedEntities = scene._sortedEntities;
-            Reset();
-        }
-
-        public bool MoveNext()
-        {
-            return ++_index < _sortedEntities.Count;
-        }
-
-        public void Reset()
-        {
-            _index = -1;
-            _scene.BeginDefer();
-        }
-
-        public Entity Current =>
-            new(new Flecs.NET.Core.Entity(_scene._world, _sortedEntities[_index].EntityId), _scene);
-
-        public void Dispose()
-        {
-            if (_index == -1)
-                return;
-            _scene.EndDefer();
-            _index = -1;
-        }
-    }
-
-    private readonly record struct SortedEntity(ulong EntityId, ulong Order) : IComparable<SortedEntity>
-    {
-        public int CompareTo(SortedEntity other)
-        {
-            return Order.CompareTo(other.Order);
-        }
-    }
-
     private enum ComponentOperation
     {
         Set,
         Remove,
     }
 
+    #region Callbacks
+
+    private void InstantiateCallback(Entity entity)
+    {
+        var flecsEntity = entity.FlecsEntity;
+        var id = entity.Id;
+        var name = flecsEntity.Name();
+        ZIndexMap.Add(id, 0);
+        PositionMap.Add(id, Vector2.Zero);
+        ScaleMap.Add(id, Vector2.One);
+        RotationMap.Add(id, 0);
+        PivotPointMap.Add(id, Vector2.Zero);
+        OrderMap.Add(id, ((ulong)(uint)(entity.WorldZIndex ^ int.MinValue) << 32) | (id & Core.Entity.RecycledIdMask));
+        TransformMap.Add(id, new Transform());
+        if (name != "")
+            NameMap.Add(id, name);
+    }
+
+    private void SetZIndexTraverseCallback(Entity entity)
+    {
+        var id = entity.Id;
+        var order = (uint)(entity.WorldZIndex ^ int.MinValue);
+        OrderMap[id] = ((ulong)order << 32) | (id & Core.Entity.RecycledIdMask);
+    }
+
+    private void SetZIndexCallback(Entity entity, int zIndex)
+    {
+        ZIndexMap[entity.Id] = zIndex;
+    }
+
+    private void SetPositionCallback(Entity entity, Vector2 position)
+    {
+        var id = entity.Id;
+        PositionMap[id] = position;
+        TransformMap[id] = new Transform(position, entity.Scale, entity.Rotation, entity.PivotPoint);
+    }
+
+    private void SetScaleCallback(Entity entity, Vector2 scale)
+    {
+        var id = entity.Id;
+        ScaleMap[id] = scale;
+        TransformMap[id] = new Transform(entity.Position, scale, entity.Rotation, entity.PivotPoint);
+    }
+
+    private void SetRotationCallback(Entity entity, float rotation)
+    {
+        var id = entity.Id;
+        RotationMap[id] = rotation;
+        TransformMap[id] = new Transform(entity.Position, entity.Scale, rotation, entity.PivotPoint);
+    }
+
+    private void SetPivotPointCallback(Entity entity, Vector2 pivotPoint)
+    {
+        var id = entity.Id;
+        PivotPointMap[id] = pivotPoint;
+        TransformMap[id] = new Transform(entity.Position, entity.Scale, entity.Rotation, pivotPoint);
+    }
+
+    private void SetDisabledTrueCallback(Entity entity)
+    {
+        DisabledSet.Add(entity.Id);
+    }
+
+    private void SetDisabledFalseCallback(Entity entity)
+    {
+        DisabledSet.Remove(entity.Id);
+    }
+
+    private void AddOrSetComponentsCallback(Entity entity, Components components)
+    {
+        ComponentMap[entity.Id] = components;
+    }
+
+    private void RemoveParentCallback(Entity entity)
+    {
+        ParentMap.Remove(entity.Id);
+    }
+
+    private void SetParentCallback(Entity entity, Entity parent)
+    {
+        ParentMap[entity.Id] = parent;
+    }
+
+    private void RemoveComponentsCallback(Entity entity)
+    {
+        ComponentMap.Remove(entity.Id);
+    }
+
+    private void DestroyCallback(Entity entity)
+    {
+        var id = entity.Id;
+        ZIndexMap.Remove(id);
+        PositionMap.Remove(id);
+        ScaleMap.Remove(id);
+        RotationMap.Remove(id);
+        PivotPointMap.Remove(id);
+        OrderMap.Remove(id);
+        NameMap.Remove(id);
+        TransformMap.Remove(id);
+        ImmediateZIndexMap.Remove(id);
+        ImmediatePositionMap.Remove(id);
+        ImmediateScaleMap.Remove(id);
+        ImmediateRotationMap.Remove(id);
+        ImmediatePivotPointMap.Remove(id);
+        ImmediateDisabledSet.Remove(id);
+    }
+
+    #endregion
+
     #region OnAdd
 
     public void OnAdd<T>(Action<Entity> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -564,12 +583,12 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse(action);
                     }
                     : (it, i, ref _) =>
                     {
-                        action.Invoke(new Entity(it.Entity(i), this));
+                        action.Invoke(new Entity(it.Handle->entities[i], this));
                     }
             );
     }
@@ -577,7 +596,7 @@ public sealed unsafe partial class Scene
     public void OnAdd<T>(Action<T> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -586,7 +605,7 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse(action);
                     }
                     : (_, _, ref t) =>
@@ -599,7 +618,7 @@ public sealed unsafe partial class Scene
     public void OnAdd<T>(Action<Entity, T> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -608,12 +627,12 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse(action);
                     }
                     : (it, i, ref t) =>
                     {
-                        action.Invoke(new Entity(it.Entity(i), this), t);
+                        action.Invoke(new Entity(it.Handle->entities[i], this), t);
                     }
             );
     }
@@ -625,7 +644,7 @@ public sealed unsafe partial class Scene
     public void OnSet<T>(Action<Entity> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -634,12 +653,12 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse<T>(action);
                     }
                     : (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         action.Invoke(entity);
                     }
             );
@@ -648,7 +667,7 @@ public sealed unsafe partial class Scene
     public void OnSet<T>(Action<T> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -657,7 +676,7 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse(action);
                     }
                     : (_, _, ref t) =>
@@ -670,7 +689,7 @@ public sealed unsafe partial class Scene
     public void OnSet<T>(Action<Entity, T> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -679,12 +698,12 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse(action);
                     }
                     : (it, i, ref t) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         action.Invoke(entity, t);
                     }
             );
@@ -697,7 +716,7 @@ public sealed unsafe partial class Scene
     public void OnAddOrSet<T>(Action<Entity> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -706,12 +725,12 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse<T>(action);
                     }
                     : (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         action.Invoke(entity);
                     }
             );
@@ -720,7 +739,7 @@ public sealed unsafe partial class Scene
     public void OnAddOrSet<T>(Action<T> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -729,7 +748,7 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse(action);
                     }
                     : (_, _, ref t) =>
@@ -742,7 +761,7 @@ public sealed unsafe partial class Scene
     public void OnAddOrSet<T>(Action<Entity, T> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -751,12 +770,12 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse(action);
                     }
                     : (it, i, ref t) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         action.Invoke(entity, t);
                     }
             );
@@ -769,7 +788,7 @@ public sealed unsafe partial class Scene
     public void OnRemove<T>(Action<Entity> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -778,12 +797,12 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse(action);
                     }
                     : (it, i, ref _) =>
                     {
-                        action.Invoke(new Entity(it.Entity(i), this));
+                        action.Invoke(new Entity(it.Handle->entities[i], this));
                     }
             );
     }
@@ -791,7 +810,7 @@ public sealed unsafe partial class Scene
     public void OnRemove<T>(Action<T> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -800,7 +819,7 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse(action);
                     }
                     : (_, _, ref t) =>
@@ -813,7 +832,7 @@ public sealed unsafe partial class Scene
     public void OnRemove<T>(Action<Entity, T> action, bool traverse = false)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer<T>()
             .With(Ecs.Disabled)
             .Optional()
@@ -822,12 +841,12 @@ public sealed unsafe partial class Scene
                 traverse
                     ? (it, i, ref _) =>
                     {
-                        var entity = new Entity(it.Entity(i), this);
+                        var entity = new Entity(it.Handle->entities[i], this);
                         entity.Traverse(action);
                     }
                     : (it, i, ref t) =>
                     {
-                        action.Invoke(new Entity(it.Entity(i), this), t);
+                        action.Invoke(new Entity(it.Handle->entities[i], this), t);
                     }
             );
     }
@@ -939,7 +958,7 @@ public sealed unsafe partial class Scene
     public void OnSetDisabled(Action<Entity> action)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer()
             .Flags(Ecs.Disabled)
             .Event(Ecs.OnAdd)
@@ -947,7 +966,7 @@ public sealed unsafe partial class Scene
             .Each(
                 (it, i) =>
                 {
-                    var entity = new Entity(it.Entity(i), this);
+                    var entity = new Entity(it.Handle->entities[i], this);
                     action.Invoke(entity);
                 }
             );
@@ -956,7 +975,7 @@ public sealed unsafe partial class Scene
     public void OnSetDisabled(Action<Entity, bool> action)
     {
         EnsureNotInitialized();
-        _world
+        World
             .Observer()
             .Flags(Ecs.Disabled)
             .Event(Ecs.OnAdd)
@@ -964,8 +983,126 @@ public sealed unsafe partial class Scene
             .Each(
                 (it, i) =>
                 {
-                    var entity = new Entity(it.Entity(i), this);
+                    var entity = new Entity(it.Handle->entities[i], this);
                     action.Invoke(entity, it.Event() == Ecs.OnAdd);
+                }
+            );
+    }
+
+    public void OnSetDisabledTrue(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        World
+            .Observer()
+            .Flags(Ecs.Disabled)
+            .Event(Ecs.OnAdd)
+            .Each(
+                (it, i) =>
+                {
+                    var entity = new Entity(it.Handle->entities[i], this);
+                    action.Invoke(entity);
+                }
+            );
+    }
+
+    public void OnSetDisabledFalse(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        World
+            .Observer()
+            .Flags(Ecs.Disabled)
+            .Event(Ecs.OnRemove)
+            .Each(
+                (it, i) =>
+                {
+                    var entity = new Entity(it.Handle->entities[i], this);
+                    action.Invoke(entity);
+                }
+            );
+    }
+
+    #endregion
+
+    #region OnSetParent
+
+    public void OnSetParent(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        World
+            .Observer()
+            .With<ZIndex>()
+            .With(Ecs.Disabled)
+            .Optional()
+            .With(Ecs.ChildOf, Ecs.Wildcard)
+            .Event(Ecs.OnAdd)
+            .Each(
+                (it, i) =>
+                {
+                    var entity = new Entity(it.Handle->entities[i], this);
+                    action.Invoke(entity);
+                }
+            );
+    }
+
+    public void OnSetParent(Action<Entity, Entity> action)
+    {
+        EnsureNotInitialized();
+        World
+            .Observer()
+            .With<ZIndex>()
+            .With(Ecs.Disabled)
+            .Optional()
+            .With(Ecs.ChildOf, Ecs.Wildcard)
+            .Event(Ecs.OnAdd)
+            .Each(
+                (it, i) =>
+                {
+                    var entity = new Entity(it.Handle->entities[i], this);
+                    var parent = new Entity(entity.FlecsEntity.Parent(), this);
+                    action.Invoke(entity, parent);
+                }
+            );
+    }
+
+    #endregion
+
+    #region OnRemoveParent
+
+    public void OnRemoveParent(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        World
+            .Observer()
+            .With<ZIndex>()
+            .With(Ecs.Disabled)
+            .Optional()
+            .With(Ecs.ChildOf, Ecs.Wildcard)
+            .Event(Ecs.OnRemove)
+            .Each(
+                (it, i) =>
+                {
+                    var entity = new Entity(it.Handle->entities[i], this);
+                    action.Invoke(entity);
+                }
+            );
+    }
+
+    public void OnRemoveParent(Action<Entity, Entity> action)
+    {
+        EnsureNotInitialized();
+        World
+            .Observer()
+            .With<ZIndex>()
+            .With(Ecs.Disabled)
+            .Optional()
+            .With(Ecs.ChildOf, Ecs.Wildcard)
+            .Event(Ecs.OnRemove)
+            .Each(
+                (it, i) =>
+                {
+                    var entity = new Entity(it.Handle->entities[i], this);
+                    var parent = new Entity(entity.FlecsEntity.Parent(), this);
+                    action.Invoke(entity, parent);
                 }
             );
     }

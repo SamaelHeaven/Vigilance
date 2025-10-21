@@ -27,41 +27,6 @@ public sealed unsafe class Graphics
         _buffer = buffer;
     }
 
-    #region Entity
-
-    public void DrawEntity(Entity entity)
-    {
-        foreach (var component in entity.Components)
-        {
-            if (component.TryGet(out Rectangle rectangle))
-                DrawRectangle(entity.WorldTransform, rectangle);
-            if (component.TryGet(out RectangleGradient rectangleGradient))
-                DrawRectangleGradient(entity.WorldTransform, rectangleGradient);
-            if (component.TryGet(out Circle circle))
-                DrawCircle(entity.WorldTransform, circle);
-            if (component.TryGet(out CircleGradient circleGradient))
-                DrawCircleGradient(entity.WorldTransform, circleGradient);
-            if (component.TryGet(out Triangle triangle))
-                DrawTriangle(entity.WorldTransform, triangle);
-            if (component.TryGet(out RegularPolygon regularPolygon))
-                DrawRegularPolygon(entity.WorldTransform, regularPolygon);
-            if (component.TryGet(out CustomPolygon customPolygon))
-                DrawCustomPolygon(entity.WorldTransform, customPolygon);
-            if (component.TryGet(out Ring ring))
-                DrawRing(entity.WorldTransform, ring);
-            if (component.TryGet(out Line line))
-                DrawLine(entity.WorldTransform, line);
-            if (component.TryGet(out Text text))
-                DrawText(entity.WorldTransform, text);
-            if (component.TryGet(out Sprite sprite))
-                DrawSprite(entity.WorldTransform, sprite);
-            if (component.TryGet(out Grid grid))
-                DrawGrid(entity.WorldTransform, grid);
-        }
-    }
-
-    #endregion
-
     #region Bounds
 
     public Box GetBounds(Camera? camera = null, float offset = 0)

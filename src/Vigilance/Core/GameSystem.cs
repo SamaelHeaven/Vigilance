@@ -58,7 +58,7 @@ public abstract class GameSystem : IGameSystem
 
     public virtual void EndRender() { }
 
-    public virtual void Render(Entity entity) { }
+    public virtual void Render(RenderCommands commands) { }
 }
 
 public static class GameSystemConfigExtensions

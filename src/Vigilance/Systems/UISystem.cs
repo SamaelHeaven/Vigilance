@@ -8,15 +8,20 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem
 {
     public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
 
-    public override void Render(Entity entity)
+    public override void Render(RenderCommands commands)
     {
-        foreach (var element in entity.Components.OfType<UIElement>())
-        {
-            var layoutReady = element.LayoutReady;
-            element.CalculateLayout();
-            if (!layoutReady || !entity.Disabled)
-                element.Update(entity);
-            element.Render(entity.WorldTransform, Graphics);
-        }
+        commands.AddRange(
+            this,
+            Scene.Entries<UIComponent>().WithDisabled(),
+            static (entity, self, component) =>
+            {
+                var element = component.Element;
+                var layoutReady = element.LayoutReady;
+                element.CalculateLayout();
+                if (!layoutReady || !entity.Disabled)
+                    element.Update(entity);
+                element.Render(entity.WorldTransform, self.Graphics);
+            }
+        );
     }
 }

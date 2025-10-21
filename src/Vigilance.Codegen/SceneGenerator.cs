@@ -127,8 +127,7 @@ public sealed class SceneGenerator : ISourceGenerator
                         {
                             if (!_query.HasValue)
                                 return Core.Entity.Null;
-                            var entity = new Flecs.NET.Core.Entity(_scene._world, _iter.entities[_index]);
-                            return new Entity(entity, _scene);
+                            return new Entity(_iter.entities[_index], _scene);
                         }
                     }
                     
@@ -168,8 +167,8 @@ public sealed class SceneGenerator : ISourceGenerator
                         Dispose();
                         _scene.BeginDefer();
                         var query = {{$"(_withDisabled ? " +
-                                      $"_scene._world.QueryBuilder<{queryTypeParams}>().With(Flecs.NET.Core.Ecs.Disabled).Optional() " +
-                                      $": _scene._world.QueryBuilder<{queryTypeParams}>())" +
+                                      $"_scene.World.QueryBuilder<{queryTypeParams}>().With(Flecs.NET.Core.Ecs.Disabled).Optional() " +
+                                      $": _scene.World.QueryBuilder<{queryTypeParams}>())" +
                                       $".CacheKind(Flecs.NET.Bindings.flecs.ecs_query_cache_kind_t.EcsQueryCacheNone).Build()"}};
                         _query = query;
                         _iter = query.GetIter();
