@@ -22,11 +22,11 @@ public sealed class Timer
             repeatAction?.Invoke();
     }
 
-    public bool Finished => Elapsed <= TimeSpan.Zero;
+    public bool IsFinished => Elapsed <= TimeSpan.Zero;
 
     public TimeSpan Elapsed { get; set; }
     public TimeSpan Delay { get; set; }
-    public bool Paused { get; set; }
+    public bool IsPaused { get; set; }
     public int RepeatCount { get; set; }
 
     public event Action? OnComplete;
@@ -39,10 +39,10 @@ public sealed class Timer
 
     public void Update(TimeSpan step)
     {
-        if (Paused || (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount))
+        if (IsPaused || (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount))
             return;
         Elapsed -= step;
-        if (!Finished)
+        if (!IsFinished)
             return;
         Elapsed = Delay;
         _repeatCounter++;

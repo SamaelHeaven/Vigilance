@@ -39,7 +39,7 @@ public sealed unsafe partial class Shader : IDisposable
 
     public uint Id => RShader.Id;
 
-    public bool Valid => RShader.Id != 0;
+    public bool IsValid => RShader.Id != 0;
 
     public void Dispose()
     {

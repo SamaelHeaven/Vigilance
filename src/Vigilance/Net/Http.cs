@@ -28,7 +28,7 @@ public static class Http
         var url = HttpUtility.UrlPathEncode(request.Url).Replace("\"", "%22");
         var statusCode = response.StatusCode;
         var statusText = response.StatusText;
-        var logLevel = response.Success ? LogLevel.Info : LogLevel.Error;
+        var logLevel = response.IsSuccess ? LogLevel.Info : LogLevel.Error;
         Logger.Log(logLevel, $"FETCH: {method} \"{url}\"{(statusCode == 0 ? "" : $" {statusCode}")} ({statusText})");
         Game.Defer(() => request.OnComplete?.Invoke(response));
     }

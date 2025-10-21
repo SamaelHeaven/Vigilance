@@ -1,4 +1,5 @@
 ﻿using Flecs.NET.Core;
+using Vigilance.Drawing;
 using Vigilance.Math;
 using ZLinq;
 
@@ -58,8 +59,8 @@ public sealed unsafe partial class Scene
         OnSetScale(SetScaleCallback, false);
         OnSetRotation(SetRotationCallback, false);
         OnSetPivotPoint(SetPivotPointCallback, false);
-        OnSetDisabledTrue(SetDisabledTrueCallback);
-        OnSetDisabledFalse(SetDisabledFalseCallback);
+        OnDisable(EnableCallback);
+        OnEnable(DisableCallback);
         OnAddOrSet<Components>(AddOrSetComponentsCallback);
     }
 
@@ -74,9 +75,9 @@ public sealed unsafe partial class Scene
 
     public Camera Camera { get; } = new();
 
-    public bool Initialized { get; private set; }
+    public bool IsInitialized { get; private set; }
 
-    public bool Deferred => _deferred != 0;
+    public bool IsDeferred => _deferred != 0;
 
     public EntityEnumerable Entities => GetEntities();
 
@@ -94,10 +95,10 @@ public sealed unsafe partial class Scene
 
     public void Restart()
     {
-        if (!Initialized)
+        if (!IsInitialized)
             return;
         var current = Game.Scene == this;
-        if (current || Deferred)
+        if (current || IsDeferred)
         {
             Game.Defer(RestartAction);
             return;
@@ -143,7 +144,7 @@ public sealed unsafe partial class Scene
     {
         EnsureInitialized();
         var result = new Entity(new Flecs.NET.Core.Entity(World.Handle, id), this);
-        return result.Valid ? result : Core.Entity.Null;
+        return result.IsValid ? result : Core.Entity.Null;
     }
 
     public Entity Lookup(string name)
@@ -239,7 +240,7 @@ public sealed unsafe partial class Scene
     public void Enqueue<T>(T @event)
     {
         EnsureInitialized();
-        if (!Deferred)
+        if (!IsDeferred)
         {
             Emit(@event);
             return;
@@ -251,7 +252,7 @@ public sealed unsafe partial class Scene
     public void Enqueue<T>(ref T @event)
     {
         EnsureInitialized();
-        if (!Deferred)
+        if (!IsDeferred)
         {
             Emit(@event);
             return;
@@ -275,7 +276,7 @@ public sealed unsafe partial class Scene
 
     public void Defer(Action action)
     {
-        if (Deferred)
+        if (IsDeferred)
         {
             _deferredAction += action;
             return;
@@ -286,13 +287,13 @@ public sealed unsafe partial class Scene
 
     public void EnsureInitialized()
     {
-        if (!Initialized)
+        if (!IsInitialized)
             throw new InvalidOperationException("Scene has not been initialized.");
     }
 
     public void EnsureNotInitialized()
     {
-        if (Initialized)
+        if (IsInitialized)
             throw new InvalidOperationException("Scene has been initialized.");
     }
 
@@ -305,7 +306,7 @@ public sealed unsafe partial class Scene
 
     public void EndDefer()
     {
-        if (!Deferred)
+        if (!IsDeferred)
             return;
         if (--_deferred != 0)
             return;
@@ -324,7 +325,7 @@ public sealed unsafe partial class Scene
 
     internal void DeferSetComponent(in Entity entity, Type type, object? data, ulong id)
     {
-        if (Deferred)
+        if (IsDeferred)
         {
             _componentOperations.Enqueue((ComponentOperation.Set, entity.Id, type, data, id));
             return;
@@ -335,7 +336,7 @@ public sealed unsafe partial class Scene
 
     internal void DeferRemoveComponent(in Entity entity, ulong id)
     {
-        if (Deferred)
+        if (IsDeferred)
         {
             _componentOperations.Enqueue((ComponentOperation.Remove, entity.Id, null!, null, id));
             return;
@@ -352,7 +353,7 @@ public sealed unsafe partial class Scene
 
     internal void Update()
     {
-        if (!Initialized)
+        if (!IsInitialized)
             Initialize();
         if (!_started)
             Start();
@@ -373,7 +374,7 @@ public sealed unsafe partial class Scene
         OnSetParent(SetParentCallback);
         OnRemove<Components>(RemoveComponentsCallback);
         OnDestroy(DestroyCallback);
-        Initialized = true;
+        IsInitialized = true;
         _initializeAction?.Invoke();
         Time.Restart();
     }
@@ -508,12 +509,12 @@ public sealed unsafe partial class Scene
         TransformMap[id] = new Transform(entity.Position, entity.Scale, entity.Rotation, pivotPoint);
     }
 
-    private void SetDisabledTrueCallback(Entity entity)
+    private void EnableCallback(Entity entity)
     {
         DisabledSet.Add(entity.Id);
     }
 
-    private void SetDisabledFalseCallback(Entity entity)
+    private void DisableCallback(Entity entity)
     {
         DisabledSet.Remove(entity.Id);
     }
@@ -978,7 +979,7 @@ public sealed unsafe partial class Scene
             );
     }
 
-    public void OnSetDisabledTrue(Action<Entity> action)
+    public void OnDisable(Action<Entity> action)
     {
         EnsureNotInitialized();
         World
@@ -994,7 +995,7 @@ public sealed unsafe partial class Scene
             );
     }
 
-    public void OnSetDisabledFalse(Action<Entity> action)
+    public void OnEnable(Action<Entity> action)
     {
         EnsureNotInitialized();
         World

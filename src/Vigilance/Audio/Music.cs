@@ -66,23 +66,23 @@ public sealed class Music : IDisposable
         }
     }
 
-    public bool Looping
+    public bool IsLooping
     {
         get => _music.Looping;
         set => _music.Looping = value;
     }
 
-    public bool Paused { get; private set; }
+    public bool IsPaused { get; private set; }
 
-    public bool Playing => Raylib.IsMusicStreamPlaying(_music);
+    public bool IsPlaying => Raylib.IsMusicStreamPlaying(_music);
 
-    public bool Stopped => !Paused && !Raylib.IsMusicStreamPlaying(_music);
+    public bool IsStopped => !IsPaused && !Raylib.IsMusicStreamPlaying(_music);
 
     public TimeSpan TimeLength => TimeSpan.FromSeconds(Raylib.GetMusicTimeLength(_music));
 
     public TimeSpan TimePlayed => TimeSpan.FromSeconds(Raylib.GetMusicTimePlayed(_music));
 
-    public bool Valid => _buffer != 0;
+    public bool IsValid => _buffer != 0;
 
     public void Dispose()
     {
@@ -93,7 +93,7 @@ public sealed class Music : IDisposable
         _pan = 0;
         _pitch = 0;
         _volume = 0;
-        Paused = false;
+        IsPaused = false;
     }
 
     public Music SetVolume(float volume)
@@ -116,16 +116,16 @@ public sealed class Music : IDisposable
 
     public Music SetLooping(bool looping)
     {
-        Looping = looping;
+        IsLooping = looping;
         return this;
     }
 
     public Music Play()
     {
-        if (Paused)
+        if (IsPaused)
         {
             Raylib.PlayMusicStream(_music);
-            Paused = false;
+            IsPaused = false;
             Stop();
         }
         else if (Raylib.IsMusicStreamPlaying(_music))
@@ -141,7 +141,7 @@ public sealed class Music : IDisposable
 
     public Music Stop()
     {
-        Paused = false;
+        IsPaused = false;
         Raylib.StopMusicStream(_music);
         return this;
     }
@@ -150,16 +150,16 @@ public sealed class Music : IDisposable
     {
         if (!Raylib.IsMusicStreamPlaying(_music))
             return this;
-        Paused = true;
+        IsPaused = true;
         Raylib.PauseMusicStream(_music);
         return this;
     }
 
     public Music Resume()
     {
-        if (!Paused)
+        if (!IsPaused)
             return this;
-        Paused = false;
+        IsPaused = false;
         Raylib.ResumeMusicStream(_music);
         if (!_musics.Contains(this))
             _musics.Add(this);

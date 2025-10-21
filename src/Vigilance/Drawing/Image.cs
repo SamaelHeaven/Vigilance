@@ -34,7 +34,7 @@ public sealed unsafe class Image : IDisposable
 
     public int DataSize => Raylib.GetPixelDataSize(Width, Height, RImage.Format);
 
-    public bool Valid => RImage.Data != null;
+    public bool IsValid => RImage.Data != null;
 
     public PixelFormat Format => (PixelFormat)RImage.Format;
 

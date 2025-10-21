@@ -39,7 +39,7 @@ public sealed class RenderTexture : IDisposable
 
     public PixelFormat Format => (PixelFormat)RenderTexture2D.Texture.Format;
 
-    public bool Valid => RenderTexture2D.Texture.Id != 0;
+    public bool IsValid => RenderTexture2D.Texture.Id != 0;
 
     public void Dispose()
     {

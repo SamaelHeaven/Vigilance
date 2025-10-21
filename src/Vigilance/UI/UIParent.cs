@@ -99,7 +99,7 @@ public abstract class UIParent : UIElement
         element.Remove();
         _children.AddLast(element);
         element.Parent = this;
-        if (!LayoutCustom)
+        if (!IsLayoutCustom)
             Node.AddChild(element.Node);
         MarkDirty();
     }
@@ -119,7 +119,7 @@ public abstract class UIParent : UIElement
             _children.AddLast(element);
         else
             _children.AddBefore(_children.Find(oldNode)!, element);
-        if (!LayoutCustom)
+        if (!IsLayoutCustom)
             Node.InsertChild(element.Node, index);
         MarkDirty();
     }
@@ -145,7 +145,7 @@ public abstract class UIParent : UIElement
         element.Remove();
         element.Parent = this;
         _children.Find(oldNode)!.Value = element;
-        if (!LayoutCustom)
+        if (!IsLayoutCustom)
             Node.ReplaceChild(index, element.Node);
         MarkDirty();
         return true;
@@ -169,7 +169,7 @@ public abstract class UIParent : UIElement
     {
         _children.Remove(element);
         element.Parent = null;
-        if (!LayoutCustom)
+        if (!IsLayoutCustom)
             Node.RemoveChild(element.Node);
         MarkDirty();
     }

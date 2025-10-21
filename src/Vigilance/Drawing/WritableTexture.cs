@@ -18,7 +18,7 @@ public readonly unsafe struct WritableTexture : IDisposable
 
     public PixelFormat Format => _texture.Format;
 
-    public bool Valid => _texture.Valid;
+    public bool IsValid => _texture.IsValid;
 
     internal WritableTexture(Texture texture)
     {

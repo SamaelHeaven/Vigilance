@@ -39,7 +39,9 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
-    public bool Valid => Scene.ZIndexMap.ContainsKey(Id);
+    public bool IsValid => Scene.ZIndexMap.ContainsKey(Id);
+
+    public bool IsNull => Id == 0;
 
     public Entity Parent
     {
@@ -151,7 +153,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
-    public bool Disabled
+    public bool IsDisabled
     {
         get
         {
@@ -177,7 +179,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             var transform = Transform;
-            for (var entity = Parent; entity.Id != 0; entity = entity.Parent)
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 transform += entity.Transform;
             return transform;
         }
@@ -188,7 +190,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             var position = Position;
-            for (var entity = Parent; entity.Id != 0; entity = entity.Parent)
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 position += entity.Position;
             return position;
         }
@@ -199,7 +201,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             var scale = Scale;
-            for (var entity = Parent; entity.Id != 0; entity = entity.Parent)
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 scale *= entity.Scale;
             return scale;
         }
@@ -210,7 +212,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             var rotation = Rotation;
-            for (var entity = Parent; entity.Id != 0; entity = entity.Parent)
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 rotation += entity.Rotation;
             return rotation;
         }
@@ -221,7 +223,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             var pivotPoint = PivotPoint;
-            for (var entity = Parent; entity.Id != 0; entity = entity.Parent)
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 pivotPoint += entity.PivotPoint;
             return pivotPoint;
         }
@@ -232,7 +234,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             var zIndex = ZIndex;
-            for (var entity = Parent; entity.Id != 0; entity = entity.Parent)
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 zIndex += entity.ZIndex;
             return zIndex;
         }
@@ -329,7 +331,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public ref readonly Entity SetDisabled(bool disabled = true)
     {
-        Disabled = disabled;
+        IsDisabled = disabled;
         return ref this;
     }
 
@@ -406,7 +408,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     [Conditional("DEBUG")]
     public void EnsureValid()
     {
-        if (!Valid)
+        if (!IsValid)
             Logger.Fatal($"Entity is not valid.\n{new StackTrace(true).ToString().TrimEnd()}");
     }
 
@@ -420,10 +422,10 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
         sb.Append("Id = ");
         sb.Append(Id);
-        if (!Valid)
+        if (!IsValid)
         {
             sb.Append(", Valid = ");
-            sb.Append(Valid);
+            sb.Append(IsValid);
             return true;
         }
 
@@ -434,10 +436,10 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             sb.Append(Name);
         }
 
-        if (Disabled)
+        if (IsDisabled)
         {
             sb.Append(", Disabled = ");
-            sb.Append(Disabled);
+            sb.Append(IsDisabled);
         }
 
         sb.Append(", ZIndex = ");

@@ -8,29 +8,29 @@ public ref struct LogHandler
     private DefaultInterpolatedStringHandler _inner;
     private readonly LogLevel _level;
 
-    public bool Enabled => _level > Logger.LogLevel;
+    public bool IsEnabled => _level > Logger.LogLevel;
 
     public LogHandler(int literalLength, int formattedCount, LogLevel level)
     {
         _level = level;
-        _inner = Enabled ? new DefaultInterpolatedStringHandler(literalLength, formattedCount) : default;
+        _inner = IsEnabled ? new DefaultInterpolatedStringHandler(literalLength, formattedCount) : default;
     }
 
     public void AppendLiteral(string str)
     {
-        if (Enabled)
+        if (IsEnabled)
             _inner.AppendLiteral(str);
     }
 
     public void AppendFormatted<T>(T value)
     {
-        if (Enabled)
+        if (IsEnabled)
             _inner.AppendFormatted(value);
     }
 
     public string GetFormattedText()
     {
-        return Enabled ? _inner.ToStringAndClear() : "";
+        return IsEnabled ? _inner.ToStringAndClear() : "";
     }
 }
 

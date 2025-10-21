@@ -38,7 +38,7 @@ public readonly struct WritableImage : IDisposable
 
     public int DataSize => Image.DataSize;
 
-    public bool Valid => Image.Valid;
+    public bool IsValid => Image.IsValid;
 
     public PixelFormat Format => Image.Format;
 
@@ -256,7 +256,7 @@ public readonly unsafe struct WritableImage<T>
 
     public int DataSize => _image.DataSize;
 
-    public bool Valid => _image.Valid;
+    public bool IsValid => _image.IsValid;
 
     public PixelFormat Format => _image.Format;
 

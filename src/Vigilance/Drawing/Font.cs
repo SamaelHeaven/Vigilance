@@ -64,7 +64,7 @@ public sealed unsafe class Font : IDisposable
     public int Quality { get; private set; }
     public DictionaryView<char, GlyphInfo> GlyphInfos => _glyphInfos;
     public Texture Atlas { get; private set; }
-    public bool Valid => _buffer != 0;
+    public bool IsValid => _buffer != 0;
 
     public void Dispose()
     {

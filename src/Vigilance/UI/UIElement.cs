@@ -18,8 +18,8 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
     {
         var measure = Measure;
         Node.StyleSetAlignItems(FlexLayoutSharp.Align.FlexStart);
-        LayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
-        if (LayoutCustom)
+        IsLayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
+        if (IsLayoutCustom)
             Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
                 {
@@ -59,7 +59,7 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
             Left = Node.LayoutGetMargin(Edge.Left),
         };
 
-    public bool LayoutOverflow => Node.LayoutGetHadOverflow();
+    public bool LayoutHadOverflow => Node.LayoutGetHadOverflow();
 
     public Vector2 LayoutPosition =>
         new(LayoutLeft + (Parent?.LayoutPosition.X ?? 0), LayoutTop + (Parent?.LayoutPosition.Y ?? 0));
@@ -69,15 +69,15 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
     public Transform LayoutTransform =>
         new(Translate.Calculate(LayoutSize), Scale, Rotation, PivotPoint.Calculate(LayoutSize));
 
-    public bool LayoutCustom { get; }
+    public bool IsLayoutCustom { get; }
 
-    public bool Dirty => Node.IsDirty;
+    public bool IsDirty => Node.IsDirty;
 
     public int ZIndex { get; set; }
 
     public bool? Culling { get; set; } = null;
 
-    public bool RenderedOutside { get; private set; } = true;
+    public bool WasRenderedOutside { get; private set; } = true;
 
     public Quad RenderedBounds { get; private set; }
 
@@ -89,9 +89,9 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
 
     public Box? RenderedClip { get; private set; }
 
-    public bool LayoutReady { get; private set; }
+    public bool IsLayoutReady { get; private set; }
 
-    public bool MouseInside { get; private set; }
+    public bool IsMouseInside { get; private set; }
 
     public CameraProvider Camera { get; set; } = Core.Camera.Null;
 
@@ -108,12 +108,12 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
         }
     }
 
-    public bool Visible
+    public bool IsVisible
     {
         get
         {
-            var visible = LayoutReady && Display != DisplayMode.None && !RenderedOutside;
-            return (Parent?.Visible ?? true) && visible;
+            var visible = IsLayoutReady && Display != DisplayMode.None && !WasRenderedOutside;
+            return (Parent?.IsVisible ?? true) && visible;
         }
     }
 
@@ -502,36 +502,36 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
     public virtual void Update(Entity entity)
     {
         var e = new UIEvent { Entity = entity, Element = this };
-        var oldMouseInside = MouseInside;
-        MouseInside =
+        var oldMouseInside = IsMouseInside;
+        IsMouseInside =
             RenderedGraphics == Renderer.Graphics
             && Mouse.OnScreen
-            && Visible
+            && IsVisible
             && Collision.CheckPointQuad(Mouse.Position, RenderedBounds);
         OnUpdateEvent?.Invoke(e);
         switch (oldMouseInside)
         {
-            case false when MouseInside:
+            case false when IsMouseInside:
                 OnMouseEnterEvent?.Invoke(e);
                 break;
-            case true when !MouseInside:
+            case true when !IsMouseInside:
                 OnMouseLeaveEvent?.Invoke(e);
                 break;
         }
 
         if (Mouse.IsButtonPressed(MouseButton.Left))
         {
-            _click = MouseInside;
-            if (MouseInside)
+            _click = IsMouseInside;
+            if (IsMouseInside)
                 OnPressEvent?.Invoke(e);
         }
 
         if (!Mouse.IsButtonReleased(MouseButton.Left))
             return;
-        _click = _click && MouseInside;
+        _click = _click && IsMouseInside;
         if (_click)
             OnClickEvent?.Invoke(e);
-        if (MouseInside)
+        if (IsMouseInside)
             OnReleaseEvent?.Invoke(e);
     }
 
@@ -584,12 +584,12 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
     {
         var result = (UIElement)MemberwiseClone();
         result._click = false;
-        result.LayoutReady = false;
+        result.IsLayoutReady = false;
         result.Parent = null;
         result.Node = Flex.CreateDefaultNode();
         Flex.NodeCopyStyle(result.Node, Node);
         result.Attributes = Attributes.DeepClone();
-        if (LayoutCustom)
+        if (IsLayoutCustom)
             result.Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
                 {
@@ -607,7 +607,7 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
 
     internal void Render(Transform transform, Graphics graphics, CameraProvider camera)
     {
-        if (!LayoutReady || Display == DisplayMode.None)
+        if (!IsLayoutReady || Display == DisplayMode.None)
             return;
         Matrix3x2? oldMatrix = null;
         var position = LayoutPosition;
@@ -634,7 +634,7 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
         RenderedBounds = new Quad(new Transform(offset, size)).Transform(matrix);
         var layoutBox = new Box(RenderedBounds);
         var oldClip = graphics.GetClip();
-        RenderedOutside = oldClip.HasValue && !Collision.CheckBoxes(oldClip.Value, layoutBox);
+        WasRenderedOutside = oldClip.HasValue && !Collision.CheckBoxes(oldClip.Value, layoutBox);
         var overflowHidden = Overflow == Overflow.Hidden;
         if (overflowHidden)
         {
@@ -645,7 +645,7 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
         }
 
         RenderedClip = graphics.GetClip();
-        var oldCulling = graphics.GetCulling();
+        var oldCulling = graphics.Culling();
         var hasCulling = Culling.HasValue;
         if (hasCulling)
             graphics.SetCulling(Culling!.Value);
@@ -661,7 +661,7 @@ public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
 
     private void MarkReady()
     {
-        LayoutReady = true;
+        IsLayoutReady = true;
         if (this is not UIParent parent)
             return;
         foreach (var element in parent.Children)

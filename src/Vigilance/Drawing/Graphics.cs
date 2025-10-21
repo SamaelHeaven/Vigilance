@@ -268,7 +268,7 @@ public sealed unsafe class Graphics
         _culling = culling;
     }
 
-    public bool GetCulling()
+    public bool Culling()
     {
         return _culling;
     }

@@ -1,6 +1,8 @@
-namespace Vigilance.Core;
+using Vigilance.Core;
 
-public readonly struct RenderCommands
+namespace Vigilance.Drawing;
+
+public readonly partial struct RenderCommands
 {
     private readonly List<RenderCommand> _commands = new();
 
@@ -11,9 +13,9 @@ public readonly struct RenderCommands
         _commands.Add(command);
     }
 
-    public void Add(Action action)
+    public void Add(Action action, ulong? order = null)
     {
-        Add(RenderCommand.Create(action));
+        Add(RenderCommand.Create(action, order));
     }
 
     public void Add(Entity entity, Action<Entity> action)
@@ -31,10 +33,33 @@ public readonly struct RenderCommands
         Add(RenderCommand.Create(entity, t0, t1, action));
     }
 
+    public void AddRange<T>(T enumerable)
+        where T : IEnumerable<RenderCommand>
+    {
+        foreach (var command in enumerable)
+            Add(command);
+    }
+
+    public void AddRange<TComponent>(IEnumerable<(Entity, TComponent)> entries, Action<Entity, TComponent> action)
+    {
+        foreach (var (entity, component) in entries)
+            Add(entity, component, action);
+    }
+
     public void AddRange<TComponent>(Scene.EntryEnumerable<TComponent> entries, Action<Entity, TComponent> action)
     {
         foreach (var (entity, component) in entries)
             Add(entity, component, action);
+    }
+
+    public void AddRange<TContext, TComponent>(
+        TContext context,
+        IEnumerable<(Entity, TComponent)> entries,
+        Action<Entity, TContext, TComponent> action
+    )
+    {
+        foreach (var (entity, component) in entries)
+            Add(entity, context, component, action);
     }
 
     public void AddRange<TContext, TComponent>(
@@ -58,24 +83,33 @@ public readonly struct RenderCommands
 
 public readonly struct RenderCommand : IComparable<RenderCommand>
 {
+    private readonly ulong _order;
     private readonly Invoker _invoker;
-    private readonly object _action;
     private readonly Entity _entity;
     private readonly object? _t0;
     private readonly object? _t1;
+    private readonly object _action;
 
-    private RenderCommand(Invoker invoker, object action, Entity entity, object? t0 = null, object? t1 = null)
+    private RenderCommand(
+        Invoker invoker,
+        object action,
+        Entity entity,
+        object? t0 = null,
+        object? t1 = null,
+        ulong? order = null
+    )
     {
+        _order = order ?? (entity.IsNull ? 0 : entity.Order);
         _invoker = invoker;
-        _action = action;
         _entity = entity;
         _t0 = t0;
         _t1 = t1;
+        _action = action;
     }
 
-    public static RenderCommand Create(Action action)
+    public static RenderCommand Create(Action action, ulong? order = null)
     {
-        return new RenderCommand(VoidInvoker, action, Entity.Null);
+        return new RenderCommand(VoidInvoker, action, Entity.Null, order: order);
     }
 
     public static RenderCommand Create(Entity entity, Action<Entity> action)
@@ -100,7 +134,7 @@ public readonly struct RenderCommand : IComparable<RenderCommand>
 
     public int CompareTo(RenderCommand other)
     {
-        return _entity.CompareTo(other._entity);
+        return _order.CompareTo(other._order);
     }
 
     private static void VoidInvoker(in RenderCommand command)

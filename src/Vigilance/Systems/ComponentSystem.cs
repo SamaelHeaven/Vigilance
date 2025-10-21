@@ -1,4 +1,5 @@
 using Vigilance.Core;
+using Vigilance.Drawing;
 
 namespace Vigilance.Systems;
 

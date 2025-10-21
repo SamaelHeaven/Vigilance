@@ -74,11 +74,11 @@ public sealed class Sound : IDisposable
         }
     }
 
-    public bool Playing => _aliases.AsValueEnumerable().Any(a => Raylib.IsSoundPlaying(a.Sound));
+    public bool IsPlaying => _aliases.AsValueEnumerable().Any(a => Raylib.IsSoundPlaying(a.Sound));
 
-    public bool Stopped => !Playing;
+    public bool IsStopped => !IsPlaying;
 
-    public unsafe bool Valid => _sound.Stream.Buffer != null;
+    public unsafe bool IsValid => _sound.Stream.Buffer != null;
 
     public void Dispose()
     {
@@ -159,7 +159,7 @@ public sealed class Sound : IDisposable
         for (var i = _sounds.Count - 1; i >= 0; i--)
         {
             var sound = _sounds[i];
-            if (!sound.Playing)
+            if (!sound.IsPlaying)
                 _sounds.RemoveAt(i);
         }
     }

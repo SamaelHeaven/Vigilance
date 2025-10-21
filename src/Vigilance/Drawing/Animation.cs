@@ -36,7 +36,7 @@ public sealed class Animation : IListView<AnimationFrame>
     }
 
     public TimeSpan Delay { get; set; }
-    public bool Paused { get; set; }
+    public bool IsPaused { get; set; }
     public int RepeatCount { get; set; }
 
     public AnimationFrame Frame => _frames[_index];
@@ -85,7 +85,7 @@ public sealed class Animation : IListView<AnimationFrame>
 
     public void Update(TimeSpan step)
     {
-        if (Paused || _frames.Count <= 1 || (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount))
+        if (IsPaused || _frames.Count <= 1 || (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount))
             return;
         _elapsed += step;
         var frameDelay = Delay + _frames[_index].Delay;

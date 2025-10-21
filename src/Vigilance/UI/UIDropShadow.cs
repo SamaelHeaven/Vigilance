@@ -18,7 +18,7 @@ public class UIDropShadow : UIElement
 
     public UIElement Target { get; }
     public Color Color { get; set; }
-    public bool TextureDirty { get; private set; } = true;
+    public bool IsTextureDirty { get; private set; } = true;
     public Texture Texture { get; private set; } = Texture.Empty;
 
     public int Blur
@@ -35,15 +35,15 @@ public class UIDropShadow : UIElement
 
     public void MarkTextureDirty()
     {
-        TextureDirty = true;
+        IsTextureDirty = true;
     }
 
     protected override void Render(Graphics graphics, CameraProvider camera)
     {
         var offset = 1 + _blur * _blur;
-        if (TextureDirty)
+        if (IsTextureDirty)
         {
-            TextureDirty = false;
+            IsTextureDirty = false;
             using var targetTexture = Target.ToTexture(Target.LayoutSize);
             var image = targetTexture.ToImage();
             var result = new WritableImage<PixelGrayAlpha>(image.Width + offset * 2, image.Height + offset * 2);
@@ -58,7 +58,7 @@ public class UIDropShadow : UIElement
             Texture = result.ToTexture();
         }
 
-        if (Dirty || Target.Dirty)
+        if (IsDirty || Target.IsDirty)
             MarkTextureDirty();
         graphics.DrawTexture(Texture, LayoutPosition - offset, null, Color, camera: camera);
     }

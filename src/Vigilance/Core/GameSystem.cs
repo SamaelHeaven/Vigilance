@@ -1,3 +1,5 @@
+using Vigilance.Drawing;
+
 namespace Vigilance.Core;
 
 public delegate IEnumerable<IGameSystem> GameSystemsFunc();

@@ -55,7 +55,7 @@ public sealed unsafe class Texture : IDisposable
 
     public PixelFormat Format => (PixelFormat)Texture2D.Format;
 
-    public bool Valid => Texture2D.Id != 0;
+    public bool IsValid => Texture2D.Id != 0;
 
     public void Dispose()
     {

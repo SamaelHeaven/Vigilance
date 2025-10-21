@@ -21,7 +21,7 @@ public sealed class Gamepad
     private Gamepad(int id)
     {
         Id = id;
-        Connected = false;
+        IsConnected = false;
         Name = DefaultName;
         _axes = new Dictionary<GamepadAxis, float>();
         foreach (var axis in Enum.GetValues<GamepadAxis>())
@@ -41,7 +41,7 @@ public sealed class Gamepad
     public ListView<GamepadButton> PressedButtons => _pressedButtons;
     public ListView<GamepadButton> ReleasedButtons => _releasedButtons;
     public DictionaryView<GamepadAxis, float> Axes => _axes;
-    public bool Connected { get; private set; }
+    public bool IsConnected { get; private set; }
     public string Name { get; private set; }
 
     internal static void UpdateAll()
@@ -85,9 +85,9 @@ public sealed class Gamepad
 
     private void Update()
     {
-        Connected = IsConnected();
+        IsConnected = GetIsConnected();
         Name = GetName();
-        if (!Display.Focused || !Connected)
+        if (!Display.Focused || !IsConnected)
         {
             Reset();
             return;
@@ -128,7 +128,7 @@ public sealed class Gamepad
             _axes[axis] = GetGamepadAxis(Id, axis);
     }
 
-    private bool IsConnected()
+    private bool GetIsConnected()
     {
         return Platform.Current switch
         {
@@ -139,7 +139,7 @@ public sealed class Gamepad
 
     private unsafe string GetName()
     {
-        if (!Connected)
+        if (!IsConnected)
             return DefaultName;
         return Platform.Current switch
         {

@@ -196,11 +196,11 @@ public class UIScrollContainer : UIContainer
         set => _scrollBarThumbRectangle.Radius = value;
     }
 
-    public bool MouseInsideNestedScrollContainer { get; set; }
+    public bool IsMouseInsideNestedScrollContainer { get; set; }
 
     protected override void UpdateSelf(Entity entity)
     {
-        if (!LayoutReady)
+        if (!IsLayoutReady)
             return;
         var offset = Vector2.Zero;
         var size = Vector2.Zero;
@@ -221,8 +221,9 @@ public class UIScrollContainer : UIContainer
             }
 
         ChildrenLayoutSize = size;
-        MouseInsideNestedScrollContainer = IsMouseInsideNestedScrollContainer(this);
-        var scroll = MouseInside && !MouseInsideNestedScrollContainer ? Mouse.Scroll * MouseScrollForce : Vector2.Zero;
+        IsMouseInsideNestedScrollContainer = GetIsMouseInsideNestedScrollContainer(this);
+        var scroll =
+            IsMouseInside && !IsMouseInsideNestedScrollContainer ? Mouse.Scroll * MouseScrollForce : Vector2.Zero;
         if (_thumbMouseDownY.HasValue)
         {
             var deltaY = mousePosition.Y - _thumbMouseDownY.Value;
@@ -247,7 +248,7 @@ public class UIScrollContainer : UIContainer
             _thumbMouseDownX = mousePosition.X;
         }
 
-        if (MouseInside && mousePressed)
+        if (IsMouseInside && mousePressed)
         {
             if (Collision.CheckPointQuad(mousePosition, RenderedHorizontalScrollBarThumbBounds))
                 _thumbMouseDownX = mousePosition.X;
@@ -423,11 +424,11 @@ public class UIScrollContainer : UIContainer
         };
     }
 
-    private bool IsMouseInsideNestedScrollContainer(UIParent element)
+    private bool GetIsMouseInsideNestedScrollContainer(UIParent element)
     {
         if (
             element != this
-            && element is UIScrollContainer { MouseInside: true } container
+            && element is UIScrollContainer { IsMouseInside: true } container
             && (container.IsHorizontalScrollBarVisible || container.IsVerticalScrollBarVisible)
         )
             return true;
@@ -435,7 +436,7 @@ public class UIScrollContainer : UIContainer
         {
             if (child is not UIParent parent)
                 continue;
-            if (IsMouseInsideNestedScrollContainer(parent))
+            if (GetIsMouseInsideNestedScrollContainer(parent))
                 return true;
         }
 
