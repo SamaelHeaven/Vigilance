@@ -30,15 +30,33 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     internal Flecs.NET.Core.Entity FlecsEntity => new(Scene.World, Id);
 
-    public string Name => Scene.NameMap.GetValueOrDefault(Id, "");
+    public string Name
+    {
+        get
+        {
+            EnsureValid();
+            return Scene.NameMap.GetValueOrDefault(Id, "");
+        }
+    }
 
     public bool Valid => Scene.ZIndexMap.ContainsKey(Id);
 
-    public Entity Parent => Scene.ParentMap.GetValueOrDefault(Id, Null);
+    public Entity Parent
+    {
+        get
+        {
+            EnsureValid();
+            return Scene.ParentMap.GetValueOrDefault(Id, Null);
+        }
+    }
 
     public Transform Transform
     {
-        get => Scene.TransformMap.GetValueOrDefault(Id, new Transform());
+        get
+        {
+            EnsureValid();
+            return Scene.TransformMap.GetValueOrDefault(Id, new Transform());
+        }
         set
         {
             Position = value.Position;
@@ -220,11 +238,25 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
-    public Components Components => Scene.ComponentMap.GetValueOrDefault(Id, Components.Empty);
+    public Components Components
+    {
+        get
+        {
+            EnsureValid();
+            return Scene.ComponentMap.GetValueOrDefault(Id, Components.Empty);
+        }
+    }
 
     public ChildEnumerable Children => new(this);
 
-    public ulong Order => Scene.OrderMap.GetValueOrDefault(Id, (ulong)0);
+    public ulong Order
+    {
+        get
+        {
+            var order = (uint)(WorldZIndex ^ int.MinValue);
+            return ((ulong)order << 32) | (Id & RecycledIdMask);
+        }
+    }
 
     public int CompareTo(Entity other)
     {

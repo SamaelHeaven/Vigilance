@@ -26,7 +26,6 @@ public sealed unsafe partial class Scene
     internal readonly Dictionary<ulong, Vector2> ImmediateScaleMap = new();
     internal readonly Dictionary<ulong, int> ImmediateZIndexMap = new();
     internal readonly Dictionary<ulong, string> NameMap = new();
-    internal readonly Dictionary<ulong, ulong> OrderMap = new();
     internal readonly Dictionary<ulong, Entity> ParentMap = new();
     internal readonly Dictionary<ulong, Vector2> PivotPointMap = new();
     internal readonly Dictionary<ulong, Vector2> PositionMap = new();
@@ -54,7 +53,6 @@ public sealed unsafe partial class Scene
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
         OnInstantiate(InstantiateCallback);
-        OnSetZIndex(SetZIndexTraverseCallback);
         OnSetZIndex(SetZIndexCallback, false);
         OnSetPosition(SetPositionCallback, false);
         OnSetScale(SetScaleCallback, false);
@@ -472,17 +470,9 @@ public sealed unsafe partial class Scene
         ScaleMap.Add(id, Vector2.One);
         RotationMap.Add(id, 0);
         PivotPointMap.Add(id, Vector2.Zero);
-        OrderMap.Add(id, ((ulong)(uint)(entity.WorldZIndex ^ int.MinValue) << 32) | (id & Core.Entity.RecycledIdMask));
         TransformMap.Add(id, new Transform());
         if (name != "")
             NameMap.Add(id, name);
-    }
-
-    private void SetZIndexTraverseCallback(Entity entity)
-    {
-        var id = entity.Id;
-        var order = (uint)(entity.WorldZIndex ^ int.MinValue);
-        OrderMap[id] = ((ulong)order << 32) | (id & Core.Entity.RecycledIdMask);
     }
 
     private void SetZIndexCallback(Entity entity, int zIndex)
@@ -556,7 +546,6 @@ public sealed unsafe partial class Scene
         ScaleMap.Remove(id);
         RotationMap.Remove(id);
         PivotPointMap.Remove(id);
-        OrderMap.Remove(id);
         NameMap.Remove(id);
         TransformMap.Remove(id);
         ImmediateZIndexMap.Remove(id);
