@@ -265,16 +265,6 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return Order.CompareTo(other.Order);
     }
 
-    public bool Equals(Entity other)
-    {
-        return Id == other.Id;
-    }
-
-    public override int GetHashCode()
-    {
-        return Id.GetHashCode();
-    }
-
     public ref readonly Entity SetTransform(Transform transform)
     {
         Transform = transform;
