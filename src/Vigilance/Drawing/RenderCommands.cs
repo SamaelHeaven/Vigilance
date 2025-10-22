@@ -15,22 +15,22 @@ public readonly partial struct RenderCommands
 
     public void Add(Action action, ulong? order = null)
     {
-        Add(RenderCommand.Create(action, order));
+        Add(RenderCommand.From(action, order));
     }
 
     public void Add(Entity entity, Action<Entity> action)
     {
-        Add(RenderCommand.Create(entity, action));
+        Add(RenderCommand.From(entity, action));
     }
 
     public void Add<T>(Entity entity, T t, Action<Entity, T> action)
     {
-        Add(RenderCommand.Create(entity, t, action));
+        Add(RenderCommand.From(entity, t, action));
     }
 
     public void Add<T0, T1>(Entity entity, T0 t0, T1 t1, Action<Entity, T0, T1> action)
     {
-        Add(RenderCommand.Create(entity, t0, t1, action));
+        Add(RenderCommand.From(entity, t0, t1, action));
     }
 
     public void AddRange<T>(T enumerable)
@@ -40,26 +40,10 @@ public readonly partial struct RenderCommands
             Add(command);
     }
 
-    public void AddRange<TComponent>(IEnumerable<(Entity, TComponent)> entries, Action<Entity, TComponent> action)
-    {
-        foreach (var (entity, component) in entries)
-            Add(entity, component, action);
-    }
-
     public void AddRange<TComponent>(Scene.EntryEnumerable<TComponent> entries, Action<Entity, TComponent> action)
     {
         foreach (var (entity, component) in entries)
             Add(entity, component, action);
-    }
-
-    public void AddRange<TContext, TComponent>(
-        TContext context,
-        IEnumerable<(Entity, TComponent)> entries,
-        Action<Entity, TContext, TComponent> action
-    )
-    {
-        foreach (var (entity, component) in entries)
-            Add(entity, context, component, action);
     }
 
     public void AddRange<TContext, TComponent>(
@@ -107,22 +91,22 @@ public readonly struct RenderCommand : IComparable<RenderCommand>
         _action = action;
     }
 
-    public static RenderCommand Create(Action action, ulong? order = null)
+    public static RenderCommand From(Action action, ulong? order = null)
     {
         return new RenderCommand(VoidInvoker, action, Entity.Null, order: order);
     }
 
-    public static RenderCommand Create(Entity entity, Action<Entity> action)
+    public static RenderCommand From(Entity entity, Action<Entity> action)
     {
         return new RenderCommand(EntityInvoker, action, entity);
     }
 
-    public static RenderCommand Create<T>(Entity entity, T t, Action<Entity, T> action)
+    public static RenderCommand From<T>(Entity entity, T t, Action<Entity, T> action)
     {
         return new RenderCommand(MonoInvoker<T>, action, entity, t);
     }
 
-    public static RenderCommand Create<T0, T1>(Entity entity, T0 t0, T1 t1, Action<Entity, T0, T1> action)
+    public static RenderCommand From<T0, T1>(Entity entity, T0 t0, T1 t1, Action<Entity, T0, T1> action)
     {
         return new RenderCommand(BiInvoker<T0, T1>, action, entity, t0, t1);
     }

@@ -37,6 +37,6 @@ public sealed class ComponentSystem : GameSystem
     {
         foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
         foreach (var component in components.OfType<IComponent>())
-            commands.Add(entity, component.Render);
+            commands.Add(entity, component, static (entity, component) => component.Render(entity));
     }
 }
