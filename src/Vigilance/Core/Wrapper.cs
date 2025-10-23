@@ -1,12 +1,7 @@
 namespace Vigilance.Core;
 
-public readonly record struct Wrapper<T>(T Value) : IEquatable<T>
+public readonly record struct Wrapper<T>(T Value)
 {
-    public bool Equals(T? other)
-    {
-        return Value?.Equals(other) ?? false;
-    }
-
     public static implicit operator Wrapper<T>(T t)
     {
         return new Wrapper<T>(t);

@@ -251,14 +251,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public ChildEnumerable Children => new(this);
 
-    public ulong Order
-    {
-        get
-        {
-            var order = (uint)(WorldZIndex ^ int.MinValue);
-            return ((ulong)order << 32) | (Id & RecycledIdMask);
-        }
-    }
+    public ulong Order => ((ulong)(uint)(WorldZIndex ^ int.MinValue) << 32) | (Id & RecycledIdMask);
 
     public int CompareTo(Entity other)
     {

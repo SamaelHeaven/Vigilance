@@ -9,7 +9,7 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public abstract class UIElement : IDeepCloneable, IComposable<UIComponent>
+public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
 {
     private bool _click;
     internal Node Node = Flex.CreateDefaultNode();

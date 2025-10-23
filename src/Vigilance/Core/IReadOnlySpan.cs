@@ -1,6 +1,6 @@
 namespace Vigilance.Core;
 
-public interface IReadOnlySpan<T> : IEnumerable<T>
+public interface IReadOnlySpan<T>
 {
-    public ReadOnlySpan<T> AsSpan();
+    ReadOnlySpan<T> AsSpan();
 }
