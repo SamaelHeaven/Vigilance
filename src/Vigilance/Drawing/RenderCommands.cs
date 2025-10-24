@@ -1,16 +1,14 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public readonly partial struct RenderCommands
+public readonly ref partial struct RenderCommands(List<RenderCommand> commands)
 {
-    private readonly List<RenderCommand> _commands = new();
-
-    public RenderCommands() { }
-
     public void Add(in RenderCommand command)
     {
-        _commands.Add(command);
+        commands.Add(command);
     }
 
     public void Add(Action action, ulong? order = null)
@@ -58,10 +56,17 @@ public readonly partial struct RenderCommands
 
     public void Execute()
     {
-        _commands.Sort();
-        foreach (var command in _commands)
-            command.Invoke();
-        _commands.Clear();
+        var span = commands.AsSpan();
+        span.Sort();
+        ref var start = ref MemoryMarshal.GetReference(span);
+        ref var end = ref Unsafe.Add(ref start, span.Length);
+        while (Unsafe.IsAddressLessThan(ref start, ref end))
+        {
+            start.Invoke();
+            start = ref Unsafe.Add(ref start, 1);
+        }
+
+        commands.Clear();
     }
 }
 

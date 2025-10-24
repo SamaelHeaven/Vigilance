@@ -16,7 +16,7 @@ public sealed unsafe partial class Scene
     )> _componentOperations = new();
 
     private readonly Dictionary<Type, object> _events = new();
-    private readonly RenderCommands _renderCommands = new();
+    private readonly List<RenderCommand> _renderCommands = new();
     private readonly GameSystemsFunc _systemsFunc;
     internal readonly Dictionary<ulong, Components> ComponentMap = new();
     internal readonly HashSet<ulong> DisabledSet = new();
@@ -392,9 +392,10 @@ public sealed unsafe partial class Scene
 
     private void Render()
     {
+        var commands = new RenderCommands(_renderCommands);
         _beginRenderAction?.Invoke();
-        _renderAction?.Invoke(_renderCommands);
-        _renderCommands.Execute();
+        _renderAction?.Invoke(commands);
+        commands.Execute();
         _endRenderAction?.Invoke();
     }
 

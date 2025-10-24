@@ -18,7 +18,7 @@ public sealed class RenderCommandsGenerator : ISourceGenerator
 
             namespace Vigilance.Drawing;
 
-            public readonly partial struct RenderCommands 
+            public readonly ref partial struct RenderCommands 
             {
 
             """
