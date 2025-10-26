@@ -60,11 +60,6 @@ public record struct Quad : IStructEnumerable<Quad.PointEnumerator, Vector2>, IR
         return new Quad(quad.TopLeft, quad.BottomLeft, quad.BottomRight, quad.TopRight);
     }
 
-    public static implicit operator Quad(Box box)
-    {
-        return new Quad(box);
-    }
-
     public static unsafe implicit operator ReadOnlySpan<Vector2>(Quad quad)
     {
         return new ReadOnlySpan<Vector2>(&quad, quad.Count);

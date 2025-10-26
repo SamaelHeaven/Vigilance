@@ -63,7 +63,7 @@ public sealed unsafe class Graphics
     public bool IsBoxInBounds(Box box, Camera? camera, float offset = 0)
     {
         var matrix = GetMatrix(camera);
-        return Collision.CheckPolygonsSpan(box.Transform(matrix), (Quad)GetBounds(matrix, offset));
+        return Collision.CheckPolygonsSpan(box.Transform(matrix), new Quad(GetBounds(matrix, offset)));
     }
 
     public bool IsPolygonInBounds(IEnumerable<Vector2> points, Camera? camera, float offset = 0)
@@ -89,7 +89,7 @@ public sealed unsafe class Graphics
             points = new ReadOnlySpan<Vector2>(transformedPoints, points.Length);
         }
 
-        return Collision.CheckPolygonsSpan(points, (Quad)GetBounds(matrix, offset));
+        return Collision.CheckPolygonsSpan(points, new Quad(GetBounds(matrix, offset)));
     }
 
     #endregion
