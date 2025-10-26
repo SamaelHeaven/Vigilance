@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Vigilance.Core;
 
 namespace Vigilance.Drawing;
@@ -58,26 +56,21 @@ public readonly ref partial struct RenderCommands(List<RenderCommand> commands)
     {
         var span = commands.AsSpan();
         span.Sort();
-        ref var start = ref MemoryMarshal.GetReference(span);
-        ref var end = ref Unsafe.Add(ref start, span.Length);
-        while (Unsafe.IsAddressLessThan(ref start, ref end))
-        {
-            start.Invoke();
-            start = ref Unsafe.Add(ref start, 1);
-        }
-
+        foreach (ref var command in span)
+            command.Invoke();
         commands.Clear();
     }
 }
 
 public readonly struct RenderCommand : IComparable<RenderCommand>
 {
-    private readonly ulong _order;
     private readonly Invoker _invoker;
-    private readonly Entity _entity;
     private readonly object? _t0;
     private readonly object? _t1;
     private readonly object _action;
+
+    public Entity Entity { get; }
+    public ulong Order { get; }
 
     private RenderCommand(
         Invoker invoker,
@@ -88,9 +81,9 @@ public readonly struct RenderCommand : IComparable<RenderCommand>
         ulong? order = null
     )
     {
-        _order = order ?? (entity.IsNull ? 0 : entity.Order);
+        Order = order ?? (entity.IsNull ? 0 : entity.Order);
+        Entity = entity;
         _invoker = invoker;
-        _entity = entity;
         _t0 = t0;
         _t1 = t1;
         _action = action;
@@ -123,7 +116,7 @@ public readonly struct RenderCommand : IComparable<RenderCommand>
 
     public int CompareTo(RenderCommand other)
     {
-        return _order.CompareTo(other._order);
+        return Order.CompareTo(other.Order);
     }
 
     private static void VoidInvoker(in RenderCommand command)
@@ -133,17 +126,17 @@ public readonly struct RenderCommand : IComparable<RenderCommand>
 
     private static void EntityInvoker(in RenderCommand command)
     {
-        ((Action<Entity>)command._action).Invoke(command._entity);
+        ((Action<Entity>)command._action).Invoke(command.Entity);
     }
 
     private static void MonoInvoker<T>(in RenderCommand command)
     {
-        ((Action<Entity, T>)command._action).Invoke(command._entity, (T)command._t0!);
+        ((Action<Entity, T>)command._action).Invoke(command.Entity, (T)command._t0!);
     }
 
     private static void BiInvoker<T0, T1>(in RenderCommand command)
     {
-        ((Action<Entity, T0, T1>)command._action).Invoke(command._entity, (T0)command._t0!, (T1)command._t1!);
+        ((Action<Entity, T0, T1>)command._action).Invoke(command.Entity, (T0)command._t0!, (T1)command._t1!);
     }
 
     private delegate void Invoker(in RenderCommand command);
