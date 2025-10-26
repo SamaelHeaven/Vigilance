@@ -35,11 +35,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.NameMap.GetValueOrDefault(Id, "");
+            return Scene.Cache.NameMap.GetValueOrDefault(Id, "");
         }
     }
 
-    public bool IsValid => Scene.ZIndexMap.ContainsKey(Id);
+    public bool IsValid => Scene.Cache.ZIndexMap.ContainsKey(Id);
 
     public bool IsNull => Id == 0;
 
@@ -48,7 +48,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.ParentMap.GetValueOrDefault(Id, Null);
+            return Scene.Cache.ParentMap.GetValueOrDefault(Id, Null);
         }
     }
 
@@ -57,7 +57,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.TransformMap.GetValueOrDefault(Id, new Transform());
+            return Scene.Cache.TransformMap.GetValueOrDefault(Id, new Transform());
         }
         set
         {
@@ -73,14 +73,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.PositionMap.GetValueOrDefault(Id, Vector2.Zero);
+            return Scene.Cache.PositionMap.GetValueOrDefault(Id, Vector2.Zero);
         }
         set
         {
             EnsureValid();
-            if (Precision.AreEqual(value, Scene.ImmediatePositionMap.GetValueOrDefault(Id, Vector2.Zero)))
+            if (Precision.AreEqual(value, Scene.Cache.ImmediatePositionMap.GetValueOrDefault(Id, Vector2.Zero)))
                 return;
-            Scene.ImmediatePositionMap[Id] = value;
+            Scene.Cache.ImmediatePositionMap[Id] = value;
             SetInternal(new Position(value));
         }
     }
@@ -90,14 +90,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.ScaleMap.GetValueOrDefault(Id, Vector2.One);
+            return Scene.Cache.ScaleMap.GetValueOrDefault(Id, Vector2.One);
         }
         set
         {
             EnsureValid();
-            if (Precision.AreEqual(value, Scene.ImmediateScaleMap.GetValueOrDefault(Id, Vector2.One)))
+            if (Precision.AreEqual(value, Scene.Cache.ImmediateScaleMap.GetValueOrDefault(Id, Vector2.One)))
                 return;
-            Scene.ImmediateScaleMap[Id] = value;
+            Scene.Cache.ImmediateScaleMap[Id] = value;
             SetInternal(new Scale(value));
         }
     }
@@ -107,14 +107,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.RotationMap.GetValueOrDefault(Id, 0);
+            return Scene.Cache.RotationMap.GetValueOrDefault(Id, 0);
         }
         set
         {
             EnsureValid();
-            if (Precision.AreEqual(value, Scene.ImmediateRotationMap.GetValueOrDefault(Id, 0)))
+            if (Precision.AreEqual(value, Scene.Cache.ImmediateRotationMap.GetValueOrDefault(Id, 0)))
                 return;
-            Scene.ImmediateRotationMap[Id] = value;
+            Scene.Cache.ImmediateRotationMap[Id] = value;
             SetInternal(new Rotation(value));
         }
     }
@@ -124,14 +124,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.PivotPointMap.GetValueOrDefault(Id, Vector2.Zero);
+            return Scene.Cache.PivotPointMap.GetValueOrDefault(Id, Vector2.Zero);
         }
         set
         {
             EnsureValid();
-            if (Precision.AreEqual(value, Scene.ImmediatePivotPointMap.GetValueOrDefault(Id, Vector2.Zero)))
+            if (Precision.AreEqual(value, Scene.Cache.ImmediatePivotPointMap.GetValueOrDefault(Id, Vector2.Zero)))
                 return;
-            Scene.ImmediatePivotPointMap[Id] = value;
+            Scene.Cache.ImmediatePivotPointMap[Id] = value;
             SetInternal(new PivotPoint(value));
         }
     }
@@ -141,14 +141,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.ZIndexMap.GetValueOrDefault(Id, 0);
+            return Scene.Cache.ZIndexMap.GetValueOrDefault(Id, 0);
         }
         set
         {
             EnsureValid();
-            if (value == Scene.ImmediateZIndexMap.GetValueOrDefault(Id, 0))
+            if (value == Scene.Cache.ImmediateZIndexMap.GetValueOrDefault(Id, 0))
                 return;
-            Scene.ImmediateZIndexMap[Id] = value;
+            Scene.Cache.ImmediateZIndexMap[Id] = value;
             SetInternal(new ZIndex(value));
         }
     }
@@ -158,17 +158,17 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.DisabledSet.Contains(Id);
+            return Scene.Cache.DisabledSet.Contains(Id);
         }
         set
         {
             EnsureValid();
-            if (Scene.ImmediateDisabledSet.Contains(Id) == value)
+            if (Scene.Cache.ImmediateDisabledSet.Contains(Id) == value)
                 return;
             if (value)
-                Scene.ImmediateDisabledSet.Add(Id);
+                Scene.Cache.ImmediateDisabledSet.Add(Id);
             else
-                Scene.ImmediateDisabledSet.Remove(Id);
+                Scene.Cache.ImmediateDisabledSet.Remove(Id);
             var entity = FlecsEntity;
             flecs.ecs_enable(entity.World, entity.Id, value ? (byte)0 : (byte)1);
         }
@@ -245,7 +245,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.ComponentMap.GetValueOrDefault(Id, Components.Empty);
+            return Scene.Cache.ComponentMap.GetValueOrDefault(Id, Components.Empty);
         }
     }
 

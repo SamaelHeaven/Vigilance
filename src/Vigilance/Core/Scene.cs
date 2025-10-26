@@ -18,22 +18,6 @@ public sealed unsafe partial class Scene
     private readonly Dictionary<Type, object> _events = new();
     private readonly List<RenderCommand> _renderCommands = new();
     private readonly GameSystemsFunc _systemsFunc;
-    internal readonly Dictionary<ulong, Components> ComponentMap = new();
-    internal readonly HashSet<ulong> DisabledSet = new();
-    internal readonly HashSet<ulong> ImmediateDisabledSet = new();
-    internal readonly Dictionary<ulong, Vector2> ImmediatePivotPointMap = new();
-    internal readonly Dictionary<ulong, Vector2> ImmediatePositionMap = new();
-    internal readonly Dictionary<ulong, float> ImmediateRotationMap = new();
-    internal readonly Dictionary<ulong, Vector2> ImmediateScaleMap = new();
-    internal readonly Dictionary<ulong, int> ImmediateZIndexMap = new();
-    internal readonly Dictionary<ulong, string> NameMap = new();
-    internal readonly Dictionary<ulong, Entity> ParentMap = new();
-    internal readonly Dictionary<ulong, Vector2> PivotPointMap = new();
-    internal readonly Dictionary<ulong, Vector2> PositionMap = new();
-    internal readonly Dictionary<ulong, float> RotationMap = new();
-    internal readonly Dictionary<ulong, Vector2> ScaleMap = new();
-    internal readonly Dictionary<ulong, Transform> TransformMap = new();
-    internal readonly Dictionary<ulong, int> ZIndexMap = new();
     private Action? _beginRenderAction;
     private int _deferred;
     private Action? _deferredAction;
@@ -48,6 +32,7 @@ public sealed unsafe partial class Scene
     private List<IGameSystem> _systems = [];
     private float _time;
     private Action? _updateAction;
+    internal CachedData Cache = new();
     internal World World = World.Create();
 
     public Scene(GameSystemsFunc? systems = null)
@@ -415,7 +400,7 @@ public sealed unsafe partial class Scene
 
     private static void SetComponent(in Entity entity, Type type, object? data, ulong id)
     {
-        if (!entity.Scene.ComponentMap.TryGetValue(entity.Id, out var components))
+        if (!entity.Scene.Cache.ComponentMap.TryGetValue(entity.Id, out var components))
         {
             components = new Components();
             entity.FlecsEntity.Set(components);
@@ -428,7 +413,7 @@ public sealed unsafe partial class Scene
 
     private static void RemoveComponent(in Entity entity, ulong id)
     {
-        if (!entity.Scene.ComponentMap.TryGetValue(entity.Id, out var components))
+        if (!entity.Scene.Cache.ComponentMap.TryGetValue(entity.Id, out var components))
             return;
         components.Values.Remove(new Component(null!, null, id));
         if (components.Count == 0)
@@ -454,6 +439,28 @@ public sealed unsafe partial class Scene
         OnRemove<ZIndex>(action);
     }
 
+    internal readonly struct CachedData
+    {
+        internal readonly Dictionary<ulong, Components> ComponentMap = new();
+        internal readonly HashSet<ulong> DisabledSet = new();
+        internal readonly HashSet<ulong> ImmediateDisabledSet = new();
+        internal readonly Dictionary<ulong, Vector2> ImmediatePivotPointMap = new();
+        internal readonly Dictionary<ulong, Vector2> ImmediatePositionMap = new();
+        internal readonly Dictionary<ulong, float> ImmediateRotationMap = new();
+        internal readonly Dictionary<ulong, Vector2> ImmediateScaleMap = new();
+        internal readonly Dictionary<ulong, int> ImmediateZIndexMap = new();
+        internal readonly Dictionary<ulong, string> NameMap = new();
+        internal readonly Dictionary<ulong, Entity> ParentMap = new();
+        internal readonly Dictionary<ulong, Vector2> PivotPointMap = new();
+        internal readonly Dictionary<ulong, Vector2> PositionMap = new();
+        internal readonly Dictionary<ulong, float> RotationMap = new();
+        internal readonly Dictionary<ulong, Vector2> ScaleMap = new();
+        internal readonly Dictionary<ulong, Transform> TransformMap = new();
+        internal readonly Dictionary<ulong, int> ZIndexMap = new();
+
+        public CachedData() { }
+    }
+
     private enum ComponentOperation
     {
         Set,
@@ -467,95 +474,95 @@ public sealed unsafe partial class Scene
         var flecsEntity = entity.FlecsEntity;
         var id = entity.Id;
         var name = flecsEntity.Name();
-        ZIndexMap.Add(id, 0);
-        PositionMap.Add(id, Vector2.Zero);
-        ScaleMap.Add(id, Vector2.One);
-        RotationMap.Add(id, 0);
-        PivotPointMap.Add(id, Vector2.Zero);
-        TransformMap.Add(id, new Transform());
+        Cache.ZIndexMap.Add(id, 0);
+        Cache.PositionMap.Add(id, Vector2.Zero);
+        Cache.ScaleMap.Add(id, Vector2.One);
+        Cache.RotationMap.Add(id, 0);
+        Cache.PivotPointMap.Add(id, Vector2.Zero);
+        Cache.TransformMap.Add(id, new Transform());
         if (name != "")
-            NameMap.Add(id, name);
+            Cache.NameMap.Add(id, name);
     }
 
     private void SetZIndexCallback(Entity entity, int zIndex)
     {
-        ZIndexMap[entity.Id] = zIndex;
+        Cache.ZIndexMap[entity.Id] = zIndex;
     }
 
     private void SetPositionCallback(Entity entity, Vector2 position)
     {
         var id = entity.Id;
-        PositionMap[id] = position;
-        TransformMap[id] = new Transform(position, entity.Scale, entity.Rotation, entity.PivotPoint);
+        Cache.PositionMap[id] = position;
+        Cache.TransformMap[id] = new Transform(position, entity.Scale, entity.Rotation, entity.PivotPoint);
     }
 
     private void SetScaleCallback(Entity entity, Vector2 scale)
     {
         var id = entity.Id;
-        ScaleMap[id] = scale;
-        TransformMap[id] = new Transform(entity.Position, scale, entity.Rotation, entity.PivotPoint);
+        Cache.ScaleMap[id] = scale;
+        Cache.TransformMap[id] = new Transform(entity.Position, scale, entity.Rotation, entity.PivotPoint);
     }
 
     private void SetRotationCallback(Entity entity, float rotation)
     {
         var id = entity.Id;
-        RotationMap[id] = rotation;
-        TransformMap[id] = new Transform(entity.Position, entity.Scale, rotation, entity.PivotPoint);
+        Cache.RotationMap[id] = rotation;
+        Cache.TransformMap[id] = new Transform(entity.Position, entity.Scale, rotation, entity.PivotPoint);
     }
 
     private void SetPivotPointCallback(Entity entity, Vector2 pivotPoint)
     {
         var id = entity.Id;
-        PivotPointMap[id] = pivotPoint;
-        TransformMap[id] = new Transform(entity.Position, entity.Scale, entity.Rotation, pivotPoint);
+        Cache.PivotPointMap[id] = pivotPoint;
+        Cache.TransformMap[id] = new Transform(entity.Position, entity.Scale, entity.Rotation, pivotPoint);
     }
 
     private void EnableCallback(Entity entity)
     {
-        DisabledSet.Add(entity.Id);
+        Cache.DisabledSet.Add(entity.Id);
     }
 
     private void DisableCallback(Entity entity)
     {
-        DisabledSet.Remove(entity.Id);
+        Cache.DisabledSet.Remove(entity.Id);
     }
 
     private void AddOrSetComponentsCallback(Entity entity, Components components)
     {
-        ComponentMap[entity.Id] = components;
+        Cache.ComponentMap[entity.Id] = components;
     }
 
     private void RemoveParentCallback(Entity entity)
     {
-        ParentMap.Remove(entity.Id);
+        Cache.ParentMap.Remove(entity.Id);
     }
 
     private void SetParentCallback(Entity entity, Entity parent)
     {
-        ParentMap[entity.Id] = parent;
+        Cache.ParentMap[entity.Id] = parent;
     }
 
     private void RemoveComponentsCallback(Entity entity)
     {
-        ComponentMap.Remove(entity.Id);
+        Cache.ComponentMap.Remove(entity.Id);
     }
 
     private void DestroyCallback(Entity entity)
     {
         var id = entity.Id;
-        ZIndexMap.Remove(id);
-        PositionMap.Remove(id);
-        ScaleMap.Remove(id);
-        RotationMap.Remove(id);
-        PivotPointMap.Remove(id);
-        NameMap.Remove(id);
-        TransformMap.Remove(id);
-        ImmediateZIndexMap.Remove(id);
-        ImmediatePositionMap.Remove(id);
-        ImmediateScaleMap.Remove(id);
-        ImmediateRotationMap.Remove(id);
-        ImmediatePivotPointMap.Remove(id);
-        ImmediateDisabledSet.Remove(id);
+        Cache.ZIndexMap.Remove(id);
+        Cache.PositionMap.Remove(id);
+        Cache.ScaleMap.Remove(id);
+        Cache.RotationMap.Remove(id);
+        Cache.PivotPointMap.Remove(id);
+        Cache.NameMap.Remove(id);
+        Cache.TransformMap.Remove(id);
+        Cache.ImmediateZIndexMap.Remove(id);
+        Cache.ImmediatePositionMap.Remove(id);
+        Cache.ImmediateScaleMap.Remove(id);
+        Cache.ImmediateRotationMap.Remove(id);
+        Cache.ImmediatePivotPointMap.Remove(id);
+        Cache.ImmediateDisabledSet.Remove(id);
     }
 
     #endregion
