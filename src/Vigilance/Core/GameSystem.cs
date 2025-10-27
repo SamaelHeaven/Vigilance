@@ -12,6 +12,7 @@ public interface IGameSystem
 public abstract class GameSystem : IGameSystem
 {
     public Scene Scene { get; private set; } = null!;
+    public bool Disabled { get; set; }
 
     public void Configure(Scene scene)
     {
@@ -32,15 +33,15 @@ public abstract class GameSystem : IGameSystem
         if (stop.Method.DeclaringType != baseType)
             scene.OnStop(stop);
         if (update.Method.DeclaringType != baseType)
-            scene.OnUpdate(update);
+            scene.OnUpdate(InternalUpdate);
         if (fixedUpdate.Method.DeclaringType != baseType)
-            scene.OnFixedUpdate(fixedUpdate);
+            scene.OnFixedUpdate(InternalFixedUpdate);
         if (beginRender.Method.DeclaringType != baseType)
-            scene.OnPreRender(beginRender);
+            scene.OnPreRender(InternalPreRender);
         if (render.Method.DeclaringType != baseType)
-            scene.OnRender(render);
+            scene.OnRender(InternalRender);
         if (endRender.Method.DeclaringType != baseType)
-            scene.OnPostRender(endRender);
+            scene.OnPostRender(InternalPostRender);
         Configure();
     }
 
@@ -61,6 +62,36 @@ public abstract class GameSystem : IGameSystem
     public virtual void Render(RenderCommands commands) { }
 
     public virtual void PostRender() { }
+
+    private void InternalUpdate()
+    {
+        if (!Disabled)
+            Update();
+    }
+
+    private void InternalFixedUpdate()
+    {
+        if (!Disabled)
+            FixedUpdate();
+    }
+
+    private void InternalPreRender()
+    {
+        if (!Disabled)
+            PreRender();
+    }
+
+    private void InternalRender(RenderCommands commands)
+    {
+        if (!Disabled)
+            Render(commands);
+    }
+
+    private void InternalPostRender()
+    {
+        if (!Disabled)
+            PostRender();
+    }
 }
 
 public static class GameSystemConfigExtensions
