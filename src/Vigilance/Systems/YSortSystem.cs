@@ -7,7 +7,7 @@ public sealed class YSortSystem(float offset = 0) : GameSystem
 {
     public float Offset { get; set; } = offset;
 
-    public override void BeginRender()
+    public override void PreRender()
     {
         foreach (var (entity, ySort) in Scene.Entries<YSort>().WithDisabled())
             entity.ZIndex = (int)(entity.WorldPosition.Y + Offset + ySort.Offset).Round();

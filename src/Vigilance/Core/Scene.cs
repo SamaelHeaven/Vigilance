@@ -18,13 +18,13 @@ public sealed unsafe partial class Scene
     private readonly Dictionary<Type, object> _events = new();
     private readonly List<RenderCommand> _renderCommands = new();
     private readonly GameSystemsFunc _systemsFunc;
-    private Action? _beginRenderAction;
     private int _deferred;
     private Action? _deferredAction;
-    private Action? _endRenderAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
     private Action? _onDispose;
+    private Action? _postRenderAction;
+    private Action? _preRenderAction;
     private Action<RenderCommands>? _renderAction;
     private Action? _startAction;
     private bool _started;
@@ -46,7 +46,7 @@ public sealed unsafe partial class Scene
         OnSetPivotPoint(SetPivotPointCallback, false);
         OnDisable(EnableCallback);
         OnEnable(DisableCallback);
-        OnAddOrSet<Components>(AddOrSetComponentsCallback);
+        OnAddOrSet<Components>(SetComponentsCallback);
     }
 
     public ListView<IGameSystem> Systems
@@ -66,16 +66,28 @@ public sealed unsafe partial class Scene
 
     public EntityEnumerable Entities => GetEntities();
 
-    public static Scene Build<T>(GameSystemsFunc? systems = null)
+    public static Scene Build<T>(GameSystemsFunc? leadingSystems = null, GameSystemsFunc? trailingSystems = null)
         where T : IGameSystem, new()
     {
-        return new Scene(() => systems is null ? [new T()] : systems.Invoke().Concat([new T()]));
+        return new Scene(() =>
+            (leadingSystems?.Invoke() ?? Array.Empty<IGameSystem>())
+                .Concat([new T()])
+                .Concat(trailingSystems?.Invoke() ?? Array.Empty<IGameSystem>())
+        );
     }
 
-    public static Scene Build<T>(Func<T> factory, GameSystemsFunc? systems = null)
+    public static Scene Build<T>(
+        Func<T> factory,
+        GameSystemsFunc? leadingSystems = null,
+        GameSystemsFunc? trailingSystems = null
+    )
         where T : IGameSystem
     {
-        return new Scene(() => systems is null ? [factory.Invoke()] : systems.Invoke().Concat([factory.Invoke()]));
+        return new Scene(() =>
+            (leadingSystems?.Invoke() ?? Array.Empty<IGameSystem>())
+                .Concat([factory.Invoke()])
+                .Concat(trailingSystems?.Invoke() ?? Array.Empty<IGameSystem>())
+        );
     }
 
     public void Restart()
@@ -190,22 +202,22 @@ public sealed unsafe partial class Scene
         _fixedUpdateAction += action;
     }
 
-    public void OnBeginRender(Action action)
+    public void OnPreRender(Action action)
     {
         EnsureNotInitialized();
-        _beginRenderAction += action;
-    }
-
-    public void OnEndRender(Action action)
-    {
-        EnsureNotInitialized();
-        _endRenderAction += action;
+        _preRenderAction += action;
     }
 
     public void OnRender(Action<RenderCommands> action)
     {
         EnsureNotInitialized();
         _renderAction += action;
+    }
+
+    public void OnPostRender(Action action)
+    {
+        EnsureNotInitialized();
+        _postRenderAction += action;
     }
 
     public void Emit<T>(T @event)
@@ -378,10 +390,10 @@ public sealed unsafe partial class Scene
     private void Render()
     {
         var commands = new RenderCommands(_renderCommands);
-        _beginRenderAction?.Invoke();
+        _preRenderAction?.Invoke();
         _renderAction?.Invoke(commands);
         commands.Execute();
-        _endRenderAction?.Invoke();
+        _postRenderAction?.Invoke();
     }
 
     private void ExecuteComponentOperations()
@@ -441,22 +453,22 @@ public sealed unsafe partial class Scene
 
     internal readonly struct CachedData
     {
-        internal readonly Dictionary<ulong, Components> ComponentMap = new();
-        internal readonly HashSet<ulong> DisabledSet = new();
-        internal readonly HashSet<ulong> ImmediateDisabledSet = new();
-        internal readonly Dictionary<ulong, Vector2> ImmediatePivotPointMap = new();
-        internal readonly Dictionary<ulong, Vector2> ImmediatePositionMap = new();
-        internal readonly Dictionary<ulong, float> ImmediateRotationMap = new();
-        internal readonly Dictionary<ulong, Vector2> ImmediateScaleMap = new();
-        internal readonly Dictionary<ulong, int> ImmediateZIndexMap = new();
-        internal readonly Dictionary<ulong, string> NameMap = new();
-        internal readonly Dictionary<ulong, Entity> ParentMap = new();
-        internal readonly Dictionary<ulong, Vector2> PivotPointMap = new();
-        internal readonly Dictionary<ulong, Vector2> PositionMap = new();
-        internal readonly Dictionary<ulong, float> RotationMap = new();
-        internal readonly Dictionary<ulong, Vector2> ScaleMap = new();
-        internal readonly Dictionary<ulong, Transform> TransformMap = new();
-        internal readonly Dictionary<ulong, int> ZIndexMap = new();
+        public readonly Dictionary<ulong, Components> ComponentMap = new();
+        public readonly HashSet<ulong> DisabledSet = new();
+        public readonly HashSet<ulong> ImmediateDisabledSet = new();
+        public readonly Dictionary<ulong, Vector2> ImmediatePivotPointMap = new();
+        public readonly Dictionary<ulong, Vector2> ImmediatePositionMap = new();
+        public readonly Dictionary<ulong, float> ImmediateRotationMap = new();
+        public readonly Dictionary<ulong, Vector2> ImmediateScaleMap = new();
+        public readonly Dictionary<ulong, int> ImmediateZIndexMap = new();
+        public readonly Dictionary<ulong, string> NameMap = new();
+        public readonly Dictionary<ulong, Entity> ParentMap = new();
+        public readonly Dictionary<ulong, Vector2> PivotPointMap = new();
+        public readonly Dictionary<ulong, Vector2> PositionMap = new();
+        public readonly Dictionary<ulong, float> RotationMap = new();
+        public readonly Dictionary<ulong, Vector2> ScaleMap = new();
+        public readonly Dictionary<ulong, Transform> TransformMap = new();
+        public readonly Dictionary<ulong, int> ZIndexMap = new();
 
         public CachedData() { }
     }
@@ -527,7 +539,7 @@ public sealed unsafe partial class Scene
         Cache.DisabledSet.Remove(entity.Id);
     }
 
-    private void AddOrSetComponentsCallback(Entity entity, Components components)
+    private void SetComponentsCallback(Entity entity, Components components)
     {
         Cache.ComponentMap[entity.Id] = components;
     }

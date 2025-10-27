@@ -19,18 +19,11 @@ public sealed class ComponentSystem : GameSystem
             component.FixedUpdate(entity);
     }
 
-    public override void BeginRender()
+    public override void PreRender()
     {
         foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
         foreach (var component in components.OfType<IComponent>())
-            component.BeginRender(entity);
-    }
-
-    public override void EndRender()
-    {
-        foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
-        foreach (var component in components.OfType<IComponent>())
-            component.EndRender(entity);
+            component.PreRender(entity);
     }
 
     public override void Render(RenderCommands commands)
@@ -38,5 +31,12 @@ public sealed class ComponentSystem : GameSystem
         foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
         foreach (var component in components.OfType<IComponent>())
             commands.Add(entity, component, static (entity, component) => component.Render(entity));
+    }
+
+    public override void PostRender()
+    {
+        foreach (var (entity, components) in Scene.Entries<Components>().WithDisabled())
+        foreach (var component in components.OfType<IComponent>())
+            component.PostRender(entity);
     }
 }

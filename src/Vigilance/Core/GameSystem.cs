@@ -21,9 +21,9 @@ public abstract class GameSystem : IGameSystem
         var stop = Stop;
         var update = Update;
         var fixedUpdate = FixedUpdate;
-        var beginRender = BeginRender;
-        var endRender = EndRender;
+        var beginRender = PreRender;
         var render = Render;
+        var endRender = PostRender;
         var baseType = typeof(GameSystem);
         if (initialize.Method.DeclaringType != baseType)
             scene.OnInitialize(initialize);
@@ -36,11 +36,11 @@ public abstract class GameSystem : IGameSystem
         if (fixedUpdate.Method.DeclaringType != baseType)
             scene.OnFixedUpdate(fixedUpdate);
         if (beginRender.Method.DeclaringType != baseType)
-            scene.OnBeginRender(beginRender);
-        if (endRender.Method.DeclaringType != baseType)
-            scene.OnEndRender(endRender);
+            scene.OnPreRender(beginRender);
         if (render.Method.DeclaringType != baseType)
             scene.OnRender(render);
+        if (endRender.Method.DeclaringType != baseType)
+            scene.OnPostRender(endRender);
         Configure();
     }
 
@@ -56,11 +56,11 @@ public abstract class GameSystem : IGameSystem
 
     public virtual void FixedUpdate() { }
 
-    public virtual void BeginRender() { }
-
-    public virtual void EndRender() { }
+    public virtual void PreRender() { }
 
     public virtual void Render(RenderCommands commands) { }
+
+    public virtual void PostRender() { }
 }
 
 public static class GameSystemConfigExtensions
