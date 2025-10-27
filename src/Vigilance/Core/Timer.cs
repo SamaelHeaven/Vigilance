@@ -15,16 +15,16 @@ public sealed class Timer
     {
         OnComplete = completeAction;
         OnRepeat = repeatAction;
-        Elapsed = delay;
+        TimeLeft = delay;
         Delay = delay;
         RepeatCount = repeatCount;
         if (immediate)
             repeatAction?.Invoke();
     }
 
-    public bool IsFinished => Elapsed <= TimeSpan.Zero;
+    public bool IsFinished => TimeLeft <= TimeSpan.Zero;
 
-    public TimeSpan Elapsed { get; set; }
+    public TimeSpan TimeLeft { get; set; }
     public TimeSpan Delay { get; set; }
     public bool IsPaused { get; set; }
     public int RepeatCount { get; set; }
@@ -41,10 +41,10 @@ public sealed class Timer
     {
         if (IsPaused || (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount))
             return;
-        Elapsed -= step;
+        TimeLeft -= step;
         if (!IsFinished)
             return;
-        Elapsed += Delay;
+        TimeLeft += Delay;
         _repeatCounter++;
         OnRepeat?.Invoke();
         if (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount)
@@ -53,7 +53,7 @@ public sealed class Timer
 
     public void Reset()
     {
-        Elapsed = Delay;
+        TimeLeft = Delay;
         _repeatCounter = 0;
     }
 }
