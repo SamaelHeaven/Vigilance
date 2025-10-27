@@ -7,8 +7,7 @@ public sealed class TimerSystem : GameSystem
 {
     public override void Update()
     {
-        var step = Time.Delta;
         foreach (var timer in Scene.Components<Timer>())
-            timer.Update(step);
+            timer.Update();
     }
 }

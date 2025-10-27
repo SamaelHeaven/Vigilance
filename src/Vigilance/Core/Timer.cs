@@ -44,7 +44,7 @@ public sealed class Timer
         Elapsed -= step;
         if (!IsFinished)
             return;
-        Elapsed = Delay;
+        Elapsed += Delay;
         _repeatCounter++;
         OnRepeat?.Invoke();
         if (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount)
