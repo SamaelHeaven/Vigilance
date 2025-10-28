@@ -32,12 +32,13 @@ public sealed unsafe partial class Scene
     private List<IGameSystem> _systems = [];
     private float _time;
     private Action? _updateAction;
-    internal CachedData Cache = new();
+    internal CachedData Cache;
     internal World World = World.Create();
 
     public Scene(GameSystemsFunc? systems = null)
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
+        Cache = new CachedData(this);
         OnInstantiate(InstantiateCallback);
         OnSetZIndex(SetZIndexCallback, false);
         OnSetPosition(SetPositionCallback, false);
@@ -469,8 +470,12 @@ public sealed unsafe partial class Scene
         public readonly Dictionary<ulong, Vector2> ScaleMap = new();
         public readonly Dictionary<ulong, Transform> TransformMap = new();
         public readonly Dictionary<ulong, int> ZIndexMap = new();
+        public readonly ulong ComponentsType;
 
-        public CachedData() { }
+        public CachedData(Scene scene)
+        {
+            ComponentsType = Type<Components>.Id(scene.World);
+        }
     }
 
     private enum ComponentOperation

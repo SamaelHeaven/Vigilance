@@ -334,11 +334,10 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public ref readonly Entity Remove<T>()
     {
         EnsureValid();
-        var type = typeof(T);
-        if (type == typeof(Components))
-            throw new InvalidOperationException("Components cannot be removed.");
         var entity = FlecsEntity;
         var id = Type<T>.Id(entity.World);
+        if (id == Scene.Cache.ComponentsType)
+            throw new InvalidOperationException("Components cannot be removed.");
         Scene.DeferRemoveComponent(this, id);
         entity.Remove(id);
         return ref this;
@@ -581,10 +580,10 @@ public static unsafe class EntityExtensions
     {
         entity.EnsureValid();
         var type = typeof(T);
-        if (type == typeof(Components))
-            throw new InvalidOperationException("Components cannot be set.");
         var flecsEntity = entity.FlecsEntity;
         var id = Type<T>.Id(flecsEntity.World);
+        if (id == entity.Scene.Cache.ComponentsType)
+            throw new InvalidOperationException("Components cannot be set.");
         var hadT = flecsEntity.Has(id);
         entity.Scene.DeferSetComponent(entity, type, data, id);
         flecsEntity.Set(ref data);
