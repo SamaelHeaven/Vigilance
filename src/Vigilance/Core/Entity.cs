@@ -245,7 +245,10 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.Cache.ComponentMap.GetValueOrDefault(Id, Components.Empty);
+            if (Scene.IsRuntimeComponentsEnabled)
+                return Scene.Cache.ComponentMap.GetValueOrDefault(Id, Components.Empty);
+            Logger.Warning("ECS: Runtime components are disabled");
+            return Components.Empty;
         }
     }
 
@@ -431,8 +434,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         sb.Append(", Transform = ");
         sb.Append(Transform.ToString());
 
-        var components = Components;
-        if (!Scene.IsRuntimeComponentsEnabled || components.Count == 0)
+        Components components;
+        if (!Scene.IsRuntimeComponentsEnabled || (components = Components).Count == 0)
             return true;
         sb.Append(", Components = ");
         sb.Append(components.ToString());
