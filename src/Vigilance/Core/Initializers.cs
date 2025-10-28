@@ -29,6 +29,7 @@ public static class Initializers
             Display.Initialize();
             Asset.Initialize();
             Font.Initialize();
+            Ecs.Initialize();
             Audio.Audio.Initialize();
             Input.Input.Initialize();
             Drawing.Drawing.Initialize();

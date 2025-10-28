@@ -308,7 +308,15 @@ public static class Asset
                 ? null
                 : Helper.NormalizeResource(fragmentResource, fragmentNamespace);
             return _container.Resource(
-                () => (normalizedVertexPath, normalizedFragmentPath),
+                () =>
+                    (
+                        normalizedVertexPath is null
+                            ? null
+                            : FileSystem.FormatResource(normalizedVertexPath, vertexAssembly?.FullName ?? ""),
+                        normalizedFragmentPath is null
+                            ? null
+                            : FileSystem.FormatResource(normalizedFragmentPath, fragmentAssembly?.FullName ?? "")
+                    ),
                 () =>
                 {
                     var vertex = normalizedVertexPath is null
@@ -420,6 +428,7 @@ public static class Asset
         {
             resource = Helper.NormalizeResource(resource, @namespace);
             var resourceValue = resource;
+            resource = FileSystem.FormatResource(resource, assembly?.FullName ?? "");
             return Resource(keyFunc, () => valueFunc.Invoke(Helper.ReadResource(resourceValue, assembly)), cacheType);
         }
 

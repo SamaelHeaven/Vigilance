@@ -4,15 +4,26 @@ namespace Vigilance.Core;
 
 public delegate IEnumerable<IGameSystem> GameSystemsFunc();
 
-public interface IGameSystem
+public interface IGameSystem : IComparable<IGameSystem>
 {
     void Configure(Scene scene);
 }
 
-public abstract class GameSystem : IGameSystem
+public abstract class GameSystem : IGameSystem, IComparable<GameSystem>
 {
     public Scene Scene { get; private set; } = null!;
     public bool Disabled { get; set; }
+    public int Order { get; set; }
+
+    public int CompareTo(GameSystem? other)
+    {
+        return other is null ? 1 : Order.CompareTo(other.Order);
+    }
+
+    public int CompareTo(IGameSystem? other)
+    {
+        return other is GameSystem system ? CompareTo(system) : 1;
+    }
 
     public void Configure(Scene scene)
     {

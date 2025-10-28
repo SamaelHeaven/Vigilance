@@ -41,8 +41,6 @@ public static unsafe class Game
 
     public static Config Config { get; private set; } = Config.Empty;
 
-    internal static GameSystemsFunc Systems { get; private set; } = null!;
-
     public static void OpenUrl(string url)
     {
         EnsureRunning();
@@ -76,7 +74,6 @@ public static unsafe class Game
         EnsureNotRunning();
         Running = true;
         Config = config;
-        Systems = config.Take<GameSystemsFunc>() ?? (() => []);
         _scene = scene;
         UpdateActions();
         try

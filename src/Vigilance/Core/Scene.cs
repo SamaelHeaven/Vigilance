@@ -22,6 +22,7 @@ public sealed unsafe partial class Scene
     private Action? _deferredAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
+    private bool? _isRuntimeComponentsEnabled;
     private Action? _onDispose;
     private Action? _postRenderAction;
     private Action? _preRenderAction;
@@ -35,9 +36,10 @@ public sealed unsafe partial class Scene
     internal CachedData Cache;
     internal World World = World.Create();
 
-    public Scene(GameSystemsFunc? systems = null)
+    public Scene(GameSystemsFunc? systems = null, bool? isRuntimeComponentsEnabled = null)
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
+        _isRuntimeComponentsEnabled = isRuntimeComponentsEnabled;
         Cache = new CachedData(this);
         OnInstantiate(InstantiateCallback);
         OnSetZIndex(SetZIndexCallback, false);
@@ -59,6 +61,15 @@ public sealed unsafe partial class Scene
         }
     }
 
+    public bool IsRuntimeComponentsEnabled
+    {
+        get
+        {
+            EnsureInitialized();
+            return _isRuntimeComponentsEnabled!.Value;
+        }
+    }
+
     public Camera Camera { get; } = new();
 
     public bool IsInitialized { get; private set; }
@@ -67,27 +78,25 @@ public sealed unsafe partial class Scene
 
     public EntityEnumerable Entities => GetEntities();
 
-    public static Scene Build<T>(GameSystemsFunc? leadingSystems = null, GameSystemsFunc? trailingSystems = null)
+    public static Scene Build<T>(GameSystemsFunc? systems = null, bool? isRuntimeComponentsEnabled = null)
         where T : IGameSystem, new()
     {
-        return new Scene(() =>
-            (leadingSystems?.Invoke() ?? Array.Empty<IGameSystem>())
-                .Concat([new T()])
-                .Concat(trailingSystems?.Invoke() ?? Array.Empty<IGameSystem>())
+        return new Scene(
+            () => (systems?.Invoke() ?? Array.Empty<IGameSystem>()).Concat([new T()]),
+            isRuntimeComponentsEnabled
         );
     }
 
     public static Scene Build<T>(
         Func<T> factory,
-        GameSystemsFunc? leadingSystems = null,
-        GameSystemsFunc? trailingSystems = null
+        GameSystemsFunc? systems = null,
+        bool? isRuntimeComponentsEnabled = null
     )
         where T : IGameSystem
     {
-        return new Scene(() =>
-            (leadingSystems?.Invoke() ?? Array.Empty<IGameSystem>())
-                .Concat([factory.Invoke()])
-                .Concat(trailingSystems?.Invoke() ?? Array.Empty<IGameSystem>())
+        return new Scene(
+            () => (systems?.Invoke() ?? Array.Empty<IGameSystem>()).Concat([factory.Invoke()]),
+            isRuntimeComponentsEnabled
         );
     }
 
@@ -363,7 +372,9 @@ public sealed unsafe partial class Scene
 
     private void Initialize()
     {
-        _systems = Game.Systems.Invoke().AsValueEnumerable().Concat(_systemsFunc.Invoke()).ToList();
+        _isRuntimeComponentsEnabled ??= Ecs.DefaultEnableRuntimeComponents;
+        _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(_systemsFunc.Invoke()).ToList();
+        _systems.Sort();
         BeginDefer();
         foreach (var system in _systems)
             system.Configure(this);
@@ -591,7 +602,7 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
             .Event<AddEvent>()
             .Each(
@@ -613,7 +624,7 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
             .Event<AddEvent>()
             .Each(
@@ -635,7 +646,7 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
             .Event<AddEvent>()
             .Each(
@@ -661,7 +672,7 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
             .Event<SetEvent>()
             .Each(
@@ -684,7 +695,7 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
             .Event<SetEvent>()
             .Each(
@@ -706,7 +717,7 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
             .Event<SetEvent>()
             .Each(
@@ -733,9 +744,9 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
-            .Event(Ecs.OnSet)
+            .Event(Flecs.NET.Core.Ecs.OnSet)
             .Each(
                 traverse
                     ? (it, i, ref _) =>
@@ -756,9 +767,9 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
-            .Event(Ecs.OnSet)
+            .Event(Flecs.NET.Core.Ecs.OnSet)
             .Each(
                 traverse
                     ? (it, i, ref _) =>
@@ -778,9 +789,9 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
-            .Event(Ecs.OnSet)
+            .Event(Flecs.NET.Core.Ecs.OnSet)
             .Each(
                 traverse
                     ? (it, i, ref _) =>
@@ -805,9 +816,9 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
-            .Event(Ecs.OnRemove)
+            .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
                 traverse
                     ? (it, i, ref _) =>
@@ -827,9 +838,9 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
-            .Event(Ecs.OnRemove)
+            .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
                 traverse
                     ? (it, i, ref _) =>
@@ -849,9 +860,9 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer<T>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
-            .Event(Ecs.OnRemove)
+            .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
                 traverse
                     ? (it, i, ref _) =>
@@ -975,9 +986,9 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer()
-            .Flags(Ecs.Disabled)
-            .Event(Ecs.OnAdd)
-            .Event(Ecs.OnRemove)
+            .Flags(Flecs.NET.Core.Ecs.Disabled)
+            .Event(Flecs.NET.Core.Ecs.OnAdd)
+            .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
                 (it, i) =>
                 {
@@ -992,14 +1003,14 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer()
-            .Flags(Ecs.Disabled)
-            .Event(Ecs.OnAdd)
-            .Event(Ecs.OnRemove)
+            .Flags(Flecs.NET.Core.Ecs.Disabled)
+            .Event(Flecs.NET.Core.Ecs.OnAdd)
+            .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
                 (it, i) =>
                 {
                     var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity, it.Event() == Ecs.OnAdd);
+                    action.Invoke(entity, it.Event() == Flecs.NET.Core.Ecs.OnAdd);
                 }
             );
     }
@@ -1009,8 +1020,8 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer()
-            .Flags(Ecs.Disabled)
-            .Event(Ecs.OnAdd)
+            .Flags(Flecs.NET.Core.Ecs.Disabled)
+            .Event(Flecs.NET.Core.Ecs.OnAdd)
             .Each(
                 (it, i) =>
                 {
@@ -1025,8 +1036,8 @@ public sealed unsafe partial class Scene
         EnsureNotInitialized();
         World
             .Observer()
-            .Flags(Ecs.Disabled)
-            .Event(Ecs.OnRemove)
+            .Flags(Flecs.NET.Core.Ecs.Disabled)
+            .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
                 (it, i) =>
                 {
@@ -1046,10 +1057,10 @@ public sealed unsafe partial class Scene
         World
             .Observer()
             .With<ZIndex>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
-            .With(Ecs.ChildOf, Ecs.Wildcard)
-            .Event(Ecs.OnAdd)
+            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
+            .Event(Flecs.NET.Core.Ecs.OnAdd)
             .Each(
                 (it, i) =>
                 {
@@ -1065,10 +1076,10 @@ public sealed unsafe partial class Scene
         World
             .Observer()
             .With<ZIndex>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
-            .With(Ecs.ChildOf, Ecs.Wildcard)
-            .Event(Ecs.OnAdd)
+            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
+            .Event(Flecs.NET.Core.Ecs.OnAdd)
             .Each(
                 (it, i) =>
                 {
@@ -1089,10 +1100,10 @@ public sealed unsafe partial class Scene
         World
             .Observer()
             .With<ZIndex>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
-            .With(Ecs.ChildOf, Ecs.Wildcard)
-            .Event(Ecs.OnRemove)
+            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
+            .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
                 (it, i) =>
                 {
@@ -1108,10 +1119,10 @@ public sealed unsafe partial class Scene
         World
             .Observer()
             .With<ZIndex>()
-            .With(Ecs.Disabled)
+            .With(Flecs.NET.Core.Ecs.Disabled)
             .Optional()
-            .With(Ecs.ChildOf, Ecs.Wildcard)
-            .Event(Ecs.OnRemove)
+            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
+            .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
                 (it, i) =>
                 {

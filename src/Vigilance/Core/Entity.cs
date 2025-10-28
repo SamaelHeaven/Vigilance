@@ -338,7 +338,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         var id = Type<T>.Id(entity.World);
         if (id == Scene.Cache.ComponentsType)
             throw new InvalidOperationException("Components cannot be removed.");
-        Scene.DeferRemoveComponent(this, id);
+        if (Scene.IsRuntimeComponentsEnabled)
+            Scene.DeferRemoveComponent(this, id);
         entity.Remove(id);
         return ref this;
     }
@@ -347,7 +348,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         EnsureValid();
         var entity = FlecsEntity;
-        Scene.DeferRemoveComponent(this, component.Id);
+        if (Scene.IsRuntimeComponentsEnabled)
+            Scene.DeferRemoveComponent(this, component.Id);
         entity.Remove(component.Id);
         return ref this;
     }
@@ -384,7 +386,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public bool IsChildOf(Entity parent)
     {
         EnsureValid();
-        return FlecsEntity.Has(Ecs.ChildOf, parent.Id);
+        return FlecsEntity.Has(Flecs.NET.Core.Ecs.ChildOf, parent.Id);
     }
 
     [Conditional("DEBUG")]
@@ -428,8 +430,12 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         sb.Append(ZIndex);
         sb.Append(", Transform = ");
         sb.Append(Transform.ToString());
+
+        var components = Components;
+        if (!Scene.IsRuntimeComponentsEnabled || components.Count == 0)
+            return true;
         sb.Append(", Components = ");
-        sb.Append(Components.ToString());
+        sb.Append(components.ToString());
         return true;
     }
 
@@ -496,11 +502,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             _entity.EnsureValid();
             Dispose();
             _entity.Scene.BeginDefer();
-            _iter = flecs.ecs_each_id(_entity.Scene.World, Ecs.Pair(flecs.EcsChildOf, _entity.Id));
+            _iter = flecs.ecs_each_id(_entity.Scene.World, Flecs.NET.Core.Ecs.Pair(flecs.EcsChildOf, _entity.Id));
             _index = 0;
             fixed (flecs.ecs_iter_t* iter = &_iter)
             {
-                Ecs.TableLock(iter);
+                Flecs.NET.Core.Ecs.TableLock(iter);
             }
         }
 
@@ -513,7 +519,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
                 return;
             fixed (flecs.ecs_iter_t* iter = &_iter)
             {
-                Ecs.TableUnlock(iter);
+                Flecs.NET.Core.Ecs.TableUnlock(iter);
             }
 
             _entity.Scene.EndDefer();
@@ -570,27 +576,31 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
 public static unsafe class EntityExtensions
 {
-    public static ref readonly Entity Set<T>(in this Entity entity, T data)
+    extension(in Entity entity)
     {
-        Set(entity, ref data);
-        return ref entity;
-    }
+        public ref readonly Entity Set<T>(T data)
+        {
+            Set(entity, ref data);
+            return ref entity;
+        }
 
-    public static ref readonly Entity Set<T>(in this Entity entity, ref T data)
-    {
-        entity.EnsureValid();
-        var type = typeof(T);
-        var flecsEntity = entity.FlecsEntity;
-        var id = Type<T>.Id(flecsEntity.World);
-        if (id == entity.Scene.Cache.ComponentsType)
-            throw new InvalidOperationException("Components cannot be set.");
-        var hadT = flecsEntity.Has(id);
-        entity.Scene.DeferSetComponent(entity, type, data, id);
-        flecsEntity.Set(ref data);
-        if (hadT)
-            flecsEntity.CsWorld().Event<SetEvent>().Id(id).Entity(entity.Id).Enqueue();
-        else
-            flecsEntity.CsWorld().Event<AddEvent>().Id(id).Entity(entity.Id).Enqueue();
-        return ref entity;
+        public ref readonly Entity Set<T>(ref T data)
+        {
+            entity.EnsureValid();
+            var type = typeof(T);
+            var flecsEntity = entity.FlecsEntity;
+            var id = Type<T>.Id(flecsEntity.World);
+            if (id == entity.Scene.Cache.ComponentsType)
+                throw new InvalidOperationException("Components cannot be set.");
+            var hadT = flecsEntity.Has(id);
+            if (entity.Scene.IsRuntimeComponentsEnabled)
+                entity.Scene.DeferSetComponent(entity, type, data, id);
+            flecsEntity.Set(ref data);
+            if (hadT)
+                flecsEntity.CsWorld().Event<SetEvent>().Id(id).Entity(entity.Id).Enqueue();
+            else
+                flecsEntity.CsWorld().Event<AddEvent>().Id(id).Entity(entity.Id).Enqueue();
+            return ref entity;
+        }
     }
 }
