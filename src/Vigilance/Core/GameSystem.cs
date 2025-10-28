@@ -6,6 +6,11 @@ public delegate IEnumerable<IGameSystem> GameSystemsFunc();
 
 public interface IGameSystem : IComparable<IGameSystem>
 {
+    int IComparable<IGameSystem>.CompareTo(IGameSystem? other)
+    {
+        return other is null ? 1 : 0;
+    }
+
     void Configure(Scene scene);
 }
 
@@ -22,7 +27,9 @@ public abstract class GameSystem : IGameSystem, IComparable<GameSystem>
 
     public int CompareTo(IGameSystem? other)
     {
-        return other is GameSystem system ? CompareTo(system) : 1;
+        return other is GameSystem system
+            ? CompareTo(system)
+            : (int)long.Clamp(-other?.CompareTo(this) ?? 1, int.MinValue, int.MaxValue);
     }
 
     public void Configure(Scene scene)
