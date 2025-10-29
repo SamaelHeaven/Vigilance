@@ -5,6 +5,16 @@ namespace Vigilance.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public record struct Vector2
+    : IAdditionOperators<Vector2, Vector2, Vector2>,
+        IAdditionOperators<Vector2, float, Vector2>,
+        ISubtractionOperators<Vector2, Vector2, Vector2>,
+        ISubtractionOperators<Vector2, float, Vector2>,
+        IMultiplyOperators<Vector2, Vector2, Vector2>,
+        IMultiplyOperators<Vector2, float, Vector2>,
+        IDivisionOperators<Vector2, Vector2, Vector2>,
+        IDivisionOperators<Vector2, float, Vector2>,
+        IUnaryNegationOperators<Vector2, Vector2>,
+        IUnaryPlusOperators<Vector2, Vector2>
 {
     public float X { get; set; }
     public float Y { get; set; }
@@ -63,6 +73,11 @@ public record struct Vector2
     public static Vector2 operator -(Vector2 v)
     {
         return new Vector2(-v.X, -v.Y);
+    }
+
+    public static Vector2 operator +(Vector2 value)
+    {
+        return value;
     }
 
     public static Vector2 operator +(Vector2 a, Vector2 b)
@@ -248,22 +263,8 @@ public record struct Vector2
         return Length() == 0 ? Zero : this / Length();
     }
 
-    public readonly float ModifierX()
+    public readonly Vector2 Signs()
     {
-        return X == 0 ? 0
-            : X > 0 ? 1
-            : -1;
-    }
-
-    public readonly float ModifierY()
-    {
-        return Y == 0 ? 0
-            : Y > 0 ? 1
-            : -1;
-    }
-
-    public readonly Vector2 Modifiers()
-    {
-        return new Vector2(ModifierX(), ModifierY());
+        return new Vector2(X.Sign(), Y.Sign());
     }
 }

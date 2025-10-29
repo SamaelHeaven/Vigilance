@@ -1,4 +1,5 @@
 using Vigilance.Core;
+using Vigilance.Math;
 using ZLinq;
 using ZLinq.Linq;
 
@@ -46,7 +47,7 @@ public sealed class Animation : IListView<AnimationFrame>
         get => _index;
         set
         {
-            _index = int.Clamp(value, 0, _frames.Count - 1);
+            _index = value.Clamp(0, _frames.Count - 1);
             _elapsed = TimeSpan.Zero;
         }
     }
@@ -54,13 +55,13 @@ public sealed class Animation : IListView<AnimationFrame>
     public int StartIndex
     {
         get => _startIndex;
-        set => _startIndex = int.Clamp(value, 0, _frames.Count - 1);
+        set => _startIndex = value.Clamp(0, _frames.Count - 1);
     }
 
     public int? NextIndex
     {
         get => _nextIndex;
-        set => _nextIndex = value.HasValue ? int.Clamp(value.Value, 0, _frames.Count - 1) : null;
+        set => _nextIndex = value?.Clamp(0, _frames.Count - 1);
     }
 
     public int FrameCount => _frames.Count;

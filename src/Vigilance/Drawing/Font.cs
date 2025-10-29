@@ -137,7 +137,7 @@ public sealed unsafe class Font : IDisposable
 
     public (Texture Atlas, DictionaryView<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
     {
-        strokeWidth = int.Clamp(strokeWidth, 0, 50);
+        strokeWidth = strokeWidth.Clamp(0, 50);
         if (_strokes.TryGetValue(strokeWidth, out var stroke))
             return stroke;
         FT.FT_Stroker_Set(

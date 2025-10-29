@@ -1,4 +1,5 @@
 using Vigilance.Drawing;
+using Vigilance.Math;
 
 namespace Vigilance.Core;
 
@@ -27,9 +28,12 @@ public abstract class GameSystem : IGameSystem, IComparable<GameSystem>
 
     public int CompareTo(IGameSystem? other)
     {
-        return other is GameSystem system
-            ? CompareTo(system)
-            : (int)long.Clamp(-other?.CompareTo(this) ?? 1, int.MinValue, int.MaxValue);
+        return other switch
+        {
+            GameSystem system => CompareTo(system),
+            null => 1,
+            _ => (int)((long)-other.CompareTo(this)).Clamp(int.MinValue, int.MaxValue),
+        };
     }
 
     public void Configure(Scene scene)
