@@ -22,7 +22,7 @@ public sealed class Sound : IDisposable
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)
         {
-            var wave = Raylib.LoadWaveFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, span.Length);
+            var wave = Raylib.LoadWaveFromMemory(fileTypeBuffer, bytesBuffer, span.Length);
             _sound = Raylib.LoadSoundFromWave(wave);
             Raylib.UnloadWave(wave);
         }

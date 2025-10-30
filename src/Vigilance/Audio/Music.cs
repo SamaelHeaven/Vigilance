@@ -25,7 +25,7 @@ public sealed class Music : IDisposable
             Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, span.Length, span.Length);
         }
 
-        _music = Raylib.LoadMusicStreamFromMemory(fileTypeBuffer.AsPointer(), (byte*)_buffer, span.Length);
+        _music = Raylib.LoadMusicStreamFromMemory(fileTypeBuffer, (byte*)_buffer, span.Length);
     }
 
     public float Volume

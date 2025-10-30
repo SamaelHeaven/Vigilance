@@ -366,14 +366,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public ref readonly Entity Scope(Action action)
     {
         EnsureValid();
-        Scene.BeginDefer();
+        var previousScope = Scene.SetScope(this);
         try
         {
-            FlecsEntity.Scope(action);
+            action();
         }
         finally
         {
-            Scene.EndDefer();
+            Scene.SetScope(previousScope);
         }
 
         return ref this;

@@ -20,7 +20,7 @@ public sealed unsafe class Image : IDisposable
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)
         {
-            RImage = Raylib.LoadImageFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, span.Length);
+            RImage = Raylib.LoadImageFromMemory(fileTypeBuffer, bytesBuffer, span.Length);
         }
     }
 

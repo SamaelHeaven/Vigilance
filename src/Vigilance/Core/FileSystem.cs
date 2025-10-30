@@ -16,12 +16,11 @@ public static unsafe partial class FileSystem
     }
 
     public static string ApplicationDirectory { get; } =
-        FormatPath(Marshal.PtrToStringUTF8((nint)Raylib.GetApplicationDirectory()) ?? "");
+        FormatPath(Utf8Buffer.GetString(Raylib.GetApplicationDirectory()));
 
     public static string WorkingNamespace { get; set; }
 
-    public static string WorkingDirectory =>
-        FormatPath(Marshal.PtrToStringUTF8((nint)Raylib.GetWorkingDirectory()) ?? "");
+    public static string WorkingDirectory => FormatPath(Utf8Buffer.GetString(Raylib.GetWorkingDirectory()));
 
     public static string[] DroppedFiles => !Raylib.IsFileDropped() ? Array.Empty<string>() : Raylib.GetDroppedFiles();
 
@@ -53,7 +52,7 @@ public static unsafe partial class FileSystem
         if (!DirectoryExists(path))
             return false;
         using var buffer = path.ToUtf8Buffer();
-        return Raylib.ChangeDirectory(buffer.AsPointer());
+        return Raylib.ChangeDirectory(buffer);
     }
 
     public static bool FileExists(string path)
@@ -62,7 +61,7 @@ public static unsafe partial class FileSystem
         if (path == "")
             return false;
         using var buffer = path.ToUtf8Buffer();
-        return Raylib.FileExists(buffer.AsPointer());
+        return Raylib.FileExists(buffer);
     }
 
     public static bool DirectoryExists(string path)
@@ -71,7 +70,7 @@ public static unsafe partial class FileSystem
         if (path == "")
             return false;
         using var buffer = path.ToUtf8Buffer();
-        return Raylib.DirectoryExists(buffer.AsPointer());
+        return Raylib.DirectoryExists(buffer);
     }
 
     public static bool ResourceExists(string resource, string? @namespace = null, Assembly? assembly = null)
@@ -98,15 +97,15 @@ public static unsafe partial class FileSystem
         if (!FileExists(path))
             return 0;
         using var buffer = path.ToUtf8Buffer();
-        return Raylib.GetFileLength(buffer.AsPointer());
+        return Raylib.GetFileLength(buffer);
     }
 
     public static string ReadText(string path)
     {
         path = FormatPath(path);
         using var buffer = path.ToUtf8Buffer();
-        var bytes = Raylib.LoadFileText(buffer.AsPointer());
-        var result = Marshal.PtrToStringUTF8((nint)bytes) ?? "";
+        var bytes = Raylib.LoadFileText(buffer);
+        var result = Utf8Buffer.GetString(bytes);
         Raylib.UnloadFileText(bytes);
         return result;
     }
@@ -121,7 +120,7 @@ public static unsafe partial class FileSystem
         path = FormatPath(path);
         using var pathBuffer = path.ToUtf8Buffer();
         using var textBuffer = text.ToUtf8Buffer();
-        return Raylib.SaveFileText(pathBuffer.AsPointer(), textBuffer.AsPointer());
+        return Raylib.SaveFileText(pathBuffer, textBuffer);
     }
 
     public static byte[] ReadBytes(string path)
@@ -160,7 +159,7 @@ public static unsafe partial class FileSystem
         using var pathBuffer = path.ToUtf8Buffer();
         fixed (byte* byteBuffer = bytes)
         {
-            return Raylib.SaveFileData(pathBuffer.AsPointer(), byteBuffer, bytes.Length);
+            return Raylib.SaveFileData(pathBuffer, byteBuffer, bytes.Length);
         }
     }
 
@@ -168,11 +167,11 @@ public static unsafe partial class FileSystem
     {
         path = FormatPath(path);
         using var pathBuffer = path.ToUtf8Buffer();
-        var filePathList = Raylib.LoadDirectoryFilesEx(pathBuffer.AsPointer(), null, recursive);
+        var filePathList = Raylib.LoadDirectoryFilesEx(pathBuffer, null, recursive);
         var count = filePathList.Count;
         var result = new string[count];
         for (var i = 0; i < count; i++)
-            result[i] = FormatPath(Marshal.PtrToStringUTF8((nint)filePathList.Paths[i]) ?? "");
+            result[i] = FormatPath(Utf8Buffer.GetString(filePathList.Paths[i]));
         Raylib.UnloadDirectoryFiles(filePathList);
         return result;
     }

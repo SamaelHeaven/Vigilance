@@ -1,6 +1,6 @@
 namespace Vigilance.Core;
 
-public sealed class Ecs
+public static class Ecs
 {
     private static EcsConfig _config = null!;
 

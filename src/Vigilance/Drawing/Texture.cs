@@ -25,7 +25,7 @@ public sealed unsafe class Texture : IDisposable
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)
         {
-            var image = Raylib.LoadImageFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, span.Length);
+            var image = Raylib.LoadImageFromMemory(fileTypeBuffer, bytesBuffer, span.Length);
             Texture2D = Raylib.LoadTextureFromImage(image);
             Raylib.UnloadImage(image);
         }

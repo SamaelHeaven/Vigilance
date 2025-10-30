@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 namespace Vigilance.Core;
 
 public static class JSEngine
@@ -9,7 +7,7 @@ public static class JSEngine
         if (!Platform.Web.IsCurrent)
             throw new PlatformNotSupportedException();
         var ptr = Emscripten.RunScriptString(script);
-        return new JSResult { Value = Marshal.PtrToStringUTF8(ptr) ?? "" };
+        return new JSResult { Value = Utf8Buffer.GetString(ptr) };
     }
 }
 
