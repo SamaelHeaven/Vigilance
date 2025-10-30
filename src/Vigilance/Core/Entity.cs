@@ -39,7 +39,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
-    public bool IsValid => Scene.Cache.ZIndexMap.ContainsKey(Id);
+    public bool IsValid => Scene.Cache.TransformMap.ContainsKey(Id);
 
     public bool IsNull => Id == 0;
 
@@ -70,11 +70,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public Vector2 Position
     {
-        get
-        {
-            EnsureValid();
-            return Scene.Cache.PositionMap.GetValueOrDefault(Id, Vector2.Zero);
-        }
+        get => GetOrDefault(new Position()).Value;
         set
         {
             EnsureValid();
@@ -87,11 +83,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public Vector2 Scale
     {
-        get
-        {
-            EnsureValid();
-            return Scene.Cache.ScaleMap.GetValueOrDefault(Id, Vector2.One);
-        }
+        get => GetOrDefault(new Scale()).Value;
         set
         {
             EnsureValid();
@@ -104,11 +96,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public float Rotation
     {
-        get
-        {
-            EnsureValid();
-            return Scene.Cache.RotationMap.GetValueOrDefault(Id, 0);
-        }
+        get => GetOrDefault(new Rotation()).Value;
         set
         {
             EnsureValid();
@@ -121,11 +109,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public Vector2 PivotPoint
     {
-        get
-        {
-            EnsureValid();
-            return Scene.Cache.PivotPointMap.GetValueOrDefault(Id, Vector2.Zero);
-        }
+        get => GetOrDefault(new PivotPoint()).Value;
         set
         {
             EnsureValid();
@@ -138,11 +122,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public int ZIndex
     {
-        get
-        {
-            EnsureValid();
-            return Scene.Cache.ZIndexMap.GetValueOrDefault(Id, 0);
-        }
+        get => GetOrDefault(new ZIndex()).Value;
         set
         {
             EnsureValid();
@@ -158,7 +138,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.Cache.DisabledSet.Contains(Id);
+            return FlecsEntity.Has(Flecs.NET.Core.Ecs.Disabled);
         }
         set
         {
@@ -246,7 +226,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         {
             EnsureValid();
             if (Scene.IsRuntimeComponentsEnabled)
-                return Scene.Cache.ComponentMap.GetValueOrDefault(Id, Components.Empty);
+            {
+                var flecsEntity = FlecsEntity;
+                return !flecsEntity.Has<Components>() ? Components.Empty : flecsEntity.Get<Components>();
+            }
+
             Logger.Warning("ECS: Runtime components are disabled");
             return Components.Empty;
         }
@@ -325,6 +309,27 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         EnsureValid();
         return FlecsEntity.Get<T>();
+    }
+
+    public T GetOrDefault<T>(T defaultValue)
+    {
+        EnsureValid();
+        var flecsEntity = FlecsEntity;
+        return !flecsEntity.Has<T>() ? defaultValue : flecsEntity.Get<T>();
+    }
+
+    public T GetOrDefault<T>(ref T defaultValue)
+    {
+        EnsureValid();
+        var flecsEntity = FlecsEntity;
+        return !flecsEntity.Has<T>() ? defaultValue : flecsEntity.Get<T>();
+    }
+
+    public T GetOrDefault<T>(Func<T> defaultFunc)
+    {
+        EnsureValid();
+        var flecsEntity = FlecsEntity;
+        return !flecsEntity.Has<T>() ? defaultFunc.Invoke() : flecsEntity.Get<T>();
     }
 
     public ref readonly Entity Set<T>(IComposable<T> composable)
