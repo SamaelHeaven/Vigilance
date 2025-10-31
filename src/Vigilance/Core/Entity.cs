@@ -2,6 +2,7 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
@@ -228,7 +229,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             if (Scene.IsRuntimeComponentsEnabled)
             {
                 var flecsEntity = FlecsEntity;
-                ref readonly var components = ref flecsEntity.Get<Components>();
+                ref readonly var components = ref flecsEntity.GetSafe<Components>();
                 return Unsafe.IsNullRef(in components) ? Components.Empty : components;
             }
 
@@ -317,7 +318,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public ref readonly T GetRef<T>()
     {
         EnsureValid();
-        return ref FlecsEntity.Get<T>();
+        return ref FlecsEntity.GetSafe<T>();
     }
 
     public T GetOrDefault<T>(T defaultValue)
@@ -325,7 +326,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         EnsureValid();
         if (Type<T>.IsTag)
             return FlecsEntity.Has<T>() ? default! : defaultValue;
-        ref readonly var value = ref FlecsEntity.Get<T>();
+        ref readonly var value = ref FlecsEntity.GetSafe<T>();
         return Unsafe.IsNullRef(in value) ? defaultValue : value;
     }
 
@@ -334,7 +335,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         EnsureValid();
         if (Type<T>.IsTag)
             return FlecsEntity.Has<T>() ? default! : defaultValue;
-        ref readonly var value = ref FlecsEntity.Get<T>();
+        ref readonly var value = ref FlecsEntity.GetSafe<T>();
         return Unsafe.IsNullRef(in value) ? defaultValue : value;
     }
 
@@ -343,7 +344,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         EnsureValid();
         if (Type<T>.IsTag)
             return FlecsEntity.Has<T>() ? default! : defaultFunc.Invoke();
-        ref readonly var value = ref FlecsEntity.Get<T>();
+        ref readonly var value = ref FlecsEntity.GetSafe<T>();
         return Unsafe.IsNullRef(in value) ? defaultFunc.Invoke() : value;
     }
 
@@ -644,6 +645,21 @@ public static unsafe class EntityExtensions
             else if (!hadT)
                 flecsEntity.CsWorld().Event<AddEvent>().Id(id).Entity(entity.Id).Enqueue();
             return ref entity;
+        }
+    }
+
+    extension(Flecs.NET.Core.Entity entity)
+    {
+        public ref readonly T GetSafe<T>()
+        {
+            var data = flecs.ecs_get_id(entity.World, entity.Id, Type<T>.Id(entity.World));
+            if (data == null)
+                return ref Unsafe.NullRef<T>();
+            if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+                return ref Unsafe.AsRef<T>(data);
+            var handle = GCHandle.FromIntPtr(*(nint*)data);
+            var box = (StrongBox<T>)handle.Target!;
+            return ref box.Value!;
         }
     }
 }

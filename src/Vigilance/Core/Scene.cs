@@ -422,7 +422,7 @@ public sealed unsafe partial class Scene
     {
         Components components;
         var flecsEntity = entity.FlecsEntity;
-        ref readonly var componentsRef = ref flecsEntity.Get<Components>();
+        ref readonly var componentsRef = ref flecsEntity.GetSafe<Components>();
         if (Unsafe.IsNullRef(in componentsRef))
         {
             components = new Components();
@@ -441,7 +441,7 @@ public sealed unsafe partial class Scene
     private static void RemoveComponent(in Entity entity, ulong id)
     {
         var flecsEntity = entity.FlecsEntity;
-        ref readonly var components = ref flecsEntity.Get<Components>();
+        ref readonly var components = ref flecsEntity.GetSafe<Components>();
         if (Unsafe.IsNullRef(in components))
             return;
         components.Values.Remove(new Component(null!, null, id));
