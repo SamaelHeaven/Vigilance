@@ -64,12 +64,15 @@ public sealed class EntityGenerator : ISourceGenerator
             var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"entity.Has<T{n}>()"));
             var assigns = string.Join(
                 "\n            ",
-                Enumerable.Range(0, i + 1).Select(n => $"t{n} = entity.Get<T{n}>();")
+                Enumerable
+                    .Range(0, i + 1)
+                    .Select(n => $"t{n} = Flecs.NET.Core.Type<T{n}>.IsTag ? default! : entity.Get<T{n}>();")
             );
             sb.AppendLine(
                 $$"""
                     public bool TryGet<{{typeParams}}>({{outParams}})
                     {
+                        EnsureValid();
                         {{skipInits}}
                         var entity = FlecsEntity;
                         var result = {{hasChecks}};
