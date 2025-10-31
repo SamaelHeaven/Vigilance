@@ -158,7 +158,7 @@ public sealed class SceneGenerator : ISourceGenerator
                         _index = 0;
                         fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
                         {
-                            return Flecs.NET.Utilities.Utils.Bool(Flecs.NET.Bindings.flecs.ecs_query_next(iter));
+                            return Flecs.NET.Bindings.flecs.ecs_query_next(iter);
                         }
                     }
 

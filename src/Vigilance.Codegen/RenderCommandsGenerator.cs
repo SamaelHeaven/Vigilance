@@ -23,13 +23,15 @@ public sealed class RenderCommandsGenerator : ISourceGenerator
 
             """
         );
-        AddRange(sb, false);
-        AddRange(sb, true);
+        AddRange(sb, false, false);
+        AddRange(sb, false, true);
+        AddRange(sb, true, false);
+        AddRange(sb, true, true);
         sb.AppendLine("}");
         context.AddSource("RenderCommand.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
-    public static void AddRange(StringBuilder sb, bool context)
+    public static void AddRange(StringBuilder sb, bool entryEnumerable, bool context)
     {
         for (var i = 1; i < 15; i++)
         {
@@ -39,7 +41,7 @@ public sealed class RenderCommandsGenerator : ISourceGenerator
                 $$"""
                     public void AddRange<{{(context ? "TContext, " : "")}}{{typeParams}}>({{(
                         context ? "TContext context, " : ""
-                    )}}Scene.EntryEnumerable<{{typeParams}}> entries, Action<Entity, {{(
+                    )}}{{(entryEnumerable ? $"Scene.EntryEnumerable<{typeParams}>" : $"IEnumerable<(Entity, {typeParams})>")}} entries, Action<Entity, {{(
                     context ? "TContext, " : ""
                 )}}({{typeParams}})> action)
                     {

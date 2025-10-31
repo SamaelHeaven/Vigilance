@@ -129,7 +129,7 @@ public sealed unsafe partial class Scene
             entity = World.Entity();
         else
             entity =
-                World.Lookup(name) != Flecs.NET.Core.Entity.Null()
+                World.Lookup(name, false) != Flecs.NET.Core.Entity.Null()
                     ? throw new InvalidOperationException($"Entity \"{name}\" already exists.")
                     : World.Entity(name);
         entity.Set(new ZIndex());
@@ -150,10 +150,10 @@ public sealed unsafe partial class Scene
         return result.IsValid ? result : Core.Entity.Null;
     }
 
-    public Entity Lookup(string name)
+    public Entity Lookup(string name, bool recursive = true)
     {
         EnsureInitialized();
-        return new Entity(World.Lookup(name), this);
+        return new Entity(World.Lookup(name, recursive), this);
     }
 
     public void On<T>(Action<T> action)

@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Text;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
-using Flecs.NET.Utilities;
 using Vigilance.Logging;
 using Vigilance.Math;
 using ZLinq;
@@ -150,7 +149,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             else
                 Scene.Cache.ImmediateDisabledSet.Remove(Id);
             var entity = FlecsEntity;
-            flecs.ecs_enable(entity.World, entity.Id, value ? (byte)0 : (byte)1);
+            flecs.ecs_enable(entity.World, entity.Id, value);
         }
     }
 
@@ -374,7 +373,23 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         var previousScope = Scene.SetScope(this);
         try
         {
-            action();
+            action.Invoke();
+        }
+        finally
+        {
+            Scene.SetScope(previousScope);
+        }
+
+        return ref this;
+    }
+
+    public ref readonly Entity Scope(Action<Scene> action)
+    {
+        EnsureValid();
+        var previousScope = Scene.SetScope(this);
+        try
+        {
+            action.Invoke(Scene);
         }
         finally
         {
@@ -501,7 +516,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             _index = 0;
             fixed (flecs.ecs_iter_t* iter = &_iter)
             {
-                return Utils.Bool(flecs.ecs_each_next(iter));
+                return flecs.ecs_each_next(iter);
             }
         }
 
@@ -603,10 +618,14 @@ public static unsafe class EntityExtensions
             var hadT = flecsEntity.Has(id);
             if (entity.Scene.IsRuntimeComponentsEnabled)
                 entity.Scene.DeferSetComponent(entity, type, data, id);
-            flecsEntity.Set(ref data);
-            if (hadT)
-                flecsEntity.CsWorld().Event<SetEvent>().Id(id).Entity(entity.Id).Enqueue();
+            var isTag = Type<T>.IsTag;
+            if (!isTag)
+                flecsEntity.Set(ref data);
             else
+                flecsEntity.Add<T>();
+            if (!isTag && hadT)
+                flecsEntity.CsWorld().Event<SetEvent>().Id(id).Entity(entity.Id).Enqueue();
+            else if (!hadT)
                 flecsEntity.CsWorld().Event<AddEvent>().Id(id).Entity(entity.Id).Enqueue();
             return ref entity;
         }

@@ -17,12 +17,12 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Box2D.NET.Release" Version="3.1.0" />
-    <PackageReference Include="Flecs.NET.Release" Version="4.0.3" />
+    <PackageReference Include="Flecs.NET.Release" Version="4.0.4-build.548" />
     <PackageReference Include="FlexLayoutSharp" Version="1.0.0" />
     <PackageReference Include="FreeTypeSharp" Version="3.0.1" />
     <PackageReference Include="Raylib-cs.BleedingEdge" Version="5.6.2-dev.60" />
     <PackageReference Include="Raylib-cs.BleedingEdge.Runtimes" Version="5.6.2-dev.60" />
-    <PackageReference Include="ZLinq" Version="1.5.2" />
+    <PackageReference Include="ZLinq" Version="1.5.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference
