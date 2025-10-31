@@ -33,13 +33,13 @@ public sealed class EntityGenerator : ISourceGenerator
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"entity.Has<T{n}>()"));
+            var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"flecsEntity.Has<T{n}>()"));
             sb.AppendLine(
                 $$"""
                     public bool Has<{{typeParams}}>()
                     {
                         EnsureValid();
-                        var entity = FlecsEntity;
+                        var flecsEntity = FlecsEntity;
                         return {{hasChecks}};
                     }
                     
@@ -53,7 +53,7 @@ public sealed class EntityGenerator : ISourceGenerator
     private static void TryGet(StringBuilder sb)
     {
         sb.BeginRegion("TryGet");
-        for (var i = 0; i < 16; i++)
+        for (var i = 1; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             var outParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"out T{n} t{n}"));
@@ -61,26 +61,14 @@ public sealed class EntityGenerator : ISourceGenerator
                 "\n        ",
                 Enumerable.Range(0, i + 1).Select(n => $"System.Runtime.CompilerServices.Unsafe.SkipInit(out t{n});")
             );
-            var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"entity.Has<T{n}>()"));
-            var assigns = string.Join(
-                "\n            ",
-                Enumerable
-                    .Range(0, i + 1)
-                    .Select(n => $"t{n} = Flecs.NET.Core.Type<T{n}>.IsTag ? default! : entity.Get<T{n}>();")
-            );
+            var tryGets = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"TryGet(out t{n})"));
             sb.AppendLine(
                 $$"""
                     public bool TryGet<{{typeParams}}>({{outParams}})
                     {
                         EnsureValid();
                         {{skipInits}}
-                        var entity = FlecsEntity;
-                        var result = {{hasChecks}};
-                        if (result) {
-                            {{assigns}}
-                        }
-                        
-                        return result;
+                        return {{tryGets}};
                     }
                     
                 """

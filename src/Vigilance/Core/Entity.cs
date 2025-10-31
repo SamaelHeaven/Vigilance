@@ -150,8 +150,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
                 Scene.Cache.ImmediateDisabledSet.Add(Id);
             else
                 Scene.Cache.ImmediateDisabledSet.Remove(Id);
-            var entity = FlecsEntity;
-            flecs.ecs_enable(entity.World, entity.Id, value);
+            var flecsEntity = FlecsEntity;
+            flecs.ecs_enable(flecsEntity.World, flecsEntity.Id, value);
         }
     }
 
@@ -321,6 +321,26 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return ref FlecsEntity.GetSafe<T>();
     }
 
+    public bool TryGet<T>(out T value)
+    {
+        EnsureValid();
+        Unsafe.SkipInit(out value);
+        var flecsEntity = FlecsEntity;
+        if (Type<T>.IsTag)
+        {
+            if (!flecsEntity.Has<T>())
+                return false;
+            value = default!;
+            return true;
+        }
+
+        ref readonly var data = ref flecsEntity.GetSafe<T>();
+        if (Unsafe.IsNullRef(in data))
+            return false;
+        value = data;
+        return true;
+    }
+
     public T GetOrDefault<T>(T defaultValue)
     {
         EnsureValid();
@@ -358,23 +378,23 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public ref readonly Entity Remove<T>()
     {
         EnsureValid();
-        var entity = FlecsEntity;
-        var id = Type<T>.Id(entity.World);
+        var flecsEntity = FlecsEntity;
+        var id = Type<T>.Id(flecsEntity.World);
         if (id == Scene.Cache.ComponentsType)
             throw new InvalidOperationException("Components cannot be removed.");
         if (Scene.IsRuntimeComponentsEnabled)
             Scene.DeferRemoveComponent(this, id);
-        entity.Remove(id);
+        flecsEntity.Remove(id);
         return ref this;
     }
 
     public ref readonly Entity Remove(in Component component)
     {
         EnsureValid();
-        var entity = FlecsEntity;
+        var flecsEntity = FlecsEntity;
         if (Scene.IsRuntimeComponentsEnabled)
             Scene.DeferRemoveComponent(this, component.Id);
-        entity.Remove(component.Id);
+        flecsEntity.Remove(component.Id);
         return ref this;
     }
 
@@ -481,9 +501,9 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     private ref readonly Entity SetInternal<T>(T data)
     {
-        var entity = FlecsEntity;
-        entity.Set(ref data);
-        entity.CsWorld().Event<SetEvent>().Id<T>().Entity(Id).Enqueue();
+        var flecsEntity = FlecsEntity;
+        flecsEntity.Set(ref data);
+        flecsEntity.CsWorld().Event<SetEvent>().Id<T>().Entity(Id).Enqueue();
         return ref this;
     }
 
@@ -592,9 +612,9 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public ref readonly Entity Traverse<T>(Action<T> action)
     {
         EnsureValid();
-        var entity = FlecsEntity;
-        if (entity.Has<T>())
-            action.Invoke(entity.Get<T>());
+        var flecsEntity = FlecsEntity;
+        if (flecsEntity.Has<T>())
+            action.Invoke(flecsEntity.Get<T>());
         foreach (var child in Children)
             child.Traverse(action);
         return ref this;
@@ -603,9 +623,9 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public ref readonly Entity Traverse<T>(Action<Entity, T> action)
     {
         EnsureValid();
-        var entity = FlecsEntity;
-        if (entity.Has<T>())
-            action.Invoke(this, entity.Get<T>());
+        var flecsEntity = FlecsEntity;
+        if (flecsEntity.Has<T>())
+            action.Invoke(this, flecsEntity.Get<T>());
         foreach (var child in Children)
             child.Traverse(action);
         return ref this;
