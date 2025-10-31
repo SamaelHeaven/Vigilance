@@ -75,9 +75,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         set
         {
             EnsureValid();
-            if (Precision.AreEqual(value, Scene.Cache.ImmediatePositionMap.GetValueOrDefault(Id, Vector2.Zero)))
+            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                Scene.Cache.ImmediatePositionMap,
+                Id,
+                out _
+            );
+            if (Precision.AreEqual(value, current))
                 return;
-            Scene.Cache.ImmediatePositionMap[Id] = value;
+            current = value;
             SetInternal(new Position(value));
         }
     }
@@ -88,9 +93,16 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         set
         {
             EnsureValid();
-            if (Precision.AreEqual(value, Scene.Cache.ImmediateScaleMap.GetValueOrDefault(Id, Vector2.One)))
+            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                Scene.Cache.ImmediateScaleMap,
+                Id,
+                out var exists
+            );
+            if (!exists)
+                current = Vector2.One;
+            if (Precision.AreEqual(value, current))
                 return;
-            Scene.Cache.ImmediateScaleMap[Id] = value;
+            current = value;
             SetInternal(new Scale(value));
         }
     }
@@ -101,9 +113,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         set
         {
             EnsureValid();
-            if (Precision.AreEqual(value, Scene.Cache.ImmediateRotationMap.GetValueOrDefault(Id, 0)))
+            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                Scene.Cache.ImmediateRotationMap,
+                Id,
+                out _
+            );
+            if (Precision.AreEqual(value, current))
                 return;
-            Scene.Cache.ImmediateRotationMap[Id] = value;
+            current = value;
             SetInternal(new Rotation(value));
         }
     }
@@ -114,9 +131,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         set
         {
             EnsureValid();
-            if (Precision.AreEqual(value, Scene.Cache.ImmediatePivotPointMap.GetValueOrDefault(Id, Vector2.Zero)))
+            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                Scene.Cache.ImmediatePivotPointMap,
+                Id,
+                out _
+            );
+            if (Precision.AreEqual(value, current))
                 return;
-            Scene.Cache.ImmediatePivotPointMap[Id] = value;
+            current = value;
             SetInternal(new PivotPoint(value));
         }
     }
@@ -127,9 +149,10 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         set
         {
             EnsureValid();
-            if (value == Scene.Cache.ImmediateZIndexMap.GetValueOrDefault(Id, 0))
+            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(Scene.Cache.ImmediateZIndexMap, Id, out _);
+            if (Precision.AreEqual(value, current))
                 return;
-            Scene.Cache.ImmediateZIndexMap[Id] = value;
+            current = value;
             SetInternal(new ZIndex(value));
         }
     }
@@ -144,12 +167,17 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         set
         {
             EnsureValid();
-            if (Scene.Cache.ImmediateDisabledSet.Contains(Id) == value)
-                return;
             if (value)
-                Scene.Cache.ImmediateDisabledSet.Add(Id);
+            {
+                if (!Scene.Cache.ImmediateDisabledSet.Add(Id))
+                    return;
+            }
             else
-                Scene.Cache.ImmediateDisabledSet.Remove(Id);
+            {
+                if (!Scene.Cache.ImmediateDisabledSet.Remove(Id))
+                    return;
+            }
+
             var flecsEntity = FlecsEntity;
             flecs.ecs_enable(flecsEntity.World, flecsEntity.Id, value);
         }
@@ -612,9 +640,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public ref readonly Entity Traverse<T>(Action<T> action)
     {
         EnsureValid();
-        var flecsEntity = FlecsEntity;
-        if (flecsEntity.Has<T>())
-            action.Invoke(flecsEntity.Get<T>());
+        if (TryGet(out T t))
+            action.Invoke(t);
         foreach (var child in Children)
             child.Traverse(action);
         return ref this;
@@ -623,9 +650,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public ref readonly Entity Traverse<T>(Action<Entity, T> action)
     {
         EnsureValid();
-        var flecsEntity = FlecsEntity;
-        if (flecsEntity.Has<T>())
-            action.Invoke(this, flecsEntity.Get<T>());
+        if (TryGet(out T t))
+            action.Invoke(this, t);
         foreach (var child in Children)
             child.Traverse(action);
         return ref this;

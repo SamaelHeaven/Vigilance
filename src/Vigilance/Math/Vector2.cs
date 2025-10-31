@@ -28,10 +28,16 @@ public record struct Vector2
     public static Vector2 PositiveInfinity => new(float.PositiveInfinity);
     public static Vector2 NegativeInfinity => new(float.NegativeInfinity);
 
-    public Vector2(float? v1 = null, float? v2 = null)
+    public Vector2(float value)
     {
-        X = v1 ?? 0;
-        Y = v2 ?? X;
+        X = value;
+        Y = value;
+    }
+
+    public Vector2(float x, float y)
+    {
+        X = x;
+        Y = y;
     }
 
     public static implicit operator System.Numerics.Vector2(Vector2 v)

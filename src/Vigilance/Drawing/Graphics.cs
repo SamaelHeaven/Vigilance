@@ -2056,11 +2056,10 @@ public sealed unsafe class Graphics
         }
 
         var matrix = GetMatrix();
-        Rlgl.PushMatrix();
-        Rlgl.Translatef(offset.X, offset.Y, 0);
-        Rlgl.Scalef(scale.X, scale.Y, 1);
         if (camera is not null)
             matrix *= camera.Matrix;
+        matrix *= Matrix3x2.CreateScale(scale) * Matrix3x2.CreateTranslation(offset);
+        Rlgl.PushMatrix();
         Rlgl.MultMatrixf(
             new Matrix4x4(
                 matrix.M11,
@@ -2120,10 +2119,13 @@ public sealed unsafe class Graphics
             _currentBlendMode = null;
         }
 
-        if (_currentShader is null)
-            return;
-        Raylib.EndShaderMode();
-        _currentShader = null;
+        if (_currentShader is not null)
+        {
+            Raylib.EndShaderMode();
+            _currentShader = null;
+        }
+
+        Rlgl.LoadIdentity();
     }
 
     internal static void DrawCurrentBuffer()

@@ -7,24 +7,72 @@ namespace Vigilance.Core;
 
 public sealed class Camera
 {
+    private Matrix3x2? _matrixCache = null;
     public static CameraProvider Null { get; } = new(() => null);
     public static CameraProvider Scene { get; } = new(() => Game.Scene.Camera);
-    public Vector2 Target { get; set; } = Vector2.Zero;
-    public Vector2 Offset { get; set; } = Vector2.Zero;
-    public float Rotation { get; set; } = 0;
-    public float Zoom { get; set; } = 1;
+
+    public Vector2 Target
+    {
+        get;
+        set
+        {
+            if (Precision.AreEqual(field, value))
+                return;
+            field = value;
+            _matrixCache = null;
+        }
+    } = Vector2.Zero;
+
+    public Vector2 Offset
+    {
+        get;
+        set
+        {
+            if (Precision.AreEqual(field, value))
+                return;
+            field = value;
+            _matrixCache = null;
+        }
+    } = Vector2.Zero;
+
+    public float Rotation
+    {
+        get;
+        set
+        {
+            if (Precision.AreEqual(field, value))
+                return;
+            field = value;
+            _matrixCache = null;
+        }
+    } = 0;
+
+    public float Zoom
+    {
+        get;
+        set
+        {
+            if (Precision.AreEqual(field, value))
+                return;
+            field = value;
+            _matrixCache = null;
+        }
+    } = 1;
 
     public Matrix3x2 Matrix
     {
         get
         {
+            if (_matrixCache.HasValue)
+                return _matrixCache.Value;
             var target = Target.Round();
             var offset = Offset.Round();
             var originMatrix = Matrix3x2.CreateTranslation(-target.X, -target.Y);
             var rotationMatrix = Matrix3x2.CreateRotation(Rotation.DegToRad());
             var scaleMatrix = Matrix3x2.CreateScale(Zoom, Zoom);
             var translationMatrix = Matrix3x2.CreateTranslation(offset.X, offset.Y);
-            return originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
+            _matrixCache = originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
+            return _matrixCache.Value;
         }
     }
 

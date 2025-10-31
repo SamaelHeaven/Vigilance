@@ -7,19 +7,17 @@ public sealed class Timer
 
     public Timer(
         TimeSpan delay,
+        TimeSpan? initialTime = null,
         int repeatCount = InfiniteRepeatCount,
         Action? repeatAction = null,
-        Action? completeAction = null,
-        bool immediate = false
+        Action? completeAction = null
     )
     {
         OnComplete = completeAction;
         OnRepeat = repeatAction;
-        TimeLeft = delay;
+        TimeLeft = initialTime ?? delay;
         Delay = delay;
         RepeatCount = repeatCount;
-        if (immediate)
-            repeatAction?.Invoke();
     }
 
     public bool IsFinished => TimeLeft <= TimeSpan.Zero;

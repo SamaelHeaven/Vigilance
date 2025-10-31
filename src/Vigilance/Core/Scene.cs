@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Flecs.NET.Core;
 using Vigilance.Drawing;
 using Vigilance.Math;
@@ -43,10 +44,10 @@ public sealed unsafe partial class Scene
         _isRuntimeComponentsEnabled = isRuntimeComponentsEnabled;
         Cache = new CachedData(this);
         OnInstantiate(InstantiateCallback);
-        OnSetPosition(SetPositionCallback, false);
-        OnSetScale(SetScaleCallback, false);
-        OnSetRotation(SetRotationCallback, false);
-        OnSetPivotPoint(SetPivotPointCallback, false);
+        OnSetPosition(SetPositionCallback);
+        OnSetScale(SetScaleCallback);
+        OnSetRotation(SetRotationCallback);
+        OnSetPivotPoint(SetPivotPointCallback);
     }
 
     public ListView<IGameSystem> Systems
@@ -507,26 +508,26 @@ public sealed unsafe partial class Scene
 
     private void SetPositionCallback(Entity entity, Vector2 position)
     {
-        var id = entity.Id;
-        Cache.TransformMap[id] = new Transform(position, entity.Scale, entity.Rotation, entity.PivotPoint);
+        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(Cache.TransformMap, entity.Id, out _);
+        transform.Position = position;
     }
 
     private void SetScaleCallback(Entity entity, Vector2 scale)
     {
-        var id = entity.Id;
-        Cache.TransformMap[id] = new Transform(entity.Position, scale, entity.Rotation, entity.PivotPoint);
+        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(Cache.TransformMap, entity.Id, out _);
+        transform.Scale = scale;
     }
 
     private void SetRotationCallback(Entity entity, float rotation)
     {
-        var id = entity.Id;
-        Cache.TransformMap[id] = new Transform(entity.Position, entity.Scale, rotation, entity.PivotPoint);
+        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(Cache.TransformMap, entity.Id, out _);
+        transform.Rotation = rotation;
     }
 
     private void SetPivotPointCallback(Entity entity, Vector2 pivotPoint)
     {
-        var id = entity.Id;
-        Cache.TransformMap[id] = new Transform(entity.Position, entity.Scale, entity.Rotation, pivotPoint);
+        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(Cache.TransformMap, entity.Id, out _);
+        transform.PivotPoint = pivotPoint;
     }
 
     private void RemoveParentCallback(Entity entity)
@@ -840,12 +841,12 @@ public sealed unsafe partial class Scene
 
     #region OnSetPosition
 
-    public void OnSetPosition(Action<Entity> action, bool traverse = true)
+    public void OnSetPosition(Action<Entity> action, bool traverse = false)
     {
         OnSet<Position>(action, traverse);
     }
 
-    public void OnSetPosition(Action<Entity, Vector2> action, bool traverse = true)
+    public void OnSetPosition(Action<Entity, Vector2> action, bool traverse = false)
     {
         OnSet(
             (Entity entity, Position position) =>
@@ -860,12 +861,12 @@ public sealed unsafe partial class Scene
 
     #region OnSetScale
 
-    public void OnSetScale(Action<Entity> action, bool traverse = true)
+    public void OnSetScale(Action<Entity> action, bool traverse = false)
     {
         OnSet<Scale>(action, traverse);
     }
 
-    public void OnSetScale(Action<Entity, Vector2> action, bool traverse = true)
+    public void OnSetScale(Action<Entity, Vector2> action, bool traverse = false)
     {
         OnSet(
             (Entity entity, Scale scale) =>
@@ -880,12 +881,12 @@ public sealed unsafe partial class Scene
 
     #region OnSetRotation
 
-    public void OnSetRotation(Action<Entity> action, bool traverse = true)
+    public void OnSetRotation(Action<Entity> action, bool traverse = false)
     {
         OnSet<Rotation>(action, traverse);
     }
 
-    public void OnSetRotation(Action<Entity, float> action, bool traverse = true)
+    public void OnSetRotation(Action<Entity, float> action, bool traverse = false)
     {
         OnSet(
             (Entity entity, Rotation rotation) =>
@@ -900,12 +901,12 @@ public sealed unsafe partial class Scene
 
     #region OnSetPivotPoint
 
-    public void OnSetPivotPoint(Action<Entity> action, bool traverse = true)
+    public void OnSetPivotPoint(Action<Entity> action, bool traverse = false)
     {
         OnSet<PivotPoint>(action, traverse);
     }
 
-    public void OnSetPivotPoint(Action<Entity, Vector2> action, bool traverse = true)
+    public void OnSetPivotPoint(Action<Entity, Vector2> action, bool traverse = false)
     {
         OnSet(
             (Entity entity, PivotPoint pivotPoint) =>
@@ -920,12 +921,12 @@ public sealed unsafe partial class Scene
 
     #region OnSetZIndex
 
-    public void OnSetZIndex(Action<Entity> action, bool traverse = true)
+    public void OnSetZIndex(Action<Entity> action, bool traverse = false)
     {
         OnSet<ZIndex>(action, traverse);
     }
 
-    public void OnSetZIndex(Action<Entity, int> action, bool traverse = true)
+    public void OnSetZIndex(Action<Entity, int> action, bool traverse = false)
     {
         OnSet(
             (Entity entity, ZIndex zIndex) =>
