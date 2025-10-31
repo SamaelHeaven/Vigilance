@@ -1,6 +1,7 @@
 #pragma warning disable CS9084
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
@@ -227,7 +228,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             if (Scene.IsRuntimeComponentsEnabled)
             {
                 var flecsEntity = FlecsEntity;
-                return !flecsEntity.Has<Components>() ? Components.Empty : flecsEntity.Get<Components>();
+                ref readonly var components = ref flecsEntity.Get<Components>();
+                return Unsafe.IsNullRef(in components) ? Components.Empty : components;
             }
 
             Logger.Warning("ECS: Runtime components are disabled");
@@ -307,28 +309,42 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public T Get<T>()
     {
         EnsureValid();
+        if (Type<T>.IsTag)
+            return FlecsEntity.Has<T>() ? default! : Unsafe.NullRef<T>();
         return FlecsEntity.Get<T>();
+    }
+
+    public ref readonly T GetRef<T>()
+    {
+        EnsureValid();
+        return ref FlecsEntity.Get<T>();
     }
 
     public T GetOrDefault<T>(T defaultValue)
     {
         EnsureValid();
-        var flecsEntity = FlecsEntity;
-        return !flecsEntity.Has<T>() ? defaultValue : flecsEntity.Get<T>();
+        if (Type<T>.IsTag)
+            return FlecsEntity.Has<T>() ? default! : defaultValue;
+        ref readonly var value = ref FlecsEntity.Get<T>();
+        return Unsafe.IsNullRef(in value) ? defaultValue : value;
     }
 
     public T GetOrDefault<T>(ref T defaultValue)
     {
         EnsureValid();
-        var flecsEntity = FlecsEntity;
-        return !flecsEntity.Has<T>() ? defaultValue : flecsEntity.Get<T>();
+        if (Type<T>.IsTag)
+            return FlecsEntity.Has<T>() ? default! : defaultValue;
+        ref readonly var value = ref FlecsEntity.Get<T>();
+        return Unsafe.IsNullRef(in value) ? defaultValue : value;
     }
 
     public T GetOrDefault<T>(Func<T> defaultFunc)
     {
         EnsureValid();
-        var flecsEntity = FlecsEntity;
-        return !flecsEntity.Has<T>() ? defaultFunc.Invoke() : flecsEntity.Get<T>();
+        if (Type<T>.IsTag)
+            return FlecsEntity.Has<T>() ? default! : defaultFunc.Invoke();
+        ref readonly var value = ref FlecsEntity.Get<T>();
+        return Unsafe.IsNullRef(in value) ? defaultFunc.Invoke() : value;
     }
 
     public ref readonly Entity Set<T>(IComposable<T> composable)

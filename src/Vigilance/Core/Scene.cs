@@ -1,4 +1,5 @@
-﻿using Flecs.NET.Core;
+﻿using System.Runtime.CompilerServices;
+using Flecs.NET.Core;
 using Vigilance.Drawing;
 using Vigilance.Math;
 using ZLinq;
@@ -421,14 +422,15 @@ public sealed unsafe partial class Scene
     {
         Components components;
         var flecsEntity = entity.FlecsEntity;
-        if (flecsEntity.Has<Components>())
-        {
-            components = flecsEntity.Get<Components>();
-        }
-        else
+        ref readonly var componentsRef = ref flecsEntity.Get<Components>();
+        if (Unsafe.IsNullRef(in componentsRef))
         {
             components = new Components();
             entity.FlecsEntity.Set(components);
+        }
+        else
+        {
+            components = componentsRef;
         }
 
         var component = new Component(type, data, id);
@@ -439,9 +441,9 @@ public sealed unsafe partial class Scene
     private static void RemoveComponent(in Entity entity, ulong id)
     {
         var flecsEntity = entity.FlecsEntity;
-        if (!flecsEntity.Has<Components>())
+        ref readonly var components = ref flecsEntity.Get<Components>();
+        if (Unsafe.IsNullRef(in components))
             return;
-        var components = flecsEntity.Get<Components>();
         components.Values.Remove(new Component(null!, null, id));
         if (components.Count == 0)
             flecsEntity.Remove<Components>();
