@@ -10,12 +10,12 @@ namespace Vigilance.Core;
 public sealed unsafe partial class Scene
 {
     private readonly Dictionary<Type, object> _events = new();
-    private readonly Queue<(ulong EntityId, Vector2 Data)> _pivotPointsOperations = new();
-    private readonly Queue<(ulong EntityId, Vector2 Data)> _positionsOperations = new();
+    private readonly Queue<(ulong EntityId, Vector2 PivotPoint)> _pivotPointsOperations = new();
+    private readonly Queue<(ulong EntityId, Vector2 Position)> _positionsOperations = new();
     private readonly Queue<(ulong EntityId, ulong Id)> _removeComponentOperations = new();
     private readonly List<RenderCommand> _renderCommands = new();
-    private readonly Queue<(ulong EntityId, float Data)> _rotationsOperations = new();
-    private readonly Queue<(ulong EntityId, Vector2 Data)> _scalesOperations = new();
+    private readonly Queue<(ulong EntityId, float Rotation)> _rotationsOperations = new();
+    private readonly Queue<(ulong EntityId, Vector2 Scale)> _scalesOperations = new();
     private readonly Queue<(ulong EntityId, Type Type, object? Data, ulong Id)> _setComponentOperations = new();
     private readonly GameSystemsFunc _systemsFunc;
     private int _deferred;
@@ -445,23 +445,18 @@ public sealed unsafe partial class Scene
 
     private void ExecuteDeferredOperations()
     {
-        while (_setComponentOperations.TryDequeue(out var setComponent))
-            SetComponent(
-                new Entity(setComponent.EntityId, this),
-                setComponent.Type,
-                setComponent.Data,
-                setComponent.Id
-            );
-        while (_removeComponentOperations.TryDequeue(out var removeComponent))
-            RemoveComponent(new Entity(removeComponent.EntityId, this), removeComponent.Id);
-        while (_positionsOperations.TryDequeue(out var position))
-            SetPosition(position.EntityId, position.Data);
-        while (_scalesOperations.TryDequeue(out var scale))
-            SetScale(scale.EntityId, scale.Data);
-        while (_rotationsOperations.TryDequeue(out var rotation))
-            SetRotation(rotation.EntityId, rotation.Data);
-        while (_pivotPointsOperations.TryDequeue(out var pivotPoint))
-            SetPivotPoint(pivotPoint.EntityId, pivotPoint.Data);
+        while (_setComponentOperations.TryDequeue(out var operation))
+            SetComponent(new Entity(operation.EntityId, this), operation.Type, operation.Data, operation.Id);
+        while (_removeComponentOperations.TryDequeue(out var operation))
+            RemoveComponent(new Entity(operation.EntityId, this), operation.Id);
+        while (_positionsOperations.TryDequeue(out var operation))
+            SetPosition(operation.EntityId, operation.Position);
+        while (_scalesOperations.TryDequeue(out var operation))
+            SetScale(operation.EntityId, operation.Scale);
+        while (_rotationsOperations.TryDequeue(out var operation))
+            SetRotation(operation.EntityId, operation.Rotation);
+        while (_pivotPointsOperations.TryDequeue(out var operation))
+            SetPivotPoint(operation.EntityId, operation.PivotPoint);
     }
 
     private void SetPosition(ulong entityId, Vector2 position)
@@ -606,6 +601,7 @@ public sealed unsafe partial class Scene
     {
         var id = entity.Id;
         Cache.NameMap.Remove(id);
+        Cache.TransformMap.Remove(id);
         Cache.ImmediateZIndexMap.Remove(id);
         Cache.ImmediatePositionMap.Remove(id);
         Cache.ImmediateScaleMap.Remove(id);
