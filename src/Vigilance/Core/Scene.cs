@@ -9,16 +9,14 @@ namespace Vigilance.Core;
 
 public sealed unsafe partial class Scene
 {
-    private readonly Queue<(
-        ComponentOperation Operation,
-        ulong EntityId,
-        Type Type,
-        object? Data,
-        ulong Id
-    )> _componentOperations = new();
-
     private readonly Dictionary<Type, object> _events = new();
+    private readonly Queue<(ulong EntityId, Vector2 Data)> _pivotPointsOperations = new();
+    private readonly Queue<(ulong EntityId, Vector2 Data)> _positionsOperations = new();
+    private readonly Queue<(ulong EntityId, ulong Id)> _removeComponentOperations = new();
     private readonly List<RenderCommand> _renderCommands = new();
+    private readonly Queue<(ulong EntityId, float Data)> _rotationsOperations = new();
+    private readonly Queue<(ulong EntityId, Vector2 Data)> _scalesOperations = new();
+    private readonly Queue<(ulong EntityId, Type Type, object? Data, ulong Id)> _setComponentOperations = new();
     private readonly GameSystemsFunc _systemsFunc;
     private int _deferred;
     private Action? _deferredAction;
@@ -44,10 +42,7 @@ public sealed unsafe partial class Scene
         _isRuntimeComponentsEnabled = isRuntimeComponentsEnabled;
         Cache = new CachedData(this);
         OnInstantiate(InstantiateCallback);
-        OnSetPosition(SetPositionCallback);
-        OnSetScale(SetScaleCallback);
-        OnSetRotation(SetRotationCallback);
-        OnSetPivotPoint(SetPivotPointCallback);
+        OnSetParent(SetParentCallback);
     }
 
     public ListView<IGameSystem> Systems
@@ -316,7 +311,7 @@ public sealed unsafe partial class Scene
         if (--_deferred != 0)
             return;
         World.DeferEnd();
-        ExecuteComponentOperations();
+        ExecuteDeferredOperations();
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
@@ -328,11 +323,55 @@ public sealed unsafe partial class Scene
         return new Entity(oldScope.Id.Value, this);
     }
 
+    internal void DeferSetPosition(ulong entityId, Vector2 position)
+    {
+        if (IsDeferred)
+        {
+            _positionsOperations.Enqueue((entityId, position));
+            return;
+        }
+
+        SetPosition(entityId, position);
+    }
+
+    internal void DeferSetScale(ulong entityId, Vector2 scale)
+    {
+        if (IsDeferred)
+        {
+            _scalesOperations.Enqueue((entityId, scale));
+            return;
+        }
+
+        SetScale(entityId, scale);
+    }
+
+    internal void DeferSetRotation(ulong entityId, float rotation)
+    {
+        if (IsDeferred)
+        {
+            _rotationsOperations.Enqueue((entityId, rotation));
+            return;
+        }
+
+        SetRotation(entityId, rotation);
+    }
+
+    internal void DeferSetPivotPoint(ulong entityId, Vector2 pivotPoint)
+    {
+        if (IsDeferred)
+        {
+            _pivotPointsOperations.Enqueue((entityId, pivotPoint));
+            return;
+        }
+
+        SetPivotPoint(entityId, pivotPoint);
+    }
+
     internal void DeferSetComponent(in Entity entity, Type type, object? data, ulong id)
     {
         if (IsDeferred)
         {
-            _componentOperations.Enqueue((ComponentOperation.Set, entity.Id, type, data, id));
+            _setComponentOperations.Enqueue((entity.Id, type, data, id));
             return;
         }
 
@@ -343,7 +382,7 @@ public sealed unsafe partial class Scene
     {
         if (IsDeferred)
         {
-            _componentOperations.Enqueue((ComponentOperation.Remove, entity.Id, null!, null, id));
+            _removeComponentOperations.Enqueue((entity.Id, id));
             return;
         }
 
@@ -378,7 +417,6 @@ public sealed unsafe partial class Scene
             system.Configure(this);
         EndDefer();
         OnRemoveParent(RemoveParentCallback);
-        OnSetParent(SetParentCallback);
         OnDestroy(DestroyCallback);
         IsInitialized = true;
         _initializeAction?.Invoke();
@@ -405,18 +443,73 @@ public sealed unsafe partial class Scene
         _postRenderAction?.Invoke();
     }
 
-    private void ExecuteComponentOperations()
+    private void ExecuteDeferredOperations()
     {
-        while (_componentOperations.TryDequeue(out var component))
-            switch (component.Operation)
-            {
-                case ComponentOperation.Set:
-                    SetComponent(new Entity(component.EntityId, this), component.Type, component.Data, component.Id);
-                    break;
-                case ComponentOperation.Remove:
-                    RemoveComponent(new Entity(component.EntityId, this), component.Id);
-                    break;
-            }
+        while (_setComponentOperations.TryDequeue(out var setComponent))
+            SetComponent(
+                new Entity(setComponent.EntityId, this),
+                setComponent.Type,
+                setComponent.Data,
+                setComponent.Id
+            );
+        while (_removeComponentOperations.TryDequeue(out var removeComponent))
+            RemoveComponent(new Entity(removeComponent.EntityId, this), removeComponent.Id);
+        while (_positionsOperations.TryDequeue(out var position))
+            SetPosition(position.EntityId, position.Data);
+        while (_scalesOperations.TryDequeue(out var scale))
+            SetScale(scale.EntityId, scale.Data);
+        while (_rotationsOperations.TryDequeue(out var rotation))
+            SetRotation(rotation.EntityId, rotation.Data);
+        while (_pivotPointsOperations.TryDequeue(out var pivotPoint))
+            SetPivotPoint(pivotPoint.EntityId, pivotPoint.Data);
+    }
+
+    private void SetPosition(ulong entityId, Vector2 position)
+    {
+        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            Cache.TransformMap,
+            entityId,
+            out var exists
+        );
+        if (!exists)
+            transform.Scale = Vector2.One;
+        transform.Position = position;
+    }
+
+    private void SetScale(ulong entityId, Vector2 scale)
+    {
+        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            Cache.TransformMap,
+            entityId,
+            out var exists
+        );
+        if (!exists)
+            transform.Scale = Vector2.One;
+        transform.Scale = scale;
+    }
+
+    private void SetRotation(ulong entityId, float rotation)
+    {
+        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            Cache.TransformMap,
+            entityId,
+            out var exists
+        );
+        if (!exists)
+            transform.Scale = Vector2.One;
+        transform.Rotation = rotation;
+    }
+
+    private void SetPivotPoint(ulong entityId, Vector2 pivotPoint)
+    {
+        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(
+            Cache.TransformMap,
+            entityId,
+            out var exists
+        );
+        if (!exists)
+            transform.Scale = Vector2.One;
+        transform.PivotPoint = pivotPoint;
     }
 
     private static void SetComponent(in Entity entity, Type type, object? data, ulong id)
@@ -488,12 +581,6 @@ public sealed unsafe partial class Scene
         }
     }
 
-    private enum ComponentOperation
-    {
-        Set,
-        Remove,
-    }
-
     #region Callbacks
 
     private void InstantiateCallback(Entity entity)
@@ -501,33 +588,8 @@ public sealed unsafe partial class Scene
         var flecsEntity = entity.FlecsEntity;
         var id = entity.Id;
         var name = flecsEntity.Name();
-        Cache.TransformMap.Add(id, new Transform());
         if (name != "")
             Cache.NameMap.Add(id, name);
-    }
-
-    private void SetPositionCallback(Entity entity, Vector2 position)
-    {
-        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(Cache.TransformMap, entity.Id, out _);
-        transform.Position = position;
-    }
-
-    private void SetScaleCallback(Entity entity, Vector2 scale)
-    {
-        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(Cache.TransformMap, entity.Id, out _);
-        transform.Scale = scale;
-    }
-
-    private void SetRotationCallback(Entity entity, float rotation)
-    {
-        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(Cache.TransformMap, entity.Id, out _);
-        transform.Rotation = rotation;
-    }
-
-    private void SetPivotPointCallback(Entity entity, Vector2 pivotPoint)
-    {
-        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(Cache.TransformMap, entity.Id, out _);
-        transform.PivotPoint = pivotPoint;
     }
 
     private void RemoveParentCallback(Entity entity)
@@ -544,7 +606,6 @@ public sealed unsafe partial class Scene
     {
         var id = entity.Id;
         Cache.NameMap.Remove(id);
-        Cache.TransformMap.Remove(id);
         Cache.ImmediateZIndexMap.Remove(id);
         Cache.ImmediatePositionMap.Remove(id);
         Cache.ImmediateScaleMap.Remove(id);

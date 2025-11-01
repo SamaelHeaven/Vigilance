@@ -83,6 +83,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             if (Precision.AreEqual(value, current))
                 return;
             current = value;
+            Scene.DeferSetPosition(Id, value);
             SetInternal(new Position(value));
         }
     }
@@ -103,6 +104,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             if (Precision.AreEqual(value, current))
                 return;
             current = value;
+            Scene.DeferSetScale(Id, value);
             SetInternal(new Scale(value));
         }
     }
@@ -121,6 +123,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             if (Precision.AreEqual(value, current))
                 return;
             current = value;
+            Scene.DeferSetRotation(Id, value);
             SetInternal(new Rotation(value));
         }
     }
@@ -139,6 +142,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             if (Precision.AreEqual(value, current))
                 return;
             current = value;
+            Scene.DeferSetPivotPoint(Id, value);
             SetInternal(new PivotPoint(value));
         }
     }
