@@ -310,8 +310,8 @@ public sealed unsafe partial class Scene
             return;
         if (--_deferred != 0)
             return;
-        World.DeferEnd();
         ExecuteDeferredOperations();
+        World.DeferEnd();
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
