@@ -33,7 +33,9 @@ public sealed class SceneGenerator : ISourceGenerator
     private static void Entities(StringBuilder sb)
     {
         sb.BeginRegion("Entities");
-        sb.AppendLine(QueryIterator("Entity", "Entity", "ZIndex", "CurrentEntity", "GetEntities"));
+        sb.AppendLine(
+            QueryIterator("Entity", "Entity", "ZIndex", "CurrentEntity", "GetEntities", visibility: "internal")
+        );
         sb.EndRegion();
     }
 
@@ -76,7 +78,8 @@ public sealed class SceneGenerator : ISourceGenerator
         string queryTypeParams,
         string current,
         string methodName,
-        string typeParams = ""
+        string typeParams = "",
+        string visibility = "public"
     )
     {
         return $$"""
@@ -198,7 +201,7 @@ public sealed class SceneGenerator : ISourceGenerator
                     }
                 }
                 
-                public {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
+                {{visibility}} {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
                     EnsureInitialized();
                     return new {{name}}Enumerable{{typeParams}}(this);
                 }
