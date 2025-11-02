@@ -9,15 +9,17 @@ namespace Vigilance.Core;
 
 public sealed unsafe partial class Scene
 {
+    private readonly Queue<(
+        ComponentOperation Operation,
+        ulong EntityId,
+        ulong Id,
+        Type Type,
+        object? Data
+    )> _componentOperations = new();
     private readonly Dictionary<Type, object> _events = new();
-    private readonly Queue<(ulong EntityId, Vector2 PivotPoint)> _pivotPointsOperations = new();
-    private readonly Queue<(ulong EntityId, Vector2 Position)> _positionsOperations = new();
-    private readonly Queue<(ulong EntityId, ulong Id)> _removeComponentOperations = new();
     private readonly List<RenderCommand> _renderCommands = new();
-    private readonly Queue<(ulong EntityId, float Rotation)> _rotationsOperations = new();
-    private readonly Queue<(ulong EntityId, Vector2 Scale)> _scalesOperations = new();
-    private readonly Queue<(ulong EntityId, Type Type, object? Data, ulong Id)> _setComponentOperations = new();
     private readonly GameSystemsFunc _systemsFunc;
+    private readonly Queue<(TransformOperation Operation, ulong EntityId, Vector2 Data)> _transformOperations = new();
     private int _deferred;
     private Action? _deferredAction;
     private Action? _fixedUpdateAction;
@@ -41,7 +43,6 @@ public sealed unsafe partial class Scene
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
         _isRuntimeComponentsEnabled = isRuntimeComponentsEnabled;
         Cache = new CachedData(this);
-        OnInstantiate(InstantiateCallback);
         OnSetParent(SetParentCallback);
     }
 
@@ -129,13 +130,15 @@ public sealed unsafe partial class Scene
                 World.Lookup(name, false) != Flecs.NET.Core.Entity.Null()
                     ? throw new InvalidOperationException($"Entity \"{name}\" already exists.")
                     : World.Entity(name);
+        var id = entity.Id.Value;
+        var result = new Entity(id, this);
+        if (name != "")
+            Cache.NameMap.Add(id, name);
         entity.Set(new ZIndex());
         entity.Set(new Position());
         entity.Set(new Scale());
         entity.Set(new Rotation());
         entity.Set(new PivotPoint());
-        var id = entity.Id.Value;
-        var result = new Entity(id, this);
         World.Event<AddEvent>().Id<ZIndex>().Entity(id).Enqueue();
         return result;
     }
@@ -310,8 +313,9 @@ public sealed unsafe partial class Scene
             return;
         if (--_deferred != 0)
             return;
-        ExecuteDeferredOperations();
+        ExecuteTransformOperations();
         World.DeferEnd();
+        ExecuteComponentOperations();
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
@@ -327,7 +331,7 @@ public sealed unsafe partial class Scene
     {
         if (IsDeferred)
         {
-            _positionsOperations.Enqueue((entityId, position));
+            _transformOperations.Enqueue((TransformOperation.Position, entityId, position));
             return;
         }
 
@@ -338,7 +342,7 @@ public sealed unsafe partial class Scene
     {
         if (IsDeferred)
         {
-            _scalesOperations.Enqueue((entityId, scale));
+            _transformOperations.Enqueue((TransformOperation.Scale, entityId, scale));
             return;
         }
 
@@ -349,7 +353,7 @@ public sealed unsafe partial class Scene
     {
         if (IsDeferred)
         {
-            _rotationsOperations.Enqueue((entityId, rotation));
+            _transformOperations.Enqueue((TransformOperation.Rotation, entityId, rotation));
             return;
         }
 
@@ -360,7 +364,7 @@ public sealed unsafe partial class Scene
     {
         if (IsDeferred)
         {
-            _pivotPointsOperations.Enqueue((entityId, pivotPoint));
+            _transformOperations.Enqueue((TransformOperation.PivotPoint, entityId, pivotPoint));
             return;
         }
 
@@ -371,7 +375,7 @@ public sealed unsafe partial class Scene
     {
         if (IsDeferred)
         {
-            _setComponentOperations.Enqueue((entity.Id, type, data, id));
+            _componentOperations.Enqueue((ComponentOperation.Set, entity.Id, id, type, data));
             return;
         }
 
@@ -382,7 +386,7 @@ public sealed unsafe partial class Scene
     {
         if (IsDeferred)
         {
-            _removeComponentOperations.Enqueue((entity.Id, id));
+            _componentOperations.Enqueue((ComponentOperation.Remove, entity.Id, id, null!, null));
             return;
         }
 
@@ -443,20 +447,38 @@ public sealed unsafe partial class Scene
         _postRenderAction?.Invoke();
     }
 
-    private void ExecuteDeferredOperations()
+    private void ExecuteComponentOperations()
     {
-        while (_setComponentOperations.TryDequeue(out var operation))
-            SetComponent(new Entity(operation.EntityId, this), operation.Type, operation.Data, operation.Id);
-        while (_removeComponentOperations.TryDequeue(out var operation))
-            RemoveComponent(new Entity(operation.EntityId, this), operation.Id);
-        while (_positionsOperations.TryDequeue(out var operation))
-            SetPosition(operation.EntityId, operation.Position);
-        while (_scalesOperations.TryDequeue(out var operation))
-            SetScale(operation.EntityId, operation.Scale);
-        while (_rotationsOperations.TryDequeue(out var operation))
-            SetRotation(operation.EntityId, operation.Rotation);
-        while (_pivotPointsOperations.TryDequeue(out var operation))
-            SetPivotPoint(operation.EntityId, operation.PivotPoint);
+        while (_componentOperations.TryDequeue(out var operation))
+            switch (operation.Operation)
+            {
+                case ComponentOperation.Set:
+                    SetComponent(new Entity(operation.EntityId, this), operation.Type, operation.Data, operation.Id);
+                    break;
+                case ComponentOperation.Remove:
+                    RemoveComponent(new Entity(operation.EntityId, this), operation.Id);
+                    break;
+            }
+    }
+
+    private void ExecuteTransformOperations()
+    {
+        while (_transformOperations.TryDequeue(out var operation))
+            switch (operation.Operation)
+            {
+                case TransformOperation.Position:
+                    SetPosition(operation.EntityId, operation.Data);
+                    break;
+                case TransformOperation.Scale:
+                    SetScale(operation.EntityId, operation.Data);
+                    break;
+                case TransformOperation.Rotation:
+                    SetRotation(operation.EntityId, *(float*)&operation.Data);
+                    break;
+                case TransformOperation.PivotPoint:
+                    SetPivotPoint(operation.EntityId, operation.Data);
+                    break;
+            }
     }
 
     private void SetPosition(ulong entityId, Vector2 position)
@@ -576,16 +598,21 @@ public sealed unsafe partial class Scene
         }
     }
 
-    #region Callbacks
-
-    private void InstantiateCallback(Entity entity)
+    private enum ComponentOperation
     {
-        var flecsEntity = entity.FlecsEntity;
-        var id = entity.Id;
-        var name = flecsEntity.Name();
-        if (name != "")
-            Cache.NameMap.Add(id, name);
+        Set,
+        Remove,
     }
+
+    private enum TransformOperation
+    {
+        Position,
+        Scale,
+        Rotation,
+        PivotPoint,
+    }
+
+    #region Callbacks
 
     private void RemoveParentCallback(Entity entity)
     {
