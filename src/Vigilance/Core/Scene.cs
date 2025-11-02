@@ -16,6 +16,7 @@ public sealed unsafe partial class Scene
         Type Type,
         object? Data
     )> _componentOperations = new();
+
     private readonly Dictionary<Type, object> _events = new();
     private readonly List<RenderCommand> _renderCommands = new();
     private readonly GameSystemsFunc _systemsFunc;
@@ -132,8 +133,8 @@ public sealed unsafe partial class Scene
                     : World.Entity(name);
         var id = entity.Id.Value;
         var result = new Entity(id, this);
-        if (name != "")
-            Cache.NameMap.Add(id, name);
+        Cache.TransformMap.Add(id, new Transform());
+        Cache.NameMap.Add(id, name == "" ? $"#{id}" : name);
         entity.Set(new ZIndex());
         entity.Set(new Position());
         entity.Set(new Scale());
@@ -150,10 +151,10 @@ public sealed unsafe partial class Scene
         return result.IsValid ? result : Core.Entity.Null;
     }
 
-    public Entity Lookup(string name, bool recursive = true)
+    public Entity Lookup(string path, bool recursive = true)
     {
         EnsureInitialized();
-        return new Entity(World.Lookup(name, recursive), this);
+        return new Entity(World.Lookup(path, recursive), this);
     }
 
     public void On<T>(Action<T> action)

@@ -36,7 +36,24 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.Cache.NameMap.GetValueOrDefault(Id, "");
+            return Scene.Cache.NameMap[Id];
+        }
+    }
+
+    public string Path
+    {
+        get
+        {
+            EnsureValid();
+            var name = Name;
+            var parent = Parent;
+            while (!parent.IsNull)
+            {
+                name = $"{parent.Name}.{name}";
+                parent = parent.Parent;
+            }
+
+            return name;
         }
     }
 
@@ -58,7 +75,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Scene.Cache.TransformMap.GetValueOrDefault(Id, new Transform());
+            return Scene.Cache.TransformMap[Id];
         }
         set
         {
@@ -506,10 +523,17 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
 
         var name = Name;
-        if (name != "")
+        if (name != $"#{Id}")
         {
             sb.Append(", Name = ");
             sb.Append(Name);
+        }
+
+        var path = Path;
+        if (path != name)
+        {
+            sb.Append(", Path = ");
+            sb.Append(Path);
         }
 
         if (IsDisabled)
