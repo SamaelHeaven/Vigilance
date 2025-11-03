@@ -12,10 +12,10 @@ public static class Ecs
         set => _config.DefaultEnableRuntimeComponents = value;
     }
 
-    public static bool DefaultDeferred
+    public static bool DefaultDefer
     {
-        get => _config.DefaultDeferred;
-        set => _config.DefaultDeferred = value;
+        get => _config.DefaultDefer;
+        set => _config.DefaultDefer = value;
     }
 
     internal static void Initialize()
@@ -30,7 +30,7 @@ public sealed class EcsConfig
 
     public bool DefaultEnableRuntimeComponents { get; set; } = true;
 
-    public bool DefaultDeferred { get; set; } = true;
+    public bool DefaultDefer { get; set; } = true;
 }
 
 public static class EcsConfigExtensions
