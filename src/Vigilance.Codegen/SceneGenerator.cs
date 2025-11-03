@@ -87,15 +87,18 @@ public sealed class SceneGenerator : ISourceGenerator
                 {
                     private readonly Scene _scene;
                     private WithDisabled _withDisabled;
+                    private bool _deferred;
                 
                     internal {{name}}Enumerable(Scene scene)
                     {
                         _scene = scene;
+                        _withDisabled = Vigilance.Core.WithDisabled.No;
+                        _deferred = Ecs.DefaultDeferred;
                     }
                     
                     public {{name}}Enumerator{{typeParams}} GetEnumerator()
                     {
-                        return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled);
+                        return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled, _deferred);
                     }
                     
                     public ZLinq.ValueEnumerable<StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>, {{type}}> AsValueEnumerable()
@@ -107,19 +110,26 @@ public sealed class SceneGenerator : ISourceGenerator
                         _withDisabled = value;
                         return ref this;
                     }
+                    
+                    public ref {{name}}Enumerable{{typeParams}} Deferred(bool deferred = true) {
+                        _deferred = deferred;
+                        return ref this;
+                    }
                 }
                 
                 public unsafe struct {{name}}Enumerator{{typeParams}} : IStructEnumerator<{{type}}> {
                     private readonly Scene _scene;
                     private readonly WithDisabled _withDisabled;
+                    private readonly bool _deferred;
                     private Flecs.NET.Core.Query<{{queryTypeParams}}>? _query;
                     private Flecs.NET.Bindings.flecs.ecs_iter_t _iter;
                     private int _index;
                     
-                    internal {{name}}Enumerator(Scene scene, WithDisabled withDisabled)
+                    internal {{name}}Enumerator(Scene scene, WithDisabled withDisabled, bool deferred)
                     {
                         _scene = scene;
                         _withDisabled = withDisabled;
+                        _deferred = deferred;
                         Reset();
                     }
                 
@@ -167,7 +177,8 @@ public sealed class SceneGenerator : ISourceGenerator
                     public void Reset()
                     {
                         Dispose();
-                        _scene.BeginDefer();
+                        if (_deferred)
+                            _scene.BeginDefer();
                         var queryBuilder = _scene.World.QueryBuilder<{{queryTypeParams}}>().CacheKind(Flecs.NET.Bindings.flecs.ecs_query_cache_kind_t.EcsQueryCacheNone);
                         queryBuilder = _withDisabled switch
                         {
@@ -197,7 +208,8 @@ public sealed class SceneGenerator : ISourceGenerator
                             Flecs.NET.Core.Ecs.TableUnlock(iter);
                         }
 
-                        _scene.EndDefer();
+                        if (_deferred)
+                            _scene.EndDefer();
                         _query.Value.Dispose();
                         _query = null;
                         _iter = default;

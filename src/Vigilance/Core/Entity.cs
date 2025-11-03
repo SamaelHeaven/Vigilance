@@ -563,35 +563,45 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return ref this;
     }
 
-    public readonly struct ChildEnumerable : IStructEnumerable<ChildEnumerator, Entity>
+    public struct ChildEnumerable : IStructEnumerable<ChildEnumerator, Entity>
     {
         private readonly Entity _entity;
+        private bool _deferred;
 
         internal ChildEnumerable(Entity entity)
         {
             _entity = entity;
+            _deferred = Ecs.DefaultDeferred;
         }
 
         public ChildEnumerator GetEnumerator()
         {
-            return new ChildEnumerator(_entity);
+            return new ChildEnumerator(_entity, _deferred);
         }
 
         public ValueEnumerable<StructEnumerator<ChildEnumerator, Entity>, Entity> AsValueEnumerable()
         {
             return new StructEnumerator<ChildEnumerator, Entity>(GetEnumerator());
         }
+
+        public ref ChildEnumerable Deferred(bool deferred = true)
+        {
+            _deferred = deferred;
+            return ref this;
+        }
     }
 
     public struct ChildEnumerator : IStructEnumerator<Entity>
     {
         private readonly Entity _entity;
+        private readonly bool _deferred;
         private flecs.ecs_iter_t _iter;
         private int _index;
 
-        internal ChildEnumerator(Entity entity)
+        internal ChildEnumerator(Entity entity, bool deferred)
         {
             _entity = entity;
+            _deferred = deferred;
             Reset();
         }
 
@@ -617,7 +627,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         {
             _entity.EnsureValid();
             Dispose();
-            _entity.Scene.BeginDefer();
+            if (_deferred)
+                _entity.Scene.BeginDefer();
             _iter = flecs.ecs_each_id(_entity.Scene.World, Flecs.NET.Core.Ecs.Pair(flecs.EcsChildOf, _entity.Id));
             _index = 0;
             fixed (flecs.ecs_iter_t* iter = &_iter)
@@ -638,7 +649,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
                 Flecs.NET.Core.Ecs.TableUnlock(iter);
             }
 
-            _entity.Scene.EndDefer();
+            if (_deferred)
+                _entity.Scene.EndDefer();
             _iter = default;
             _index = 0;
         }
