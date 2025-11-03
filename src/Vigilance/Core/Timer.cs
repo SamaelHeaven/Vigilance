@@ -10,7 +10,8 @@ public sealed class Timer
         TimeSpan? initialTime = null,
         int repeatCount = InfiniteRepeatCount,
         Action? repeatAction = null,
-        Action? completeAction = null
+        Action? completeAction = null,
+        Func<TimeSpan>? timeStepFunc = null
     )
     {
         OnComplete = completeAction;
@@ -18,6 +19,7 @@ public sealed class Timer
         TimeLeft = initialTime ?? delay;
         Delay = delay;
         RepeatCount = repeatCount;
+        TimeStepFunc = timeStepFunc ?? (() => Time.Delta);
     }
 
     public bool IsFinished => TimeLeft <= TimeSpan.Zero;
@@ -26,13 +28,14 @@ public sealed class Timer
     public TimeSpan Delay { get; set; }
     public bool IsPaused { get; set; }
     public int RepeatCount { get; set; }
+    public Func<TimeSpan> TimeStepFunc { get; set; }
 
     public event Action? OnComplete;
     public event Action? OnRepeat;
 
     public void Update()
     {
-        Update(Time.Delta);
+        Update(TimeStepFunc.Invoke());
     }
 
     public void Update(TimeSpan step)
