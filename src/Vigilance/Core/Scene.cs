@@ -161,10 +161,10 @@ public sealed unsafe partial class Scene
     {
         EnsureNotInitialized();
         var type = typeof(T);
-        if (!_events.TryGetValue(type, out var value))
+        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_events, type, out var exists)!;
+        if (!exists)
         {
             value = action;
-            _events.Add(type, value);
             return;
         }
 

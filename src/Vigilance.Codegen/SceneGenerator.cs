@@ -86,12 +86,11 @@ public sealed class SceneGenerator : ISourceGenerator
                 public struct {{name}}Enumerable{{typeParams}} : IStructEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
                 {
                     private readonly Scene _scene;
-                    private bool _withDisabled;
+                    private WithDisabled _withDisabled;
                 
                     internal {{name}}Enumerable(Scene scene)
                     {
                         _scene = scene;
-                        _withDisabled = false;
                     }
                     
                     public {{name}}Enumerator{{typeParams}} GetEnumerator()
@@ -104,7 +103,7 @@ public sealed class SceneGenerator : ISourceGenerator
                         return new StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
                     }
                     
-                    public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool value = true) {
+                    public ref {{name}}Enumerable{{typeParams}} WithDisabled(WithDisabled value = Vigilance.Core.WithDisabled.Yes) {
                         _withDisabled = value;
                         return ref this;
                     }
@@ -112,12 +111,12 @@ public sealed class SceneGenerator : ISourceGenerator
                 
                 public unsafe struct {{name}}Enumerator{{typeParams}} : IStructEnumerator<{{type}}> {
                     private readonly Scene _scene;
-                    private readonly bool _withDisabled;
+                    private readonly WithDisabled _withDisabled;
                     private Flecs.NET.Core.Query<{{queryTypeParams}}>? _query;
                     private Flecs.NET.Bindings.flecs.ecs_iter_t _iter;
                     private int _index;
                     
-                    internal {{name}}Enumerator(Scene scene, bool withDisabled)
+                    internal {{name}}Enumerator(Scene scene, WithDisabled withDisabled)
                     {
                         _scene = scene;
                         _withDisabled = withDisabled;
@@ -169,10 +168,15 @@ public sealed class SceneGenerator : ISourceGenerator
                     {
                         Dispose();
                         _scene.BeginDefer();
-                        var query = {{$"(_withDisabled ? " +
-                                      $"_scene.World.QueryBuilder<{queryTypeParams}>().With(Flecs.NET.Core.Ecs.Disabled).Optional() " +
-                                      $": _scene.World.QueryBuilder<{queryTypeParams}>())" +
-                                      $".CacheKind(Flecs.NET.Bindings.flecs.ecs_query_cache_kind_t.EcsQueryCacheNone).Build()"}};
+                        var queryBuilder = _scene.World.QueryBuilder<{{queryTypeParams}}>().CacheKind(Flecs.NET.Bindings.flecs.ecs_query_cache_kind_t.EcsQueryCacheNone);
+                        queryBuilder = _withDisabled switch
+                        {
+                           WithDisabled.Only => queryBuilder.With(Flecs.NET.Core.Ecs.Disabled),
+                           WithDisabled.Yes => queryBuilder.With(Flecs.NET.Core.Ecs.Disabled).Optional(),
+                           _ => queryBuilder
+                        };
+                        
+                        var query = queryBuilder.Build();
                         _query = query;
                         _iter = query.GetIter();
                         _index = 0;

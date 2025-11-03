@@ -4,10 +4,10 @@ using Vigilance.Math;
 
 namespace Vigilance.Systems;
 
-public sealed class GraphicsSystem(Graphics? graphics = null, bool withDisabled = true) : GameSystem
+public sealed class GraphicsSystem(Graphics? graphics = null, WithDisabled withDisabled = WithDisabled.Yes) : GameSystem
 {
     public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
-    public bool WithDisabled { get; set; } = withDisabled;
+    public WithDisabled WithDisabled { get; set; } = withDisabled;
 
     public override void Configure()
     {

@@ -3,9 +3,9 @@ using Vigilance.Drawing;
 
 namespace Vigilance.Systems;
 
-public sealed class AnimationSystem(bool withDisabled = true) : GameSystem
+public sealed class AnimationSystem(WithDisabled withDisabled = WithDisabled.Yes) : GameSystem
 {
-    public bool WithDisabled { get; set; } = withDisabled;
+    public WithDisabled WithDisabled { get; set; } = withDisabled;
 
     public override void Update()
     {
