@@ -23,15 +23,15 @@ public sealed class RenderCommandsGenerator : ISourceGenerator
 
             """
         );
-        AddRange(sb, false, false);
-        AddRange(sb, false, true);
-        AddRange(sb, true, false);
-        AddRange(sb, true, true);
+        AddRangeEnumerable(sb, false);
+        AddRangeEnumerable(sb, true);
+        AddRangeGameSystem(sb, false);
+        AddRangeGameSystem(sb, true);
         sb.AppendLine("}");
         context.AddSource("RenderCommand.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
-    public static void AddRange(StringBuilder sb, bool entryEnumerable, bool context)
+    private static void AddRangeEnumerable(StringBuilder sb, bool context)
     {
         for (var i = 1; i < 15; i++)
         {
@@ -41,7 +41,7 @@ public sealed class RenderCommandsGenerator : ISourceGenerator
                 $$"""
                     public void AddRange<{{(context ? "TContext, " : "")}}{{typeParams}}>({{(
                         context ? "TContext context, " : ""
-                    )}}{{(entryEnumerable ? $"Scene.EntryEnumerable<{typeParams}>" : $"IEnumerable<(Entity, {typeParams})>")}} entries, Action<Entity, {{(
+                    )}}{{$"Scene.EntryEnumerable<{typeParams}>"}} entries, Action<Entity, {{(
                     context ? "TContext, " : ""
                 )}}({{typeParams}})> action)
                     {
@@ -49,6 +49,26 @@ public sealed class RenderCommandsGenerator : ISourceGenerator
                             Add(entry.Item1, {{(context ? "context, " : "")}}({{items}}), action);
                     }
                     
+                """
+            );
+        }
+    }
+
+    private static void AddRangeGameSystem(StringBuilder sb, bool context)
+    {
+        for (var i = 0; i < 15; i++)
+        {
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            var type = i == 0 ? typeParams : $"({typeParams})";
+            sb.AppendLine(
+                $$"""
+                public void AddRange<TSystem, {{typeParams}}>(TSystem system, Action<Entity, {{(
+                    context ? "TSystem, " : ""
+                )}} {{type}}> action) where TSystem : GameSystem
+                {
+                    AddRange({{(context ? "system, " : "")}}system.Entries<{{typeParams}}>(), action);
+                }
+
                 """
             );
         }

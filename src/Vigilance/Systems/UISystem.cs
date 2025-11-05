@@ -4,15 +4,14 @@ using Vigilance.UI;
 
 namespace Vigilance.Systems;
 
-public sealed class UISystem(Graphics? graphics = null) : GameSystem
+public sealed class UISystem(Graphics? graphics = null) : GameSystem(withDisabled: WithDisabled.Yes)
 {
     public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
 
     public override void Render(RenderCommands commands)
     {
-        commands.AddRange(
+        commands.AddRange<UISystem, UIComponent>(
             this,
-            Scene.Entries<UIComponent>().WithDisabled(),
             static (entity, self, component) =>
             {
                 var element = component.Element;

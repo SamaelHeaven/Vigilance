@@ -15,11 +15,28 @@ public interface IGameSystem : IComparable<IGameSystem>
     void Configure(Scene scene);
 }
 
-public abstract class GameSystem : IGameSystem, IComparable<GameSystem>
+public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
 {
+    protected GameSystem(
+        bool isDisabled = false,
+        int order = 0,
+        WithDisabled withDisabled = WithDisabled.No,
+        bool deferred = true
+    )
+    {
+        IsDisabled = isDisabled;
+        Order = order;
+        WithDisabled = withDisabled;
+        Deferred = deferred;
+    }
+
     public Scene Scene { get; private set; } = null!;
-    public bool Disabled { get; set; }
+    public bool IsDisabled { get; set; }
     public int Order { get; set; }
+    public WithDisabled WithDisabled { get; set; }
+    public bool Deferred { get; set; }
+
+    public Scene.EntityEnumerable Entities => GetEntities();
 
     public int CompareTo(GameSystem? other)
     {
@@ -85,33 +102,38 @@ public abstract class GameSystem : IGameSystem, IComparable<GameSystem>
 
     public virtual void PostRender() { }
 
+    public Entity Entity(string name = "")
+    {
+        return Scene.Entity(name);
+    }
+
     private void InternalUpdate()
     {
-        if (!Disabled)
+        if (!IsDisabled)
             Update();
     }
 
     private void InternalFixedUpdate()
     {
-        if (!Disabled)
+        if (!IsDisabled)
             FixedUpdate();
     }
 
     private void InternalPreRender()
     {
-        if (!Disabled)
+        if (!IsDisabled)
             PreRender();
     }
 
     private void InternalRender(RenderCommands commands)
     {
-        if (!Disabled)
+        if (!IsDisabled)
             Render(commands);
     }
 
     private void InternalPostRender()
     {
-        if (!Disabled)
+        if (!IsDisabled)
             PostRender();
     }
 }

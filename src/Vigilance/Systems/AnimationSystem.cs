@@ -3,19 +3,20 @@ using Vigilance.Drawing;
 
 namespace Vigilance.Systems;
 
-public sealed class AnimationSystem(WithDisabled withDisabled = WithDisabled.Yes) : GameSystem
+public sealed class AnimationSystem() : GameSystem(withDisabled: WithDisabled.Yes)
 {
-    public WithDisabled WithDisabled { get; set; } = withDisabled;
-
     public override void Update()
     {
-        foreach (var animation in Scene.Components<Animation>().WithDisabled(WithDisabled))
+        foreach (var animation in Components<Animation>())
             animation.Update();
-        foreach (var (animation, sprite) in Scene.Components<Animation, Sprite>().WithDisabled(WithDisabled))
+
+        foreach (var (animation, sprite) in Components<Animation, Sprite>())
             animation.UpdateSprite(sprite);
-        foreach (var controller in Scene.Components<AnimationController>().WithDisabled(WithDisabled))
+
+        foreach (var controller in Components<AnimationController>())
             controller.Animation.Update();
-        foreach (var (controller, sprite) in Scene.Components<AnimationController, Sprite>().WithDisabled(WithDisabled))
+
+        foreach (var (controller, sprite) in Components<AnimationController, Sprite>())
             controller.Animation.UpdateSprite(sprite);
     }
 }

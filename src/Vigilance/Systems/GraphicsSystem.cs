@@ -4,10 +4,9 @@ using Vigilance.Math;
 
 namespace Vigilance.Systems;
 
-public sealed class GraphicsSystem(Graphics? graphics = null, WithDisabled withDisabled = WithDisabled.Yes) : GameSystem
+public sealed class GraphicsSystem(Graphics? graphics = null) : GameSystem(withDisabled: WithDisabled.Yes)
 {
     public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
-    public WithDisabled WithDisabled { get; set; } = withDisabled;
 
     public override void Configure()
     {
@@ -16,79 +15,67 @@ public sealed class GraphicsSystem(Graphics? graphics = null, WithDisabled withD
 
     public override void Render(RenderCommands commands)
     {
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, Rectangle>(
             this,
-            Scene.Entries<Rectangle>().WithDisabled(WithDisabled),
             static (entity, self, rectangle) => self.Graphics.DrawRectangle(entity.WorldTransform, rectangle)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, RectangleGradient>(
             this,
-            Scene.Entries<RectangleGradient>().WithDisabled(WithDisabled),
             static (entity, self, rectangleGradient) =>
                 self.Graphics.DrawRectangleGradient(entity.WorldTransform, rectangleGradient)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, Circle>(
             this,
-            Scene.Entries<Circle>().WithDisabled(WithDisabled),
             static (entity, self, circle) => self.Graphics.DrawCircle(entity.WorldTransform, circle)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, CircleGradient>(
             this,
-            Scene.Entries<CircleGradient>().WithDisabled(WithDisabled),
             static (entity, self, circleGradient) =>
                 self.Graphics.DrawCircleGradient(entity.WorldTransform, circleGradient)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, Triangle>(
             this,
-            Scene.Entries<Triangle>().WithDisabled(WithDisabled),
             static (entity, self, triangle) => self.Graphics.DrawTriangle(entity.WorldTransform, triangle)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, RegularPolygon>(
             this,
-            Scene.Entries<RegularPolygon>().WithDisabled(WithDisabled),
             static (entity, self, regularPolygon) =>
                 self.Graphics.DrawRegularPolygon(entity.WorldTransform, regularPolygon)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, CustomPolygon>(
             this,
-            Scene.Entries<CustomPolygon>().WithDisabled(WithDisabled),
             static (entity, self, customPolygon) =>
                 self.Graphics.DrawCustomPolygon(entity.WorldTransform, customPolygon)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, Ring>(
             this,
-            Scene.Entries<Ring>().WithDisabled(WithDisabled),
             static (entity, self, ring) => self.Graphics.DrawRing(entity.WorldTransform, ring)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, Line>(
             this,
-            Scene.Entries<Line>().WithDisabled(WithDisabled),
             static (entity, self, line) => self.Graphics.DrawLine(entity.WorldTransform, line)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, Text>(
             this,
-            Scene.Entries<Text>().WithDisabled(WithDisabled),
             static (entity, self, text) => self.Graphics.DrawText(entity.WorldTransform, text)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, Sprite>(
             this,
-            Scene.Entries<Sprite>().WithDisabled(WithDisabled),
             static (entity, self, sprite) => self.Graphics.DrawSprite(entity.WorldTransform, sprite)
         );
 
-        commands.AddRange(
+        commands.AddRange<GraphicsSystem, Grid>(
             this,
-            Scene.Entries<Grid>().WithDisabled(WithDisabled),
             static (entity, self, grid) => self.Graphics.DrawGrid(entity.WorldTransform, grid)
         );
     }

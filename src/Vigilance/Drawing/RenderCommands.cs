@@ -36,22 +36,6 @@ public readonly ref partial struct RenderCommands(List<RenderCommand> commands)
             Add(command);
     }
 
-    public void AddRange<TComponent>(IEnumerable<(Entity, TComponent)> entries, Action<Entity, TComponent> action)
-    {
-        foreach (var (entity, component) in entries)
-            Add(entity, component, action);
-    }
-
-    public void AddRange<TContext, TComponent>(
-        TContext context,
-        IEnumerable<(Entity, TComponent)> entries,
-        Action<Entity, TContext, TComponent> action
-    )
-    {
-        foreach (var (entity, component) in entries)
-            Add(entity, context, component, action);
-    }
-
     public void AddRange<TComponent>(Scene.EntryEnumerable<TComponent> entries, Action<Entity, TComponent> action)
     {
         foreach (var (entity, component) in entries)

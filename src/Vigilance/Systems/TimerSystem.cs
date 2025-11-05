@@ -7,7 +7,7 @@ public sealed class TimerSystem : GameSystem
 {
     public override void Update()
     {
-        foreach (var timer in Scene.Components<Timer>())
+        foreach (var timer in Components<Timer>())
             timer.Update();
     }
 }
