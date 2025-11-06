@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Flecs.NET.Core;
 using Vigilance.Drawing;
@@ -17,7 +18,8 @@ public sealed unsafe partial class Scene
         object? Data
     )> _componentOperations = new();
 
-    private readonly Dictionary<Type, object> _events = new();
+    private readonly Dictionary<Type, (ICollection Queue, Action EmitAction)> _events = new();
+    private readonly Dictionary<Type, Delegate> _listeners = new();
     private readonly List<RenderCommand> _renderCommands = new();
     private readonly GameSystemsFunc _systemsFunc;
     private readonly Queue<(TransformOperation Operation, ulong EntityId, Vector2 Data)> _transformOperations = new();
@@ -33,7 +35,7 @@ public sealed unsafe partial class Scene
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
-    private List<IGameSystem> _systems = [];
+    private List<IGameSystem> _systems = null!;
     private float _time;
     private Action? _updateAction;
     internal CachedData Cache;
@@ -161,7 +163,7 @@ public sealed unsafe partial class Scene
     {
         EnsureNotInitialized();
         var type = typeof(T);
-        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_events, type, out var exists)!;
+        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_listeners, type, out var exists)!;
         if (!exists)
         {
             value = action;
@@ -170,7 +172,7 @@ public sealed unsafe partial class Scene
 
         var existing = (Action<T>)value;
         existing += action;
-        _events[type] = existing;
+        _listeners[type] = existing;
     }
 
     public void OnInitialize(Action action)
@@ -236,21 +238,14 @@ public sealed unsafe partial class Scene
     {
         EnsureInitialized();
         var type = typeof(T);
-        if (!_events.TryGetValue(type, out var action))
+        if (!_listeners.TryGetValue(type, out var action))
             return;
         ((Action<T>)action).Invoke(@event);
     }
 
     public void Enqueue<T>(T @event)
     {
-        EnsureInitialized();
-        if (!IsDeferred)
-        {
-            Emit(@event);
-            return;
-        }
-
-        Defer(() => Emit(@event));
+        Enqueue(ref @event);
     }
 
     public void Enqueue<T>(ref T @event)
@@ -258,12 +253,26 @@ public sealed unsafe partial class Scene
         EnsureInitialized();
         if (!IsDeferred)
         {
-            Emit(@event);
+            Emit(ref @event);
             return;
         }
 
-        var data = @event;
-        Defer(() => Emit(data));
+        var type = typeof(T);
+        ref var events = ref CollectionsMarshal.GetValueRefOrAddDefault(_events, type, out var exists);
+        if (!exists)
+        {
+            var queue = new Queue<T>();
+            events = (
+                queue,
+                () =>
+                {
+                    while (queue.TryDequeue(out var @event))
+                        Emit(ref @event);
+                }
+            );
+        }
+
+        ((Queue<T>)events.Queue).Enqueue(@event);
     }
 
     public int Count()
@@ -320,6 +329,7 @@ public sealed unsafe partial class Scene
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
+        EmitEvents();
     }
 
     public Entity SetScope(in Entity entity)
@@ -446,6 +456,12 @@ public sealed unsafe partial class Scene
         _renderAction?.Invoke(commands);
         commands.Execute();
         _postRenderAction?.Invoke();
+    }
+
+    private void EmitEvents()
+    {
+        foreach (var events in _events.Values)
+            events.EmitAction.Invoke();
     }
 
     private void ExecuteComponentOperations()
