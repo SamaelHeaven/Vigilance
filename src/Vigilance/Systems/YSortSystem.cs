@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Systems;
 
-public sealed class YSortSystem(float offset = 0) : GameSystem(withDisabled: WithDisabled.Yes)
+public sealed class YSortSystem(float offset = 0) : GameSystem(queryWithDisabled: Inclusion.Include)
 {
     public float Offset { get; set; } = offset;
 

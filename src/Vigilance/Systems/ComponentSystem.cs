@@ -3,7 +3,7 @@ using Vigilance.Drawing;
 
 namespace Vigilance.Systems;
 
-public sealed class ComponentSystem() : GameSystem(withDisabled: WithDisabled.Yes)
+public sealed class ComponentSystem() : GameSystem(queryWithDisabled: Inclusion.Include)
 {
     public override void Update()
     {

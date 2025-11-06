@@ -70,7 +70,7 @@ public sealed class GameSystemGenerator : ISourceGenerator
     {
         return $$"""
                 {{visibility}} Scene.{{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
-                    return Scene.{{methodName}}{{typeParams}}().WithDisabled(WithDisabled).Deferred(Deferred);
+                    return Scene.{{methodName}}{{typeParams}}().WithDisabled(QueryWithDisabled).Deferred(QueryDeferred);
                 }
 
             """;

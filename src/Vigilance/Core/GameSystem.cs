@@ -20,21 +20,21 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
     protected GameSystem(
         bool isDisabled = false,
         int order = 0,
-        WithDisabled withDisabled = WithDisabled.No,
-        bool deferred = true
+        Inclusion queryWithDisabled = Inclusion.Exclude,
+        bool queryDeferred = true
     )
     {
         IsDisabled = isDisabled;
         Order = order;
-        WithDisabled = withDisabled;
-        Deferred = deferred;
+        QueryWithDisabled = queryWithDisabled;
+        QueryDeferred = queryDeferred;
     }
 
     public Scene Scene { get; private set; } = null!;
     public bool IsDisabled { get; set; }
     public int Order { get; set; }
-    public WithDisabled WithDisabled { get; set; }
-    public bool Deferred { get; set; }
+    public Inclusion QueryWithDisabled { get; set; }
+    public bool QueryDeferred { get; set; }
 
     public Scene.EntityEnumerable Entities => GetEntities();
 
@@ -56,15 +56,15 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
     public void Configure(Scene scene)
     {
         Scene = scene;
+        var baseType = typeof(GameSystem);
         var initialize = Initialize;
         var start = Start;
         var stop = Stop;
         var update = Update;
         var fixedUpdate = FixedUpdate;
-        var beginRender = PreRender;
+        var preRender = PreRender;
         var render = Render;
-        var endRender = PostRender;
-        var baseType = typeof(GameSystem);
+        var postRender = PostRender;
         if (initialize.Method.DeclaringType != baseType)
             scene.OnInitialize(initialize);
         if (start.Method.DeclaringType != baseType)
@@ -75,11 +75,11 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
             scene.OnUpdate(InternalUpdate);
         if (fixedUpdate.Method.DeclaringType != baseType)
             scene.OnFixedUpdate(InternalFixedUpdate);
-        if (beginRender.Method.DeclaringType != baseType)
+        if (preRender.Method.DeclaringType != baseType)
             scene.OnPreRender(InternalPreRender);
         if (render.Method.DeclaringType != baseType)
             scene.OnRender(InternalRender);
-        if (endRender.Method.DeclaringType != baseType)
+        if (postRender.Method.DeclaringType != baseType)
             scene.OnPostRender(InternalPostRender);
         Configure();
     }
@@ -105,6 +105,16 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
     public Entity Entity(string name = "")
     {
         return Scene.Entity(name);
+    }
+
+    public Entity Lookup(ulong id)
+    {
+        return Scene.Lookup(id);
+    }
+
+    public Entity Lookup(string path, bool recursive = true)
+    {
+        return Scene.Lookup(path, recursive);
     }
 
     private void InternalUpdate()
@@ -135,13 +145,5 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
     {
         if (!IsDisabled)
             PostRender();
-    }
-}
-
-public static class GameSystemConfigExtensions
-{
-    public static ConfigBuilder Systems(this ConfigBuilder builder, GameSystemsFunc systems)
-    {
-        return builder.Add(systems);
     }
 }

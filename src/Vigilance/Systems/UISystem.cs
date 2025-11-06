@@ -4,7 +4,7 @@ using Vigilance.UI;
 
 namespace Vigilance.Systems;
 
-public sealed class UISystem(Graphics? graphics = null) : GameSystem(withDisabled: WithDisabled.Yes)
+public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDisabled: Inclusion.Include)
 {
     public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
 
