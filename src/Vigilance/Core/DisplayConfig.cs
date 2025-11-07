@@ -27,7 +27,7 @@ public sealed class DisplayConfig
 
 public static class DisplayConfigExtensions
 {
-    public static ConfigBuilder Display(this ConfigBuilder configs, DisplayConfig config)
+    public static ConfigBuilder Display(this ConfigBuilder configs, Action<DisplayConfig> config)
     {
         return configs.Add(config);
     }

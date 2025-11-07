@@ -69,7 +69,7 @@ public sealed class InputConfig
 
 public static class InputConfigExtensions
 {
-    public static ConfigBuilder Input(this ConfigBuilder builder, InputConfig config)
+    public static ConfigBuilder Input(this ConfigBuilder builder, Action<InputConfig> config)
     {
         return builder.Add(config);
     }

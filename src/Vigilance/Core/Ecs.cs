@@ -27,7 +27,7 @@ public sealed class EcsConfig
 
 public static class EcsConfigExtensions
 {
-    public static ConfigBuilder Ecs(this ConfigBuilder builder, EcsConfig config)
+    public static ConfigBuilder Ecs(this ConfigBuilder builder, Action<EcsConfig> config)
     {
         return builder.Add(config);
     }

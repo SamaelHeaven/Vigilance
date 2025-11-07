@@ -79,7 +79,7 @@ public sealed class DrawingConfig
 
 public static class DrawingConfigExtensions
 {
-    public static ConfigBuilder Drawing(this ConfigBuilder builder, DrawingConfig config)
+    public static ConfigBuilder Drawing(this ConfigBuilder builder, Action<DrawingConfig> config)
     {
         return builder.Add(config);
     }

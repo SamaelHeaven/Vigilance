@@ -4,17 +4,14 @@ namespace Vigilance.Core;
 
 public sealed class Config
 {
-    private readonly Dictionary<Type, object> _configs;
+    private readonly Dictionary<Type, Entry> _configs;
 
-    internal Config(IEnumerable<KeyValuePair<Type, object>> configs)
+    internal Config(Dictionary<Type, Entry> configs)
     {
-        _configs = configs
-            .AsValueEnumerable()
-            .Select(config => (config.Key, Cloner.MemberwiseClone(config.Value)))
-            .ToDictionary();
+        _configs = configs.AsValueEnumerable().ToDictionary();
     }
 
-    public static Config Empty { get; } = new(Array.Empty<KeyValuePair<Type, object>>());
+    public static Config Empty { get; } = new(new Dictionary<Type, Entry>());
 
     public static ConfigBuilder Builder()
     {
@@ -24,9 +21,12 @@ public sealed class Config
     public T? Take<T>()
     {
         var type = typeof(T);
-        if (_configs.Remove(type, out var config))
-            return (T)config;
-        return default;
+        if (!_configs.Remove(type, out var config))
+            return default;
+        var obj = (T)config.Object;
+        var action = (Action<T>)config.Action;
+        action.Invoke(obj);
+        return obj;
     }
 
     public bool TryTake<T>(out T config)
@@ -40,18 +40,20 @@ public sealed class Config
         var type = typeof(T);
         return _configs.ContainsKey(type);
     }
+
+    internal readonly record struct Entry(object Object, Delegate Action);
 }
 
 public sealed class ConfigBuilder
 {
-    private readonly Dictionary<Type, object> _configs = new();
+    private readonly Dictionary<Type, Config.Entry> _configs = new();
 
     internal ConfigBuilder() { }
 
-    public ConfigBuilder Add(object config)
+    public ConfigBuilder Add<T>(Action<T> config)
+        where T : new()
     {
-        var type = config.GetType();
-        _configs[type] = config;
+        _configs.Add(typeof(T), new Config.Entry(new T(), config));
         return this;
     }
 

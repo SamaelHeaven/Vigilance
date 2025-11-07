@@ -62,7 +62,7 @@ public sealed class AudioConfig
 
 public static class AudioConfigExtensions
 {
-    public static ConfigBuilder Audio(this ConfigBuilder builder, AudioConfig config)
+    public static ConfigBuilder Audio(this ConfigBuilder builder, Action<AudioConfig> config)
     {
         return builder.Add(config);
     }

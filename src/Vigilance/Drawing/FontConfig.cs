@@ -27,7 +27,7 @@ public sealed class FontConfig
 
 public static class FontConfigExtensions
 {
-    public static ConfigBuilder Font(this ConfigBuilder builder, FontConfig config)
+    public static ConfigBuilder Font(this ConfigBuilder builder, Action<FontConfig> config)
     {
         return builder.Add(config);
     }
