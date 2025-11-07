@@ -26,6 +26,15 @@ public abstract class UIParent : UIElement
         }
     }
 
+    public UIParent this[IEnumerable<UIElement?> elements]
+    {
+        get
+        {
+            AddRange(elements);
+            return this;
+        }
+    }
+
     public ChildEnumerable Children => new(this);
 
     protected override void Render(Graphics graphics, CameraProvider camera)
