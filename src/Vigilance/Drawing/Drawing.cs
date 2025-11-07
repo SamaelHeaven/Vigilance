@@ -58,8 +58,7 @@ public static class Drawing
 
     internal static void Initialize()
     {
-        if (Game.Config.TryTake(out DrawingConfig config))
-            _config = config;
+        _config = Game.Config.Take<DrawingConfig>() ?? _config;
         DefaultTexture = _config.DefaultTexture.Invoke();
     }
 }

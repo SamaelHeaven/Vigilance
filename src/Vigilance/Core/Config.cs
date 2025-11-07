@@ -29,18 +29,6 @@ public sealed class Config
         return obj;
     }
 
-    public bool TryTake<T>(out T config)
-    {
-        config = Take<T>()!;
-        return (T?)config is not null;
-    }
-
-    public bool Has<T>()
-    {
-        var type = typeof(T);
-        return _configs.ContainsKey(type);
-    }
-
     internal readonly record struct Entry(object Object, Delegate Action);
 }
 

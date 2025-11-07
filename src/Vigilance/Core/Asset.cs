@@ -16,8 +16,7 @@ public static class Asset
 
     internal static void Initialize()
     {
-        if (Game.Config.TryTake(out AssetConfig config))
-            _config = config;
+        _config = Game.Config.Take<AssetConfig>() ?? _config;
     }
 
     public static class Helper

@@ -83,8 +83,7 @@ public sealed unsafe class Font : IDisposable
 
     internal static void Initialize()
     {
-        if (Game.Config.TryTake(out FontConfig config))
-            _config = config;
+        _config = Game.Config.Take<FontConfig>() ?? _config;
         Default = _config.Default.Invoke();
     }
 

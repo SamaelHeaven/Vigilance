@@ -13,6 +13,11 @@ public static unsafe partial class Logger
     private static readonly Lock _logLock = new();
     private static LoggingConfig _config = new();
 
+    static Logger()
+    {
+        _config.Logger = null;
+    }
+
     public static LogLevel LogLevel
     {
         get => _config.LogLevel;
@@ -26,7 +31,7 @@ public static unsafe partial class Logger
 
     internal static void Initialize()
     {
-        _config = Game.Config.TryTake(out LoggingConfig config) ? config : new LoggingConfig();
+        _config = Game.Config.Take<LoggingConfig>() ?? new LoggingConfig();
         Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
         var engine = Assemblies.Engine.GetName();
         var message = $"Initializing {engine.Name} {engine.Version}";

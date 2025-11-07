@@ -40,8 +40,7 @@ public static class Input
 
     internal static void Initialize()
     {
-        if (Game.Config.TryTake(out InputConfig config))
-            _config = config;
+        _config = Game.Config.Take<InputConfig>() ?? _config;
     }
 }
 

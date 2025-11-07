@@ -52,6 +52,6 @@ public static class Initializers
 
     private static void InitializeRaylib()
     {
-        Raylib.SetTraceLogLevel(TraceLogLevel.Error);
+        Raylib.SetTraceLogLevel(TraceLogLevel.Warning);
     }
 }

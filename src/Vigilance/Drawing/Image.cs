@@ -93,6 +93,8 @@ public sealed unsafe class Image : IDisposable
     public byte[] ExportToMemory(string fileType)
     {
         var bytes = Raylib.ExportImageToMemory(RImage, fileType, out var size);
+        if (bytes == null)
+            return Array.Empty<byte>();
         var result = new byte[size];
         Marshal.Copy((nint)bytes, result, 0, size);
         Raylib.MemFree(bytes);

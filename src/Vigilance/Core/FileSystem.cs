@@ -26,8 +26,7 @@ public static unsafe partial class FileSystem
 
     internal static void Initialize()
     {
-        FileSystemConfig config;
-        config = Game.Config.TryTake(out config) ? config : new FileSystemConfig();
+        var config = Game.Config.Take<FileSystemConfig>() ?? new FileSystemConfig();
         WorkingNamespace = config.WorkingNamespace;
         ChangeDirectory(config.WorkingDirectory);
     }
@@ -161,6 +160,8 @@ public static unsafe partial class FileSystem
     {
         path = FormatPath(path);
         var data = Raylib.LoadFileData(path, out var bytesRead);
+        if (data == null)
+            return Array.Empty<byte>();
         var bytes = new byte[bytesRead];
         Marshal.Copy((nint)data, bytes, 0, bytesRead);
         Raylib.UnloadFileData(data);
