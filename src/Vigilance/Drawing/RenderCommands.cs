@@ -64,16 +64,16 @@ public readonly ref partial struct RenderCommands(List<RenderCommand> commands)
 public readonly struct RenderCommand : IComparable<RenderCommand>
 {
     private readonly Invoker _invoker;
+    private readonly Delegate _action;
     private readonly object? _t0;
     private readonly object? _t1;
-    private readonly object _action;
 
     public Entity Entity { get; }
     public ulong Order { get; }
 
     private RenderCommand(
         Invoker invoker,
-        object action,
+        Delegate action,
         Entity entity,
         object? t0 = null,
         object? t1 = null,

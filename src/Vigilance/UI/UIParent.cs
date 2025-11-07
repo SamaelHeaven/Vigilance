@@ -17,7 +17,7 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public UIParent this[params IEnumerable<UIElement?> elements]
+    public UIParent this[params ReadOnlySpan<UIElement?> elements]
     {
         get
         {
@@ -85,9 +85,9 @@ public abstract class UIParent : UIElement
                 yield return t;
         foreach (var element in Children)
         {
-            if (element is not UIParent container)
+            if (element is not UIParent parent)
                 continue;
-            foreach (var child in container.SelectAll<T>(selector))
+            foreach (var child in parent.SelectAll<T>(selector))
                 yield return child;
         }
     }
@@ -104,7 +104,14 @@ public abstract class UIParent : UIElement
         MarkDirty();
     }
 
-    public void Add(params IEnumerable<UIElement?> elements)
+    public void Add(params ReadOnlySpan<UIElement?> elements)
+    {
+        foreach (var element in elements)
+            Add(element);
+    }
+
+    public void AddRange<T>(T elements)
+        where T : IEnumerable<UIElement?>
     {
         foreach (var element in elements)
             Add(element);
@@ -161,7 +168,7 @@ public abstract class UIParent : UIElement
     {
         var result = (UIParent)base.DeepClone();
         result._children = new LinkedList<UIElement>();
-        result.Add(_children.Select(el => el.DeepClone()));
+        result.AddRange(_children.Select(el => el.DeepClone()));
         return result;
     }
 
