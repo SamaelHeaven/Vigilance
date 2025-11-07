@@ -183,6 +183,18 @@ public static unsafe class Display
         }
     }
 
+    public static bool DefaultFullscreenResize
+    {
+        get => _config.DefaultFullscreenResize;
+        set => _config.DefaultFullscreenResize = value;
+    }
+
+    public static bool DefaultFullscreenBorderless
+    {
+        get => _config.DefaultFullscreenBorderless;
+        set => _config.DefaultFullscreenBorderless = value;
+    }
+
     public static bool Hidden => Raylib.IsWindowHidden();
 
     public static bool Maximized => Raylib.IsWindowMaximized();
@@ -257,8 +269,10 @@ public static unsafe class Display
             Raylib.SetWindowFocused();
     }
 
-    public static void ToggleFullscreen(bool resizeScreen = true, bool borderless = true)
+    public static void ToggleFullscreen(bool? resize = null, bool? borderless = null)
     {
+        var resizeValue = resize ?? DefaultFullscreenResize;
+        var borderlessValue = borderless ?? DefaultFullscreenBorderless;
         if (Platform.Web.IsCurrent)
         {
             JSEngine.Eval(Fullscreen ? "document.exitFullscreen()" : "Module.canvas.requestFullscreen()");
@@ -267,33 +281,33 @@ public static unsafe class Display
         {
             var monitor = Raylib.GetCurrentMonitor();
             var monitorSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
-            if (Fullscreen)
+
+            if (_fullscreen)
             {
-                _resetScreen = resizeScreen;
+                _resetScreen = resizeValue;
             }
             else
             {
                 _previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
                 if (OperatingSystem.IsMacOS() && !Raylib.IsWindowMaximized())
                     Raylib.MaximizeWindow();
-                if (resizeScreen && !(borderless && OperatingSystem.IsWindows()))
+                if (resizeValue && !(borderlessValue && OperatingSystem.IsWindows()))
                     ScreenSize = monitorSize;
             }
 
-            var fullscreen = Fullscreen;
-            _fullscreen = !fullscreen;
+            _fullscreen = !_fullscreen;
             var screenSize = ScreenSize;
             if (
                 OperatingSystem.IsMacOS()
-                && !fullscreen
+                && !_fullscreen
                 && screenSize == monitorSize
                 && (Vector2)Raylib.GetWindowPosition() == Vector2.Zero
             )
                 return;
-            if (borderless && OperatingSystem.IsWindows())
+            if (borderlessValue && OperatingSystem.IsWindows())
             {
                 Raylib.ToggleBorderlessWindowed();
-                if (fullscreen && !Decorated)
+                if (_fullscreen && !Decorated)
                     Raylib.SetWindowState(ConfigFlags.WindowUndecorated);
             }
             else
@@ -377,7 +391,7 @@ public static unsafe class Display
         if (_config.Maximized)
             Maximize();
         if (_config.Fullscreen)
-            ToggleFullscreen(_config.ScreenSize.X <= 0 || _config.ScreenSize.Y <= 0);
+            ToggleFullscreen();
         if (_config.FpsTarget > 0)
             Raylib.SetTargetFPS(_config.FpsTarget);
         if (!Platform.Desktop.IsCurrent || OperatingSystem.IsMacOS() || _config.Icon is null)
