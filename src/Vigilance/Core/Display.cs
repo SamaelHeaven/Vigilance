@@ -13,6 +13,7 @@ public static unsafe class Display
     private static Image? _icon;
     private static Box _previousScreen;
     private static bool _resetScreen;
+    private static bool _fullscreen;
 
     static Display()
     {
@@ -172,7 +173,7 @@ public static unsafe class Display
             return Platform.Current switch
             {
                 Platform.Web => JSEngine.Eval("!!document.fullscreenElement"),
-                _ => Raylib.IsWindowFullscreen(),
+                _ => _fullscreen,
             };
         }
         set
@@ -256,7 +257,7 @@ public static unsafe class Display
             Raylib.SetWindowFocused();
     }
 
-    public static void ToggleFullscreen(bool resizeScreen = true)
+    public static void ToggleFullscreen(bool resizeScreen = true, bool borderless = true)
     {
         if (Platform.Web.IsCurrent)
         {
@@ -275,19 +276,30 @@ public static unsafe class Display
                 _previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
                 if (OperatingSystem.IsMacOS() && !Raylib.IsWindowMaximized())
                     Raylib.MaximizeWindow();
-                if (resizeScreen)
+                if (resizeScreen && !(borderless && OperatingSystem.IsWindows()))
                     ScreenSize = monitorSize;
             }
 
             var fullscreen = Fullscreen;
+            _fullscreen = !fullscreen;
             var screenSize = ScreenSize;
             if (
-                !OperatingSystem.IsMacOS()
-                || fullscreen
-                || screenSize != monitorSize
-                || (Vector2)Raylib.GetWindowPosition() != Vector2.Zero
+                OperatingSystem.IsMacOS()
+                && !fullscreen
+                && screenSize == monitorSize
+                && (Vector2)Raylib.GetWindowPosition() == Vector2.Zero
             )
+                return;
+            if (borderless && OperatingSystem.IsWindows())
+            {
+                Raylib.ToggleBorderlessWindowed();
+                if (fullscreen && !Decorated)
+                    Raylib.SetWindowState(ConfigFlags.WindowUndecorated);
+            }
+            else
+            {
                 Raylib.ToggleFullscreen();
+            }
         }
     }
 
