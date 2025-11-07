@@ -45,15 +45,28 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            var name = Name;
             var parent = Parent;
-            while (!parent.IsNull)
-            {
-                name = $"{parent.Name}.{name}";
-                parent = parent.Parent;
-            }
+            var name = Name;
+            if (parent.IsNull)
+                return name;
+            var sb = new StringBuilder(name.Length * 2);
+            AppendPath(parent, sb);
+            sb.Append('.');
+            sb.Append(name);
+            return sb.ToString();
 
-            return name;
+            static void AppendPath(in Entity entity, StringBuilder sb)
+            {
+                var parent = entity.Parent;
+                if (!parent.IsNull)
+                {
+                    AppendPath(parent, sb);
+                    sb.Append('.');
+                }
+
+                var name = entity.Name;
+                sb.Append(name);
+            }
         }
     }
 

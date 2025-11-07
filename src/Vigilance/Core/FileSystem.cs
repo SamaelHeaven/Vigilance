@@ -34,11 +34,45 @@ public static unsafe partial class FileSystem
 
     public static string FormatPath(string path)
     {
-        path = path.Trim();
-        path = path.Replace('\\', '/');
-        while (path.Contains("//"))
-            path = path.Replace("//", "/");
-        return path.Trim('/');
+        if (path == "")
+            return "";
+        var span = path.AsSpan();
+        var start = 0;
+        var end = span.Length - 1;
+        while (start <= end && char.IsWhiteSpace(span[start]))
+            start++;
+        while (end >= start && char.IsWhiteSpace(span[end]))
+            end--;
+        if (start > end)
+            return "";
+        var sb = new StringBuilder(end - start + 1);
+        var lastWasSlash = false;
+        for (var i = start; i <= end; i++)
+        {
+            var c = span[i];
+            if (c == '\\')
+                c = '/';
+            if (c == '/')
+            {
+                if (lastWasSlash)
+                    continue;
+                lastWasSlash = true;
+            }
+            else
+            {
+                lastWasSlash = false;
+            }
+
+            sb.Append(c);
+        }
+
+        var sbStart = 0;
+        var sbEnd = sb.Length - 1;
+        while (sbStart <= sbEnd && sb[sbStart] == '/')
+            sbStart++;
+        while (sbEnd >= sbStart && sb[sbEnd] == '/')
+            sbEnd--;
+        return sbStart > sbEnd ? "" : sb.ToString(sbStart, sbEnd - sbStart + 1);
     }
 
     public static string FormatResource(string resource, string @namespace = "")

@@ -15,9 +15,8 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
             static (entity, self, component) =>
             {
                 var element = component.Element;
-                var layoutReady = element.IsLayoutReady;
                 element.CalculateLayout();
-                if (!layoutReady || !entity.IsDisabled)
+                if (!entity.IsDisabled)
                     element.Update(entity);
                 element.Render(entity.WorldTransform, self.Graphics);
             }

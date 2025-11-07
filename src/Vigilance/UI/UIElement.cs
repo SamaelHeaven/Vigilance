@@ -499,6 +499,11 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
         Flex.CalculateLayout(Node, width ?? float.NaN, height ?? float.NaN, FlexLayoutSharp.Direction.LTR);
     }
 
+    public void Update()
+    {
+        Update(Entity.Null);
+    }
+
     public virtual void Update(Entity entity)
     {
         var e = new UIEvent { Entity = entity, Element = this };
@@ -677,15 +682,6 @@ public static class UIElementExtensions
         public Action<UIEvent<T>> OnUpdate
         {
             set => element.OnUpdateEvent += e => value.Invoke(e);
-        }
-
-        public Action<UIEvent<T>> OnUpdateImmediate
-        {
-            set
-            {
-                element.OnUpdateEvent += e => value.Invoke(e);
-                value.Invoke(new UIEvent<T>(Entity.Null, element));
-            }
         }
 
         public Action<UIEvent<T>> OnClick
