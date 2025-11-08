@@ -15,10 +15,15 @@ public static class SpanExtensions
                 ref Unsafe.As<char, T>(ref MemoryMarshal.GetReference(str.AsSpan())),
                 str.Length
             ),
-            ArraySegment<T> segment => segment.AsSpan(),
+            ArraySegment<T> segment => MemoryExtensions.AsSpan(segment),
             IReadOnlySpan<T> span => span.AsSpan(),
             _ => enumerable.ToArray(),
         };
+    }
+
+    public static Span<T> AsSpan<T>(this T[] array)
+    {
+        return array;
     }
 
     public static ReadOnlySpan<char> AsSpan(this string str)
