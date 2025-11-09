@@ -1,5 +1,7 @@
 using System.Reflection;
 using System.Text;
+using Vigilance.Audio;
+using Vigilance.Drawing;
 using ZLinq;
 
 namespace Vigilance.Core;
@@ -43,347 +45,6 @@ public static class Asset
             return !FileSystem.ResourceExists(resource, "", assembly)
                 ? throw new ArgumentException($"Could not find resource '{resource}'.")
                 : FileSystem.ReadResourceBytes(resource, "", assembly);
-        }
-    }
-
-    public static class Texture
-    {
-        private static readonly Container<string, Drawing.Texture> _container = new();
-
-        public static Drawing.Texture File(string path, CacheType? cacheType = null)
-        {
-            return _container.File(
-                ref path,
-                () => path,
-                bytes => new Drawing.Texture(Path.GetExtension(path), bytes),
-                cacheType
-            );
-        }
-
-        public static Drawing.Texture Resource(
-            string resource,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return _container.Resource(
-                ref resource,
-                @namespace,
-                assembly,
-                () => resource,
-                bytes => new Drawing.Texture(Path.GetExtension(resource), bytes),
-                cacheType
-            );
-        }
-
-        public static void Invalidate(Drawing.Texture texture)
-        {
-            _container.Invalidate(texture);
-        }
-    }
-
-    public static class Image
-    {
-        private static readonly Container<string, Drawing.Image> _container = new();
-
-        public static Drawing.Image File(string path, CacheType? cacheType = null)
-        {
-            return _container.File(
-                ref path,
-                () => path,
-                bytes => new Drawing.Image(Path.GetExtension(path), bytes),
-                cacheType
-            );
-        }
-
-        public static Drawing.Image Resource(
-            string resource,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return _container.Resource(
-                ref resource,
-                @namespace,
-                assembly,
-                () => resource,
-                bytes => new Drawing.Image(Path.GetExtension(resource), bytes),
-                cacheType
-            );
-        }
-
-        public static void Invalidate(Drawing.Image image)
-        {
-            _container.Invalidate(image);
-        }
-    }
-
-    public static class Font
-    {
-        private static readonly Container<(string Key, int Quality, string Charset), Drawing.Font> _container = new();
-
-        public static Drawing.Font File(
-            string path,
-            int? quality = null,
-            string? charset = null,
-            CacheType? cacheType = null
-        )
-        {
-            return _container.File(
-                ref path,
-                () => (path, quality ?? Drawing.Font.DefaultQuality, charset ?? Drawing.Font.DefaultCharset),
-                bytes => new Drawing.Font(
-                    bytes,
-                    quality ?? Drawing.Font.DefaultQuality,
-                    charset ?? Drawing.Font.DefaultCharset
-                ),
-                cacheType
-            );
-        }
-
-        public static Drawing.Font Resource(
-            string resource,
-            int? quality = null,
-            string? charset = null,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return _container.Resource(
-                ref resource,
-                @namespace,
-                assembly,
-                () => (resource, quality ?? Drawing.Font.DefaultQuality, charset ?? Drawing.Font.DefaultCharset),
-                bytes => new Drawing.Font(
-                    bytes,
-                    quality ?? Drawing.Font.DefaultQuality,
-                    charset ?? Drawing.Font.DefaultCharset
-                ),
-                cacheType
-            );
-        }
-
-        public static void Invalidate(Drawing.Font font)
-        {
-            _container.Invalidate(font);
-        }
-    }
-
-    public static class Music
-    {
-        private static readonly Container<string, Audio.Music> _container = new();
-
-        public static Audio.Music File(string path, CacheType? cacheType = null)
-        {
-            return _container.File(
-                ref path,
-                () => path,
-                bytes => new Audio.Music(Path.GetExtension(path), bytes),
-                cacheType
-            );
-        }
-
-        public static Audio.Music Resource(
-            string resource,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return _container.Resource(
-                ref resource,
-                @namespace,
-                assembly,
-                () => resource,
-                bytes => new Audio.Music(Path.GetExtension(resource), bytes),
-                cacheType
-            );
-        }
-
-        public static void Invalidate(Audio.Music music)
-        {
-            _container.Invalidate(music);
-        }
-    }
-
-    public static class Sound
-    {
-        private static readonly Container<(string Key, int MaxAliases), Audio.Sound> _container = new();
-
-        public static Audio.Sound File(string path, int? maxAliases = null, CacheType? cacheType = null)
-        {
-            return _container.File(
-                ref path,
-                () => (path, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
-                bytes => new Audio.Sound(
-                    Path.GetExtension(path),
-                    bytes,
-                    maxAliases ?? Audio.Audio.DefaultSoundMaxAliases
-                ),
-                cacheType
-            );
-        }
-
-        public static Audio.Sound Resource(
-            string resource,
-            int? maxAliases = null,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return _container.Resource(
-                ref resource,
-                @namespace,
-                assembly,
-                () => (resource, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
-                bytes => new Audio.Sound(
-                    Path.GetExtension(resource),
-                    bytes,
-                    maxAliases ?? Audio.Audio.DefaultSoundMaxAliases
-                ),
-                cacheType
-            );
-        }
-
-        public static void Invalidate(Audio.Sound sound)
-        {
-            _container.Invalidate(sound);
-        }
-    }
-
-    public static class Shader
-    {
-        private static readonly Container<(string? VertexKey, string? FragmentKey), Drawing.Shader> _container = new();
-
-        public static Drawing.Shader File(string? vertexPath, string? fragmentPath, CacheType? cacheType = null)
-        {
-            var normalizedVertexPath = vertexPath is null ? null : Helper.NormalizePath(vertexPath);
-            var normalizedFragmentPath = fragmentPath is null ? null : Helper.NormalizePath(fragmentPath);
-            return _container.File(
-                () => (normalizedVertexPath, normalizedFragmentPath),
-                () =>
-                {
-                    var vertex = vertexPath is null
-                        ? null
-                        : Encoding.UTF8.GetString(Helper.ReadFile(vertexPath, normalizedVertexPath!));
-                    var fragment = fragmentPath is null
-                        ? null
-                        : Encoding.UTF8.GetString(Helper.ReadFile(fragmentPath, normalizedFragmentPath!));
-                    return new Drawing.Shader(vertex, fragment);
-                },
-                cacheType
-            );
-        }
-
-        public static Drawing.Shader Resource(
-            string? vertexResource,
-            string? fragmentResource,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return Resource(vertexResource, fragmentResource, @namespace, @namespace, assembly, assembly, cacheType);
-        }
-
-        public static Drawing.Shader Resource(
-            string? vertexResource,
-            string? fragmentResource,
-            string? vertexNamespace,
-            string? fragmentNamespace,
-            Assembly? vertexAssembly,
-            Assembly? fragmentAssembly,
-            CacheType? cacheType = null
-        )
-        {
-            var normalizedVertexPath = vertexResource is null
-                ? null
-                : Helper.NormalizeResource(vertexResource, vertexNamespace);
-            var normalizedFragmentPath = fragmentResource is null
-                ? null
-                : Helper.NormalizeResource(fragmentResource, fragmentNamespace);
-            return _container.Resource(
-                () =>
-                    (
-                        normalizedVertexPath is null
-                            ? null
-                            : FileSystem.FormatResource(normalizedVertexPath, vertexAssembly?.FullName ?? ""),
-                        normalizedFragmentPath is null
-                            ? null
-                            : FileSystem.FormatResource(normalizedFragmentPath, fragmentAssembly?.FullName ?? "")
-                    ),
-                () =>
-                {
-                    var vertex = normalizedVertexPath is null
-                        ? null
-                        : Encoding.UTF8.GetString(Helper.ReadResource(normalizedVertexPath, vertexAssembly));
-                    var fragment = normalizedFragmentPath is null
-                        ? null
-                        : Encoding.UTF8.GetString(Helper.ReadResource(normalizedFragmentPath, fragmentAssembly!));
-                    return new Drawing.Shader(vertex, fragment);
-                },
-                cacheType
-            );
-        }
-
-        public static Drawing.Shader Raw(string? vertex, string? fragment, CacheType? cacheType = null)
-        {
-            return _container.Raw((vertex, fragment), () => new Drawing.Shader(vertex, fragment), cacheType);
-        }
-
-        public static void Invalidate(Drawing.Shader shader)
-        {
-            _container.Invalidate(shader);
-        }
-
-        public static class Vertex
-        {
-            public static Drawing.Shader File(string path, CacheType? cacheType = null)
-            {
-                return Shader.File(path, null, cacheType);
-            }
-
-            public static Drawing.Shader Resource(
-                string resource,
-                string? @namespace = null,
-                Assembly? assembly = null,
-                CacheType? cacheType = null
-            )
-            {
-                return Shader.Resource(resource, null, @namespace, assembly, cacheType);
-            }
-
-            public static Drawing.Shader Raw(string vertex, CacheType? cacheType = null)
-            {
-                return Shader.Raw(vertex, null, cacheType);
-            }
-        }
-
-        public static class Fragment
-        {
-            public static Drawing.Shader File(string path, CacheType? cacheType = null)
-            {
-                return Shader.File(null, path, cacheType);
-            }
-
-            public static Drawing.Shader Resource(
-                string resource,
-                string? @namespace = null,
-                Assembly? assembly = null,
-                CacheType? cacheType = null
-            )
-            {
-                return Shader.Resource(null, resource, @namespace, assembly, cacheType);
-            }
-
-            public static Drawing.Shader Raw(string fragment, CacheType? cacheType = null)
-            {
-                return Shader.Raw(null, fragment, cacheType);
-            }
         }
     }
 
@@ -501,6 +162,344 @@ public static class Asset
                 .Select(kvp => kvp.Key);
             foreach (var key in keys)
                 values.Remove(key);
+        }
+    }
+}
+
+public static class TextureAssetExtensions
+{
+    private static readonly Asset.Container<string, Texture> _container = new();
+
+    extension(Texture)
+    {
+        public static Texture File(string path, CacheType? cacheType = null)
+        {
+            return _container.File(
+                ref path,
+                () => path,
+                bytes => new Texture(Path.GetExtension(path), bytes),
+                cacheType
+            );
+        }
+
+        public static Texture Resource(
+            string resource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.Resource(
+                ref resource,
+                @namespace,
+                assembly,
+                () => resource,
+                bytes => new Texture(Path.GetExtension(resource), bytes),
+                cacheType
+            );
+        }
+
+        public static void Invalidate(Texture texture)
+        {
+            _container.Invalidate(texture);
+        }
+    }
+}
+
+public static class ImageAssetExtensions
+{
+    private static readonly Asset.Container<string, Image> _container = new();
+
+    extension(Image)
+    {
+        public static Image File(string path, CacheType? cacheType = null)
+        {
+            return _container.File(ref path, () => path, bytes => new Image(Path.GetExtension(path), bytes), cacheType);
+        }
+
+        public static Image Resource(
+            string resource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.Resource(
+                ref resource,
+                @namespace,
+                assembly,
+                () => resource,
+                bytes => new Image(Path.GetExtension(resource), bytes),
+                cacheType
+            );
+        }
+
+        public static void Invalidate(Image image)
+        {
+            _container.Invalidate(image);
+        }
+    }
+}
+
+public static class FontAssetExtensions
+{
+    private static readonly Asset.Container<(string Key, int Quality, string Charset), Font> _container = new();
+
+    extension(Font)
+    {
+        public static Font File(string path, int? quality = null, string? charset = null, CacheType? cacheType = null)
+        {
+            return _container.File(
+                ref path,
+                () => (path, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
+                bytes => new Font(bytes, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
+                cacheType
+            );
+        }
+
+        public static Font Resource(
+            string resource,
+            int? quality = null,
+            string? charset = null,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.Resource(
+                ref resource,
+                @namespace,
+                assembly,
+                () => (resource, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
+                bytes => new Font(bytes, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
+                cacheType
+            );
+        }
+
+        public static void Invalidate(Font font)
+        {
+            _container.Invalidate(font);
+        }
+    }
+}
+
+public static class MusicAssetExtensions
+{
+    private static readonly Asset.Container<string, Music> _container = new();
+
+    extension(Music)
+    {
+        public static Music File(string path, CacheType? cacheType = null)
+        {
+            return _container.File(ref path, () => path, bytes => new Music(Path.GetExtension(path), bytes), cacheType);
+        }
+
+        public static Music Resource(
+            string resource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.Resource(
+                ref resource,
+                @namespace,
+                assembly,
+                () => resource,
+                bytes => new Music(Path.GetExtension(resource), bytes),
+                cacheType
+            );
+        }
+
+        public static void Invalidate(Music music)
+        {
+            _container.Invalidate(music);
+        }
+    }
+}
+
+public static class SoundAssetExtensions
+{
+    private static readonly Asset.Container<(string Key, int MaxAliases), Sound> _container = new();
+
+    extension(Sound)
+    {
+        public static Sound File(string path, int? maxAliases = null, CacheType? cacheType = null)
+        {
+            return _container.File(
+                ref path,
+                () => (path, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+                bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+                cacheType
+            );
+        }
+
+        public static Sound Resource(
+            string resource,
+            int? maxAliases = null,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.Resource(
+                ref resource,
+                @namespace,
+                assembly,
+                () => (resource, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+                bytes => new Sound(
+                    Path.GetExtension(resource),
+                    bytes,
+                    maxAliases ?? Audio.Audio.DefaultSoundMaxAliases
+                ),
+                cacheType
+            );
+        }
+
+        public static void Invalidate(Sound sound)
+        {
+            _container.Invalidate(sound);
+        }
+    }
+}
+
+public static class ShaderAssetExtensions
+{
+    private static readonly Asset.Container<(string? VertexKey, string? FragmentKey), Shader> _container = new();
+
+    extension(Shader)
+    {
+        public static Shader File(string? vertexPath, string? fragmentPath, CacheType? cacheType = null)
+        {
+            var normalizedVertexPath = vertexPath is null ? null : Asset.Helper.NormalizePath(vertexPath);
+            var normalizedFragmentPath = fragmentPath is null ? null : Asset.Helper.NormalizePath(fragmentPath);
+            return _container.File(
+                () => (normalizedVertexPath, normalizedFragmentPath),
+                () =>
+                {
+                    var vertex = vertexPath is null
+                        ? null
+                        : Encoding.UTF8.GetString(Asset.Helper.ReadFile(vertexPath, normalizedVertexPath!));
+                    var fragment = fragmentPath is null
+                        ? null
+                        : Encoding.UTF8.GetString(Asset.Helper.ReadFile(fragmentPath, normalizedFragmentPath!));
+                    return new Shader(vertex, fragment);
+                },
+                cacheType
+            );
+        }
+
+        public static Shader Resource(
+            string? vertexResource,
+            string? fragmentResource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return Resource(vertexResource, fragmentResource, @namespace, @namespace, assembly, assembly, cacheType);
+        }
+
+        public static Shader Resource(
+            string? vertexResource,
+            string? fragmentResource,
+            string? vertexNamespace,
+            string? fragmentNamespace,
+            Assembly? vertexAssembly,
+            Assembly? fragmentAssembly,
+            CacheType? cacheType = null
+        )
+        {
+            var normalizedVertexPath = vertexResource is null
+                ? null
+                : Asset.Helper.NormalizeResource(vertexResource, vertexNamespace);
+            var normalizedFragmentPath = fragmentResource is null
+                ? null
+                : Asset.Helper.NormalizeResource(fragmentResource, fragmentNamespace);
+            return _container.Resource(
+                () =>
+                    (
+                        normalizedVertexPath is null
+                            ? null
+                            : FileSystem.FormatResource(normalizedVertexPath, vertexAssembly?.FullName ?? ""),
+                        normalizedFragmentPath is null
+                            ? null
+                            : FileSystem.FormatResource(normalizedFragmentPath, fragmentAssembly?.FullName ?? "")
+                    ),
+                () =>
+                {
+                    var vertex = normalizedVertexPath is null
+                        ? null
+                        : Encoding.UTF8.GetString(Asset.Helper.ReadResource(normalizedVertexPath, vertexAssembly));
+                    var fragment = normalizedFragmentPath is null
+                        ? null
+                        : Encoding.UTF8.GetString(Asset.Helper.ReadResource(normalizedFragmentPath, fragmentAssembly!));
+                    return new Shader(vertex, fragment);
+                },
+                cacheType
+            );
+        }
+
+        public static Shader Raw(string? vertex, string? fragment, CacheType? cacheType = null)
+        {
+            return _container.Raw((vertex, fragment), () => new Shader(vertex, fragment), cacheType);
+        }
+
+        public static void Invalidate(Shader shader)
+        {
+            _container.Invalidate(shader);
+        }
+    }
+}
+
+public static class VertexShaderAssetExtensions
+{
+    extension(Shader.Vertex)
+    {
+        public static Shader File(string path, CacheType? cacheType = null)
+        {
+            return Shader.File(path, null, cacheType);
+        }
+
+        public static Shader Resource(
+            string resource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return Shader.Resource(resource, null, @namespace, assembly, cacheType);
+        }
+
+        public static Shader Raw(string vertex, CacheType? cacheType = null)
+        {
+            return Shader.Raw(vertex, null, cacheType);
+        }
+    }
+}
+
+public static class FragmentShaderAssetExtensions
+{
+    extension(Shader.Fragment)
+    {
+        public static Shader File(string path, CacheType? cacheType = null)
+        {
+            return Shader.File(null, path, cacheType);
+        }
+
+        public static Shader Resource(
+            string resource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return Shader.Resource(null, resource, @namespace, assembly, cacheType);
+        }
+
+        public static Shader Raw(string fragment, CacheType? cacheType = null)
+        {
+            return Shader.Raw(null, fragment, cacheType);
         }
     }
 }

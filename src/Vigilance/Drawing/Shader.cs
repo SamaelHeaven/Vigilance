@@ -244,4 +244,8 @@ public sealed unsafe partial class Shader : IDisposable
 
     [GeneratedRegex(@"^\s*#version\s+(\S+)\s*$", RegexOptions.IgnoreCase | RegexOptions.Multiline)]
     private static partial Regex VersionRegex();
+
+    public static class Vertex;
+
+    public static class Fragment;
 }
