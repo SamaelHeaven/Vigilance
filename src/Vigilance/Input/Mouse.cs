@@ -89,7 +89,7 @@ public static class Mouse
 
     public static bool IsButtonUp(MouseButton button)
     {
-        return _upButtons.Contains(button);
+        return !_downButtons.Contains(button);
     }
 
     public static bool IsButtonPressed(MouseButton button)

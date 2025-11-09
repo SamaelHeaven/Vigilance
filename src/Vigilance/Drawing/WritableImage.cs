@@ -203,7 +203,7 @@ public readonly struct WritableImage : IDisposable
 public readonly unsafe struct WritableImage<T>
     : IStructEnumerable<WritableImage<T>.PixelEnumerator, T>,
         IReadOnlyList<T>,
-        IReadOnlySpan<T>,
+        ISpanView<T>,
         IDisposable
     where T : unmanaged, IPixel
 {
@@ -332,7 +332,7 @@ public readonly unsafe struct WritableImage<T>
         return new Span<T>((T*)_image.Image.RImage.Data, PixelCount);
     }
 
-    ReadOnlySpan<T> IReadOnlySpan<T>.AsSpan()
+    ReadOnlySpan<T> ISpanView<T>.AsSpan()
     {
         return AsSpan();
     }

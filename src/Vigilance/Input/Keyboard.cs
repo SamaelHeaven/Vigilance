@@ -34,7 +34,7 @@ public static class Keyboard
 
     public static bool IsKeyUp(Key key)
     {
-        return _upKeys.Contains(key);
+        return !_downKeys.Contains(key);
     }
 
     public static bool IsKeyPressed(Key key)

@@ -4,6 +4,13 @@ using ZLinq.Linq;
 
 namespace Vigilance.Core;
 
+public interface ISpanView<TValue>
+{
+    ReadOnlySpan<TValue> AsSpan();
+
+    ValueEnumerable<FromSpan<TValue>, TValue> AsValueEnumerable();
+}
+
 public interface IListView<TValue> : IStructEnumerable<List<TValue>.Enumerator, TValue>
 {
     ValueEnumerable<StructEnumerator<List<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
@@ -127,14 +134,16 @@ public interface IArrayView<TValue> : IStructEnumerable<ArrayEnumerator<TValue>,
     new ValueEnumerable<FromArray<TValue>, TValue> AsValueEnumerable();
 }
 
-public readonly struct ListView<TValue>(List<TValue> list)
-    : IListView<TValue>,
-        IReadOnlyList<TValue>,
-        IReadOnlySpan<TValue>
+public readonly struct ListView<TValue>(List<TValue> list) : IListView<TValue>, IReadOnlyList<TValue>, ISpanView<TValue>
 {
     public List<TValue>.Enumerator GetEnumerator()
     {
         return list.GetEnumerator();
+    }
+
+    ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
+    {
+        throw new NotImplementedException();
     }
 
     public ValueEnumerable<FromList<TValue>, TValue> AsValueEnumerable()
@@ -415,10 +424,7 @@ public readonly struct StackView<TValue>(Stack<TValue> stack) : IStackView<TValu
     }
 }
 
-public readonly struct ArrayView<TValue>(TValue[] array)
-    : IArrayView<TValue>,
-        IReadOnlyList<TValue>,
-        IReadOnlySpan<TValue>
+public readonly struct ArrayView<TValue>(TValue[] array) : IArrayView<TValue>, IReadOnlyList<TValue>, ISpanView<TValue>
 {
     private readonly TValue[] _array = array;
 
@@ -430,6 +436,11 @@ public readonly struct ArrayView<TValue>(TValue[] array)
     public ValueEnumerable<FromArray<TValue>, TValue> AsValueEnumerable()
     {
         return _array.AsValueEnumerable();
+    }
+
+    ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
+    {
+        return AsSpan().AsValueEnumerable();
     }
 
     public int Count => _array.Length;

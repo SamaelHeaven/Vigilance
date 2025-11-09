@@ -9,18 +9,27 @@ public sealed class AnimationController : IDictionaryView<string, Animation>
 {
     private readonly Dictionary<string, Animation> _animations;
 
+    public AnimationController(params ReadOnlySpan<(string, Animation)> animations)
+    {
+        if (animations.Length == 0)
+            throw new ArgumentException("AnimationController must have at least one animation.");
+        _animations = animations.AsValueEnumerable().ToDictionary();
+        Current = animations[0].Item1;
+    }
+
+    public AnimationController(params ReadOnlySpan<KeyValuePair<string, Animation>> animations)
+    {
+        if (animations.Length == 0)
+            throw new ArgumentException("AnimationController must have at least one animation.");
+        _animations = animations.AsValueEnumerable().ToDictionary();
+        Current = animations[0].Key;
+    }
+
     public AnimationController(IEnumerable<(string, Animation)> animations)
-        : this(animations.Select(x => new KeyValuePair<string, Animation>(x.Item1, x.Item2))) { }
+        : this(animations.AsSpan()) { }
 
     public AnimationController(IEnumerable<KeyValuePair<string, Animation>> animations)
-    {
-        var list =
-            animations as IReadOnlyList<KeyValuePair<string, Animation>> ?? animations.AsValueEnumerable().ToList();
-        if (list.Count == 0)
-            throw new ArgumentException("AnimationController must have at least one animation.");
-        _animations = list.ToDictionary();
-        Current = list[0].Key;
-    }
+        : this(animations.AsSpan()) { }
 
     public string Current { get; private set; }
 
