@@ -4,7 +4,7 @@ public sealed class FileSystemConfig
 {
     public string WorkingDirectory { get; set; } = "";
 
-    public string WorkingNamespace { get; set; } = $"{Assemblies.Game.GetName().Name}.Resources";
+    public string WorkingNamespace { get; set; } = "Resources";
 }
 
 public static class FileSystemConfigExtensions

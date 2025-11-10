@@ -74,9 +74,22 @@ public static unsafe partial class FileSystem
         return sbStart > sbEnd ? "" : sb.ToString(sbStart, sbEnd - sbStart + 1);
     }
 
-    public static string FormatResource(string resource, string @namespace = "")
+    public static string NormalizePath(string path)
     {
+        return FormatPath(Path.Combine(WorkingDirectory, path));
+    }
+
+    public static string FormatResource(string resource, string? @namespace = null)
+    {
+        @namespace ??= WorkingNamespace;
         return @namespace == "" ? resource : $"{@namespace}.{resource}";
+    }
+
+    public static string FormatResource(string resource, string? @namespace, Assembly? assembly)
+    {
+        @namespace ??= WorkingNamespace;
+        assembly ??= Assemblies.Game;
+        return $"{assembly.GetName().Name}.{@namespace}{(@namespace == "" ? "" : ".")}{resource}";
     }
 
     public static bool ChangeDirectory(string path)
@@ -109,11 +122,12 @@ public static unsafe partial class FileSystem
     public static bool ResourceExists(string resource, string? @namespace = null, Assembly? assembly = null)
     {
         assembly ??= Assemblies.Game;
+        resource = FormatResource(resource, @namespace, assembly);
         if (_resourceNames.TryGetValue(assembly, out var names))
-            return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
+            return names.Contains(resource);
         names = assembly.GetManifestResourceNames();
         _resourceNames[assembly] = names;
-        return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
+        return names.Contains(resource);
     }
 
     public static DateTime FileModTime(string path)
@@ -133,19 +147,37 @@ public static unsafe partial class FileSystem
         return Raylib.GetFileLength(buffer);
     }
 
+    public static bool TryReadText(string path, out string text)
+    {
+        var result = TryReadBytes(path, out var bytes);
+        text = Encoding.UTF8.GetString(bytes);
+        return result;
+    }
+
     public static string ReadText(string path)
     {
-        path = FormatPath(path);
-        using var buffer = path.ToUtf8Buffer();
-        var bytes = Raylib.LoadFileText(buffer);
-        var result = Utf8Buffer.GetString(bytes);
-        Raylib.UnloadFileText(bytes);
+        if (!TryReadText(path, out var text))
+            Logger.Warning($"FILEIO: [{FormatPath(path)}] Failed to read text file");
+        return text;
+    }
+
+    public static bool TryReadResourceText(
+        string resource,
+        out string text,
+        string? @namespace = null,
+        Assembly? assembly = null
+    )
+    {
+        var result = TryReadResourceBytes(resource, out var bytes, @namespace, assembly);
+        text = Encoding.UTF8.GetString(bytes);
         return result;
     }
 
     public static string ReadResourceText(string resource, string? @namespace = null, Assembly? assembly = null)
     {
-        return Encoding.UTF8.GetString(ReadResourceBytes(resource, @namespace, assembly));
+        if (!TryReadResourceText(resource, out var text, @namespace, assembly))
+            Logger.Warning($"FILEIO: [{FormatResource(resource, @namespace)}] Failed to read resource text");
+        return text;
     }
 
     public static bool WriteText(string path, string text)
@@ -156,31 +188,72 @@ public static unsafe partial class FileSystem
         return Raylib.SaveFileText(pathBuffer, textBuffer);
     }
 
-    public static byte[] ReadBytes(string path)
+    public static bool TryReadBytes(string path, out byte[] bytes)
     {
         path = FormatPath(path);
-        var data = Raylib.LoadFileData(path, out var bytesRead);
+        using var pathBuffer = path.ToUtf8Buffer();
+        if (!Raylib.FileExists(pathBuffer))
+        {
+            bytes = Array.Empty<byte>();
+            return false;
+        }
+
+        int bytesRead;
+        var data = Raylib.LoadFileData(pathBuffer, &bytesRead);
         if (data == null)
-            return Array.Empty<byte>();
-        var bytes = new byte[bytesRead];
+        {
+            bytes = Array.Empty<byte>();
+            return false;
+        }
+
+        bytes = new byte[bytesRead];
         Marshal.Copy((nint)data, bytes, 0, bytesRead);
         Raylib.UnloadFileData(data);
+        return true;
+    }
+
+    public static byte[] ReadBytes(string path)
+    {
+        if (!TryReadBytes(path, out var bytes))
+            Logger.Warning($"FILEIO: [{FormatPath(path)}] Failed to read file");
         return bytes;
     }
 
-    public static byte[] ReadResourceBytes(string resource, string? @namespace = null, Assembly? assembly = null)
+    public static bool TryReadResourceBytes(
+        string resource,
+        out byte[] bytes,
+        string? @namespace = null,
+        Assembly? assembly = null
+    )
     {
-        resource = FormatResource(resource, @namespace ?? WorkingNamespace);
-        using var stream = (assembly ?? Assemblies.Game).GetManifestResourceStream(resource);
+        assembly ??= Assemblies.Game;
+        resource = FormatResource(resource, @namespace, assembly);
+        using var stream = assembly.GetManifestResourceStream(resource);
         if (stream is null)
         {
-            Logger.Warning($"FILEIO: [{resource}] Failed to read resource");
-            return Array.Empty<byte>();
+            bytes = Array.Empty<byte>();
+            return false;
+        }
+
+        if (stream.CanSeek)
+        {
+            var length = (int)stream.Length;
+            bytes = new byte[length];
+            _ = stream.Read(bytes, 0, length);
+            return true;
         }
 
         using var ms = new MemoryStream();
         stream.CopyTo(ms);
-        return ms.ToArray();
+        bytes = ms.ToArray();
+        return true;
+    }
+
+    public static byte[] ReadResourceBytes(string resource, string? @namespace = null, Assembly? assembly = null)
+    {
+        if (!TryReadResourceBytes(resource, out var bytes, @namespace, assembly))
+            Logger.Warning($"FILEIO: [{FormatResource(resource, @namespace)}] Failed to read resource");
+        return bytes;
     }
 
     public static bool WriteBytes(string path, IEnumerable<byte> bytes)

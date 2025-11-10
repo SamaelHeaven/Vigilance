@@ -12,7 +12,6 @@ namespace Vigilance.Core;
 
 public static unsafe class Game
 {
-    private static Action? _quitAction = null;
     private static readonly ConcurrentStack<Action> _actions = [];
     private static bool _quit;
     private static Scene _scene = null!;
@@ -41,6 +40,8 @@ public static unsafe class Game
 
     public static Config Config { get; private set; } = Config.Empty;
 
+    public static event Action? OnQuit;
+
     public static void OpenUrl(string url)
     {
         EnsureRunning();
@@ -62,11 +63,6 @@ public static unsafe class Game
     public static void Defer(Action action)
     {
         _actions.Push(action);
-    }
-
-    public static void OnQuit(Action action)
-    {
-        _quitAction += action;
     }
 
     public static void Launch(Config config, Scene scene)
@@ -135,7 +131,7 @@ public static unsafe class Game
 
     private static void Dispose()
     {
-        _quitAction?.Invoke();
+        OnQuit?.Invoke();
         Audio.Audio.Dispose();
         Display.Dispose();
     }

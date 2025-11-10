@@ -1,0 +1,607 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using Vigilance.Audio;
+using Vigilance.Drawing;
+
+namespace Vigilance.Core;
+
+public static class TextureAssetManager
+{
+    private static readonly Asset.Container<string, Texture> _container = new();
+
+    public static event Action<Texture>? OnInvalidate;
+
+    extension(Texture)
+    {
+        public static Texture File(string path, CacheType? cacheType = null)
+        {
+            return !File(path, out var texture, cacheType)
+                ? throw new AssetNotFoundException(
+                    $"Failed to load texture from file: {FileSystem.NormalizePath(path)}"
+                )
+                : texture;
+        }
+
+        public static bool File(string path, [MaybeNullWhen(false)] out Texture texture, CacheType? cacheType = null)
+        {
+            return _container.File(
+                ref path,
+                () => path,
+                bytes => new Texture(Path.GetExtension(path), bytes),
+                cacheType,
+                out texture
+            );
+        }
+
+        public static Texture Resource(
+            string resource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return !Resource(resource, out var texture, @namespace, assembly, cacheType)
+                ? throw new AssetNotFoundException(
+                    $"Failed to load texture from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
+                )
+                : texture;
+        }
+
+        public static bool Resource(
+            string resource,
+            [MaybeNullWhen(false)] out Texture texture,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.Resource(
+                ref resource,
+                @namespace,
+                assembly,
+                () => resource,
+                bytes => new Texture(Path.GetExtension(resource), bytes),
+                cacheType,
+                out texture
+            );
+        }
+
+        public static void Invalidate(Texture texture)
+        {
+            _container.Invalidate(texture);
+            OnInvalidate?.Invoke(texture);
+        }
+    }
+}
+
+public static class ImageAssetManager
+{
+    private static readonly Asset.Container<string, Image> _container = new();
+
+    public static event Action<Image>? OnInvalidate;
+
+    extension(Image)
+    {
+        public static Image File(string path, CacheType? cacheType = null)
+        {
+            return !File(path, out var image, cacheType)
+                ? throw new AssetNotFoundException($"Failed to load image from file: {FileSystem.NormalizePath(path)}")
+                : image;
+        }
+
+        public static bool File(string path, [MaybeNullWhen(false)] out Image image, CacheType? cacheType = null)
+        {
+            return _container.File(
+                ref path,
+                () => path,
+                bytes => new Image(Path.GetExtension(path), bytes),
+                cacheType,
+                out image
+            );
+        }
+
+        public static Image Resource(
+            string resource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return !Resource(resource, out var image, @namespace, assembly, cacheType)
+                ? throw new AssetNotFoundException(
+                    $"Failed to load image from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
+                )
+                : image;
+        }
+
+        public static bool Resource(
+            string resource,
+            [MaybeNullWhen(false)] out Image image,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.Resource(
+                ref resource,
+                @namespace,
+                assembly,
+                () => resource,
+                bytes => new Image(Path.GetExtension(resource), bytes),
+                cacheType,
+                out image
+            );
+        }
+
+        public static void Invalidate(Image image)
+        {
+            _container.Invalidate(image);
+            OnInvalidate?.Invoke(image);
+        }
+    }
+}
+
+public static class FontAssetManager
+{
+    private static readonly Asset.Container<(string Key, int Quality, string Charset), Font> _container = new();
+
+    public static event Action<Font>? OnInvalidate;
+
+    extension(Font)
+    {
+        public static Font File(string path, int? quality = null, string? charset = null, CacheType? cacheType = null)
+        {
+            return !File(path, out var font, quality, charset, cacheType)
+                ? throw new AssetNotFoundException($"Failed to load font from file: {FileSystem.NormalizePath(path)}")
+                : font;
+        }
+
+        public static bool File(
+            string path,
+            [MaybeNullWhen(false)] out Font font,
+            int? quality = null,
+            string? charset = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.File(
+                ref path,
+                () => (path, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
+                bytes => new Font(bytes, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
+                cacheType,
+                out font
+            );
+        }
+
+        public static Font Resource(
+            string resource,
+            int? quality = null,
+            string? charset = null,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return !Resource(resource, out var font, quality, charset, @namespace, assembly, cacheType)
+                ? throw new AssetNotFoundException(
+                    $"Failed to load font from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
+                )
+                : font;
+        }
+
+        public static bool Resource(
+            string resource,
+            [MaybeNullWhen(false)] out Font font,
+            int? quality = null,
+            string? charset = null,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.Resource(
+                ref resource,
+                @namespace,
+                assembly,
+                () => (resource, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
+                bytes => new Font(bytes, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
+                cacheType,
+                out font
+            );
+        }
+
+        public static void Invalidate(Font font)
+        {
+            _container.Invalidate(font);
+            OnInvalidate?.Invoke(font);
+        }
+    }
+}
+
+public static class MusicAssetManager
+{
+    private static readonly Asset.Container<string, Music> _container = new();
+
+    public static event Action<Music>? OnInvalidate;
+
+    extension(Music)
+    {
+        public static Music File(string path, CacheType? cacheType = null)
+        {
+            return !File(path, out var music, cacheType)
+                ? throw new AssetNotFoundException($"Failed to load music from file: {FileSystem.NormalizePath(path)}")
+                : music;
+        }
+
+        public static bool File(string path, [MaybeNullWhen(false)] out Music music, CacheType? cacheType = null)
+        {
+            return _container.File(
+                ref path,
+                () => path,
+                bytes => new Music(Path.GetExtension(path), bytes),
+                cacheType,
+                out music
+            );
+        }
+
+        public static Music Resource(
+            string resource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return !Resource(resource, out var music, @namespace, assembly, cacheType)
+                ? throw new AssetNotFoundException(
+                    $"Failed to load music from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
+                )
+                : music;
+        }
+
+        public static bool Resource(
+            string resource,
+            [MaybeNullWhen(false)] out Music music,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.Resource(
+                ref resource,
+                @namespace,
+                assembly,
+                () => resource,
+                bytes => new Music(Path.GetExtension(resource), bytes),
+                cacheType,
+                out music
+            );
+        }
+
+        public static void Invalidate(Music music)
+        {
+            _container.Invalidate(music);
+            OnInvalidate?.Invoke(music);
+        }
+    }
+}
+
+public static class SoundAssetManager
+{
+    private static readonly Asset.Container<(string Key, int MaxAliases), Sound> _container = new();
+
+    public static event Action<Sound>? OnInvalidate;
+
+    extension(Sound)
+    {
+        public static Sound File(string path, int? maxAliases = null, CacheType? cacheType = null)
+        {
+            return !File(path, out var sound, maxAliases, cacheType)
+                ? throw new AssetNotFoundException($"Failed to load sound from file: {FileSystem.NormalizePath(path)}")
+                : sound;
+        }
+
+        public static bool File(
+            string path,
+            [MaybeNullWhen(false)] out Sound sound,
+            int? maxAliases = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.File(
+                ref path,
+                () => (path, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+                bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+                cacheType,
+                out sound
+            );
+        }
+
+        public static Sound Resource(
+            string resource,
+            int? maxAliases = null,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return !Resource(resource, out var sound, maxAliases, @namespace, assembly, cacheType)
+                ? throw new AssetNotFoundException(
+                    $"Failed to load sound from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
+                )
+                : sound;
+        }
+
+        public static bool Resource(
+            string resource,
+            [MaybeNullWhen(false)] out Sound sound,
+            int? maxAliases = null,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return _container.Resource(
+                ref resource,
+                @namespace,
+                assembly,
+                () => (resource, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+                bytes => new Sound(
+                    Path.GetExtension(resource),
+                    bytes,
+                    maxAliases ?? Audio.Audio.DefaultSoundMaxAliases
+                ),
+                cacheType,
+                out sound
+            );
+        }
+
+        public static void Invalidate(Sound sound)
+        {
+            _container.Invalidate(sound);
+            OnInvalidate?.Invoke(sound);
+        }
+    }
+}
+
+public static class ShaderAssetManager
+{
+    private static readonly Asset.Container<(string? VertexKey, string? FragmentKey), Shader> _container = new();
+
+    public static event Action<Shader>? OnInvalidate;
+
+    extension(Shader)
+    {
+        public static Shader File(string? vertexPath, string? fragmentPath, CacheType? cacheType = null)
+        {
+            return !File(vertexPath, fragmentPath, out var shader, cacheType)
+                ? throw new AssetNotFoundException(
+                    $"Failed to load shader from file{(vertexPath is not null && fragmentPath is not null ? "s" : "")}: {(vertexPath is null ? "" : FileSystem.NormalizePath(vertexPath))}{(vertexPath is null ? "" : ", ")}{(fragmentPath is null ? "" : FileSystem.NormalizePath(fragmentPath))}"
+                )
+                : shader;
+        }
+
+        public static bool File(
+            string? vertexPath,
+            string? fragmentPath,
+            [MaybeNullWhen(false)] out Shader shader,
+            CacheType? cacheType = null
+        )
+        {
+            var normalizedVertexPath = vertexPath is null ? null : FileSystem.NormalizePath(vertexPath);
+            var normalizedFragmentPath = fragmentPath is null ? null : FileSystem.NormalizePath(fragmentPath);
+            return _container.File(
+                () => (normalizedVertexPath, normalizedFragmentPath),
+                () =>
+                {
+                    string? vertex = null;
+                    if (vertexPath is not null)
+                        if (!FileSystem.TryReadText(vertexPath, out vertex))
+                            return null;
+                    string? fragment = null;
+                    if (fragmentPath is null)
+                        return new Shader(vertex, fragment);
+                    return !FileSystem.TryReadText(fragmentPath, out fragment) ? null : new Shader(vertex, fragment);
+                },
+                cacheType,
+                out shader
+            );
+        }
+
+        public static Shader Resource(
+            string? vertexResource,
+            string? fragmentResource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return Resource(vertexResource, fragmentResource, @namespace, @namespace, assembly, assembly, cacheType);
+        }
+
+        public static bool Resource(
+            string? vertexResource,
+            string? fragmentResource,
+            [MaybeNullWhen(false)] out Shader shader,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return Resource(
+                vertexResource,
+                fragmentResource,
+                @namespace,
+                @namespace,
+                assembly,
+                assembly,
+                out shader,
+                cacheType
+            );
+        }
+
+        public static Shader Resource(
+            string? vertexResource,
+            string? fragmentResource,
+            string? vertexNamespace,
+            string? fragmentNamespace,
+            Assembly? vertexAssembly,
+            Assembly? fragmentAssembly,
+            CacheType? cacheType = null
+        )
+        {
+            return !Resource(
+                vertexResource,
+                fragmentResource,
+                vertexNamespace,
+                fragmentNamespace,
+                vertexAssembly,
+                fragmentAssembly,
+                out var shader,
+                cacheType
+            )
+                ? throw new AssetNotFoundException(
+                    $"Failed to load shader from resource{(vertexResource is not null && fragmentResource is not null ? "s" : "")}: {(vertexResource is null ? "" : FileSystem.FormatResource(vertexResource, vertexNamespace))}{(vertexResource is null ? "" : ", ")}{(fragmentResource is null ? "" : FileSystem.FormatResource(fragmentResource, fragmentNamespace))}"
+                )
+                : shader;
+        }
+
+        public static bool Resource(
+            string? vertexResource,
+            string? fragmentResource,
+            string? vertexNamespace,
+            string? fragmentNamespace,
+            Assembly? vertexAssembly,
+            Assembly? fragmentAssembly,
+            [MaybeNullWhen(false)] out Shader shader,
+            CacheType? cacheType = null
+        )
+        {
+            var vertexPath = vertexResource is null ? null : FileSystem.FormatResource(vertexResource, vertexNamespace);
+            var fragmentPath = fragmentResource is null
+                ? null
+                : FileSystem.FormatResource(fragmentResource, fragmentNamespace);
+            return _container.Resource(
+                () =>
+                    (
+                        vertexPath is null
+                            ? null
+                            : FileSystem.FormatResource(vertexPath, vertexAssembly?.FullName ?? ""),
+                        fragmentPath is null
+                            ? null
+                            : FileSystem.FormatResource(fragmentPath, fragmentAssembly?.FullName ?? "")
+                    ),
+                () =>
+                {
+                    string? vertex = null;
+                    if (vertexPath is not null)
+                        if (!FileSystem.TryReadResourceText(vertexPath, out vertex, "", vertexAssembly))
+                            return null;
+                    string? fragment = null;
+                    if (fragmentPath is null)
+                        return new Shader(vertex, fragment);
+                    return !FileSystem.TryReadResourceText(fragmentPath, out fragment, "", fragmentAssembly)
+                        ? null
+                        : new Shader(vertex, fragment);
+                },
+                cacheType,
+                out shader
+            );
+        }
+
+        public static Shader Raw(string? vertex, string? fragment, CacheType? cacheType = null)
+        {
+            _container.Raw((vertex, fragment), () => new Shader(vertex, fragment), cacheType, out var value);
+            return value!;
+        }
+
+        public static void Invalidate(Shader shader)
+        {
+            _container.Invalidate(shader);
+            OnInvalidate?.Invoke(shader);
+        }
+    }
+}
+
+public static class VertexShaderAssetManager
+{
+    extension(Shader.Vertex)
+    {
+        public static Shader File(string path, CacheType? cacheType = null)
+        {
+            return Shader.File(path, null, cacheType);
+        }
+
+        public static bool File(string path, [MaybeNullWhen(false)] out Shader shader, CacheType? cacheType = null)
+        {
+            return Shader.File(path, null, out shader, cacheType);
+        }
+
+        public static Shader Resource(
+            string resource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return Shader.Resource(resource, null, @namespace, assembly, cacheType);
+        }
+
+        public static bool Resource(
+            string resource,
+            [MaybeNullWhen(false)] out Shader shader,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return Shader.Resource(resource, null, out shader, @namespace, assembly, cacheType);
+        }
+
+        public static Shader Raw(string vertex, CacheType? cacheType = null)
+        {
+            return Shader.Raw(vertex, null, cacheType);
+        }
+    }
+}
+
+public static class FragmentShaderAssetManager
+{
+    extension(Shader.Fragment)
+    {
+        public static Shader File(string path, CacheType? cacheType = null)
+        {
+            return Shader.File(null, path, cacheType);
+        }
+
+        public static bool File(string path, [MaybeNullWhen(false)] out Shader shader, CacheType? cacheType = null)
+        {
+            return Shader.File(null, path, out shader, cacheType);
+        }
+
+        public static Shader Resource(
+            string resource,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return Shader.Resource(null, resource, @namespace, assembly, cacheType);
+        }
+
+        public static bool Resource(
+            string resource,
+            [MaybeNullWhen(false)] out Shader shader,
+            string? @namespace = null,
+            Assembly? assembly = null,
+            CacheType? cacheType = null
+        )
+        {
+            return Shader.Resource(null, resource, out shader, @namespace, assembly, cacheType);
+        }
+
+        public static Shader Raw(string fragment, CacheType? cacheType = null)
+        {
+            return Shader.Raw(null, fragment, cacheType);
+        }
+    }
+}

@@ -1,7 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Text;
-using Vigilance.Audio;
-using Vigilance.Drawing;
 using ZLinq;
 
 namespace Vigilance.Core;
@@ -21,33 +19,6 @@ public static class Asset
         _config = Game.Config.Take<AssetConfig>() ?? _config;
     }
 
-    public static class Helper
-    {
-        public static string NormalizePath(string path)
-        {
-            return FileSystem.FormatPath(Path.Combine(FileSystem.WorkingDirectory, path));
-        }
-
-        public static byte[] ReadFile(string path, string normalizedPath)
-        {
-            return !FileSystem.FileExists(path)
-                ? throw new ArgumentException($"Could not find file '{normalizedPath}'.")
-                : FileSystem.ReadBytes(path);
-        }
-
-        public static string NormalizeResource(string resource, string? @namespace)
-        {
-            return FileSystem.FormatResource(resource, @namespace ?? FileSystem.WorkingNamespace);
-        }
-
-        public static byte[] ReadResource(string resource, Assembly? assembly)
-        {
-            return !FileSystem.ResourceExists(resource, "", assembly)
-                ? throw new ArgumentException($"Could not find resource '{resource}'.")
-                : FileSystem.ReadResourceBytes(resource, "", assembly);
-        }
-    }
-
     public sealed class Container<TKey, TValue>
         where TKey : notnull
         where TValue : class
@@ -59,49 +30,72 @@ public static class Asset
         private readonly Dictionary<TKey, WeakReference<TValue>> _weakResources = new();
         private readonly Dictionary<TKey, WeakReference<TValue>> _weakValues = new();
 
-        public event Action<TValue>? OnInvalidate;
-
-        public TValue File(
+        public bool File(
             ref string path,
             Func<TKey> keyFunc,
             Func<byte[], TValue> valueFunc,
-            CacheType? cacheType = null
+            CacheType? cacheType,
+            [MaybeNullWhen(false)] out TValue value
         )
         {
             var filePath = FileSystem.FormatPath(path);
-            var normalizedPath = Helper.NormalizePath(path);
+            var normalizedPath = FileSystem.NormalizePath(path);
             path = normalizedPath;
-            return File(keyFunc, () => valueFunc.Invoke(Helper.ReadFile(filePath, normalizedPath)), cacheType);
+            return File(
+                keyFunc,
+                () => FileSystem.TryReadBytes(filePath, out var bytes) ? valueFunc.Invoke(bytes) : null,
+                cacheType,
+                out value
+            );
         }
 
-        public TValue File(Func<TKey> keyFunc, Func<TValue> valueFunc, CacheType? cacheType = null)
+        public bool File(
+            Func<TKey> keyFunc,
+            Func<TValue?> valueFunc,
+            CacheType? cacheType,
+            [MaybeNullWhen(false)] out TValue value
+        )
         {
-            return Get(_weakFiles, _strongFiles, keyFunc, valueFunc, cacheType);
+            return Get(_weakFiles, _strongFiles, keyFunc, valueFunc, cacheType, out value);
         }
 
-        public TValue Resource(
+        public bool Resource(
             ref string resource,
             string? @namespace,
             Assembly? assembly,
             Func<TKey> keyFunc,
             Func<byte[], TValue> valueFunc,
-            CacheType? cacheType = null
+            CacheType? cacheType,
+            [MaybeNullWhen(false)] out TValue value
         )
         {
-            resource = Helper.NormalizeResource(resource, @namespace);
+            resource = FileSystem.FormatResource(resource, @namespace);
             var resourceValue = resource;
             resource = FileSystem.FormatResource(resource, assembly?.FullName ?? "");
-            return Resource(keyFunc, () => valueFunc.Invoke(Helper.ReadResource(resourceValue, assembly)), cacheType);
+            return Resource(
+                keyFunc,
+                () =>
+                    FileSystem.TryReadResourceBytes(resourceValue, out var bytes, "", assembly)
+                        ? valueFunc.Invoke(bytes)
+                        : null,
+                cacheType,
+                out value
+            );
         }
 
-        public TValue Resource(Func<TKey> keyFunc, Func<TValue> valueFunc, CacheType? cacheType = null)
+        public bool Resource(
+            Func<TKey> keyFunc,
+            Func<TValue?> valueFunc,
+            CacheType? cacheType,
+            [MaybeNullWhen(false)] out TValue value
+        )
         {
-            return Get(_weakResources, _strongResources, keyFunc, valueFunc, cacheType);
+            return Get(_weakResources, _strongResources, keyFunc, valueFunc, cacheType, out value);
         }
 
-        public TValue Raw(TKey key, Func<TValue> valueFunc, CacheType? cacheType = null)
+        public bool Raw(TKey key, Func<TValue> valueFunc, CacheType? cacheType, [MaybeNullWhen(false)] out TValue value)
         {
-            return Get(_weakValues, _strongValues, () => key, valueFunc, cacheType);
+            return Get(_weakValues, _strongValues, () => key, valueFunc, cacheType, out value);
         }
 
         public void Invalidate(TValue value)
@@ -112,37 +106,38 @@ public static class Asset
             Invalidate(value, _strongFiles);
             Invalidate(value, _strongResources);
             Invalidate(value, _strongValues);
-            OnInvalidate?.Invoke(value);
         }
 
-        private static TValue Get(
+        private static bool Get(
             Dictionary<TKey, WeakReference<TValue>> weakValues,
             Dictionary<TKey, TValue> strongValues,
             Func<TKey> keyFunc,
-            Func<TValue> valueFunc,
-            CacheType? cacheType = null
+            Func<TValue?> valueFunc,
+            CacheType? cacheType,
+            [MaybeNullWhen(false)] out TValue value
         )
         {
             var key = keyFunc.Invoke();
-            var rCacheType = cacheType ?? DefaultCacheType;
-            var weak = rCacheType == CacheType.Weak;
-            var strong = rCacheType == CacheType.Strong;
-            TValue? value;
+            var cacheTypeValue = cacheType ?? DefaultCacheType;
+            var weak = cacheTypeValue == CacheType.Weak;
+            var strong = cacheTypeValue == CacheType.Strong;
             if (weak || strong)
             {
                 if (weakValues.TryGetValue(key, out var reference))
-                    if (reference.TryGetTarget(out value))
-                        return value;
-                if (strongValues.TryGetValue(key, out value))
-                    return value;
+                    if (reference.TryGetTarget(out value!))
+                        return true;
+                if (strongValues.TryGetValue(key, out value!))
+                    return true;
             }
 
             value = valueFunc.Invoke();
+            if (value is null)
+                return false;
             if (weak)
                 weakValues[key] = new WeakReference<TValue>(value);
             if (strong)
                 strongValues[key] = value;
-            return value;
+            return true;
         }
 
         private static void Invalidate(TValue value, Dictionary<TKey, WeakReference<TValue>> values)
@@ -169,340 +164,21 @@ public static class Asset
     }
 }
 
-public static class TextureAssetExtensions
+public sealed class AssetConfig
 {
-    public static readonly Asset.Container<string, Texture> Container = new();
+    public CacheType DefaultCacheType { get; set; } = CacheType.Weak;
+}
 
-    extension(Texture)
+public static class AssetConfigExtensions
+{
+    public static ConfigBuilder Asset(this ConfigBuilder builder, Action<AssetConfig> config)
     {
-        public static Texture File(string path, CacheType? cacheType = null)
-        {
-            return Container.File(
-                ref path,
-                () => path,
-                bytes => new Texture(Path.GetExtension(path), bytes),
-                cacheType
-            );
-        }
-
-        public static Texture Resource(
-            string resource,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return Container.Resource(
-                ref resource,
-                @namespace,
-                assembly,
-                () => resource,
-                bytes => new Texture(Path.GetExtension(resource), bytes),
-                cacheType
-            );
-        }
-
-        public static void Invalidate(Texture texture)
-        {
-            Container.Invalidate(texture);
-        }
+        return builder.Add(config);
     }
 }
 
-public static class ImageAssetExtensions
+public class AssetNotFoundException : Exception
 {
-    public static readonly Asset.Container<string, Image> Container = new();
-
-    extension(Image)
-    {
-        public static Image File(string path, CacheType? cacheType = null)
-        {
-            return Container.File(ref path, () => path, bytes => new Image(Path.GetExtension(path), bytes), cacheType);
-        }
-
-        public static Image Resource(
-            string resource,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return Container.Resource(
-                ref resource,
-                @namespace,
-                assembly,
-                () => resource,
-                bytes => new Image(Path.GetExtension(resource), bytes),
-                cacheType
-            );
-        }
-
-        public static void Invalidate(Image image)
-        {
-            Container.Invalidate(image);
-        }
-    }
-}
-
-public static class FontAssetExtensions
-{
-    public static readonly Asset.Container<(string Key, int Quality, string Charset), Font> Container = new();
-
-    extension(Font)
-    {
-        public static Font File(string path, int? quality = null, string? charset = null, CacheType? cacheType = null)
-        {
-            return Container.File(
-                ref path,
-                () => (path, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
-                bytes => new Font(bytes, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
-                cacheType
-            );
-        }
-
-        public static Font Resource(
-            string resource,
-            int? quality = null,
-            string? charset = null,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return Container.Resource(
-                ref resource,
-                @namespace,
-                assembly,
-                () => (resource, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
-                bytes => new Font(bytes, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
-                cacheType
-            );
-        }
-
-        public static void Invalidate(Font font)
-        {
-            Container.Invalidate(font);
-        }
-    }
-}
-
-public static class MusicAssetExtensions
-{
-    public static readonly Asset.Container<string, Music> Container = new();
-
-    extension(Music)
-    {
-        public static Music File(string path, CacheType? cacheType = null)
-        {
-            return Container.File(ref path, () => path, bytes => new Music(Path.GetExtension(path), bytes), cacheType);
-        }
-
-        public static Music Resource(
-            string resource,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return Container.Resource(
-                ref resource,
-                @namespace,
-                assembly,
-                () => resource,
-                bytes => new Music(Path.GetExtension(resource), bytes),
-                cacheType
-            );
-        }
-
-        public static void Invalidate(Music music)
-        {
-            Container.Invalidate(music);
-        }
-    }
-}
-
-public static class SoundAssetExtensions
-{
-    public static readonly Asset.Container<(string Key, int MaxAliases), Sound> Container = new();
-
-    extension(Sound)
-    {
-        public static Sound File(string path, int? maxAliases = null, CacheType? cacheType = null)
-        {
-            return Container.File(
-                ref path,
-                () => (path, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
-                bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
-                cacheType
-            );
-        }
-
-        public static Sound Resource(
-            string resource,
-            int? maxAliases = null,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return Container.Resource(
-                ref resource,
-                @namespace,
-                assembly,
-                () => (resource, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
-                bytes => new Sound(
-                    Path.GetExtension(resource),
-                    bytes,
-                    maxAliases ?? Audio.Audio.DefaultSoundMaxAliases
-                ),
-                cacheType
-            );
-        }
-
-        public static void Invalidate(Sound sound)
-        {
-            Container.Invalidate(sound);
-        }
-    }
-}
-
-public static class ShaderAssetExtensions
-{
-    public static readonly Asset.Container<(string? VertexKey, string? FragmentKey), Shader> Container = new();
-
-    extension(Shader)
-    {
-        public static Shader File(string? vertexPath, string? fragmentPath, CacheType? cacheType = null)
-        {
-            var normalizedVertexPath = vertexPath is null ? null : Asset.Helper.NormalizePath(vertexPath);
-            var normalizedFragmentPath = fragmentPath is null ? null : Asset.Helper.NormalizePath(fragmentPath);
-            return Container.File(
-                () => (normalizedVertexPath, normalizedFragmentPath),
-                () =>
-                {
-                    var vertex = vertexPath is null
-                        ? null
-                        : Encoding.UTF8.GetString(Asset.Helper.ReadFile(vertexPath, normalizedVertexPath!));
-                    var fragment = fragmentPath is null
-                        ? null
-                        : Encoding.UTF8.GetString(Asset.Helper.ReadFile(fragmentPath, normalizedFragmentPath!));
-                    return new Shader(vertex, fragment);
-                },
-                cacheType
-            );
-        }
-
-        public static Shader Resource(
-            string? vertexResource,
-            string? fragmentResource,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return Resource(vertexResource, fragmentResource, @namespace, @namespace, assembly, assembly, cacheType);
-        }
-
-        public static Shader Resource(
-            string? vertexResource,
-            string? fragmentResource,
-            string? vertexNamespace,
-            string? fragmentNamespace,
-            Assembly? vertexAssembly,
-            Assembly? fragmentAssembly,
-            CacheType? cacheType = null
-        )
-        {
-            var normalizedVertexPath = vertexResource is null
-                ? null
-                : Asset.Helper.NormalizeResource(vertexResource, vertexNamespace);
-            var normalizedFragmentPath = fragmentResource is null
-                ? null
-                : Asset.Helper.NormalizeResource(fragmentResource, fragmentNamespace);
-            return Container.Resource(
-                () =>
-                    (
-                        normalizedVertexPath is null
-                            ? null
-                            : FileSystem.FormatResource(normalizedVertexPath, vertexAssembly?.FullName ?? ""),
-                        normalizedFragmentPath is null
-                            ? null
-                            : FileSystem.FormatResource(normalizedFragmentPath, fragmentAssembly?.FullName ?? "")
-                    ),
-                () =>
-                {
-                    var vertex = normalizedVertexPath is null
-                        ? null
-                        : Encoding.UTF8.GetString(Asset.Helper.ReadResource(normalizedVertexPath, vertexAssembly));
-                    var fragment = normalizedFragmentPath is null
-                        ? null
-                        : Encoding.UTF8.GetString(Asset.Helper.ReadResource(normalizedFragmentPath, fragmentAssembly!));
-                    return new Shader(vertex, fragment);
-                },
-                cacheType
-            );
-        }
-
-        public static Shader Raw(string? vertex, string? fragment, CacheType? cacheType = null)
-        {
-            return Container.Raw((vertex, fragment), () => new Shader(vertex, fragment), cacheType);
-        }
-
-        public static void Invalidate(Shader shader)
-        {
-            Container.Invalidate(shader);
-        }
-    }
-}
-
-public static class VertexShaderAssetExtensions
-{
-    extension(Shader.Vertex)
-    {
-        public static Shader File(string path, CacheType? cacheType = null)
-        {
-            return Shader.File(path, null, cacheType);
-        }
-
-        public static Shader Resource(
-            string resource,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return Shader.Resource(resource, null, @namespace, assembly, cacheType);
-        }
-
-        public static Shader Raw(string vertex, CacheType? cacheType = null)
-        {
-            return Shader.Raw(vertex, null, cacheType);
-        }
-    }
-}
-
-public static class FragmentShaderAssetExtensions
-{
-    extension(Shader.Fragment)
-    {
-        public static Shader File(string path, CacheType? cacheType = null)
-        {
-            return Shader.File(null, path, cacheType);
-        }
-
-        public static Shader Resource(
-            string resource,
-            string? @namespace = null,
-            Assembly? assembly = null,
-            CacheType? cacheType = null
-        )
-        {
-            return Shader.Resource(null, resource, @namespace, assembly, cacheType);
-        }
-
-        public static Shader Raw(string fragment, CacheType? cacheType = null)
-        {
-            return Shader.Raw(null, fragment, cacheType);
-        }
-    }
+    public AssetNotFoundException(string message)
+        : base(message) { }
 }
