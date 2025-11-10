@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -33,7 +34,7 @@ public static unsafe partial class FileSystem
 
     public static string FormatPath(string path)
     {
-        if (path == "")
+        if (string.IsNullOrEmpty(path))
             return "";
         var span = path.AsSpan();
         var start = 0;
@@ -44,7 +45,11 @@ public static unsafe partial class FileSystem
             end--;
         if (start > end)
             return "";
-        var sb = new StringBuilder(end - start + 1);
+        var length = end - start + 1;
+        var useStack = length <= 256;
+        char[] bufferArray = null!;
+        var buffer = useStack ? stackalloc char[length] : bufferArray = ArrayPool<char>.Shared.Rent(length);
+        var count = 0;
         var lastWasSlash = false;
         for (var i = start; i <= end; i++)
         {
@@ -62,16 +67,27 @@ public static unsafe partial class FileSystem
                 lastWasSlash = false;
             }
 
-            sb.Append(c);
+            buffer[count++] = c;
         }
 
-        var sbStart = 0;
-        var sbEnd = sb.Length - 1;
-        while (sbStart <= sbEnd && sb[sbStart] == '/')
-            sbStart++;
-        while (sbEnd >= sbStart && sb[sbEnd] == '/')
-            sbEnd--;
-        return sbStart > sbEnd ? "" : sb.ToString(sbStart, sbEnd - sbStart + 1);
+        var trimStart = 0;
+        var trimEnd = count - 1;
+        while (trimStart <= trimEnd && buffer[trimStart] == '/')
+            trimStart++;
+        while (trimEnd >= trimStart && buffer[trimEnd] == '/')
+            trimEnd--;
+        var finalLength = trimEnd - trimStart + 1;
+        if (finalLength <= 0)
+        {
+            if (!useStack)
+                ArrayPool<char>.Shared.Return(bufferArray);
+            return "";
+        }
+
+        var result = new string(buffer.Slice(trimStart, finalLength));
+        if (!useStack)
+            ArrayPool<char>.Shared.Return(bufferArray);
+        return result;
     }
 
     public static string NormalizePath(string path)
@@ -95,9 +111,9 @@ public static unsafe partial class FileSystem
     public static bool ChangeDirectory(string path)
     {
         path = FormatPath(path);
-        if (!DirectoryExists(path))
-            return false;
         using var buffer = path.ToUtf8Buffer();
+        if (!Raylib.DirectoryExists(buffer))
+            return false;
         return Raylib.ChangeDirectory(buffer);
     }
 
@@ -133,18 +149,17 @@ public static unsafe partial class FileSystem
     public static DateTime FileModTime(string path)
     {
         path = FormatPath(path);
-        return !FileExists(path)
+        using var buffer = path.ToUtf8Buffer();
+        return !Raylib.FileExists(buffer)
             ? DateTime.MinValue
-            : DateTimeOffset.FromUnixTimeSeconds(GetFileModTime(path)).UtcDateTime;
+            : DateTimeOffset.FromUnixTimeSeconds(GetFileModTime(buffer)).UtcDateTime;
     }
 
     public static int GetFileSize(string path)
     {
         path = FormatPath(path);
-        if (!FileExists(path))
-            return 0;
         using var buffer = path.ToUtf8Buffer();
-        return Raylib.GetFileLength(buffer);
+        return !Raylib.FileExists(path) ? 0 : Raylib.GetFileLength(buffer);
     }
 
     public static bool TryReadText(string path, out string text)
@@ -284,6 +299,6 @@ public static unsafe partial class FileSystem
         return result;
     }
 
-    [LibraryImport("raylib", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial long GetFileModTime(string path);
+    [LibraryImport("raylib")]
+    private static partial long GetFileModTime(sbyte* path);
 }
