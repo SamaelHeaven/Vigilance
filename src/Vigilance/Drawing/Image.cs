@@ -85,20 +85,30 @@ public sealed unsafe class Image : IDisposable
         return new Color(Raylib.GetImageColor(RImage, x, y));
     }
 
-    public void Export(string path)
+    public bool Export(string path)
     {
-        Raylib.ExportImage(RImage, FileSystem.FormatPath(path));
+        return Raylib.ExportImage(RImage, FileSystem.FormatPath(path));
     }
 
     public byte[] ExportToMemory(string fileType)
     {
-        var bytes = Raylib.ExportImageToMemory(RImage, fileType, out var size);
-        if (bytes == null)
-            return Array.Empty<byte>();
-        var result = new byte[size];
-        Marshal.Copy((nint)bytes, result, 0, size);
-        Raylib.MemFree(bytes);
-        return result;
+        TryExportToMemory(fileType, out var bytes);
+        return bytes;
+    }
+
+    public bool TryExportToMemory(string fileType, out byte[] bytes)
+    {
+        var bytesBuffer = Raylib.ExportImageToMemory(RImage, fileType, out var size);
+        if (bytesBuffer == null)
+        {
+            bytes = Array.Empty<byte>();
+            return false;
+        }
+
+        bytes = new byte[size];
+        Marshal.Copy((nint)bytesBuffer, bytes, 0, size);
+        Raylib.MemFree(bytesBuffer);
+        return true;
     }
 
     public static WritableImage<PixelR8G8B8A8> GradientLinear(
