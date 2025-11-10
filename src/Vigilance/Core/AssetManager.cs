@@ -16,9 +16,7 @@ public static class TextureAssetManager
         public static Texture File(string path, CacheType? cacheType = null)
         {
             return !File(path, out var texture, cacheType)
-                ? throw new AssetNotFoundException(
-                    $"Failed to load texture from file: {FileSystem.NormalizePath(path)}"
-                )
+                ? throw new AssetException($"Failed to load texture from file: {FileSystem.NormalizePath(path)}")
                 : texture;
         }
 
@@ -41,7 +39,7 @@ public static class TextureAssetManager
         )
         {
             return !Resource(resource, out var texture, @namespace, assembly, cacheType)
-                ? throw new AssetNotFoundException(
+                ? throw new AssetException(
                     $"Failed to load texture from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
                 )
                 : texture;
@@ -85,7 +83,7 @@ public static class ImageAssetManager
         public static Image File(string path, CacheType? cacheType = null)
         {
             return !File(path, out var image, cacheType)
-                ? throw new AssetNotFoundException($"Failed to load image from file: {FileSystem.NormalizePath(path)}")
+                ? throw new AssetException($"Failed to load image from file: {FileSystem.NormalizePath(path)}")
                 : image;
         }
 
@@ -108,7 +106,7 @@ public static class ImageAssetManager
         )
         {
             return !Resource(resource, out var image, @namespace, assembly, cacheType)
-                ? throw new AssetNotFoundException(
+                ? throw new AssetException(
                     $"Failed to load image from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
                 )
                 : image;
@@ -152,7 +150,7 @@ public static class FontAssetManager
         public static Font File(string path, int? quality = null, string? charset = null, CacheType? cacheType = null)
         {
             return !File(path, out var font, quality, charset, cacheType)
-                ? throw new AssetNotFoundException($"Failed to load font from file: {FileSystem.NormalizePath(path)}")
+                ? throw new AssetException($"Failed to load font from file: {FileSystem.NormalizePath(path)}")
                 : font;
         }
 
@@ -183,7 +181,7 @@ public static class FontAssetManager
         )
         {
             return !Resource(resource, out var font, quality, charset, @namespace, assembly, cacheType)
-                ? throw new AssetNotFoundException(
+                ? throw new AssetException(
                     $"Failed to load font from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
                 )
                 : font;
@@ -229,7 +227,7 @@ public static class MusicAssetManager
         public static Music File(string path, CacheType? cacheType = null)
         {
             return !File(path, out var music, cacheType)
-                ? throw new AssetNotFoundException($"Failed to load music from file: {FileSystem.NormalizePath(path)}")
+                ? throw new AssetException($"Failed to load music from file: {FileSystem.NormalizePath(path)}")
                 : music;
         }
 
@@ -252,7 +250,7 @@ public static class MusicAssetManager
         )
         {
             return !Resource(resource, out var music, @namespace, assembly, cacheType)
-                ? throw new AssetNotFoundException(
+                ? throw new AssetException(
                     $"Failed to load music from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
                 )
                 : music;
@@ -296,7 +294,7 @@ public static class SoundAssetManager
         public static Sound File(string path, int? maxAliases = null, CacheType? cacheType = null)
         {
             return !File(path, out var sound, maxAliases, cacheType)
-                ? throw new AssetNotFoundException($"Failed to load sound from file: {FileSystem.NormalizePath(path)}")
+                ? throw new AssetException($"Failed to load sound from file: {FileSystem.NormalizePath(path)}")
                 : sound;
         }
 
@@ -325,7 +323,7 @@ public static class SoundAssetManager
         )
         {
             return !Resource(resource, out var sound, maxAliases, @namespace, assembly, cacheType)
-                ? throw new AssetNotFoundException(
+                ? throw new AssetException(
                     $"Failed to load sound from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
                 )
                 : sound;
@@ -374,7 +372,7 @@ public static class ShaderAssetManager
         public static Shader File(string? vertexPath, string? fragmentPath, CacheType? cacheType = null)
         {
             return !File(vertexPath, fragmentPath, out var shader, cacheType)
-                ? throw new AssetNotFoundException(
+                ? throw new AssetException(
                     $"Failed to load shader from file{(vertexPath is not null && fragmentPath is not null ? "s" : "")}: {(vertexPath is null ? "" : FileSystem.NormalizePath(vertexPath))}{(vertexPath is null ? "" : ", ")}{(fragmentPath is null ? "" : FileSystem.NormalizePath(fragmentPath))}"
                 )
                 : shader;
@@ -459,7 +457,7 @@ public static class ShaderAssetManager
                 out var shader,
                 cacheType
             )
-                ? throw new AssetNotFoundException(
+                ? throw new AssetException(
                     $"Failed to load shader from resource{(vertexResource is not null && fragmentResource is not null ? "s" : "")}: {(vertexResource is null ? "" : FileSystem.FormatResource(vertexResource, vertexNamespace))}{(vertexResource is null ? "" : ", ")}{(fragmentResource is null ? "" : FileSystem.FormatResource(fragmentResource, fragmentNamespace))}"
                 )
                 : shader;

@@ -177,8 +177,8 @@ public static class AssetConfigExtensions
     }
 }
 
-public class AssetNotFoundException : Exception
+public class AssetException : Exception
 {
-    public AssetNotFoundException(string message)
+    public AssetException(string message)
         : base(message) { }
 }
