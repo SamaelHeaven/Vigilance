@@ -59,6 +59,8 @@ public static class Asset
         private readonly Dictionary<TKey, WeakReference<TValue>> _weakResources = new();
         private readonly Dictionary<TKey, WeakReference<TValue>> _weakValues = new();
 
+        public event Action<TValue>? OnInvalidate;
+
         public TValue File(
             ref string path,
             Func<TKey> keyFunc,
@@ -110,6 +112,7 @@ public static class Asset
             Invalidate(value, _strongFiles);
             Invalidate(value, _strongResources);
             Invalidate(value, _strongValues);
+            OnInvalidate?.Invoke(value);
         }
 
         private static TValue Get(
@@ -168,13 +171,13 @@ public static class Asset
 
 public static class TextureAssetExtensions
 {
-    private static readonly Asset.Container<string, Texture> _container = new();
+    public static readonly Asset.Container<string, Texture> Container = new();
 
     extension(Texture)
     {
         public static Texture File(string path, CacheType? cacheType = null)
         {
-            return _container.File(
+            return Container.File(
                 ref path,
                 () => path,
                 bytes => new Texture(Path.GetExtension(path), bytes),
@@ -189,7 +192,7 @@ public static class TextureAssetExtensions
             CacheType? cacheType = null
         )
         {
-            return _container.Resource(
+            return Container.Resource(
                 ref resource,
                 @namespace,
                 assembly,
@@ -201,20 +204,20 @@ public static class TextureAssetExtensions
 
         public static void Invalidate(Texture texture)
         {
-            _container.Invalidate(texture);
+            Container.Invalidate(texture);
         }
     }
 }
 
 public static class ImageAssetExtensions
 {
-    private static readonly Asset.Container<string, Image> _container = new();
+    public static readonly Asset.Container<string, Image> Container = new();
 
     extension(Image)
     {
         public static Image File(string path, CacheType? cacheType = null)
         {
-            return _container.File(ref path, () => path, bytes => new Image(Path.GetExtension(path), bytes), cacheType);
+            return Container.File(ref path, () => path, bytes => new Image(Path.GetExtension(path), bytes), cacheType);
         }
 
         public static Image Resource(
@@ -224,7 +227,7 @@ public static class ImageAssetExtensions
             CacheType? cacheType = null
         )
         {
-            return _container.Resource(
+            return Container.Resource(
                 ref resource,
                 @namespace,
                 assembly,
@@ -236,20 +239,20 @@ public static class ImageAssetExtensions
 
         public static void Invalidate(Image image)
         {
-            _container.Invalidate(image);
+            Container.Invalidate(image);
         }
     }
 }
 
 public static class FontAssetExtensions
 {
-    private static readonly Asset.Container<(string Key, int Quality, string Charset), Font> _container = new();
+    public static readonly Asset.Container<(string Key, int Quality, string Charset), Font> Container = new();
 
     extension(Font)
     {
         public static Font File(string path, int? quality = null, string? charset = null, CacheType? cacheType = null)
         {
-            return _container.File(
+            return Container.File(
                 ref path,
                 () => (path, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
                 bytes => new Font(bytes, quality ?? Font.DefaultQuality, charset ?? Font.DefaultCharset),
@@ -266,7 +269,7 @@ public static class FontAssetExtensions
             CacheType? cacheType = null
         )
         {
-            return _container.Resource(
+            return Container.Resource(
                 ref resource,
                 @namespace,
                 assembly,
@@ -278,20 +281,20 @@ public static class FontAssetExtensions
 
         public static void Invalidate(Font font)
         {
-            _container.Invalidate(font);
+            Container.Invalidate(font);
         }
     }
 }
 
 public static class MusicAssetExtensions
 {
-    private static readonly Asset.Container<string, Music> _container = new();
+    public static readonly Asset.Container<string, Music> Container = new();
 
     extension(Music)
     {
         public static Music File(string path, CacheType? cacheType = null)
         {
-            return _container.File(ref path, () => path, bytes => new Music(Path.GetExtension(path), bytes), cacheType);
+            return Container.File(ref path, () => path, bytes => new Music(Path.GetExtension(path), bytes), cacheType);
         }
 
         public static Music Resource(
@@ -301,7 +304,7 @@ public static class MusicAssetExtensions
             CacheType? cacheType = null
         )
         {
-            return _container.Resource(
+            return Container.Resource(
                 ref resource,
                 @namespace,
                 assembly,
@@ -313,20 +316,20 @@ public static class MusicAssetExtensions
 
         public static void Invalidate(Music music)
         {
-            _container.Invalidate(music);
+            Container.Invalidate(music);
         }
     }
 }
 
 public static class SoundAssetExtensions
 {
-    private static readonly Asset.Container<(string Key, int MaxAliases), Sound> _container = new();
+    public static readonly Asset.Container<(string Key, int MaxAliases), Sound> Container = new();
 
     extension(Sound)
     {
         public static Sound File(string path, int? maxAliases = null, CacheType? cacheType = null)
         {
-            return _container.File(
+            return Container.File(
                 ref path,
                 () => (path, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
                 bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
@@ -342,7 +345,7 @@ public static class SoundAssetExtensions
             CacheType? cacheType = null
         )
         {
-            return _container.Resource(
+            return Container.Resource(
                 ref resource,
                 @namespace,
                 assembly,
@@ -358,14 +361,14 @@ public static class SoundAssetExtensions
 
         public static void Invalidate(Sound sound)
         {
-            _container.Invalidate(sound);
+            Container.Invalidate(sound);
         }
     }
 }
 
 public static class ShaderAssetExtensions
 {
-    private static readonly Asset.Container<(string? VertexKey, string? FragmentKey), Shader> _container = new();
+    public static readonly Asset.Container<(string? VertexKey, string? FragmentKey), Shader> Container = new();
 
     extension(Shader)
     {
@@ -373,7 +376,7 @@ public static class ShaderAssetExtensions
         {
             var normalizedVertexPath = vertexPath is null ? null : Asset.Helper.NormalizePath(vertexPath);
             var normalizedFragmentPath = fragmentPath is null ? null : Asset.Helper.NormalizePath(fragmentPath);
-            return _container.File(
+            return Container.File(
                 () => (normalizedVertexPath, normalizedFragmentPath),
                 () =>
                 {
@@ -416,7 +419,7 @@ public static class ShaderAssetExtensions
             var normalizedFragmentPath = fragmentResource is null
                 ? null
                 : Asset.Helper.NormalizeResource(fragmentResource, fragmentNamespace);
-            return _container.Resource(
+            return Container.Resource(
                 () =>
                     (
                         normalizedVertexPath is null
@@ -442,12 +445,12 @@ public static class ShaderAssetExtensions
 
         public static Shader Raw(string? vertex, string? fragment, CacheType? cacheType = null)
         {
-            return _container.Raw((vertex, fragment), () => new Shader(vertex, fragment), cacheType);
+            return Container.Raw((vertex, fragment), () => new Shader(vertex, fragment), cacheType);
         }
 
         public static void Invalidate(Shader shader)
         {
-            _container.Invalidate(shader);
+            Container.Invalidate(shader);
         }
     }
 }
