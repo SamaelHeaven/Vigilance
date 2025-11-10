@@ -239,7 +239,7 @@ public static unsafe partial class FileSystem
         {
             var length = (int)stream.Length;
             bytes = new byte[length];
-            _ = stream.Read(bytes, 0, length);
+            stream.ReadExactly(bytes);
             return true;
         }
 
