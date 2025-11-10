@@ -26,6 +26,11 @@ public static class SpanExtensions
         return array;
     }
 
+    public static Span<T> AsSpan<T>(this List<T> list)
+    {
+        return CollectionsMarshal.AsSpan(list);
+    }
+
     public static ReadOnlySpan<char> AsSpan(this string str)
     {
         return MemoryExtensions.AsSpan(str);
@@ -34,10 +39,5 @@ public static class SpanExtensions
     public static Span<T> AsSpan<T>(this ArraySegment<T> segment)
     {
         return MemoryExtensions.AsSpan(segment);
-    }
-
-    public static Span<T> AsSpan<T>(this List<T> list)
-    {
-        return CollectionsMarshal.AsSpan(list);
     }
 }
