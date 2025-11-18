@@ -647,6 +647,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
         private IEnumerator<Entity>? _enumerator = null;
+
         private readonly bool _deferred;
 
         public Entity Origin { get; }
@@ -745,49 +746,6 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             _enumerator = null;
         }
     }
-
-    #region Traverse
-
-    public ref readonly Entity Traverse(Action<Entity> action)
-    {
-        EnsureValid();
-        action.Invoke(this);
-        foreach (var child in Children)
-            child.Traverse(action);
-        return ref this;
-    }
-
-    public ref readonly Entity Traverse<T>(Action<Entity> action)
-    {
-        EnsureValid();
-        if (FlecsEntity.Has<T>())
-            action.Invoke(this);
-        foreach (var child in Children)
-            child.Traverse<T>(action);
-        return ref this;
-    }
-
-    public ref readonly Entity Traverse<T>(Action<T> action)
-    {
-        EnsureValid();
-        if (TryGet(out T t))
-            action.Invoke(t);
-        foreach (var child in Children)
-            child.Traverse(action);
-        return ref this;
-    }
-
-    public ref readonly Entity Traverse<T>(Action<Entity, T> action)
-    {
-        EnsureValid();
-        if (TryGet(out T t))
-            action.Invoke(this, t);
-        foreach (var child in Children)
-            child.Traverse(action);
-        return ref this;
-    }
-
-    #endregion
 }
 
 public static unsafe partial class EntityExtensions

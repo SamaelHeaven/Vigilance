@@ -658,7 +658,7 @@ public sealed unsafe partial class Scene
 
     #region OnAdd
 
-    public void OnAdd<T>(Action<Entity> action, bool traverse = false)
+    public void OnAdd<T>(Action<Entity> action)
     {
         EnsureNotInitialized();
         World
@@ -667,20 +667,14 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event<AddEvent>()
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse(action);
-                    }
-                    : (it, i, ref _) =>
-                    {
-                        action.Invoke(new Entity(it.Handle->entities[i], this));
-                    }
+                (it, i, ref _) =>
+                {
+                    action.Invoke(new Entity(it.Handle->entities[i], this));
+                }
             );
     }
 
-    public void OnAdd<T>(Action<T> action, bool traverse = false)
+    public void OnAdd<T>(Action<T> action)
     {
         EnsureNotInitialized();
         World
@@ -689,20 +683,14 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event<AddEvent>()
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse(action);
-                    }
-                    : (_, _, ref t) =>
-                    {
-                        action.Invoke(t);
-                    }
+                (_, _, ref t) =>
+                {
+                    action.Invoke(t);
+                }
             );
     }
 
-    public void OnAdd<T>(Action<Entity, T> action, bool traverse = false)
+    public void OnAdd<T>(Action<Entity, T> action)
     {
         EnsureNotInitialized();
         World
@@ -711,16 +699,10 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event<AddEvent>()
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse(action);
-                    }
-                    : (it, i, ref t) =>
-                    {
-                        action.Invoke(new Entity(it.Handle->entities[i], this), t);
-                    }
+                (it, i, ref t) =>
+                {
+                    action.Invoke(new Entity(it.Handle->entities[i], this), t);
+                }
             );
     }
 
@@ -728,7 +710,7 @@ public sealed unsafe partial class Scene
 
     #region OnSet
 
-    public void OnSet<T>(Action<Entity> action, bool traverse = false)
+    public void OnSet<T>(Action<Entity> action)
     {
         EnsureNotInitialized();
         World
@@ -737,21 +719,15 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event<SetEvent>()
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse<T>(action);
-                    }
-                    : (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        action.Invoke(entity);
-                    }
+                (it, i, ref _) =>
+                {
+                    var entity = new Entity(it.Handle->entities[i], this);
+                    action.Invoke(entity);
+                }
             );
     }
 
-    public void OnSet<T>(Action<T> action, bool traverse = false)
+    public void OnSet<T>(Action<T> action)
     {
         EnsureNotInitialized();
         World
@@ -760,20 +736,14 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event<SetEvent>()
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse(action);
-                    }
-                    : (_, _, ref t) =>
-                    {
-                        action.Invoke(t);
-                    }
+                (_, _, ref t) =>
+                {
+                    action.Invoke(t);
+                }
             );
     }
 
-    public void OnSet<T>(Action<Entity, T> action, bool traverse = false)
+    public void OnSet<T>(Action<Entity, T> action)
     {
         EnsureNotInitialized();
         World
@@ -782,17 +752,11 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event<SetEvent>()
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse(action);
-                    }
-                    : (it, i, ref t) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        action.Invoke(entity, t);
-                    }
+                (it, i, ref t) =>
+                {
+                    var entity = new Entity(it.Handle->entities[i], this);
+                    action.Invoke(entity, t);
+                }
             );
     }
 
@@ -800,7 +764,7 @@ public sealed unsafe partial class Scene
 
     #region OnAddOrSet
 
-    public void OnAddOrSet<T>(Action<Entity> action, bool traverse = false)
+    public void OnAddOrSet<T>(Action<Entity> action)
     {
         EnsureNotInitialized();
         World
@@ -809,21 +773,15 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event(Flecs.NET.Core.Ecs.OnSet)
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse<T>(action);
-                    }
-                    : (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        action.Invoke(entity);
-                    }
+                (it, i, ref _) =>
+                {
+                    var entity = new Entity(it.Handle->entities[i], this);
+                    action.Invoke(entity);
+                }
             );
     }
 
-    public void OnAddOrSet<T>(Action<T> action, bool traverse = false)
+    public void OnAddOrSet<T>(Action<T> action)
     {
         EnsureNotInitialized();
         World
@@ -832,20 +790,14 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event(Flecs.NET.Core.Ecs.OnSet)
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse(action);
-                    }
-                    : (_, _, ref t) =>
-                    {
-                        action.Invoke(t);
-                    }
+                (_, _, ref t) =>
+                {
+                    action.Invoke(t);
+                }
             );
     }
 
-    public void OnAddOrSet<T>(Action<Entity, T> action, bool traverse = false)
+    public void OnAddOrSet<T>(Action<Entity, T> action)
     {
         EnsureNotInitialized();
         World
@@ -854,17 +806,11 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event(Flecs.NET.Core.Ecs.OnSet)
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse(action);
-                    }
-                    : (it, i, ref t) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        action.Invoke(entity, t);
-                    }
+                (it, i, ref t) =>
+                {
+                    var entity = new Entity(it.Handle->entities[i], this);
+                    action.Invoke(entity, t);
+                }
             );
     }
 
@@ -872,7 +818,7 @@ public sealed unsafe partial class Scene
 
     #region OnRemove
 
-    public void OnRemove<T>(Action<Entity> action, bool traverse = false)
+    public void OnRemove<T>(Action<Entity> action)
     {
         EnsureNotInitialized();
         World
@@ -881,20 +827,14 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse(action);
-                    }
-                    : (it, i, ref _) =>
-                    {
-                        action.Invoke(new Entity(it.Handle->entities[i], this));
-                    }
+                (it, i, ref _) =>
+                {
+                    action.Invoke(new Entity(it.Handle->entities[i], this));
+                }
             );
     }
 
-    public void OnRemove<T>(Action<T> action, bool traverse = false)
+    public void OnRemove<T>(Action<T> action)
     {
         EnsureNotInitialized();
         World
@@ -903,20 +843,14 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse(action);
-                    }
-                    : (_, _, ref t) =>
-                    {
-                        action.Invoke(t);
-                    }
+                (_, _, ref t) =>
+                {
+                    action.Invoke(t);
+                }
             );
     }
 
-    public void OnRemove<T>(Action<Entity, T> action, bool traverse = false)
+    public void OnRemove<T>(Action<Entity, T> action)
     {
         EnsureNotInitialized();
         World
@@ -925,16 +859,10 @@ public sealed unsafe partial class Scene
             .Optional()
             .Event(Flecs.NET.Core.Ecs.OnRemove)
             .Each(
-                traverse
-                    ? (it, i, ref _) =>
-                    {
-                        var entity = new Entity(it.Handle->entities[i], this);
-                        entity.Traverse(action);
-                    }
-                    : (it, i, ref t) =>
-                    {
-                        action.Invoke(new Entity(it.Handle->entities[i], this), t);
-                    }
+                (it, i, ref t) =>
+                {
+                    action.Invoke(new Entity(it.Handle->entities[i], this), t);
+                }
             );
     }
 
@@ -942,19 +870,18 @@ public sealed unsafe partial class Scene
 
     #region OnSetPosition
 
-    public void OnSetPosition(Action<Entity> action, bool traverse = false)
+    public void OnSetPosition(Action<Entity> action)
     {
-        OnSet<Position>(action, traverse);
+        OnSet<Position>(action);
     }
 
-    public void OnSetPosition(Action<Entity, Vector2> action, bool traverse = false)
+    public void OnSetPosition(Action<Entity, Vector2> action)
     {
         OnSet(
             (Entity entity, Position position) =>
             {
                 action.Invoke(entity, position.Value);
-            },
-            traverse
+            }
         );
     }
 
@@ -962,19 +889,18 @@ public sealed unsafe partial class Scene
 
     #region OnSetScale
 
-    public void OnSetScale(Action<Entity> action, bool traverse = false)
+    public void OnSetScale(Action<Entity> action)
     {
-        OnSet<Scale>(action, traverse);
+        OnSet<Scale>(action);
     }
 
-    public void OnSetScale(Action<Entity, Vector2> action, bool traverse = false)
+    public void OnSetScale(Action<Entity, Vector2> action)
     {
         OnSet(
             (Entity entity, Scale scale) =>
             {
                 action.Invoke(entity, scale.Value);
-            },
-            traverse
+            }
         );
     }
 
@@ -982,19 +908,18 @@ public sealed unsafe partial class Scene
 
     #region OnSetRotation
 
-    public void OnSetRotation(Action<Entity> action, bool traverse = false)
+    public void OnSetRotation(Action<Entity> action)
     {
-        OnSet<Rotation>(action, traverse);
+        OnSet<Rotation>(action);
     }
 
-    public void OnSetRotation(Action<Entity, float> action, bool traverse = false)
+    public void OnSetRotation(Action<Entity, float> action)
     {
         OnSet(
             (Entity entity, Rotation rotation) =>
             {
                 action.Invoke(entity, rotation.Value);
-            },
-            traverse
+            }
         );
     }
 
@@ -1002,19 +927,18 @@ public sealed unsafe partial class Scene
 
     #region OnSetPivotPoint
 
-    public void OnSetPivotPoint(Action<Entity> action, bool traverse = false)
+    public void OnSetPivotPoint(Action<Entity> action)
     {
-        OnSet<PivotPoint>(action, traverse);
+        OnSet<PivotPoint>(action);
     }
 
-    public void OnSetPivotPoint(Action<Entity, Vector2> action, bool traverse = false)
+    public void OnSetPivotPoint(Action<Entity, Vector2> action)
     {
         OnSet(
             (Entity entity, PivotPoint pivotPoint) =>
             {
                 action.Invoke(entity, pivotPoint.Value);
-            },
-            traverse
+            }
         );
     }
 
@@ -1022,19 +946,18 @@ public sealed unsafe partial class Scene
 
     #region OnSetZIndex
 
-    public void OnSetZIndex(Action<Entity> action, bool traverse = false)
+    public void OnSetZIndex(Action<Entity> action)
     {
-        OnSet<ZIndex>(action, traverse);
+        OnSet<ZIndex>(action);
     }
 
-    public void OnSetZIndex(Action<Entity, int> action, bool traverse = false)
+    public void OnSetZIndex(Action<Entity, int> action)
     {
         OnSet(
             (Entity entity, ZIndex zIndex) =>
             {
                 action.Invoke(entity, zIndex.Value);
-            },
-            traverse
+            }
         );
     }
 
