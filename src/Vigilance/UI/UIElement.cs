@@ -745,7 +745,6 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
                 var n = parent.ChildrenList.First;
                 while (n != null && n.Value != Origin)
                     n = n.Next;
-
                 if (n != null)
                 {
                     _node = n.Next;
