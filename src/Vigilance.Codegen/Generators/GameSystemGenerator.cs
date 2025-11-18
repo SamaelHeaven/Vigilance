@@ -5,7 +5,7 @@ using Vigilance.Codegen.Helpers;
 namespace Vigilance.Codegen.Generators;
 
 [Generator]
-public sealed class GameSystem : SourceGenerator
+public sealed class GameSystemGenerator : SourceGenerator
 {
     protected override void Generate(StringBuilder sb)
     {

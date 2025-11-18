@@ -5,7 +5,7 @@ using Vigilance.Codegen.Helpers;
 namespace Vigilance.Codegen.Generators;
 
 [Generator]
-public sealed class Entity : SourceGenerator
+public sealed class EntityGenerator : SourceGenerator
 {
     protected override void Generate(StringBuilder sb)
     {
