@@ -6,7 +6,6 @@ using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
 using ZLinq;
-using ZLinq.Traversables;
 using Display = FlexLayoutSharp.Display;
 using Vector2 = Vigilance.Math.Vector2;
 
@@ -495,21 +494,21 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
 
     public virtual void Update(Entity entity)
     {
-        var e = new UIEvent { Entity = entity, Element = this };
+        var @event = new UIEvent { Entity = entity, Element = this };
         var oldMouseInside = IsMouseInside;
         IsMouseInside =
             RenderedGraphics == Renderer.Graphics
             && Mouse.OnScreen
             && IsVisible
             && Collision.CheckPointQuad(Mouse.Position, RenderedBounds);
-        OnUpdateEvent?.Invoke(e);
+        OnUpdateEvent?.Invoke(@event);
         switch (oldMouseInside)
         {
             case false when IsMouseInside:
-                OnMouseEnterEvent?.Invoke(e);
+                OnMouseEnterEvent?.Invoke(@event);
                 break;
             case true when !IsMouseInside:
-                OnMouseLeaveEvent?.Invoke(e);
+                OnMouseLeaveEvent?.Invoke(@event);
                 break;
         }
 
@@ -517,16 +516,16 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
         {
             _click = IsMouseInside;
             if (IsMouseInside)
-                OnPressEvent?.Invoke(e);
+                OnPressEvent?.Invoke(@event);
         }
 
         if (!Mouse.IsButtonReleased(MouseButton.Left))
             return;
         _click = _click && IsMouseInside;
         if (_click)
-            OnClickEvent?.Invoke(e);
+            OnClickEvent?.Invoke(@event);
         if (IsMouseInside)
-            OnReleaseEvent?.Invoke(e);
+            OnReleaseEvent?.Invoke(@event);
     }
 
     public void Render(Transform transform, Graphics graphics)
@@ -807,7 +806,7 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
     }
 }
 
-public static class UIElementExtensions
+public static partial class UIElementExtensions
 {
     extension<T>(T element)
         where T : UIElement
@@ -846,117 +845,6 @@ public static class UIElementExtensions
         {
             el = element;
             return el;
-        }
-    }
-
-    extension(UIElement element)
-    {
-        public UIElement.Traverser AsTraverser()
-        {
-            return new UIElement.Traverser(element);
-        }
-
-        public ValueEnumerable<Children<UIElement.Traverser, UIElement>, UIElement> Children()
-        {
-            return element.AsTraverser().Children();
-        }
-
-        public ValueEnumerable<Children<UIElement.Traverser, UIElement>, UIElement> ChildrenAndSelf()
-        {
-            return element.AsTraverser().ChildrenAndSelf();
-        }
-
-        public ValueEnumerable<Descendants<UIElement.Traverser, UIElement>, UIElement> Descendants()
-        {
-            return element.AsTraverser().Descendants();
-        }
-
-        public ValueEnumerable<Descendants<UIElement.Traverser, UIElement>, UIElement> DescendantsAndSelf()
-        {
-            return element.AsTraverser().DescendantsAndSelf();
-        }
-
-        public ValueEnumerable<Ancestors<UIElement.Traverser, UIElement>, UIElement> Ancestors()
-        {
-            return element.AsTraverser().Ancestors();
-        }
-
-        public ValueEnumerable<Ancestors<UIElement.Traverser, UIElement>, UIElement> AncestorsAndSelf()
-        {
-            return element.AsTraverser().AncestorsAndSelf();
-        }
-
-        public ValueEnumerable<BeforeSelf<UIElement.Traverser, UIElement>, UIElement> BeforeSelf()
-        {
-            return element.AsTraverser().BeforeSelf();
-        }
-
-        public ValueEnumerable<BeforeSelf<UIElement.Traverser, UIElement>, UIElement> BeforeSelfAndSelf()
-        {
-            return element.AsTraverser().BeforeSelfAndSelf();
-        }
-
-        public ValueEnumerable<AfterSelf<UIElement.Traverser, UIElement>, UIElement> AfterSelf()
-        {
-            return element.AsTraverser().AfterSelf();
-        }
-
-        public ValueEnumerable<AfterSelf<UIElement.Traverser, UIElement>, UIElement> AfterSelfAndSelf()
-        {
-            return element.AsTraverser().AfterSelfAndSelf();
-        }
-    }
-
-    extension(UIElement.Traverser traverser)
-    {
-        public ValueEnumerable<Children<UIElement.Traverser, UIElement>, UIElement> Children()
-        {
-            return traverser.Children<UIElement.Traverser, UIElement>();
-        }
-
-        public ValueEnumerable<Children<UIElement.Traverser, UIElement>, UIElement> ChildrenAndSelf()
-        {
-            return traverser.ChildrenAndSelf<UIElement.Traverser, UIElement>();
-        }
-
-        public ValueEnumerable<Descendants<UIElement.Traverser, UIElement>, UIElement> Descendants()
-        {
-            return traverser.Descendants<UIElement.Traverser, UIElement>();
-        }
-
-        public ValueEnumerable<Descendants<UIElement.Traverser, UIElement>, UIElement> DescendantsAndSelf()
-        {
-            return traverser.DescendantsAndSelf<UIElement.Traverser, UIElement>();
-        }
-
-        public ValueEnumerable<Ancestors<UIElement.Traverser, UIElement>, UIElement> Ancestors()
-        {
-            return traverser.Ancestors<UIElement.Traverser, UIElement>();
-        }
-
-        public ValueEnumerable<Ancestors<UIElement.Traverser, UIElement>, UIElement> AncestorsAndSelf()
-        {
-            return traverser.AncestorsAndSelf<UIElement.Traverser, UIElement>();
-        }
-
-        public ValueEnumerable<BeforeSelf<UIElement.Traverser, UIElement>, UIElement> BeforeSelf()
-        {
-            return traverser.BeforeSelf<UIElement.Traverser, UIElement>();
-        }
-
-        public ValueEnumerable<BeforeSelf<UIElement.Traverser, UIElement>, UIElement> BeforeSelfAndSelf()
-        {
-            return traverser.BeforeSelfAndSelf<UIElement.Traverser, UIElement>();
-        }
-
-        public ValueEnumerable<AfterSelf<UIElement.Traverser, UIElement>, UIElement> AfterSelf()
-        {
-            return traverser.AfterSelf<UIElement.Traverser, UIElement>();
-        }
-
-        public ValueEnumerable<AfterSelf<UIElement.Traverser, UIElement>, UIElement> AfterSelfAndSelf()
-        {
-            return traverser.AfterSelfAndSelf<UIElement.Traverser, UIElement>();
         }
     }
 }

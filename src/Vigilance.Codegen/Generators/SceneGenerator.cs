@@ -1,17 +1,14 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
+using Vigilance.Codegen.Helpers;
 
-namespace Vigilance.Codegen;
+namespace Vigilance.Codegen.Generators;
 
 [Generator]
-public sealed class SceneGenerator : ISourceGenerator
+public sealed class SceneGenerator : SourceGenerator
 {
-    public void Initialize(GeneratorInitializationContext context) { }
-
-    public void Execute(GeneratorExecutionContext context)
+    protected override void Generate(StringBuilder sb)
     {
-        var sb = new StringBuilder();
         sb.AppendLine(
             """
             #pragma warning disable CS9084
@@ -27,7 +24,6 @@ public sealed class SceneGenerator : ISourceGenerator
         Components(sb);
         Entries(sb);
         sb.AppendLine("}");
-        context.AddSource("Scene.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
     private static void Entities(StringBuilder sb)

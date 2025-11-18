@@ -1,17 +1,14 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
+using Vigilance.Codegen.Helpers;
 
-namespace Vigilance.Codegen;
+namespace Vigilance.Codegen.Generators;
 
 [Generator]
-public sealed class GameSystemGenerator : ISourceGenerator
+public sealed class GameSystem : SourceGenerator
 {
-    public void Initialize(GeneratorInitializationContext context) { }
-
-    public void Execute(GeneratorExecutionContext context)
+    protected override void Generate(StringBuilder sb)
     {
-        var sb = new StringBuilder();
         sb.AppendLine(
             """
             #pragma warning disable CS9084
@@ -27,7 +24,6 @@ public sealed class GameSystemGenerator : ISourceGenerator
         Components(sb);
         Entries(sb);
         sb.AppendLine("}");
-        context.AddSource("GameSystem.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
     private static void Entities(StringBuilder sb)

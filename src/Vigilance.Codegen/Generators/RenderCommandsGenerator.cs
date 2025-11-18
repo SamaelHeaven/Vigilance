@@ -1,17 +1,13 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
 
-namespace Vigilance.Codegen;
+namespace Vigilance.Codegen.Generators;
 
 [Generator]
-public sealed class RenderCommandsGenerator : ISourceGenerator
+public sealed class RenderCommandsGenerator : SourceGenerator
 {
-    public void Initialize(GeneratorInitializationContext context) { }
-
-    public void Execute(GeneratorExecutionContext context)
+    protected override void Generate(StringBuilder sb)
     {
-        var sb = new StringBuilder();
         sb.AppendLine(
             """
             using Vigilance.Core;
@@ -28,7 +24,6 @@ public sealed class RenderCommandsGenerator : ISourceGenerator
         AddRangeGameSystem(sb, false);
         AddRangeGameSystem(sb, true);
         sb.AppendLine("}");
-        context.AddSource("RenderCommand.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
     private static void AddRangeEnumerable(StringBuilder sb, bool context)

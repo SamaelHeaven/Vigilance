@@ -1,17 +1,13 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
 
-namespace Vigilance.Codegen;
+namespace Vigilance.Codegen.Generators;
 
 [Generator]
-public sealed class LoggerGenerator : ISourceGenerator
+public sealed class Logger : SourceGenerator
 {
-    public void Initialize(GeneratorInitializationContext context) { }
-
-    public void Execute(GeneratorExecutionContext context)
+    protected override void Generate(StringBuilder sb)
     {
-        var sb = new StringBuilder();
         sb.AppendLine(
             """
             namespace Vigilance.Logging;
@@ -29,7 +25,6 @@ public sealed class LoggerGenerator : ISourceGenerator
         Log(sb, "Error");
         Log(sb, "Fatal");
         sb.AppendLine("}");
-        context.AddSource("Logger.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
     private static void Log(StringBuilder sb, string type, bool levelArg = false)

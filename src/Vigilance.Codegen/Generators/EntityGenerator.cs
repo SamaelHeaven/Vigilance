@@ -1,17 +1,14 @@
 ﻿using System.Text;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
+using Vigilance.Codegen.Helpers;
 
-namespace Vigilance.Codegen;
+namespace Vigilance.Codegen.Generators;
 
 [Generator]
-public sealed class EntityGenerator : ISourceGenerator
+public sealed class Entity : SourceGenerator
 {
-    public void Initialize(GeneratorInitializationContext context) { }
-
-    public void Execute(GeneratorExecutionContext context)
+    protected override void Generate(StringBuilder sb)
     {
-        var sb = new StringBuilder();
         sb.AppendLine(
             """
             namespace Vigilance.Core;
@@ -24,7 +21,6 @@ public sealed class EntityGenerator : ISourceGenerator
         Has(sb);
         TryGet(sb);
         sb.AppendLine("}");
-        context.AddSource("Entity.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
     private static void Has(StringBuilder sb)

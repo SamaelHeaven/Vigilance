@@ -1,8 +1,8 @@
 using System.Text;
 
-namespace Vigilance.Codegen;
+namespace Vigilance.Codegen.Helpers;
 
-public static class StringBuilderExtensions
+public static class RegionHelper
 {
     public static void BeginRegion(this StringBuilder sb, string region)
     {
