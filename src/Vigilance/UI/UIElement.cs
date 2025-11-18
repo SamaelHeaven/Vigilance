@@ -714,8 +714,8 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
                 return false;
             }
 
-            _node = _node == null ? parent.ChildrenList.First : _next;
-            if (_node != null)
+            _node = _node is null ? parent.ChildrenList.First : _next;
+            if (_node is not null)
             {
                 child = _node.Value;
                 _next = _node.Next;
@@ -728,10 +728,10 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
 
         public bool TryGetNextSibling(out UIElement next)
         {
-            if (_node != null)
+            if (_node is not null)
             {
                 _node = _next;
-                if (_node != null)
+                if (_node is not null)
                 {
                     next = _node.Value;
                     _next = _node.Next;
@@ -740,13 +740,13 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
             }
             else if (TryGetParent(out var parent))
             {
-                var n = parent.ChildrenList.First;
-                while (n != null && n.Value != Origin)
-                    n = n.Next;
-                if (n != null)
+                var node = parent.ChildrenList.First;
+                while (node is not null && node.Value != Origin)
+                    node = node.Next;
+                if (node is not null)
                 {
-                    _node = n.Next;
-                    if (_node != null)
+                    _node = node.Next;
+                    if (_node is not null)
                     {
                         next = _node.Value;
                         _next = _node.Next;
@@ -761,37 +761,25 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
 
         public bool TryGetPreviousSibling(out UIElement previous)
         {
-            if (_node != null)
+            if (_node is not null)
             {
-                var prev = _node.Previous;
-                if (prev != null)
+                _node = _next;
+                if (_node is not null && _node.Value != Origin)
                 {
-                    _node = prev;
-                    previous = prev.Value;
-                    _next = prev.Next;
+                    previous = _node.Value;
+                    _next = _node.Next;
                     return true;
                 }
             }
             else if (TryGetParent(out var parent))
             {
-                var n = parent.ChildrenList.First;
-                while (n != null)
+                var node = parent.ChildrenList.First;
+                if (node is not null && node.Value != Origin)
                 {
-                    if (n.Value == Origin)
-                    {
-                        var prev = n.Previous;
-                        if (prev != null)
-                        {
-                            _node = prev;
-                            previous = prev.Value;
-                            _next = prev.Next;
-                            return true;
-                        }
-
-                        break;
-                    }
-
-                    n = n.Next;
+                    _node = node;
+                    previous = _node.Value;
+                    _next = _node.Next;
+                    return true;
                 }
             }
 
