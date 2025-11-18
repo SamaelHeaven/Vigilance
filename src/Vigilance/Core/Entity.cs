@@ -1,7 +1,6 @@
 #pragma warning disable CS9084
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -642,11 +641,10 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
-    [SuppressMessage("ReSharper", "GenericEnumeratorNotDisposed")]
     public struct Traverser : ITraverser<Traverser, Entity>
     {
-        [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
-        private IEnumerator<Entity>? _enumerator = null;
+        private ChildEnumerator _enumerator;
+        private bool _hasEnumerator;
 
         private readonly bool _deferred;
 
@@ -684,7 +682,12 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
         public bool TryGetNextChild(out Entity child)
         {
-            _enumerator ??= Origin.Children.Deferred(_deferred).GetEnumerator();
+            if (!_hasEnumerator)
+            {
+                _enumerator = Origin.Children.Deferred(_deferred).GetEnumerator();
+                _hasEnumerator = true;
+            }
+
             if (_enumerator.MoveNext())
             {
                 child = _enumerator.Current;
@@ -698,7 +701,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         public bool TryGetNextSibling(out Entity next)
         {
             BEGIN:
-            if (_enumerator is not null)
+            if (_hasEnumerator)
             {
                 if (_enumerator.MoveNext())
                 {
@@ -709,6 +712,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             else if (TryGetParent(out var parent))
             {
                 var enumerator = _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
+                _hasEnumerator = true;
                 while (enumerator.MoveNext())
                     if (enumerator.Current.Id == Origin.Id)
                         goto BEGIN;
@@ -721,7 +725,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         public bool TryGetPreviousSibling(out Entity previous)
         {
             BEGIN:
-            if (_enumerator is not null)
+            if (_hasEnumerator)
             {
                 if (_enumerator.MoveNext())
                 {
@@ -733,6 +737,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             else if (TryGetParent(out var parent))
             {
                 _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
+                _hasEnumerator = true;
                 goto BEGIN;
             }
 
@@ -742,8 +747,10 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
         public void Dispose()
         {
-            _enumerator?.Dispose();
-            _enumerator = null;
+            if (!_hasEnumerator)
+                return;
+            _enumerator.Dispose();
+            _hasEnumerator = false;
         }
     }
 }
