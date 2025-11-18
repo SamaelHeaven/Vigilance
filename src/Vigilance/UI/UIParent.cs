@@ -6,7 +6,7 @@ namespace Vigilance.UI;
 
 public abstract class UIParent : UIElement
 {
-    private LinkedList<UIElement> _children = new();
+    internal LinkedList<UIElement> ChildrenList = new();
 
     public UIParent this[UIElement? element]
     {
@@ -40,7 +40,7 @@ public abstract class UIParent : UIElement
     protected override void Render(Graphics graphics, CameraProvider camera)
     {
         RenderSelf(graphics, camera);
-        foreach (var element in _children.AsValueEnumerable().OrderBy(e => e.ZIndex))
+        foreach (var element in ChildrenList.AsValueEnumerable().OrderBy(e => e.ZIndex))
             element.Render(element.LayoutTransform, graphics, camera);
     }
 
@@ -56,57 +56,12 @@ public abstract class UIParent : UIElement
 
     protected virtual void UpdateSelf(Entity entity) { }
 
-    public UIElement? Select(UISelector? selector = null)
-    {
-        return Select<UIElement>(selector);
-    }
-
-    public T? Select<T>(UISelector? selector = null)
-        where T : UIElement
-    {
-        selector ??= static _ => true;
-        foreach (var element in Children)
-            if (element is T t && selector.Invoke(t))
-                return t;
-        foreach (var element in Children)
-        {
-            if (element is not UIParent container)
-                continue;
-            var result = container.Select<T>(selector);
-            if (result is not null)
-                return result;
-        }
-
-        return null;
-    }
-
-    public IEnumerable<UIElement> SelectAll(UISelector? selector = null)
-    {
-        return SelectAll<UIElement>(selector);
-    }
-
-    public IEnumerable<T> SelectAll<T>(UISelector? selector = null)
-        where T : UIElement
-    {
-        selector ??= static _ => true;
-        foreach (var element in Children)
-            if (element is T t && selector(t))
-                yield return t;
-        foreach (var element in Children)
-        {
-            if (element is not UIParent parent)
-                continue;
-            foreach (var child in parent.SelectAll<T>(selector))
-                yield return child;
-        }
-    }
-
     public void Add(UIElement? element)
     {
         if (element is null)
             return;
         element.Remove();
-        _children.AddLast(element);
+        ChildrenList.AddLast(element);
         element.Parent = this;
         if (!IsLayoutCustom)
             Node.AddChild(element.Node);
@@ -128,13 +83,13 @@ public abstract class UIParent : UIElement
 
     public void Insert(int index, UIElement element)
     {
-        var oldNode = _children.AsValueEnumerable().ElementAtOrDefault(index);
+        var oldNode = ChildrenList.AsValueEnumerable().ElementAtOrDefault(index);
         element.Remove();
         element.Parent = this;
         if (oldNode is null)
-            _children.AddLast(element);
+            ChildrenList.AddLast(element);
         else
-            _children.AddBefore(_children.Find(oldNode)!, element);
+            ChildrenList.AddBefore(ChildrenList.Find(oldNode)!, element);
         if (!IsLayoutCustom)
             Node.InsertChild(element.Node, index);
         MarkDirty();
@@ -143,7 +98,7 @@ public abstract class UIParent : UIElement
     public int IndexOf(UIElement element)
     {
         var index = 0;
-        foreach (var child in _children)
+        foreach (var child in ChildrenList)
         {
             if (child == element)
                 return index;
@@ -155,12 +110,12 @@ public abstract class UIParent : UIElement
 
     public bool Replace(int index, UIElement element)
     {
-        var oldNode = _children.AsValueEnumerable().ElementAtOrDefault(index);
+        var oldNode = ChildrenList.AsValueEnumerable().ElementAtOrDefault(index);
         if (oldNode is null)
             return false;
         element.Remove();
         element.Parent = this;
-        _children.Find(oldNode)!.Value = element;
+        ChildrenList.Find(oldNode)!.Value = element;
         if (!IsLayoutCustom)
             Node.ReplaceChild(index, element.Node);
         MarkDirty();
@@ -176,14 +131,14 @@ public abstract class UIParent : UIElement
     protected override object DeepClone()
     {
         var result = (UIParent)base.DeepClone();
-        result._children = new LinkedList<UIElement>();
-        result.AddRange(_children.Select(el => el.DeepClone()));
+        result.ChildrenList = new LinkedList<UIElement>();
+        result.AddRange(ChildrenList.Select(el => el.DeepClone()));
         return result;
     }
 
     internal void Remove(UIElement element)
     {
-        _children.Remove(element);
+        ChildrenList.Remove(element);
         element.Parent = null;
         if (!IsLayoutCustom)
             Node.RemoveChild(element.Node);
@@ -211,7 +166,7 @@ public abstract class UIParent : UIElement
             return new StructEnumerator<ChildEnumerator, UIElement>(GetEnumerator());
         }
 
-        public int Count => _parent._children.Count;
+        public int Count => _parent.ChildrenList.Count;
     }
 
     public struct ChildEnumerator : IStructEnumerator<UIElement>
@@ -237,7 +192,7 @@ public abstract class UIParent : UIElement
 
         public void Reset()
         {
-            _next = _parent._children.First;
+            _next = _parent.ChildrenList.First;
             _current = null;
         }
 

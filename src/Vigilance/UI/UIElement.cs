@@ -1,9 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using FlexLayoutSharp;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Math;
+using ZLinq;
+using ZLinq.Traversables;
 using Display = FlexLayoutSharp.Display;
 using Vector2 = Vigilance.Math.Vector2;
 
@@ -474,20 +477,6 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
         Parent?.Remove(this);
     }
 
-    public UIElement? Closest(UISelector? selector = null)
-    {
-        return Closest<UIElement>(selector);
-    }
-
-    public T? Closest<T>(UISelector? selector = null)
-        where T : UIElement
-    {
-        selector ??= _ => true;
-        if (this is T t && selector.Invoke(t))
-            return t;
-        return Parent?.Closest<T>(selector);
-    }
-
     public void CalculateLayout(Vector2 size)
     {
         CalculateLayout(size.X, size.Y);
@@ -672,6 +661,150 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
         foreach (var element in parent.Children)
             element.MarkReady();
     }
+
+    [SuppressMessage("ReSharper", "GenericEnumeratorNotDisposed")]
+    public struct Traverser : ITraverser<Traverser, UIElement>
+    {
+        private LinkedListNode<UIElement>? _node;
+        private LinkedListNode<UIElement>? _next;
+
+        public UIElement Origin { get; }
+
+        internal Traverser(UIElement element)
+        {
+            Origin = element;
+            _node = null;
+            _next = null;
+        }
+
+        public Traverser ConvertToTraverser(UIElement next)
+        {
+            return new Traverser(next);
+        }
+
+        public bool TryGetChildCount(out int count)
+        {
+            count = 0;
+            if (Origin is UIParent parent)
+                count = parent.ChildrenList.Count;
+            return true;
+        }
+
+        public bool TryGetHasChild(out bool hasChild)
+        {
+            TryGetChildCount(out var count);
+            hasChild = count > 0;
+            return true;
+        }
+
+        public bool TryGetParent(out UIParent parent)
+        {
+            parent = Origin.Parent!;
+            return Origin.Parent is not null;
+        }
+
+        bool ITraverser<Traverser, UIElement>.TryGetParent(out UIElement parent)
+        {
+            parent = Origin.Parent!;
+            return Origin.Parent is not null;
+        }
+
+        public bool TryGetNextChild(out UIElement child)
+        {
+            if (Origin is not UIParent parent)
+            {
+                child = null!;
+                return false;
+            }
+
+            _node = _node == null ? parent.ChildrenList.First : _next;
+            if (_node != null)
+            {
+                child = _node.Value;
+                _next = _node.Next;
+                return true;
+            }
+
+            child = null!;
+            return false;
+        }
+
+        public bool TryGetNextSibling(out UIElement next)
+        {
+            if (_node != null)
+            {
+                _node = _next;
+                if (_node != null)
+                {
+                    next = _node.Value;
+                    _next = _node.Next;
+                    return true;
+                }
+            }
+            else if (TryGetParent(out var parent))
+            {
+                var n = parent.ChildrenList.First;
+                while (n != null && n.Value != Origin)
+                    n = n.Next;
+
+                if (n != null)
+                {
+                    _node = n.Next;
+                    if (_node != null)
+                    {
+                        next = _node.Value;
+                        _next = _node.Next;
+                        return true;
+                    }
+                }
+            }
+
+            next = null!;
+            return false;
+        }
+
+        public bool TryGetPreviousSibling(out UIElement previous)
+        {
+            if (_node != null)
+            {
+                var prev = _node.Previous;
+                if (prev != null)
+                {
+                    _node = prev;
+                    previous = prev.Value;
+                    _next = prev.Next;
+                    return true;
+                }
+            }
+            else if (TryGetParent(out var parent))
+            {
+                var n = parent.ChildrenList.First;
+                while (n != null)
+                {
+                    if (n.Value == Origin)
+                    {
+                        var prev = n.Previous;
+                        if (prev != null)
+                        {
+                            _node = prev;
+                            previous = prev.Value;
+                            _next = prev.Next;
+                            return true;
+                        }
+
+                        break;
+                    }
+
+                    n = n.Next;
+                }
+            }
+
+            previous = null!;
+            return false;
+        }
+
+        public void Dispose() { }
+    }
 }
 
 public static class UIElementExtensions
@@ -713,6 +846,117 @@ public static class UIElementExtensions
         {
             el = element;
             return el;
+        }
+    }
+
+    extension(UIElement element)
+    {
+        public UIElement.Traverser AsTraverser()
+        {
+            return new UIElement.Traverser(element);
+        }
+
+        public ValueEnumerable<Children<UIElement.Traverser, UIElement>, UIElement> Children()
+        {
+            return element.AsTraverser().Children();
+        }
+
+        public ValueEnumerable<Children<UIElement.Traverser, UIElement>, UIElement> ChildrenAndSelf()
+        {
+            return element.AsTraverser().ChildrenAndSelf();
+        }
+
+        public ValueEnumerable<Descendants<UIElement.Traverser, UIElement>, UIElement> Descendants()
+        {
+            return element.AsTraverser().Descendants();
+        }
+
+        public ValueEnumerable<Descendants<UIElement.Traverser, UIElement>, UIElement> DescendantsAndSelf()
+        {
+            return element.AsTraverser().DescendantsAndSelf();
+        }
+
+        public ValueEnumerable<Ancestors<UIElement.Traverser, UIElement>, UIElement> Ancestors()
+        {
+            return element.AsTraverser().Ancestors();
+        }
+
+        public ValueEnumerable<Ancestors<UIElement.Traverser, UIElement>, UIElement> AncestorsAndSelf()
+        {
+            return element.AsTraverser().AncestorsAndSelf();
+        }
+
+        public ValueEnumerable<BeforeSelf<UIElement.Traverser, UIElement>, UIElement> BeforeSelf()
+        {
+            return element.AsTraverser().BeforeSelf();
+        }
+
+        public ValueEnumerable<BeforeSelf<UIElement.Traverser, UIElement>, UIElement> BeforeSelfAndSelf()
+        {
+            return element.AsTraverser().BeforeSelfAndSelf();
+        }
+
+        public ValueEnumerable<AfterSelf<UIElement.Traverser, UIElement>, UIElement> AfterSelf()
+        {
+            return element.AsTraverser().AfterSelf();
+        }
+
+        public ValueEnumerable<AfterSelf<UIElement.Traverser, UIElement>, UIElement> AfterSelfAndSelf()
+        {
+            return element.AsTraverser().AfterSelfAndSelf();
+        }
+    }
+
+    extension(UIElement.Traverser traverser)
+    {
+        public ValueEnumerable<Children<UIElement.Traverser, UIElement>, UIElement> Children()
+        {
+            return traverser.Children<UIElement.Traverser, UIElement>();
+        }
+
+        public ValueEnumerable<Children<UIElement.Traverser, UIElement>, UIElement> ChildrenAndSelf()
+        {
+            return traverser.ChildrenAndSelf<UIElement.Traverser, UIElement>();
+        }
+
+        public ValueEnumerable<Descendants<UIElement.Traverser, UIElement>, UIElement> Descendants()
+        {
+            return traverser.Descendants<UIElement.Traverser, UIElement>();
+        }
+
+        public ValueEnumerable<Descendants<UIElement.Traverser, UIElement>, UIElement> DescendantsAndSelf()
+        {
+            return traverser.DescendantsAndSelf<UIElement.Traverser, UIElement>();
+        }
+
+        public ValueEnumerable<Ancestors<UIElement.Traverser, UIElement>, UIElement> Ancestors()
+        {
+            return traverser.Ancestors<UIElement.Traverser, UIElement>();
+        }
+
+        public ValueEnumerable<Ancestors<UIElement.Traverser, UIElement>, UIElement> AncestorsAndSelf()
+        {
+            return traverser.AncestorsAndSelf<UIElement.Traverser, UIElement>();
+        }
+
+        public ValueEnumerable<BeforeSelf<UIElement.Traverser, UIElement>, UIElement> BeforeSelf()
+        {
+            return traverser.BeforeSelf<UIElement.Traverser, UIElement>();
+        }
+
+        public ValueEnumerable<BeforeSelf<UIElement.Traverser, UIElement>, UIElement> BeforeSelfAndSelf()
+        {
+            return traverser.BeforeSelfAndSelf<UIElement.Traverser, UIElement>();
+        }
+
+        public ValueEnumerable<AfterSelf<UIElement.Traverser, UIElement>, UIElement> AfterSelf()
+        {
+            return traverser.AfterSelf<UIElement.Traverser, UIElement>();
+        }
+
+        public ValueEnumerable<AfterSelf<UIElement.Traverser, UIElement>, UIElement> AfterSelfAndSelf()
+        {
+            return traverser.AfterSelfAndSelf<UIElement.Traverser, UIElement>();
         }
     }
 }
