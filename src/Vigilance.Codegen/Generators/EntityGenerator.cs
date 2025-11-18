@@ -21,6 +21,16 @@ public sealed class EntityGenerator : SourceGenerator
         Has(sb);
         TryGet(sb);
         sb.AppendLine("}");
+        sb.AppendLine(
+            """
+             
+            public static partial class EntityExtensions
+            {
+
+            """
+        );
+        sb.TraverserExtensions("Entity", "Entity.Traverser", "in", "bool deferred = true", "deferred");
+        sb.AppendLine("}");
     }
 
     private static void Has(StringBuilder sb)

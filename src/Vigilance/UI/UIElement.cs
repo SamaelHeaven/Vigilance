@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using FlexLayoutSharp;
 using Vigilance.Core;
@@ -661,7 +660,6 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
             element.MarkReady();
     }
 
-    [SuppressMessage("ReSharper", "GenericEnumeratorNotDisposed")]
     public struct Traverser : ITraverser<Traverser, UIElement>
     {
         private LinkedListNode<UIElement>? _node;
@@ -669,9 +667,9 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
 
         public UIElement Origin { get; }
 
-        internal Traverser(UIElement element)
+        internal Traverser(UIElement origin)
         {
-            Origin = element;
+            Origin = origin;
             _node = null;
             _next = null;
         }

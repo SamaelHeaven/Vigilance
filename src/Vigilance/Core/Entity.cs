@@ -1,6 +1,7 @@
 #pragma warning disable CS9084
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -40,35 +41,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
-    public string Path
-    {
-        get
-        {
-            EnsureValid();
-            var parent = Parent;
-            var name = Name;
-            if (parent.IsNull)
-                return name;
-            var sb = new StringBuilder(name.Length * 2);
-            AppendPath(parent, sb);
-            sb.Append('.');
-            sb.Append(name);
-            return sb.ToString();
-
-            static void AppendPath(in Entity entity, StringBuilder sb)
-            {
-                var parent = entity.Parent;
-                if (!parent.IsNull)
-                {
-                    AppendPath(parent, sb);
-                    sb.Append('.');
-                }
-
-                var name = entity.Name;
-                sb.Append(name);
-            }
-        }
-    }
+    public string Path => this.AncestorsAndSelf().Reverse().Select(e => e.Name).JoinToString(".");
 
     public bool IsValid => Scene.Cache.TransformMap.ContainsKey(Id);
 
@@ -669,6 +642,110 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
+    [SuppressMessage("ReSharper", "GenericEnumeratorNotDisposed")]
+    public struct Traverser : ITraverser<Traverser, Entity>
+    {
+        [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
+        private IEnumerator<Entity>? _enumerator = null;
+        private readonly bool _deferred;
+
+        public Entity Origin { get; }
+
+        internal Traverser(in Entity origin, bool deferred = true)
+        {
+            origin.EnsureValid();
+            Origin = origin;
+            _deferred = deferred;
+        }
+
+        public Traverser ConvertToTraverser(Entity next)
+        {
+            return new Traverser(next, _deferred);
+        }
+
+        public bool TryGetChildCount(out int count)
+        {
+            count = 0;
+            return false;
+        }
+
+        public bool TryGetHasChild(out bool hasChild)
+        {
+            hasChild = false;
+            return false;
+        }
+
+        public bool TryGetParent(out Entity parent)
+        {
+            parent = Origin.Parent;
+            return !parent.IsNull;
+        }
+
+        public bool TryGetNextChild(out Entity child)
+        {
+            _enumerator ??= Origin.Children.Deferred(_deferred).GetEnumerator();
+            if (_enumerator.MoveNext())
+            {
+                child = _enumerator.Current;
+                return true;
+            }
+
+            child = Null;
+            return false;
+        }
+
+        public bool TryGetNextSibling(out Entity next)
+        {
+            BEGIN:
+            if (_enumerator is not null)
+            {
+                if (_enumerator.MoveNext())
+                {
+                    next = _enumerator.Current;
+                    return true;
+                }
+            }
+            else if (TryGetParent(out var parent))
+            {
+                var enumerator = _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
+                while (enumerator.MoveNext())
+                    if (enumerator.Current.Id == Origin.Id)
+                        goto BEGIN;
+            }
+
+            next = Null;
+            return false;
+        }
+
+        public bool TryGetPreviousSibling(out Entity previous)
+        {
+            BEGIN:
+            if (_enumerator is not null)
+            {
+                if (_enumerator.MoveNext())
+                {
+                    previous = _enumerator.Current;
+                    if (previous.Id != Origin.Id)
+                        return true;
+                }
+            }
+            else if (TryGetParent(out var parent))
+            {
+                _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
+                goto BEGIN;
+            }
+
+            previous = Null;
+            return false;
+        }
+
+        public void Dispose()
+        {
+            _enumerator?.Dispose();
+            _enumerator = null;
+        }
+    }
+
     #region Traverse
 
     public ref readonly Entity Traverse(Action<Entity> action)
@@ -713,7 +790,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     #endregion
 }
 
-public static unsafe class EntityExtensions
+public static unsafe partial class EntityExtensions
 {
     extension(in Entity entity)
     {

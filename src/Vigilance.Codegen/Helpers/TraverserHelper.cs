@@ -4,15 +4,22 @@ namespace Vigilance.Codegen.Helpers;
 
 public static class TraverserHelper
 {
-    public static void TraverserExtensions(this StringBuilder sb, string element, string traverser)
+    public static void TraverserExtensions(
+        this StringBuilder sb,
+        string element,
+        string traverser,
+        string extensionPrefix = "",
+        string asTraverserParams = "",
+        string asTraverserArgs = ""
+    )
     {
         sb.AppendLine(
             $$"""
-                extension({{element}} element)
+                extension({{(extensionPrefix == "" ? "" : $"{extensionPrefix} ")}}{{element}} element)
                 {
-                    public {{traverser}} AsTraverser()
+                    public {{traverser}} AsTraverser({{asTraverserParams}})
                     {
-                        return new {{traverser}}(element);
+                        return new {{traverser}}(element{{(asTraverserArgs == "" ? "" : $", {asTraverserArgs}")}});
                     }
                 
                     public ZLinq.ValueEnumerable<ZLinq.Traversables.Children<{{traverser}}, {{element}}>, {{element}}> Children()
