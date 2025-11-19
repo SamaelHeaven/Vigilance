@@ -102,21 +102,6 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
 
     public virtual void PostRender() { }
 
-    public Entity Entity(string name = "")
-    {
-        return Scene.Entity(name);
-    }
-
-    public Entity Lookup(ulong id)
-    {
-        return Scene.Lookup(id);
-    }
-
-    public Entity Lookup(string path, bool recursive = true)
-    {
-        return Scene.Lookup(path, recursive);
-    }
-
     private void InternalUpdate()
     {
         if (!IsDisabled)
