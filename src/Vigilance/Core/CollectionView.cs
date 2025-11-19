@@ -143,7 +143,7 @@ public readonly struct ListView<TValue>(List<TValue> list) : IListView<TValue>, 
 
     ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
     {
-        throw new NotImplementedException();
+        return list.AsSpan().AsValueEnumerable();
     }
 
     public ValueEnumerable<FromList<TValue>, TValue> AsValueEnumerable()
@@ -487,4 +487,56 @@ public struct ArrayEnumerator<TValue> : IStructEnumerator<TValue>
     public readonly TValue Current => _array[_index];
 
     public void Dispose() { }
+}
+
+public static class ViewExtensions
+{
+    public static ListView<T> AsView<T>(this List<T> list)
+    {
+        return list;
+    }
+
+    public static DictionaryView<TKey, TValue> AsView<TKey, TValue>(this Dictionary<TKey, TValue> dictionary)
+        where TKey : notnull
+    {
+        return dictionary;
+    }
+
+    public static SortedDictionaryView<TKey, TValue> AsView<TKey, TValue>(
+        this SortedDictionary<TKey, TValue> sortedDictionary
+    )
+        where TKey : notnull
+    {
+        return sortedDictionary;
+    }
+
+    public static HashSetView<TValue> AsView<TValue>(this HashSet<TValue> hashSet)
+    {
+        return hashSet;
+    }
+
+    public static SortedSetView<TValue> AsView<TValue>(this SortedSet<TValue> sortedSet)
+    {
+        return sortedSet;
+    }
+
+    public static LinkedListView<TValue> AsView<TValue>(this LinkedList<TValue> linkedList)
+    {
+        return linkedList;
+    }
+
+    public static QueueView<TValue> AsView<TValue>(this Queue<TValue> queue)
+    {
+        return queue;
+    }
+
+    public static StackView<TValue> AsView<TValue>(this Stack<TValue> stack)
+    {
+        return stack;
+    }
+
+    public static ArrayView<TValue> AsView<TValue>(this TValue[] array)
+    {
+        return array;
+    }
 }

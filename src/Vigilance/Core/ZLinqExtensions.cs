@@ -9,30 +9,30 @@ public static class ZLinqExtensions
     extension<TEnumerator, TValue>(in ValueEnumerable<TEnumerator, TValue> enumerable)
         where TEnumerator : struct, IValueEnumerator<TValue>
     {
-        public ZLinqIterator<TEnumerator, TValue> AsIterator()
+        public ValueIterator<TEnumerator, TValue> AsIterator()
         {
-            return new ZLinqIterator<TEnumerator, TValue>(enumerable);
+            return new ValueIterator<TEnumerator, TValue>(enumerable);
         }
     }
 
-    extension<TEnumerator, TValue>(Func<ValueEnumerable<TEnumerator, TValue>> enumerableFunc)
+    extension<TEnumerator, TValue>(ValueEnumerableFunc<TEnumerator, TValue> func)
         where TEnumerator : struct, IValueEnumerator<TValue>
     {
-        public ZLinqEnumerable<TEnumerator, TValue> AsEnumerable()
+        public ValueEnumerableProvider<TEnumerator, TValue> AsEnumerable()
         {
-            return new ZLinqEnumerable<TEnumerator, TValue>(enumerableFunc);
+            return new ValueEnumerableProvider<TEnumerator, TValue>(func);
         }
     }
 }
 
-public sealed class ZLinqIterator<TEnumerator, TValue>
-    : IStructEnumerable<ZLinqIterator<TEnumerator, TValue>.Enumerator, TValue>,
+public sealed class ValueIterator<TEnumerator, TValue>
+    : IStructEnumerable<ValueIterator<TEnumerator, TValue>.Enumerator, TValue>,
         IDisposable
     where TEnumerator : struct, IValueEnumerator<TValue>
 {
     private TEnumerator? _enumerator;
 
-    internal ZLinqIterator(in ValueEnumerable<TEnumerator, TValue> enumerable)
+    internal ValueIterator(in ValueEnumerable<TEnumerator, TValue> enumerable)
     {
         _enumerator = enumerable.Enumerator;
     }
@@ -56,17 +56,17 @@ public sealed class ZLinqIterator<TEnumerator, TValue>
         return new StructEnumerator<Enumerator, TValue>(GetEnumerator());
     }
 
-    ~ZLinqIterator()
-    {
-        Logger.Warning(
-            $"{nameof(ZLinqIterator<,>)}<{typeof(TEnumerator).Name}, {typeof(TValue).Name}> finalizer called. Ensure that {nameof(Dispose)} or {nameof(GetEnumerator)} is called explicitly."
-        );
-        ReleaseUnmanagedResources();
-    }
-
     public ValueEnumerable<TEnumerator, TValue> AsValueEnumerable()
     {
         return new ValueEnumerable<TEnumerator, TValue>(GetEnumeratorValue());
+    }
+
+    ~ValueIterator()
+    {
+        Logger.Warning(
+            $"{nameof(ValueIterator<,>)}<{typeof(TEnumerator).Name}, {typeof(TValue).Name}> finalizer called. Ensure that {nameof(Dispose)} or {nameof(GetEnumerator)} is called explicitly."
+        );
+        ReleaseUnmanagedResources();
     }
 
     private void ReleaseUnmanagedResources()
@@ -80,7 +80,7 @@ public sealed class ZLinqIterator<TEnumerator, TValue>
     {
         var result =
             _enumerator
-            ?? throw new InvalidOperationException($"{nameof(ZLinqIterator<,>)} can only be enumerated once.");
+            ?? throw new InvalidOperationException($"{nameof(ValueIterator<,>)} can only be enumerated once.");
         _enumerator = null;
         GC.SuppressFinalize(this);
         return result;
@@ -90,7 +90,7 @@ public sealed class ZLinqIterator<TEnumerator, TValue>
     {
         private TEnumerator _enumerator;
 
-        public Enumerator(ZLinqIterator<TEnumerator, TValue> iterator)
+        public Enumerator(ValueIterator<TEnumerator, TValue> iterator)
         {
             _enumerator = iterator.GetEnumeratorValue();
         }
@@ -117,15 +117,18 @@ public sealed class ZLinqIterator<TEnumerator, TValue>
     }
 }
 
-public readonly struct ZLinqEnumerable<TEnumerator, TValue>
-    : IStructEnumerable<ZLinqEnumerable<TEnumerator, TValue>.Enumerator, TValue>
+public delegate ValueEnumerable<TEnumerator, TValue> ValueEnumerableFunc<TEnumerator, TValue>()
+    where TEnumerator : struct, IValueEnumerator<TValue>;
+
+public readonly struct ValueEnumerableProvider<TEnumerator, TValue>
+    : IStructEnumerable<ValueEnumerableProvider<TEnumerator, TValue>.Enumerator, TValue>
     where TEnumerator : struct, IValueEnumerator<TValue>
 {
-    private readonly Func<ValueEnumerable<TEnumerator, TValue>> _enumerableFunc;
+    private readonly ValueEnumerableFunc<TEnumerator, TValue> _func;
 
-    internal ZLinqEnumerable(Func<ValueEnumerable<TEnumerator, TValue>> enumerableFunc)
+    internal ValueEnumerableProvider(ValueEnumerableFunc<TEnumerator, TValue> func)
     {
-        _enumerableFunc = enumerableFunc;
+        _func = func;
     }
 
     public Enumerator GetEnumerator()
@@ -135,7 +138,7 @@ public readonly struct ZLinqEnumerable<TEnumerator, TValue>
 
     public ValueEnumerable<TEnumerator, TValue> AsValueEnumerable()
     {
-        return _enumerableFunc.Invoke();
+        return _func.Invoke();
     }
 
     ValueEnumerable<StructEnumerator<Enumerator, TValue>, TValue> IStructEnumerable<
@@ -148,13 +151,13 @@ public readonly struct ZLinqEnumerable<TEnumerator, TValue>
 
     public struct Enumerator : IStructEnumerator<TValue>
     {
-        private readonly ZLinqEnumerable<TEnumerator, TValue> _enumerable;
+        private readonly ValueEnumerableProvider<TEnumerator, TValue> _enumerableProvider;
         private TEnumerator _enumerator;
         private bool _disposed = true;
 
-        internal Enumerator(ZLinqEnumerable<TEnumerator, TValue> enumerable)
+        internal Enumerator(ValueEnumerableProvider<TEnumerator, TValue> enumerableProvider)
         {
-            _enumerable = enumerable;
+            _enumerableProvider = enumerableProvider;
             Reset();
         }
 
@@ -170,7 +173,7 @@ public readonly struct ZLinqEnumerable<TEnumerator, TValue>
         {
             Dispose();
             _disposed = false;
-            _enumerator = _enumerable._enumerableFunc.Invoke().Enumerator;
+            _enumerator = _enumerableProvider._func.Invoke().Enumerator;
         }
 
         public TValue Current { get; private set; } = default!;

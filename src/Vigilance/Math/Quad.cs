@@ -2,11 +2,15 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Vigilance.Core;
 using ZLinq;
+using ZLinq.Linq;
 
 namespace Vigilance.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public record struct Quad : IStructEnumerable<Quad.PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
+public record struct Quad
+    : IStructEnumerable<Quad.PointEnumerator, Vector2>,
+        ISpanView<Vector2>,
+        IReadOnlyCollection<Vector2>
 {
     public Vector2 TopLeft { get; set; }
     public Vector2 BottomLeft { get; set; }
@@ -60,9 +64,9 @@ public record struct Quad : IStructEnumerable<Quad.PointEnumerator, Vector2>, IR
         return new Quad(quad.TopLeft, quad.BottomLeft, quad.BottomRight, quad.TopRight);
     }
 
-    public static unsafe implicit operator ReadOnlySpan<Vector2>(Quad quad)
+    public static implicit operator ReadOnlySpan<Vector2>(Quad quad)
     {
-        return new ReadOnlySpan<Vector2>(&quad, quad.Count);
+        return quad.AsSpan();
     }
 
     public readonly void Deconstruct(
@@ -175,7 +179,23 @@ public record struct Quad : IStructEnumerable<Quad.PointEnumerator, Vector2>, IR
         return new PointEnumerator(this);
     }
 
-    public ValueEnumerable<StructEnumerator<PointEnumerator, Vector2>, Vector2> AsValueEnumerable()
+    public unsafe ReadOnlySpan<Vector2> AsSpan()
+    {
+        fixed (Quad* quad = &this)
+        {
+            return new ReadOnlySpan<Vector2>(&quad, Count);
+        }
+    }
+
+    public ValueEnumerable<FromSpan<Vector2>, Vector2> AsValueEnumerable()
+    {
+        return AsSpan().AsValueEnumerable();
+    }
+
+    ValueEnumerable<StructEnumerator<PointEnumerator, Vector2>, Vector2> IStructEnumerable<
+        PointEnumerator,
+        Vector2
+    >.AsValueEnumerable()
     {
         return new StructEnumerator<PointEnumerator, Vector2>(GetEnumerator());
     }

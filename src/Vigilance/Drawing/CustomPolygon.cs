@@ -1,7 +1,6 @@
 using Vigilance.Core;
 using Vigilance.Logging;
 using Vigilance.Math;
-using ZLinq;
 
 namespace Vigilance.Drawing;
 
@@ -11,7 +10,7 @@ public sealed class CustomPolygon : IFullCloneable
 
     public CustomPolygon(IEnumerable<Vector2> points)
     {
-        Points = points.AsValueEnumerable().ToList();
+        Points = points.ToList();
     }
 
     public CustomPolygon(IEnumerable<Vector2> points, Color fill)
@@ -30,7 +29,7 @@ public sealed class CustomPolygon : IFullCloneable
     object IDeepCloneable.DeepClone()
     {
         var result = this.ShallowClone();
-        result.Points = Points.AsValueEnumerable().ToList();
+        result.Points = Points.ToList();
         return result;
     }
 
