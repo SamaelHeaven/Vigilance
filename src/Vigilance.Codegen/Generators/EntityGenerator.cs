@@ -29,7 +29,7 @@ public sealed class EntityGenerator : SourceGenerator
 
             """
         );
-        sb.TraverserExtensions("Entity", "Entity.Traverser", "in", "bool deferred = true", "deferred");
+        sb.TraverserExtensions("Entity", "Entity.Traverser", "bool deferred = true", "deferred");
         sb.AppendLine("}");
     }
 

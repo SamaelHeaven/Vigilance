@@ -711,10 +711,10 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             }
             else if (TryGetParent(out var parent))
             {
-                var enumerator = _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
+                _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
                 _hasEnumerator = true;
-                while (enumerator.MoveNext())
-                    if (enumerator.Current.Id == Origin.Id)
+                while (_enumerator.MoveNext())
+                    if (_enumerator.Current.Id == Origin.Id)
                         goto BEGIN;
             }
 

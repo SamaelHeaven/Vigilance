@@ -8,14 +8,13 @@ public static class TraverserHelper
         this StringBuilder sb,
         string element,
         string traverser,
-        string extensionPrefix = "",
         string asTraverserParams = "",
         string asTraverserArgs = ""
     )
     {
         sb.AppendLine(
             $$"""
-                extension({{(extensionPrefix == "" ? "" : $"{extensionPrefix} ")}}{{element}} element)
+                extension({{element}} element)
                 {
                     public {{traverser}} AsTraverser({{asTraverserParams}})
                     {
