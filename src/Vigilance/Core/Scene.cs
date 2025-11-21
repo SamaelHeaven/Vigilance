@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Flecs.NET.Core;
 using Vigilance.Drawing;
@@ -10,14 +9,6 @@ namespace Vigilance.Core;
 
 public sealed unsafe partial class Scene
 {
-    private readonly Queue<(
-        ComponentOperation Operation,
-        ulong EntityId,
-        ulong Id,
-        Type Type,
-        object? Data
-    )> _componentOperations = new();
-
     private readonly Dictionary<Type, (ICollection Queue, Action EmitAction)> _events = new();
     private readonly Dictionary<Type, Delegate> _listeners = new();
     private readonly List<RenderCommand> _renderCommands = new();
@@ -27,7 +18,6 @@ public sealed unsafe partial class Scene
     private Action? _deferredAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
-    private bool? _isRuntimeComponentsEnabled;
     private Action? _onDispose;
     private Action? _postRenderAction;
     private Action? _preRenderAction;
@@ -38,14 +28,12 @@ public sealed unsafe partial class Scene
     private List<IGameSystem> _systems = null!;
     private float _time;
     private Action? _updateAction;
-    internal CachedData Cache;
+    internal CachedData Cache = new();
     internal World World = World.Create();
 
-    public Scene(GameSystemsFunc? systems = null, bool? isRuntimeComponentsEnabled = null)
+    public Scene(GameSystemsFunc? systems = null)
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
-        _isRuntimeComponentsEnabled = isRuntimeComponentsEnabled;
-        Cache = new CachedData(this);
         OnSetParent(SetParentCallback);
     }
 
@@ -58,15 +46,6 @@ public sealed unsafe partial class Scene
         }
     }
 
-    public bool IsRuntimeComponentsEnabled
-    {
-        get
-        {
-            EnsureInitialized();
-            return _isRuntimeComponentsEnabled!.Value;
-        }
-    }
-
     public Camera Camera { get; } = new();
 
     public bool IsInitialized { get; private set; }
@@ -75,26 +54,16 @@ public sealed unsafe partial class Scene
 
     public EntityEnumerable Entities => GetEntities();
 
-    public static Scene Build<T>(GameSystemsFunc? systems = null, bool? isRuntimeComponentsEnabled = null)
+    public static Scene Build<T>(GameSystemsFunc? systems = null)
         where T : IGameSystem, new()
     {
-        return new Scene(
-            () => (systems?.Invoke() ?? Array.Empty<IGameSystem>()).Concat([new T()]),
-            isRuntimeComponentsEnabled
-        );
+        return new Scene(() => (systems?.Invoke() ?? Array.Empty<IGameSystem>()).Concat([new T()]));
     }
 
-    public static Scene Build<T>(
-        Func<T> factory,
-        GameSystemsFunc? systems = null,
-        bool? isRuntimeComponentsEnabled = null
-    )
+    public static Scene Build<T>(Func<T> factory, GameSystemsFunc? systems = null)
         where T : IGameSystem
     {
-        return new Scene(
-            () => (systems?.Invoke() ?? Array.Empty<IGameSystem>()).Concat([factory.Invoke()]),
-            isRuntimeComponentsEnabled
-        );
+        return new Scene(() => (systems?.Invoke() ?? Array.Empty<IGameSystem>()).Concat([factory.Invoke()]));
     }
 
     public void Restart()
@@ -325,7 +294,6 @@ public sealed unsafe partial class Scene
             return;
         ExecuteTransformOperations();
         World.DeferEnd();
-        ExecuteComponentOperations();
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
@@ -382,28 +350,6 @@ public sealed unsafe partial class Scene
         SetPivotPoint(entityId, pivotPoint);
     }
 
-    internal void DeferSetComponent(in Entity entity, Type type, object? data, ulong id)
-    {
-        if (IsDeferred)
-        {
-            _componentOperations.Enqueue((ComponentOperation.Set, entity.Id, id, type, data));
-            return;
-        }
-
-        SetComponent(entity, type, data, id);
-    }
-
-    internal void DeferRemoveComponent(in Entity entity, ulong id)
-    {
-        if (IsDeferred)
-        {
-            _componentOperations.Enqueue((ComponentOperation.Remove, entity.Id, id, null!, null));
-            return;
-        }
-
-        RemoveComponent(entity, id);
-    }
-
     internal void Stop()
     {
         _stopAction?.Invoke();
@@ -424,7 +370,6 @@ public sealed unsafe partial class Scene
 
     private void Initialize()
     {
-        _isRuntimeComponentsEnabled ??= Ecs.DefaultEnableRuntimeComponents;
         _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(_systemsFunc.Invoke()).ToList();
         _systems.Sort();
         BeginDefer();
@@ -462,20 +407,6 @@ public sealed unsafe partial class Scene
     {
         foreach (var events in _events.Values)
             events.EmitAction.Invoke();
-    }
-
-    private void ExecuteComponentOperations()
-    {
-        while (_componentOperations.TryDequeue(out var operation))
-            switch (operation.Operation)
-            {
-                case ComponentOperation.Set:
-                    SetComponent(new Entity(operation.EntityId, this), operation.Type, operation.Data, operation.Id);
-                    break;
-                case ComponentOperation.Remove:
-                    RemoveComponent(new Entity(operation.EntityId, this), operation.Id);
-                    break;
-            }
     }
 
     private void ExecuteTransformOperations()
@@ -546,37 +477,6 @@ public sealed unsafe partial class Scene
         transform.PivotPoint = pivotPoint;
     }
 
-    private static void SetComponent(in Entity entity, Type type, object? data, ulong id)
-    {
-        Components components;
-        var flecsEntity = entity.FlecsEntity;
-        ref readonly var componentsRef = ref flecsEntity.GetSafe<Components>();
-        if (Unsafe.IsNullRef(in componentsRef))
-        {
-            components = new Components();
-            entity.FlecsEntity.Set(components);
-        }
-        else
-        {
-            components = componentsRef;
-        }
-
-        var component = new Component(type, data, id);
-        components.Values.Remove(component);
-        components.Values.Add(component);
-    }
-
-    private static void RemoveComponent(in Entity entity, ulong id)
-    {
-        var flecsEntity = entity.FlecsEntity;
-        ref readonly var components = ref flecsEntity.GetSafe<Components>();
-        if (Unsafe.IsNullRef(in components))
-            return;
-        components.Values.Remove(new Component(null!, null, id));
-        if (components.Count == 0)
-            flecsEntity.Remove<Components>();
-    }
-
     ~Scene()
     {
         Game.Defer(() =>
@@ -607,18 +507,8 @@ public sealed unsafe partial class Scene
         public readonly Dictionary<ulong, string> NameMap = new();
         public readonly Dictionary<ulong, Entity> ParentMap = new();
         public readonly Dictionary<ulong, Transform> TransformMap = new();
-        public readonly ulong ComponentsType;
 
-        public CachedData(Scene scene)
-        {
-            ComponentsType = Type<Components>.Id(scene.World);
-        }
-    }
-
-    private enum ComponentOperation
-    {
-        Set,
-        Remove,
+        public CachedData() { }
     }
 
     private enum TransformOperation

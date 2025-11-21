@@ -6,12 +6,6 @@ public static class Ecs
 
     public static GameSystemsFunc Systems => _config.Systems;
 
-    public static bool DefaultEnableRuntimeComponents
-    {
-        get => _config.DefaultEnableRuntimeComponents;
-        set => _config.DefaultEnableRuntimeComponents = value;
-    }
-
     internal static void Initialize()
     {
         _config = Game.Config.Take<EcsConfig>() ?? new EcsConfig();
@@ -21,8 +15,6 @@ public static class Ecs
 public sealed class EcsConfig
 {
     public GameSystemsFunc Systems { get; set; } = Array.Empty<IGameSystem>;
-
-    public bool DefaultEnableRuntimeComponents { get; set; } = true;
 }
 
 public static class EcsConfigExtensions

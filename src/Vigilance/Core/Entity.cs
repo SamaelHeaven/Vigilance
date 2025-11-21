@@ -255,23 +255,6 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
-    public Components Components
-    {
-        get
-        {
-            EnsureValid();
-            if (Scene.IsRuntimeComponentsEnabled)
-            {
-                var flecsEntity = FlecsEntity;
-                ref readonly var components = ref flecsEntity.GetSafe<Components>();
-                return Unsafe.IsNullRef(in components) ? Components.Empty : components;
-            }
-
-            Logger.Warning("ECS: Runtime components are disabled");
-            return Components.Empty;
-        }
-    }
-
     public ChildEnumerable Children => new(this);
 
     public ulong Order => ((ulong)(uint)(WorldZIndex ^ int.MinValue) << 32) | (Id & RecycledIdMask);
@@ -414,21 +397,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         EnsureValid();
         var flecsEntity = FlecsEntity;
         var id = Type<T>.Id(flecsEntity.World);
-        if (id == Scene.Cache.ComponentsType)
-            throw new InvalidOperationException("Components cannot be removed.");
-        if (Scene.IsRuntimeComponentsEnabled)
-            Scene.DeferRemoveComponent(this, id);
         flecsEntity.Remove(id);
-        return ref this;
-    }
-
-    public ref readonly Entity Remove(in Component component)
-    {
-        EnsureValid();
-        var flecsEntity = FlecsEntity;
-        if (Scene.IsRuntimeComponentsEnabled)
-            Scene.DeferRemoveComponent(this, component.Id);
-        flecsEntity.Remove(component.Id);
         return ref this;
     }
 
@@ -531,12 +500,6 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         sb.Append(ZIndex);
         sb.Append(", Transform = ");
         sb.Append(Transform.ToString());
-
-        Components components;
-        if (!Scene.IsRuntimeComponentsEnabled || (components = Components).Count == 0)
-            return true;
-        sb.Append(", Components = ");
-        sb.Append(components.ToString());
         return true;
     }
 
@@ -771,11 +734,7 @@ public static unsafe partial class EntityExtensions
             var type = typeof(T);
             var flecsEntity = entity.FlecsEntity;
             var id = Type<T>.Id(flecsEntity.World);
-            if (id == entity.Scene.Cache.ComponentsType)
-                throw new InvalidOperationException("Components cannot be set.");
             var hadT = flecsEntity.Has(id);
-            if (entity.Scene.IsRuntimeComponentsEnabled)
-                entity.Scene.DeferSetComponent(entity, type, data, id);
             var isTag = Type<T>.IsTag;
             if (!isTag)
                 flecsEntity.Set(ref data);
