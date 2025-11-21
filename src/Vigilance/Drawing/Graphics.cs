@@ -1445,7 +1445,7 @@ public sealed unsafe class Graphics
     )
     {
         var tintValue = tint ?? Color.White;
-        if (tintValue == Color.Transparent || (_culling && !IsBoxInBounds(dest, camera)))
+        if (tintValue == Color.Transparent || texture == Texture.Empty || (_culling && !IsBoxInBounds(dest, camera)))
             return;
         var rSource = new Raylib_cs.BleedingEdge.Rectangle(
             source.X,
@@ -1540,7 +1540,7 @@ public sealed unsafe class Graphics
     )
     {
         var tintValue = tint ?? Color.White;
-        if (tintValue == Color.Transparent || (_culling && !IsBoxInBounds(dest, camera)))
+        if (tintValue == Color.Transparent || texture == Texture.Empty || (_culling && !IsBoxInBounds(dest, camera)))
             return;
         var rSource = new Raylib_cs.BleedingEdge.Rectangle(
             source.X,
