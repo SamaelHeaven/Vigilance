@@ -13,7 +13,10 @@ public sealed unsafe partial class Scene
     private readonly Dictionary<Type, Delegate> _listeners = new();
     private readonly List<RenderCommand> _renderCommands = new();
     private readonly GameSystemsFunc _systemsFunc;
-    private readonly Queue<(TransformOperation Operation, ulong EntityId, Vector2 Data)> _transformOperations = new();
+
+    private readonly Queue<(TransformOperation Operation, ulong EntityId, TransformData Data)> _transformOperations =
+        new();
+
     private int _deferred;
     private Action? _deferredAction;
     private Action? _fixedUpdateAction;
@@ -398,7 +401,9 @@ public sealed unsafe partial class Scene
             Initialize();
         if (!_started)
             Start();
+        _preUpdateAction?.Invoke();
         _updateAction?.Invoke();
+        _postUpdateAction?.Invoke();
         for (_time += Time.DeltaSeconds; _time >= Time.FixedDeltaSeconds; _time -= Time.FixedDeltaSeconds)
             FixedUpdate();
         Render();
@@ -427,7 +432,9 @@ public sealed unsafe partial class Scene
 
     private void FixedUpdate()
     {
+        _preFixedUpdateAction?.Invoke();
         _fixedUpdateAction?.Invoke();
+        _postFixedUpdateAction?.Invoke();
     }
 
     private void Render()
@@ -457,7 +464,7 @@ public sealed unsafe partial class Scene
                     SetScale(operation.EntityId, operation.Data);
                     break;
                 case TransformOperation.Rotation:
-                    SetRotation(operation.EntityId, *(float*)&operation.Data);
+                    SetRotation(operation.EntityId, operation.Data);
                     break;
                 case TransformOperation.PivotPoint:
                     SetPivotPoint(operation.EntityId, operation.Data);
@@ -566,6 +573,36 @@ public sealed unsafe partial class Scene
         Scale,
         Rotation,
         PivotPoint,
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct TransformData
+    {
+        [FieldOffset(0)]
+        public Vector2 Vector2;
+
+        [FieldOffset(0)]
+        public float Float;
+
+        public static implicit operator Vector2(TransformData data)
+        {
+            return data.Vector2;
+        }
+
+        public static implicit operator float(TransformData data)
+        {
+            return data.Float;
+        }
+
+        public static implicit operator TransformData(Vector2 vector2)
+        {
+            return new TransformData { Vector2 = vector2 };
+        }
+
+        public static implicit operator TransformData(float f)
+        {
+            return new TransformData { Float = f };
+        }
     }
 
     #region Callbacks
