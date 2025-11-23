@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace Vigilance.Core;
 
-public readonly unsafe ref struct Utf8Buffer
+public readonly unsafe ref struct Utf8Buffer : IDisposable
 {
     private readonly nint _data;
 

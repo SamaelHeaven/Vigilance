@@ -22,6 +22,8 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
         _type = entity.IsValid ? flecs.ecs_get_type(entity.Scene.World, entity.Id) : null;
     }
 
+    public ValueEnumerable Values => new(this);
+
     public ref Components Deferred(bool deferred = true)
     {
         _deferred = deferred;
@@ -48,10 +50,10 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
         using var sb = new ValueStringBuilder(stackalloc char[256]);
         sb.Append('[');
         var any = false;
-        foreach (var component in this)
+        foreach (var component in Values)
         {
             any = true;
-            sb.Append($"\n {Entity.Get(component)}, ");
+            sb.Append($"\n {component}, ");
         }
 
         if (any)
@@ -124,6 +126,60 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
         {
             if (_valid && _components._deferred)
                 _components.Entity.Scene.EndDefer();
+        }
+    }
+
+    public readonly struct ValueEnumerable : IStructEnumerable<ValueEnumerator, object?>
+    {
+        private readonly Components _components;
+
+        internal ValueEnumerable(Components components)
+        {
+            _components = components;
+        }
+
+        public ValueEnumerator GetEnumerator()
+        {
+            return new ValueEnumerator(_components);
+        }
+
+        public ValueEnumerable<StructEnumerator<ValueEnumerator, object?>, object?> AsValueEnumerable()
+        {
+            return new StructEnumerator<ValueEnumerator, object?>(GetEnumerator());
+        }
+    }
+
+    public struct ValueEnumerator : IStructEnumerator<object?>
+    {
+        private readonly Entity _entity;
+        private Enumerator _enumerator;
+
+        internal ValueEnumerator(Components components)
+        {
+            _entity = components.Entity;
+            _enumerator = components.GetEnumerator();
+            Current = null;
+        }
+
+        public object? Current { get; private set; }
+
+        public bool MoveNext()
+        {
+            if (!_enumerator.MoveNext())
+                return false;
+            Current = _entity.Get(_enumerator.Current)!;
+            return true;
+        }
+
+        public void Reset()
+        {
+            _enumerator.Reset();
+            Current = null;
+        }
+
+        public void Dispose()
+        {
+            _enumerator.Dispose();
         }
     }
 
