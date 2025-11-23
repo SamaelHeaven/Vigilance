@@ -45,14 +45,7 @@ public sealed unsafe partial class Scene
         OnSetParent(SetParentCallback);
     }
 
-    public ListView<IGameSystem> Systems
-    {
-        get
-        {
-            EnsureInitialized();
-            return _systems;
-        }
-    }
+    public ListView<IGameSystem> Systems => _systems is null ? throw new NullReferenceException() : _systems;
 
     public Camera Camera { get; } = new();
 
