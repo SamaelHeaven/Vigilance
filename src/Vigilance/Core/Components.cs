@@ -28,6 +28,11 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
         return ref this;
     }
 
+    public OfTypeEnumerable<T> OfType<T>()
+    {
+        return new OfTypeEnumerable<T>(this);
+    }
+
     public Enumerator GetEnumerator()
     {
         return new Enumerator(ref this);
@@ -58,7 +63,7 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
     public struct Enumerator : IStructEnumerator<Component>
     {
         private readonly Components _components;
-        private bool _valid;
+        private readonly bool _valid;
         private int _index;
 
         public Component Current { get; private set; }
@@ -67,6 +72,9 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
         {
             _components = components;
             Reset();
+            _valid = _components.Entity.IsValid;
+            if (_valid && _components._deferred)
+                _components.Entity.Scene.BeginDefer();
         }
 
         public bool MoveNext()
@@ -109,9 +117,6 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
         public void Reset()
         {
             _components.Entity.EnsureValid();
-            _valid = _components.Entity.IsValid;
-            if (_valid && _components._deferred)
-                _components.Entity.Scene.BeginDefer();
             _index = -1;
         }
 
@@ -119,6 +124,65 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
         {
             if (_valid && _components._deferred)
                 _components.Entity.Scene.EndDefer();
+        }
+    }
+
+    public readonly struct OfTypeEnumerable<T> : IStructEnumerable<OfTypeEnumerator<T>, T>
+    {
+        private readonly Components _components;
+
+        internal OfTypeEnumerable(Components components)
+        {
+            _components = components;
+        }
+
+        public OfTypeEnumerator<T> GetEnumerator()
+        {
+            return new OfTypeEnumerator<T>(_components);
+        }
+
+        public ValueEnumerable<StructEnumerator<OfTypeEnumerator<T>, T>, T> AsValueEnumerable()
+        {
+            return new StructEnumerator<OfTypeEnumerator<T>, T>(GetEnumerator());
+        }
+    }
+
+    public struct OfTypeEnumerator<T> : IStructEnumerator<T>
+    {
+        private readonly Entity _entity;
+        private Enumerator _enumerator;
+
+        internal OfTypeEnumerator(Components components)
+        {
+            _entity = components.Entity;
+            _enumerator = components.GetEnumerator();
+            Current = default!;
+        }
+
+        public T Current { get; private set; }
+
+        public bool MoveNext()
+        {
+            while (_enumerator.MoveNext())
+            {
+                if (!typeof(T).IsAssignableFrom(_enumerator.Current.Type))
+                    continue;
+                Current = (T)_entity.Get(_enumerator.Current)!;
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            _enumerator.Reset();
+            Current = default!;
+        }
+
+        public void Dispose()
+        {
+            _enumerator.Dispose();
         }
     }
 }

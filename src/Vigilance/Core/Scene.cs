@@ -19,8 +19,12 @@ public sealed unsafe partial class Scene
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
     private Action? _onDispose;
+    private Action? _postFixedUpdateAction;
     private Action? _postRenderAction;
+    private Action? _postUpdateAction;
+    private Action? _preFixedUpdateAction;
     private Action? _preRenderAction;
+    private Action? _preUpdateAction;
     private Action<RenderCommands>? _renderAction;
     private Action? _startAction;
     private bool _started;
@@ -176,16 +180,40 @@ public sealed unsafe partial class Scene
         _onDispose += action;
     }
 
+    public void OnPreUpdate(Action action)
+    {
+        EnsureNotInitialized();
+        _preUpdateAction += action;
+    }
+
     public void OnUpdate(Action action)
     {
         EnsureNotInitialized();
         _updateAction += action;
     }
 
+    public void OnPostUpdate(Action action)
+    {
+        EnsureNotInitialized();
+        _postUpdateAction += action;
+    }
+
+    public void OnPreFixedUpdate(Action action)
+    {
+        EnsureNotInitialized();
+        _preFixedUpdateAction += action;
+    }
+
     public void OnFixedUpdate(Action action)
     {
         EnsureNotInitialized();
         _fixedUpdateAction += action;
+    }
+
+    public void OnPostFixedUpdate(Action action)
+    {
+        EnsureNotInitialized();
+        _postFixedUpdateAction += action;
     }
 
     public void OnPreRender(Action action)

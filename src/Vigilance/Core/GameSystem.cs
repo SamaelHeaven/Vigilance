@@ -60,8 +60,12 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
         var initialize = Initialize;
         var start = Start;
         var stop = Stop;
+        var preUpdate = PreUpdate;
         var update = Update;
+        var postUpdate = PostUpdate;
+        var preFixedUpdate = PreFixedUpdate;
         var fixedUpdate = FixedUpdate;
+        var postFixedUpdate = PostFixedUpdate;
         var preRender = PreRender;
         var render = Render;
         var postRender = PostRender;
@@ -71,10 +75,18 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
             scene.OnStart(start);
         if (stop.Method.DeclaringType != baseType)
             scene.OnStop(stop);
+        if (preUpdate.Method.DeclaringType != baseType)
+            scene.OnUpdate(InternalPreUpdate);
         if (update.Method.DeclaringType != baseType)
             scene.OnUpdate(InternalUpdate);
+        if (postUpdate.Method.DeclaringType != baseType)
+            scene.OnUpdate(InternalPostUpdate);
+        if (preFixedUpdate.Method.DeclaringType != baseType)
+            scene.OnUpdate(InternalPreFixedUpdate);
         if (fixedUpdate.Method.DeclaringType != baseType)
             scene.OnFixedUpdate(InternalFixedUpdate);
+        if (postFixedUpdate.Method.DeclaringType != baseType)
+            scene.OnUpdate(InternalPostFixedUpdate);
         if (preRender.Method.DeclaringType != baseType)
             scene.OnPreRender(InternalPreRender);
         if (render.Method.DeclaringType != baseType)
@@ -92,9 +104,17 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
 
     public virtual void Stop() { }
 
+    public virtual void PreUpdate() { }
+
     public virtual void Update() { }
 
+    public virtual void PostUpdate() { }
+
+    public virtual void PreFixedUpdate() { }
+
     public virtual void FixedUpdate() { }
+
+    public virtual void PostFixedUpdate() { }
 
     public virtual void PreRender() { }
 
@@ -102,16 +122,40 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
 
     public virtual void PostRender() { }
 
+    private void InternalPreUpdate()
+    {
+        if (!IsDisabled)
+            PreUpdate();
+    }
+
     private void InternalUpdate()
     {
         if (!IsDisabled)
             Update();
     }
 
+    private void InternalPostUpdate()
+    {
+        if (!IsDisabled)
+            PostUpdate();
+    }
+
+    private void InternalPreFixedUpdate()
+    {
+        if (!IsDisabled)
+            PreFixedUpdate();
+    }
+
     private void InternalFixedUpdate()
     {
         if (!IsDisabled)
             FixedUpdate();
+    }
+
+    private void InternalPostFixedUpdate()
+    {
+        if (!IsDisabled)
+            PostFixedUpdate();
     }
 
     private void InternalPreRender()

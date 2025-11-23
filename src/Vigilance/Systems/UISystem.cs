@@ -8,6 +8,17 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
 {
     public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
 
+    public override void PostUpdate()
+    {
+        foreach (var (entity, component) in Entries<UIComponent>())
+        {
+            var element = component.Element;
+            element.CalculateLayout();
+            if (!entity.IsDisabled)
+                element.Update(entity);
+        }
+    }
+
     public override void Render(RenderCommands commands)
     {
         commands.AddRange<UISystem, UIComponent>(
@@ -15,9 +26,6 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
             static (entity, self, component) =>
             {
                 var element = component.Element;
-                element.CalculateLayout();
-                if (!entity.IsDisabled)
-                    element.Update(entity);
                 element.Render(entity.WorldTransform, self.Graphics);
             }
         );

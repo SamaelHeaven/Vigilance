@@ -364,17 +364,17 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return true;
     }
 
-    public bool TryGet(in Component component, out object? value)
+    public bool TryGet(in Component component, out object value)
     {
         EnsureValid();
-        Unsafe.SkipInit(out value);
+        value = null!;
         ref readonly var metadata = ref component.Metadata;
         var flecsEntity = FlecsEntity;
         if (metadata.IsTag)
         {
             if (!flecsEntity.Has(component.Id))
                 return false;
-            value = metadata.DefaultFunc.Invoke();
+            value = metadata.DefaultFunc.Invoke()!;
             return true;
         }
 
