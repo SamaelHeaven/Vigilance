@@ -8,7 +8,7 @@ public ref struct LogHandler
     private DefaultInterpolatedStringHandler _inner;
     private readonly LogLevel _level;
 
-    public bool IsEnabled => _level > Logger.LogLevel;
+    public bool IsEnabled => _level > Log.LogLevel;
 
     public LogHandler(int literalLength, int formattedCount, LogLevel level)
     {

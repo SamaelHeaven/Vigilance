@@ -6,14 +6,14 @@ using Vigilance.Core;
 
 namespace Vigilance.Logging;
 
-public static unsafe partial class Logger
+public static unsafe partial class Log
 {
     private const int StdOutputHandle = -11;
     private const uint EnableVirtualTerminalProcessing = 0x0004;
     private static readonly Lock _logLock = new();
     private static LoggingConfig _config = new();
 
-    static Logger()
+    static Log()
     {
         _config.Logger = null;
     }
@@ -52,17 +52,17 @@ public static unsafe partial class Logger
         }
     }
 
-    public static void Log<T>(T value)
+    public static void Invoke<T>(T value)
     {
-        Log(value is Exception ? LogLevel.Error : LogLevel.Info, value);
+        Invoke(value is Exception ? LogLevel.Error : LogLevel.Info, value);
     }
 
-    public static void Log(InfoLogHandler handler)
+    public static void Invoke(InfoLogHandler handler)
     {
-        Log(LogLevel.Info, handler.GetFormattedText());
+        Invoke(LogLevel.Info, handler.GetFormattedText());
     }
 
-    public static void Log<T>(LogLevel level, T value)
+    public static void Invoke<T>(LogLevel level, T value)
     {
         if (LogLevel > level)
             return;
@@ -92,66 +92,66 @@ public static unsafe partial class Logger
         }
     }
 
-    public static void Log(LogLevel level, [InterpolatedStringHandlerArgument(nameof(level))] LogHandler handler)
+    public static void Invoke(LogLevel level, [InterpolatedStringHandlerArgument(nameof(level))] LogHandler handler)
     {
-        Log(level, handler.GetFormattedText());
+        Invoke(level, handler.GetFormattedText());
     }
 
     public static void Debug<T>(T value)
     {
-        Log(LogLevel.Debug, value);
+        Invoke(LogLevel.Debug, value);
     }
 
     public static void Debug(DebugLogHandler handler)
     {
-        Log(LogLevel.Debug, handler.GetFormattedText());
+        Invoke(LogLevel.Debug, handler.GetFormattedText());
     }
 
     public static void Info<T>(T value)
     {
-        Log(LogLevel.Info, value);
+        Invoke(LogLevel.Info, value);
     }
 
     public static void Info(InfoLogHandler handler)
     {
-        Log(LogLevel.Info, handler.GetFormattedText());
+        Invoke(LogLevel.Info, handler.GetFormattedText());
     }
 
     public static void Warning<T>(T value)
     {
-        Log(LogLevel.Warning, value);
+        Invoke(LogLevel.Warning, value);
     }
 
     public static void Warning(WarningLogHandler handler)
     {
-        Log(LogLevel.Warning, handler.GetFormattedText());
+        Invoke(LogLevel.Warning, handler.GetFormattedText());
     }
 
     public static void Error<T>(T value)
     {
-        Log(LogLevel.Error, value);
+        Invoke(LogLevel.Error, value);
     }
 
     public static void Error(ErrorLogHandler handler)
     {
-        Log(LogLevel.Error, handler.GetFormattedText());
+        Invoke(LogLevel.Error, handler.GetFormattedText());
     }
 
     public static void Fatal<T>(T value)
     {
-        Log(LogLevel.Fatal, value);
+        Invoke(LogLevel.Fatal, value);
     }
 
     public static void Fatal(FatalLogHandler handler)
     {
-        Log(LogLevel.Fatal, handler.GetFormattedText());
+        Invoke(LogLevel.Fatal, handler.GetFormattedText());
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void UnmanagedLog(TraceLogLevel level, sbyte* format, nint args)
     {
         var message = NativeStringFormatter.Format((nint)format, args);
-        Log((LogLevel)level, message);
+        Invoke((LogLevel)level, message);
     }
 
     private static void EnableAnsiSupport()

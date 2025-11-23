@@ -255,6 +255,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
+    public Components Components => new(this);
+
     public ChildEnumerable Children => new(this);
 
     public ulong Order => ((ulong)(uint)(WorldZIndex ^ int.MinValue) << 32) | (Id & RecycledIdMask);
@@ -332,10 +334,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return FlecsEntity.Get<T>();
     }
 
-    public ref readonly T GetRef<T>()
+    public object? Get(in Component component)
     {
         EnsureValid();
-        return ref FlecsEntity.GetSafe<T>();
+        ref readonly var metadata = ref component.Metadata;
+        if (metadata.IsTag)
+            return FlecsEntity.Has(component.Id) ? metadata.DefaultFunc.Invoke() : null;
+        var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);
+        return metadata.FromPointerFunc.Invoke((nint)ptr);
     }
 
     public bool TryGet<T>(out T value)
@@ -353,6 +359,28 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
         ref readonly var data = ref flecsEntity.GetSafe<T>();
         if (Unsafe.IsNullRef(in data))
+            return false;
+        value = data;
+        return true;
+    }
+
+    public bool TryGet(in Component component, out object? value)
+    {
+        EnsureValid();
+        Unsafe.SkipInit(out value);
+        ref readonly var metadata = ref component.Metadata;
+        var flecsEntity = FlecsEntity;
+        if (metadata.IsTag)
+        {
+            if (!flecsEntity.Has(component.Id))
+                return false;
+            value = metadata.DefaultFunc.Invoke();
+            return true;
+        }
+
+        var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);
+        var data = metadata.FromPointerFunc.Invoke((nint)ptr);
+        if (data is null)
             return false;
         value = data;
         return true;
@@ -385,10 +413,64 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return Unsafe.IsNullRef(in value) ? defaultFunc.Invoke() : value;
     }
 
-    public ref readonly Entity Set<T>(IComposable<T> composable)
+    public object? GetOrDefault(in Component component, object? defaultValue)
     {
         EnsureValid();
-        this.Set(composable.ToComponent());
+        ref readonly var metadata = ref component.Metadata;
+        if (metadata.IsTag)
+            return FlecsEntity.Has(component.Id) ? metadata.DefaultFunc.Invoke() : defaultValue;
+        var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);
+        var value = metadata.FromPointerFunc.Invoke((nint)ptr);
+        return value ?? defaultValue;
+    }
+
+    public object? GetOrDefault(in Component component, Func<object?> defaultValue)
+    {
+        EnsureValid();
+        ref readonly var metadata = ref component.Metadata;
+        if (metadata.IsTag)
+            return FlecsEntity.Has(component.Id) ? metadata.DefaultFunc.Invoke() : defaultValue.Invoke();
+        var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);
+        var value = metadata.FromPointerFunc.Invoke((nint)ptr);
+        return value ?? defaultValue.Invoke();
+    }
+
+    [OverloadResolutionPriority(1)]
+    public ref readonly Entity Set<T>(IComposable<T> composable)
+    {
+        Set(composable.ToComponent());
+        return ref this;
+    }
+
+    public ref readonly Entity Set<T>(T data)
+    {
+        Set(ref data);
+        return ref this;
+    }
+
+    public ref readonly Entity Set<T>(ref T data)
+    {
+        EnsureValid();
+        ComponentMetadata<T>.EnsureInitialized();
+        var flecsEntity = FlecsEntity;
+        var id = Type<T>.Id(flecsEntity.World);
+        var hadT = flecsEntity.Has(id);
+        var isTag = Type<T>.IsTag;
+        if (!isTag)
+            flecsEntity.Set(ref data);
+        else
+            flecsEntity.Add<T>();
+        if (!isTag && hadT)
+            flecsEntity.CsWorld().Event<SetEvent>().Id(id).Entity(Id).Enqueue();
+        else if (!hadT)
+            flecsEntity.CsWorld().Event<AddEvent>().Id(id).Entity(Id).Enqueue();
+        return ref this;
+    }
+
+    public ref readonly Entity Set(in Component component, object? value)
+    {
+        EnsureValid();
+        component.Metadata.SetAction.Invoke(this, value);
         return ref this;
     }
 
@@ -399,6 +481,21 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         var id = Type<T>.Id(flecsEntity.World);
         flecsEntity.Remove(id);
         return ref this;
+    }
+
+    public ref readonly Entity Remove(in Component component)
+    {
+        EnsureValid();
+        var flecsEntity = FlecsEntity;
+        flecsEntity.Remove(component.Id);
+        return ref this;
+    }
+
+    public void Clear()
+    {
+        EnsureValid();
+        foreach (var component in Components)
+            Remove(component);
     }
 
     public void Destroy()
@@ -456,7 +553,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public void EnsureValid()
     {
         if (!IsValid)
-            Logger.Fatal($"Entity is not valid.\n{new StackTrace(true).ToString().TrimEnd()}");
+            Log.Fatal($"Entity is not valid.\n{new StackTrace(true).ToString().TrimEnd()}");
     }
 
     private bool PrintMembers(StringBuilder sb)
@@ -500,6 +597,8 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         sb.Append(ZIndex);
         sb.Append(", Transform = ");
         sb.Append(Transform.ToString());
+        sb.Append(", Components = ");
+        sb.Append(Components.ToString());
         return true;
     }
 
@@ -720,46 +819,12 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
 public static unsafe partial class EntityExtensions
 {
-    extension(in Entity entity)
-    {
-        public ref readonly Entity Set<T>(T data)
-        {
-            Set(entity, ref data);
-            return ref entity;
-        }
-
-        public ref readonly Entity Set<T>(ref T data)
-        {
-            entity.EnsureValid();
-            var type = typeof(T);
-            var flecsEntity = entity.FlecsEntity;
-            var id = Type<T>.Id(flecsEntity.World);
-            var hadT = flecsEntity.Has(id);
-            var isTag = Type<T>.IsTag;
-            if (!isTag)
-                flecsEntity.Set(ref data);
-            else
-                flecsEntity.Add<T>();
-            if (!isTag && hadT)
-                flecsEntity.CsWorld().Event<SetEvent>().Id(id).Entity(entity.Id).Enqueue();
-            else if (!hadT)
-                flecsEntity.CsWorld().Event<AddEvent>().Id(id).Entity(entity.Id).Enqueue();
-            return ref entity;
-        }
-    }
-
     extension(Flecs.NET.Core.Entity entity)
     {
         public ref readonly T GetSafe<T>()
         {
-            var data = flecs.ecs_get_id(entity.World, entity.Id, Type<T>.Id(entity.World));
-            if (data == null)
-                return ref Unsafe.NullRef<T>();
-            if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-                return ref Unsafe.AsRef<T>(data);
-            var handle = GCHandle.FromIntPtr(*(nint*)data);
-            var box = (StrongBox<T>)handle.Target!;
-            return ref box.Value!;
+            var ptr = flecs.ecs_get_id(entity.World, entity.Id, Type<T>.Id(entity.World));
+            return ref Component.FromPointer<T>((nint)ptr);
         }
     }
 }

@@ -24,6 +24,6 @@ public sealed class Sprite : IFullCloneable
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this);
+        return ObjectPrinter.Print(this, removeNulls: true);
     }
 }

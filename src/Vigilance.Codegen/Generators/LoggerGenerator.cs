@@ -12,13 +12,13 @@ public sealed class LoggerGenerator : SourceGenerator
             """
             namespace Vigilance.Logging;
 
-            public static partial class Logger
+            public static partial class Log
             {
 
             """
         );
-        Log(sb, "Log");
-        Log(sb, "Log", true);
+        Log(sb, "Invoke");
+        Log(sb, "Invoke", true);
         Log(sb, "Debug");
         Log(sb, "Info");
         Log(sb, "Warning");

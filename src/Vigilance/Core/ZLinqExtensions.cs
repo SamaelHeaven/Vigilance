@@ -63,7 +63,7 @@ public sealed class ValueIterator<TEnumerator, TValue>
 
     ~ValueIterator()
     {
-        Logger.Warning(
+        Log.Warning(
             $"{nameof(ValueIterator<,>)}<{typeof(TEnumerator).Name}, {typeof(TValue).Name}> finalizer called. Ensure that {nameof(Dispose)} or {nameof(GetEnumerator)} is called explicitly."
         );
         ReleaseUnmanagedResources();

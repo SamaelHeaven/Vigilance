@@ -28,12 +28,13 @@ public sealed unsafe partial class Scene
     private List<IGameSystem> _systems = null!;
     private float _time;
     private Action? _updateAction;
-    internal CachedData Cache = new();
+    internal CachedData Cache;
     internal World World = World.Create();
 
     public Scene(GameSystemsFunc? systems = null)
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
+        Cache = new CachedData(this);
         OnSetParent(SetParentCallback);
     }
 
@@ -95,7 +96,7 @@ public sealed unsafe partial class Scene
     {
         EnsureInitialized();
         Flecs.NET.Core.Entity entity;
-        if (name == "")
+        if (name.IsEmpty)
             entity = World.Entity();
         else
             entity =
@@ -105,7 +106,7 @@ public sealed unsafe partial class Scene
         var id = entity.Id.Value;
         var result = new Entity(id, this);
         Cache.TransformMap.Add(id, new Transform());
-        Cache.NameMap.Add(id, name == "" ? $"#{id}" : name);
+        Cache.NameMap.Add(id, name.IsEmpty ? $"#{id}" : name);
         entity.Set(new ZIndex());
         entity.Set(new Position());
         entity.Set(new Scale());
@@ -113,6 +114,13 @@ public sealed unsafe partial class Scene
         entity.Set(new PivotPoint());
         World.Event<AddEvent>().Id<ZIndex>().Entity(id).Enqueue();
         return result;
+    }
+
+    public Component Component<T>()
+    {
+        EnsureInitialized();
+        ComponentMetadata<T>.EnsureInitialized();
+        return new Component(Type<T>.Id(World), this, typeof(T));
     }
 
     public Entity Lookup(ulong id)
@@ -507,8 +515,21 @@ public sealed unsafe partial class Scene
         public readonly Dictionary<ulong, string> NameMap = new();
         public readonly Dictionary<ulong, Entity> ParentMap = new();
         public readonly Dictionary<ulong, Transform> TransformMap = new();
+        public readonly Dictionary<ulong, Type> ComponentMap = new();
+        public readonly ulong PositionId;
+        public readonly ulong ScaleId;
+        public readonly ulong RotationId;
+        public readonly ulong PivotPointId;
+        public readonly ulong ZIndexId;
 
-        public CachedData() { }
+        public CachedData(Scene scene)
+        {
+            PositionId = Type<Position>.Id(scene.World);
+            ScaleId = Type<Scale>.Id(scene.World);
+            RotationId = Type<Rotation>.Id(scene.World);
+            PivotPointId = Type<PivotPoint>.Id(scene.World);
+            ZIndexId = Type<ZIndex>.Id(scene.World);
+        }
     }
 
     private enum TransformOperation

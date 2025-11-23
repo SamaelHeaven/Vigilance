@@ -132,7 +132,8 @@ public abstract class UIParent : UIElement
     {
         var result = (UIParent)base.DeepClone();
         result.ChildrenList = new LinkedList<UIElement>();
-        result.AddRange(ChildrenList.Select(el => el.DeepClone()));
+        foreach (var element in ChildrenList.AsValueEnumerable().Select(el => el.DeepClone()))
+            result.Add(element);
         return result;
     }
 

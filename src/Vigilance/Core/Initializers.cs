@@ -25,7 +25,7 @@ public static class Initializers
         Game.Defer(() =>
         {
             FileSystem.Initialize();
-            Logger.Initialize();
+            Log.Initialize();
             Display.Initialize();
             Asset.Initialize();
             Font.Initialize();

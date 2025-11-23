@@ -1,7 +1,7 @@
-using System.Buffers;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using LinkDotNet.StringBuilder;
 using Raylib_cs.BleedingEdge;
 using Vigilance.Logging;
 
@@ -34,60 +34,25 @@ public static unsafe partial class FileSystem
 
     public static string FormatPath(string path)
     {
-        if (string.IsNullOrEmpty(path))
+        if (path.IsEmpty)
             return "";
-        var span = path.AsSpan();
-        var start = 0;
-        var end = span.Length - 1;
-        while (start <= end && char.IsWhiteSpace(span[start]))
-            start++;
-        while (end >= start && char.IsWhiteSpace(span[end]))
-            end--;
-        if (start > end)
-            return "";
-        var length = end - start + 1;
-        var useStack = length <= 256;
-        char[] bufferArray = null!;
-        var buffer = useStack ? stackalloc char[length] : bufferArray = ArrayPool<char>.Shared.Rent(length);
-        var count = 0;
-        var lastWasSlash = false;
-        for (var i = start; i <= end; i++)
+        var trimmedPath = path.AsSpan().Trim();
+        var initialCapacity = trimmedPath.Length;
+        using var sb =
+            initialCapacity <= 256
+                ? new ValueStringBuilder(stackalloc char[initialCapacity])
+                : new ValueStringBuilder(initialCapacity);
+        char? lastChar = null;
+        foreach (var c in trimmedPath)
         {
-            var c = span[i];
-            if (c == '\\')
-                c = '/';
-            if (c == '/')
-            {
-                if (lastWasSlash)
-                    continue;
-                lastWasSlash = true;
-            }
-            else
-            {
-                lastWasSlash = false;
-            }
-
-            buffer[count++] = c;
+            var normalized = c == '\\' ? '/' : c;
+            if (normalized == '/' && lastChar == '/')
+                continue;
+            sb.Append(normalized);
+            lastChar = normalized;
         }
 
-        var trimStart = 0;
-        var trimEnd = count - 1;
-        while (trimStart <= trimEnd && buffer[trimStart] == '/')
-            trimStart++;
-        while (trimEnd >= trimStart && buffer[trimEnd] == '/')
-            trimEnd--;
-        var finalLength = trimEnd - trimStart + 1;
-        if (finalLength <= 0)
-        {
-            if (!useStack)
-                ArrayPool<char>.Shared.Return(bufferArray);
-            return "";
-        }
-
-        var result = new string(buffer.Slice(trimStart, finalLength));
-        if (!useStack)
-            ArrayPool<char>.Shared.Return(bufferArray);
-        return result;
+        return sb.AsSpan().Trim('/').ToString();
     }
 
     public static string NormalizePath(string path)
@@ -98,14 +63,14 @@ public static unsafe partial class FileSystem
     public static string FormatResource(string resource, string? @namespace = null)
     {
         @namespace ??= WorkingNamespace;
-        return @namespace == "" ? resource : $"{@namespace}.{resource}";
+        return @namespace.IsEmpty ? resource : $"{@namespace}.{resource}";
     }
 
     public static string FormatResource(string resource, string? @namespace, Assembly? assembly)
     {
         @namespace ??= WorkingNamespace;
         assembly ??= Assemblies.Game;
-        return $"{assembly.GetName().Name}.{@namespace}{(@namespace == "" ? "" : ".")}{resource}";
+        return $"{assembly.GetName().Name}.{@namespace}{(@namespace.IsEmpty ? "" : ".")}{resource}";
     }
 
     public static bool ChangeDirectory(string path)
@@ -120,7 +85,7 @@ public static unsafe partial class FileSystem
     public static bool FileExists(string path)
     {
         path = FormatPath(path);
-        if (path == "")
+        if (path.IsEmpty)
             return false;
         using var buffer = path.ToUtf8Buffer();
         return Raylib.FileExists(buffer);
@@ -129,7 +94,7 @@ public static unsafe partial class FileSystem
     public static bool DirectoryExists(string path)
     {
         path = FormatPath(path);
-        if (path == "")
+        if (path.IsEmpty)
             return false;
         using var buffer = path.ToUtf8Buffer();
         return Raylib.DirectoryExists(buffer);
@@ -172,7 +137,7 @@ public static unsafe partial class FileSystem
     public static string ReadText(string path)
     {
         if (!TryReadText(path, out var text))
-            Logger.Warning($"FILEIO: [{FormatPath(path)}] Failed to read text file");
+            Log.Warning($"FILEIO: [{FormatPath(path)}] Failed to read text file");
         return text;
     }
 
@@ -191,7 +156,7 @@ public static unsafe partial class FileSystem
     public static string ReadResourceText(string resource, string? @namespace = null, Assembly? assembly = null)
     {
         if (!TryReadResourceText(resource, out var text, @namespace, assembly))
-            Logger.Warning($"FILEIO: [{FormatResource(resource, @namespace)}] Failed to read resource text");
+            Log.Warning($"FILEIO: [{FormatResource(resource, @namespace)}] Failed to read resource text");
         return text;
     }
 
@@ -230,7 +195,7 @@ public static unsafe partial class FileSystem
     public static byte[] ReadBytes(string path)
     {
         if (!TryReadBytes(path, out var bytes))
-            Logger.Warning($"FILEIO: [{FormatPath(path)}] Failed to read file");
+            Log.Warning($"FILEIO: [{FormatPath(path)}] Failed to read file");
         return bytes;
     }
 
@@ -267,7 +232,7 @@ public static unsafe partial class FileSystem
     public static byte[] ReadResourceBytes(string resource, string? @namespace = null, Assembly? assembly = null)
     {
         if (!TryReadResourceBytes(resource, out var bytes, @namespace, assembly))
-            Logger.Warning($"FILEIO: [{FormatResource(resource, @namespace)}] Failed to read resource");
+            Log.Warning($"FILEIO: [{FormatResource(resource, @namespace)}] Failed to read resource");
         return bytes;
     }
 

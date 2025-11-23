@@ -106,7 +106,7 @@ public static class KeyExtensions
             {
                 Game.EnsureRunning();
                 var name = Raylib.GetKeyName_((KeyboardKey)key).ToUpper();
-                return name == "" ? key.ToString() : name;
+                return name.IsEmpty ? key.ToString() : name;
             }
         }
     }

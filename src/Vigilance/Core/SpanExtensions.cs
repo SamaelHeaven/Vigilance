@@ -5,6 +5,7 @@ namespace Vigilance.Core;
 
 public static class SpanExtensions
 {
+    [OverloadResolutionPriority(-1)]
     public static ReadOnlySpan<T> AsSpan<T>(this IEnumerable<T> enumerable)
     {
         return enumerable switch
@@ -12,7 +13,7 @@ public static class SpanExtensions
             T[] array => array,
             List<T> list => CollectionsMarshal.AsSpan(list),
             string str when typeof(T) == typeof(char) => MemoryMarshal.CreateReadOnlySpan(
-                ref Unsafe.As<char, T>(ref MemoryMarshal.GetReference(str.AsSpan())),
+                ref Unsafe.As<char, T>(ref MemoryMarshal.GetReference(MemoryExtensions.AsSpan(str))),
                 str.Length
             ),
             ArraySegment<T> segment => MemoryExtensions.AsSpan(segment),
@@ -21,23 +22,8 @@ public static class SpanExtensions
         };
     }
 
-    public static Span<T> AsSpan<T>(this T[] array)
-    {
-        return array;
-    }
-
     public static Span<T> AsSpan<T>(this List<T> list)
     {
         return CollectionsMarshal.AsSpan(list);
-    }
-
-    public static ReadOnlySpan<char> AsSpan(this string str)
-    {
-        return MemoryExtensions.AsSpan(str);
-    }
-
-    public static Span<T> AsSpan<T>(this ArraySegment<T> segment)
-    {
-        return MemoryExtensions.AsSpan(segment);
     }
 }

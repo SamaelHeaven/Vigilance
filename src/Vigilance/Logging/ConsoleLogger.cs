@@ -15,14 +15,17 @@ public sealed class ConsoleLogger : ILogger
                 Console.BackgroundColor = color.Value;
             }
 
-            Console.Write("\e[1m ");
-            Console.Write(level.ToUpperString());
-            Console.Write(" \e[0m");
+            Console.Write($"\e[1m {level.ToUpperString()} \e[0m");
             Console.ResetColor();
-            Console.Write(" ");
         }
 
-        Console.WriteLine(message);
+        foreach (var range in message.AsSpan().Split("\n"))
+        {
+            var line = message.AsSpan(range);
+            Console.Write(" ");
+            Console.WriteLine(line);
+        }
+
         Console.Out.Flush();
     }
 }

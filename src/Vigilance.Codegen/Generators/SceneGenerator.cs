@@ -139,18 +139,12 @@ public sealed class SceneGenerator : SourceGenerator
                         }
                     }
                     
-                    private TField GetField<TField>(byte index)
+                    private ref readonly TField GetField<TField>(byte index)
                     {
                         fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
                         {
                             var ptr = Flecs.NET.Bindings.flecs.ecs_field_w_size(iter, Flecs.NET.Core.Type<TField>.Size, index);
-                            if (!System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<TField>())
-            #pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-                                return ((TField*)ptr)[_index];
-            #pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-                            var handle = System.Runtime.InteropServices.GCHandle.FromIntPtr(*&((nint*)ptr)[_index]);
-                            var box = (System.Runtime.CompilerServices.StrongBox<TField>)handle.Target!;
-                            return box.Value!;
+                            return ref Core.Component.FromPointer<TField>((nint)ptr);
                         }
                     }
 

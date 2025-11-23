@@ -78,7 +78,7 @@ public static unsafe class Game
         }
         catch (Exception e)
         {
-            Logger.Fatal(e);
+            Log.Fatal(e);
         }
     }
 

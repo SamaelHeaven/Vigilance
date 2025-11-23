@@ -1,7 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Text;
+using System.Runtime.InteropServices;
+using LinkDotNet.StringBuilder;
 using ZLinq;
 using ZLinq.Linq;
 
@@ -19,31 +20,36 @@ public static class ObjectPrinter
 
     public static string Print<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         T obj,
-        Filter? filter = null
+        Filter? filter = null,
+        bool removeNulls = false
     )
         where T : notnull
     {
         var type = typeof(T);
-        var sb = new StringBuilder();
-        sb.Append(type.Name);
-        sb.Append(" { ");
-        if (!_properties.TryGetValue(type, out var props))
+        var sb = new ValueStringBuilder(stackalloc char[256]);
+        try
         {
-            props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            _properties[type] = props;
+            sb.Append(type.Name);
+            sb.Append(" { ");
+            ref var props = ref CollectionsMarshal.GetValueRefOrAddDefault(_properties, type, out var exists);
+            if (!exists)
+                props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            var i = 0;
+            if (filter.HasValue)
+                foreach (var prop in filter.Value.Apply(props!))
+                    PrintProperty(ref sb, obj, prop, ref i, removeNulls);
+            else
+                foreach (var prop in props!)
+                    PrintProperty(ref sb, obj, prop, ref i, removeNulls);
+            if (i > 0)
+                sb.Append(' ');
+            sb.Append('}');
+            return sb.ToString();
         }
-
-        var i = 0;
-        if (filter.HasValue)
-            foreach (var prop in filter.Value.Apply(props))
-                PrintProperty(sb, obj, prop, ref i);
-        else
-            foreach (var prop in props)
-                PrintProperty(sb, obj, prop, ref i);
-        if (i > 0)
-            sb.Append(' ');
-        sb.Append('}');
-        return sb.ToString();
+        finally
+        {
+            sb.Dispose();
+        }
     }
 
     public static Filter Include(params string[] propertyNames)
@@ -56,14 +62,22 @@ public static class ObjectPrinter
         return new Filter(FilterType.Exclude, propertyNames);
     }
 
-    private static void PrintProperty(StringBuilder sb, object obj, PropertyInfo prop, ref int i)
+    private static void PrintProperty(
+        ref ValueStringBuilder sb,
+        object obj,
+        PropertyInfo prop,
+        ref int i,
+        bool removeNulls
+    )
     {
+        var value = prop.GetValue(obj);
+        if (removeNulls && value is null)
+            return;
         if (i++ > 0)
             sb.Append(", ");
-        var value = prop.GetValue(obj);
         sb.Append(prop.Name);
         sb.Append(" = ");
-        sb.Append(value);
+        sb.Append(value?.ToString());
     }
 
     public readonly record struct Filter(FilterType Type, string[] PropertyNames)

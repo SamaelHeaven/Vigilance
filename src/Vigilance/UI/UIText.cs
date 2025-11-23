@@ -102,7 +102,7 @@ public class UIText : UIElement
         }
     }
 
-    public Interpolation? Interpolation
+    public Interpolation Interpolation
     {
         get => _text.Interpolation;
         set => _text.Interpolation = value;
@@ -160,14 +160,14 @@ public class UIText : UIElement
             }
             case TextOverflow.Wrap:
             default:
-                var words = Value.Split(' ');
                 var lines = new List<string>();
                 var currentLine = "";
-                foreach (var word in words)
+                foreach (var range in Value.AsSpan().Split(' '))
                 {
-                    var line = currentLine == "" ? word : currentLine + " " + word;
+                    var word = Value.AsSpan(range).ToString();
+                    var line = currentLine.IsEmpty ? word : $"{currentLine} {word}";
                     _text.Value = line;
-                    if (_text.Size.X > maxWidth && currentLine != "")
+                    if (_text.Size.X > maxWidth && currentLine.IsNotEmpty)
                     {
                         lines.Add(currentLine);
                         currentLine = word;
@@ -178,7 +178,7 @@ public class UIText : UIElement
                     }
                 }
 
-                if (currentLine != "")
+                if (currentLine.IsNotEmpty)
                     lines.Add(currentLine);
                 _text.Value = lines.AsValueEnumerable().JoinToString("\n");
                 return _text.Size;

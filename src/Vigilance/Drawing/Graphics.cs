@@ -1232,7 +1232,7 @@ public sealed unsafe class Graphics
     )
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
-        if (text == "" || colorValue == Color.Transparent)
+        if (text.IsEmpty || colorValue == Color.Transparent)
             return;
         font ??= Font.Default;
         Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
@@ -1295,7 +1295,7 @@ public sealed unsafe class Graphics
     {
         var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
-        if (text == "" || colorValue == Color.Transparent || strokeWidthValue <= 0)
+        if (text.IsEmpty || colorValue == Color.Transparent || strokeWidthValue <= 0)
             return;
         font ??= Font.Default;
         var (atlas, glyphInfos) = font.GetStroke((int)strokeWidthValue.Ceil());
