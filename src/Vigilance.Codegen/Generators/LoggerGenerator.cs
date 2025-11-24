@@ -33,7 +33,7 @@ public sealed class LoggerGenerator : SourceGenerator
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             var args = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n} t{n}"));
-            var interpolation = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => "{t" + n + "}"));
+            var interpolation = string.Join(" ", Enumerable.Range(0, i + 1).Select(n => "{t" + n + "}"));
             sb.AppendLine(
                 $$"""
                     public static void {{type}}<{{typeParams}}>({{(levelArg ? "LogLevel level, " : "")}}{{args}})

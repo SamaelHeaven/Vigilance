@@ -26,7 +26,7 @@ public static class Mouse
     public static ListView<MouseButton> PressedButtons => _pressedButtons;
     public static ListView<MouseButton> ReleasedButtons => _releasedButtons;
 
-    public static bool OnScreen => Raylib.IsCursorOnScreen();
+    public static bool OnScreen { get; private set; }
 
     public static Vector2 Scroll => _scroll;
 
@@ -125,7 +125,12 @@ public static class Mouse
 
     private static void UpdateState()
     {
-        _screenPosition = ((Vector2)Raylib.GetMousePosition()).Clamp(Vector2.Zero, Display.ScreenSize).Round();
+        var mousePosition = Raylib.GetMousePosition();
+        _screenPosition = ((Vector2)mousePosition).Clamp(Vector2.Zero, Display.ScreenSize).Round();
+        OnScreen =
+            mousePosition is { X: >= 0, Y: >= 0 }
+            && mousePosition.X <= Display.ScreenWidth
+            && mousePosition.Y <= Display.ScreenHeight;
         _scroll = Raylib.GetMouseWheelMoveV();
         if (Platform.Web.IsCurrent)
             _scroll.X = -_scroll.X;

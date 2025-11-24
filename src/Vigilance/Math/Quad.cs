@@ -183,7 +183,7 @@ public record struct Quad
     {
         fixed (Quad* quad = &this)
         {
-            return new ReadOnlySpan<Vector2>(&quad, Count);
+            return new ReadOnlySpan<Vector2>((Vector2*)quad, Count);
         }
     }
 

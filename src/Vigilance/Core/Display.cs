@@ -58,6 +58,19 @@ public static unsafe class Display
 
     public static int RefreshRate => Raylib.GetMonitorRefreshRate(Raylib.GetCurrentMonitor());
 
+    public static int MonitorWidth => Raylib.GetMonitorWidth(Raylib.GetCurrentMonitor());
+
+    public static int MonitorHeight => Raylib.GetMonitorHeight(Raylib.GetCurrentMonitor());
+
+    public static Vector2 MonitorSize
+    {
+        get
+        {
+            var monitor = Raylib.GetCurrentMonitor();
+            return new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
+        }
+    }
+
     public static Vector2 ScreenSize
     {
         get => new(ScreenWidth, ScreenHeight);
@@ -77,7 +90,7 @@ public static unsafe class Display
         get
         {
             if (Platform.Desktop.IsCurrent && Fullscreen)
-                return Raylib.GetMonitorWidth(Raylib.GetCurrentMonitor());
+                return MonitorWidth;
             return Raylib.GetScreenWidth();
         }
         set
@@ -95,7 +108,7 @@ public static unsafe class Display
         get
         {
             if (Platform.Desktop.IsCurrent && Fullscreen)
-                return Raylib.GetMonitorHeight(Raylib.GetCurrentMonitor());
+                return MonitorHeight;
             return Raylib.GetScreenHeight();
         }
         set
@@ -279,8 +292,7 @@ public static unsafe class Display
         }
         else if (Platform.Desktop.IsCurrent)
         {
-            var monitor = Raylib.GetCurrentMonitor();
-            var monitorSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
+            var monitorSize = MonitorSize;
             var fullscreen = _fullscreen;
             if (fullscreen)
             {
