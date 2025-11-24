@@ -1,4 +1,5 @@
 using Raylib_cs.BleedingEdge;
+using Color = Vigilance.Drawing.Color;
 
 namespace Vigilance.Logging;
 
@@ -18,18 +19,34 @@ public static class LogLevelExtensions
 {
     extension(LogLevel level)
     {
-        public ConsoleColor? ConsoleColor
+        public Color? Foreground
         {
             get
             {
                 return level switch
                 {
-                    LogLevel.Debug => ConsoleColor.Cyan,
-                    LogLevel.Info => ConsoleColor.Green,
-                    LogLevel.Warning => ConsoleColor.Yellow,
-                    LogLevel.Error => ConsoleColor.Red,
-                    LogLevel.Fatal => ConsoleColor.DarkRed,
-                    _ => null,
+                    LogLevel.Debug => Color.White,
+                    LogLevel.Info => Color.Black,
+                    LogLevel.Warning => Color.Black,
+                    LogLevel.Error => Color.Black,
+                    LogLevel.Fatal => Color.White,
+                    _ => new Color?(),
+                };
+            }
+        }
+
+        public Color? Background
+        {
+            get
+            {
+                return level switch
+                {
+                    LogLevel.Debug => Color.DarkBlue,
+                    LogLevel.Info => Color.Lime,
+                    LogLevel.Warning => Color.Yellow,
+                    LogLevel.Error => Color.Red,
+                    LogLevel.Fatal => Color.Maroon,
+                    _ => new Color?(),
                 };
             }
         }

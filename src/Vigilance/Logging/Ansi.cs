@@ -1,3 +1,5 @@
+using Vigilance.Drawing;
+
 namespace Vigilance.Logging;
 
 public static class Ansi
@@ -56,6 +58,16 @@ public static class Ansi
         {
             return $"{Esc}38;2;{r};{g};{b}m";
         }
+
+        public static string Rgb(Color color)
+        {
+            return Rgb(color.R, color.G, color.B);
+        }
+
+        public static string Rgb(PixelR8G8B8 pixel)
+        {
+            return Rgb(pixel.R, pixel.G, pixel.B);
+        }
     }
 
     public static class Background
@@ -87,6 +99,16 @@ public static class Ansi
         public static string Rgb(byte r, byte g, byte b)
         {
             return $"{Esc}48;2;{r};{g};{b}m";
+        }
+
+        public static string Rgb(Color color)
+        {
+            return Rgb(color.R, color.G, color.B);
+        }
+
+        public static string Rgb(PixelR8G8B8 pixel)
+        {
+            return Rgb(pixel.R, pixel.G, pixel.B);
         }
     }
 }
