@@ -281,8 +281,8 @@ public static unsafe class Display
         {
             var monitor = Raylib.GetCurrentMonitor();
             var monitorSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
-
-            if (_fullscreen)
+            var fullscreen = _fullscreen;
+            if (fullscreen)
             {
                 _resetScreen = resizeValue;
             }
@@ -295,15 +295,15 @@ public static unsafe class Display
                     ScreenSize = monitorSize;
             }
 
-            _fullscreen = !_fullscreen;
             var screenSize = ScreenSize;
             if (
                 OperatingSystem.IsMacOS()
-                && !_fullscreen
+                && !fullscreen
                 && screenSize == monitorSize
                 && (Vector2)Raylib.GetWindowPosition() == Vector2.Zero
             )
                 return;
+            _fullscreen = !fullscreen;
             if (borderlessValue && OperatingSystem.IsWindows())
             {
                 Raylib.ToggleBorderlessWindowed();
