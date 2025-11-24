@@ -8,8 +8,6 @@ public static class StringExtensions
     {
         public bool IsEmpty => str.Length == 0;
 
-        public bool IsNotEmpty => str.Length != 0;
-
         public string ToJson()
         {
             return $"\"{JsonEncodedText.Encode(str)}\"";

@@ -167,7 +167,7 @@ public class UIText : UIElement
                     var word = Value.AsSpan(range).ToString();
                     var line = currentLine.IsEmpty ? word : $"{currentLine} {word}";
                     _text.Value = line;
-                    if (_text.Size.X > maxWidth && currentLine.IsNotEmpty)
+                    if (_text.Size.X > maxWidth && !currentLine.IsEmpty)
                     {
                         lines.Add(currentLine);
                         currentLine = word;
@@ -178,7 +178,7 @@ public class UIText : UIElement
                     }
                 }
 
-                if (currentLine.IsNotEmpty)
+                if (!currentLine.IsEmpty)
                     lines.Add(currentLine);
                 _text.Value = lines.AsValueEnumerable().JoinToString("\n");
                 return _text.Size;
