@@ -1,7 +1,7 @@
+using LinkDotNet.StringBuilder;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Math;
-using ZLinq;
 
 namespace Vigilance.UI;
 
@@ -160,28 +160,59 @@ public class UIText : UIElement
             }
             case TextOverflow.Wrap:
             default:
-                var lines = new List<string>();
-                var currentLine = "";
+            {
+                var initialCapacity = (int)(Value.Length * 1.2);
+                using var lines =
+                    initialCapacity <= 256
+                        ? new ValueStringBuilder(stackalloc char[initialCapacity])
+                        : new ValueStringBuilder(initialCapacity);
+                using var currentLine =
+                    initialCapacity <= 256
+                        ? new ValueStringBuilder(stackalloc char[initialCapacity])
+                        : new ValueStringBuilder();
+                var any = false;
                 foreach (var range in Value.AsSpan().Split(' '))
                 {
-                    var word = Value.AsSpan(range).ToString();
-                    var line = currentLine.IsEmpty ? word : $"{currentLine} {word}";
-                    _text.Value = line;
-                    if (_text.Size.X > maxWidth && !currentLine.IsEmpty)
+                    var word = Value.AsSpan(range);
+                    string line;
+                    if (currentLine.IsEmpty)
                     {
-                        lines.Add(currentLine);
-                        currentLine = word;
+                        line = word.ToString();
                     }
                     else
                     {
-                        currentLine = line;
+                        currentLine.Append(' ');
+                        currentLine.Append(word);
+                        line = currentLine.ToString();
+                    }
+
+                    _text.Value = line;
+                    if (_text.Size.X > maxWidth && !currentLine.IsEmpty)
+                    {
+                        if (any)
+                            lines.Append('\n');
+                        lines.Append(currentLine.AsSpan());
+                        currentLine.Clear();
+                        currentLine.Append(word);
+                        any = true;
+                    }
+                    else
+                    {
+                        currentLine.Clear();
+                        currentLine.Append(line);
                     }
                 }
 
                 if (!currentLine.IsEmpty)
-                    lines.Add(currentLine);
-                _text.Value = lines.AsValueEnumerable().JoinToString("\n");
+                {
+                    if (any)
+                        lines.Append('\n');
+                    lines.Append(currentLine.AsSpan());
+                }
+
+                _text.Value = lines.ToString();
                 return _text.Size;
+            }
         }
     }
 
