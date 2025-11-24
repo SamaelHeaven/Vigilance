@@ -13,7 +13,12 @@ public static class Coordinates
         return points.AsValueEnumerable().Aggregate(Vector2.Zero, (a, b) => a + b) / points.Count;
     }
 
-    public static Vector2 GetCenter(Quad quad)
+    public static Vector2 GetCenter(in ReadOnlySpan<Vector2> points)
+    {
+        return points.AsValueEnumerable().Aggregate(Vector2.Zero, (a, b) => a + b) / points.Length;
+    }
+
+    public static Vector2 GetCenter(in Quad quad)
     {
         return (quad.TopLeft + quad.BottomLeft - quad.BottomRight - quad.TopRight) / 4f;
     }
@@ -21,13 +26,19 @@ public static class Coordinates
     public static IEnumerable<Vector2> Scale(IReadOnlyCollection<Vector2> points, Vector2 scale, Vector2? offset = null)
     {
         scale = scale.Abs();
-        if (scale == Vector2.One)
-            return points;
         var center = GetCenter(points);
         return points.Select(point => (offset ?? Vector2.Zero) + (center + (point - center) * scale));
     }
 
-    public static Quad Scale(Quad quad, Vector2 scale, Vector2? offset = null)
+    public static void Scale(Span<Vector2> points, Vector2 scale, Vector2? offset = null)
+    {
+        scale = scale.Abs();
+        var center = GetCenter(points);
+        for (var i = 0; i < points.Length; i++)
+            points[i] = (offset ?? Vector2.Zero) + (center + (points[i] - center) * scale);
+    }
+
+    public static Quad Scale(in Quad quad, Vector2 scale, in Vector2? offset = null)
     {
         scale = scale.Abs();
         var center = GetCenter(quad);

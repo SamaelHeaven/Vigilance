@@ -4,7 +4,7 @@ namespace Vigilance.Math;
 
 public static class Collision
 {
-    public static bool CheckBoxes(Box box1, Box box2)
+    public static bool CheckBoxes(in Box box1, in Box box2)
     {
         return box1.X < box2.X + box2.Width
             && box1.X + box1.Width > box2.X
@@ -12,7 +12,7 @@ public static class Collision
             && box1.Y + box1.Height > box2.Y;
     }
 
-    public static bool CheckBoxes(Box box1, Box box2, out Box intersection)
+    public static bool CheckBoxes(in Box box1, in Box box2, out Box intersection)
     {
         var result = CheckBoxes(box1, box2);
         intersection = new Box();
@@ -44,7 +44,7 @@ public static class Collision
         return distanceSquared <= radiusSum * radiusSum;
     }
 
-    public static bool CheckCircleBox(Vector2 center, float radius, Box box)
+    public static bool CheckCircleBox(Vector2 center, float radius, in Box box)
     {
         var boxCenterX = box.X + box.Width / 2.0f;
         var boxCenterY = box.Y + box.Height / 2.0f;
@@ -84,7 +84,7 @@ public static class Collision
         return distanceSq <= radius * radius;
     }
 
-    public static bool CheckPointBox(Vector2 point, Box box)
+    public static bool CheckPointBox(Vector2 point, in Box box)
     {
         return point.X >= box.X && point.X < box.X + box.Width && point.Y >= box.Y && point.Y < box.Y + box.Height;
     }
@@ -126,7 +126,7 @@ public static class Collision
         return CheckPointPolygonSpan(point, polygon.AsSpan());
     }
 
-    public static bool CheckPointPolygonSpan(Vector2 point, ReadOnlySpan<Vector2> span)
+    public static bool CheckPointPolygonSpan(Vector2 point, in ReadOnlySpan<Vector2> span)
     {
         var collision = false;
         if (span.Length <= 2)
@@ -140,7 +140,7 @@ public static class Collision
         return collision;
     }
 
-    public static bool CheckPointQuad(Vector2 point, Quad quad)
+    public static bool CheckPointQuad(Vector2 point, in Quad quad)
     {
         return CheckPointPolygonSpan(point, quad);
     }
@@ -150,13 +150,13 @@ public static class Collision
         return CheckPolygonsSpan(polygon1.AsSpan(), polygon2.AsSpan());
     }
 
-    public static bool CheckPolygonsSpan(ReadOnlySpan<Vector2> polygon1, ReadOnlySpan<Vector2> polygon2)
+    public static bool CheckPolygonsSpan(in ReadOnlySpan<Vector2> polygon1, in ReadOnlySpan<Vector2> polygon2)
     {
         if (polygon1.Length < 3 || polygon2.Length < 3)
             return false;
         return !HasSeparatingAxis(polygon1, polygon2) && !HasSeparatingAxis(polygon2, polygon1);
 
-        static bool HasSeparatingAxis(ReadOnlySpan<Vector2> polygonA, ReadOnlySpan<Vector2> polygonB)
+        static bool HasSeparatingAxis(in ReadOnlySpan<Vector2> polygonA, in ReadOnlySpan<Vector2> polygonB)
         {
             for (var i = 0; i < polygonA.Length; i++)
             {
@@ -172,7 +172,7 @@ public static class Collision
             return false;
         }
 
-        static void ProjectPolygon(ReadOnlySpan<Vector2> polygon, Vector2 axis, out float min, out float max)
+        static void ProjectPolygon(in ReadOnlySpan<Vector2> polygon, Vector2 axis, out float min, out float max)
         {
             var dot = polygon[0].Dot(axis);
             min = max = dot;
@@ -187,7 +187,7 @@ public static class Collision
         }
     }
 
-    public static bool CheckQuads(Quad a, Quad b)
+    public static bool CheckQuads(in Quad a, in Quad b)
     {
         return CheckPolygonsSpan(a, b);
     }

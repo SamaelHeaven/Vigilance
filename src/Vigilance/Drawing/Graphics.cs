@@ -2,6 +2,7 @@ using System.Numerics;
 using Raylib_cs.BleedingEdge;
 using Vigilance.Core;
 using Vigilance.Math;
+using ZLinq;
 using Transform = Vigilance.Math.Transform;
 using Vector2 = Vigilance.Math.Vector2;
 
@@ -34,7 +35,7 @@ public sealed unsafe class Graphics
         return GetBounds(GetMatrix(camera), offset);
     }
 
-    public Box GetBounds(Matrix3x2 matrix, float offset = 0)
+    public Box GetBounds(in Matrix3x2 matrix, float offset = 0)
     {
         if (!Precision.AreEqual(offset, 0))
         {
@@ -60,7 +61,7 @@ public sealed unsafe class Graphics
         return IsBoxInBounds(new Box(position, size), camera, offset);
     }
 
-    public bool IsBoxInBounds(Box box, Camera? camera, float offset = 0)
+    public bool IsBoxInBounds(in Box box, Camera? camera, float offset = 0)
     {
         var matrix = GetMatrix(camera);
         return Collision.CheckPolygonsSpan(box.Transform(matrix), new Quad(GetBounds(matrix, offset)));
@@ -117,7 +118,7 @@ public sealed unsafe class Graphics
         _matrixStack.Push(GetMatrix());
     }
 
-    public void PushMatrix(Matrix3x2 matrix)
+    public void PushMatrix(in Matrix3x2 matrix)
     {
         _matrixStack.Push(matrix);
     }
@@ -127,7 +128,7 @@ public sealed unsafe class Graphics
         return _matrixStack.Count != 0 ? _matrixStack.Pop() : _matrix;
     }
 
-    public void MultiplyMatrix(Matrix3x2 matrix)
+    public void MultiplyMatrix(in Matrix3x2 matrix)
     {
         if (_matrixStack.Count == 0)
         {
@@ -154,7 +155,7 @@ public sealed unsafe class Graphics
         Rotate(angle, new Vector2(v1, v2 ?? v1));
     }
 
-    public void Rotate(float angle, Vector2? position = null)
+    public void Rotate(float angle, in Vector2? position = null)
     {
         if (position.HasValue)
             MultiplyMatrix(Matrix3x2.CreateTranslation(position.Value.X, position.Value.Y));
@@ -183,7 +184,7 @@ public sealed unsafe class Graphics
         MultiplyMatrix(Matrix3x2.CreateSkew(skew.X, skew.Y));
     }
 
-    public void Transform(Transform transform)
+    public void Transform(in Transform transform)
     {
         var rotation = transform.Rotation;
         var pivotPoint = transform.PivotPoint;
@@ -194,7 +195,7 @@ public sealed unsafe class Graphics
         Scale(scale);
     }
 
-    public void Pivot(Transform transform, bool translate)
+    public void Pivot(in Transform transform, bool translate)
     {
         var position = transform.Position;
         var scale = transform.Scale.Abs();
@@ -221,7 +222,7 @@ public sealed unsafe class Graphics
         _clip = new Box(position, size);
     }
 
-    public void SetClip(Box? clip)
+    public void SetClip(in Box? clip)
     {
         _clip = clip;
     }
@@ -282,7 +283,7 @@ public sealed unsafe class Graphics
         FillRectangle(new Vector2(x, y), new Vector2(width, height), color, camera);
     }
 
-    public void FillRectangle(Box box, Color? color = null, Camera? camera = null)
+    public void FillRectangle(in Box box, Color? color = null, Camera? camera = null)
     {
         FillRectangle(box.Position, box.Size, color, camera);
     }
@@ -321,7 +322,7 @@ public sealed unsafe class Graphics
     }
 
     public void FillRectangleGradient(
-        Box box,
+        in Box box,
         Color? topLeftColor = null,
         Color? bottomLeftColor = null,
         Color? bottomRightColor = null,
@@ -387,7 +388,7 @@ public sealed unsafe class Graphics
         StrokeRectangle(new Vector2(x, y), new Vector2(width, height), color, strokeWidth, camera);
     }
 
-    public void StrokeRectangle(Box box, Color? color = null, float? strokeWidth = null, Camera? camera = null)
+    public void StrokeRectangle(in Box box, Color? color = null, float? strokeWidth = null, Camera? camera = null)
     {
         StrokeRectangle(box.Position, box.Size, color, strokeWidth, camera);
     }
@@ -430,7 +431,7 @@ public sealed unsafe class Graphics
         FillRoundedRectangle(new Vector2(x, y), new Vector2(width, height), color, radius, camera);
     }
 
-    public void FillRoundedRectangle(Box box, Color? color = null, float? radius = null, Camera? camera = null)
+    public void FillRoundedRectangle(in Box box, Color? color = null, float? radius = null, Camera? camera = null)
     {
         FillRoundedRectangle(box.Position, box.Size, color, radius, camera);
     }
@@ -472,7 +473,7 @@ public sealed unsafe class Graphics
     }
 
     public void StrokeRoundedRectangle(
-        Box box,
+        in Box box,
         Color? color = null,
         float? radius = null,
         float? strokeWidth = null,
@@ -522,12 +523,12 @@ public sealed unsafe class Graphics
         DrawRectangle(new Transform(position + size * 0.5f, size), rectangle);
     }
 
-    public void DrawRectangle(Box box, Rectangle rectangle)
+    public void DrawRectangle(in Box box, Rectangle rectangle)
     {
         DrawRectangle(box.Position, box.Size, rectangle);
     }
 
-    public void DrawRectangle(Transform transform, Rectangle rectangle)
+    public void DrawRectangle(in Transform transform, Rectangle rectangle)
     {
         var camera = rectangle.Camera.Get();
         var fill = rectangle.Fill;
@@ -581,12 +582,12 @@ public sealed unsafe class Graphics
         DrawRectangleGradient(new Transform(position + size * 0.5f, size), rectangle);
     }
 
-    public void DrawRectangleGradient(Box box, RectangleGradient rectangle)
+    public void DrawRectangleGradient(in Box box, RectangleGradient rectangle)
     {
         DrawRectangleGradient(box.Position, box.Size, rectangle);
     }
 
-    public void DrawRectangleGradient(Transform transform, RectangleGradient rectangle)
+    public void DrawRectangleGradient(in Transform transform, RectangleGradient rectangle)
     {
         var camera = rectangle.Camera.Get();
         var topLeftFill = rectangle.TopLeftFill;
@@ -722,7 +723,7 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void DrawCircle(Transform transform, Circle circle)
+    public void DrawCircle(in Transform transform, Circle circle)
     {
         var camera = circle.Camera.Get();
         var fill = circle.Fill;
@@ -748,7 +749,7 @@ public sealed unsafe class Graphics
         PopMatrix();
     }
 
-    public void DrawCircleGradient(Transform transform, CircleGradient circle)
+    public void DrawCircleGradient(in Transform transform, CircleGradient circle)
     {
         var camera = circle.Camera.Get();
         var innerFill = circle.InnerFill;
@@ -806,12 +807,11 @@ public sealed unsafe class Graphics
         StrokeCustomPolygonSpan(span, color, strokeWidth, camera);
     }
 
-    public void DrawTriangle(Transform transform, Triangle triangle)
+    public void DrawTriangle(in Transform transform, Triangle triangle)
     {
         var camera = triangle.Camera.Get();
         var position = transform.Position;
         var scale = transform.Scale;
-        var scaledPoints = Coordinates.Scale(triangle.Points, scale, position);
         var fill = triangle.Fill;
         var stroke = triangle.Stroke;
         var strokeWidth = triangle.StrokeWidth;
@@ -820,9 +820,10 @@ public sealed unsafe class Graphics
         Pivot(transform, false);
         var points = stackalloc Vector2[3];
         var i = 0;
-        foreach (var point in scaledPoints)
+        foreach (var point in triangle.Points)
             points[i++] = point;
-        var span = new ReadOnlySpan<Vector2>(points, 3);
+        var span = new Span<Vector2>(points, 3);
+        Coordinates.Scale(span, scale, position);
         if (order == DrawOrder.StrokeThenFill)
         {
             StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
@@ -903,7 +904,7 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void DrawRegularPolygon(Transform transform, RegularPolygon polygon)
+    public void DrawRegularPolygon(in Transform transform, RegularPolygon polygon)
     {
         var camera = polygon.Camera.Get();
         var sides = polygon.Sides;
@@ -935,7 +936,7 @@ public sealed unsafe class Graphics
         FillCustomPolygonSpan(points.AsSpan(), color, camera);
     }
 
-    public void FillCustomPolygonSpan(ReadOnlySpan<Vector2> points, Color? color = null, Camera? camera = null)
+    public void FillCustomPolygonSpan(in ReadOnlySpan<Vector2> points, Color? color = null, Camera? camera = null)
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         if (
@@ -964,7 +965,7 @@ public sealed unsafe class Graphics
     }
 
     public void StrokeCustomPolygonSpan(
-        ReadOnlySpan<Vector2> points,
+        in ReadOnlySpan<Vector2> points,
         Color? color = null,
         float? strokeWidth = null,
         Camera? camera = null
@@ -991,44 +992,53 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
+    public void DrawCustomPolygon(in Transform transform, CustomPolygon polygon)
     {
         var camera = polygon.Camera.Get();
         var position = transform.Position;
         var scale = transform.Scale;
-        var scaledPoints = Coordinates.Scale(polygon.Points, scale, position);
         var fill = polygon.Fill;
         var stroke = polygon.Stroke;
         var strokeWidth = polygon.StrokeWidth;
         var order = polygon.DrawOrder;
         PushMatrix();
         Pivot(transform, false);
-        ReadOnlySpan<Vector2> span;
-        if (polygon.Points.Count > 128)
+        PooledArray<Vector2>? pooledArray = null;
+        try
         {
-            span = scaledPoints.AsSpan();
-        }
-        else
-        {
-            var points = stackalloc Vector2[polygon.Points.Count];
-            var i = 0;
-            foreach (var point in scaledPoints)
-                points[i++] = point;
-            span = new ReadOnlySpan<Vector2>(points, polygon.Points.Count);
-        }
+            Span<Vector2> span;
+            if (polygon.Points.Count > 128)
+            {
+                pooledArray = polygon.Points.AsValueEnumerable().ToArrayPool();
+                span = pooledArray.Value.Span;
+            }
+            else
+            {
+                var points = stackalloc Vector2[polygon.Points.Count];
+                var i = 0;
+                foreach (var point in polygon.Points)
+                    points[i++] = point;
+                span = new Span<Vector2>(points, polygon.Points.Count);
+            }
 
-        if (order == DrawOrder.StrokeThenFill)
-        {
-            StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
-            FillCustomPolygonSpan(span, fill, camera);
-        }
-        else
-        {
-            FillCustomPolygonSpan(span, fill, camera);
-            StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
-        }
+            Coordinates.Scale(span, scale, position);
+            if (order == DrawOrder.StrokeThenFill)
+            {
+                StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+                FillCustomPolygonSpan(span, fill, camera);
+            }
+            else
+            {
+                FillCustomPolygonSpan(span, fill, camera);
+                StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+            }
 
-        PopMatrix();
+            PopMatrix();
+        }
+        finally
+        {
+            pooledArray?.Dispose();
+        }
     }
 
     #endregion
@@ -1125,7 +1135,7 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void DrawRing(Transform transform, Ring ring)
+    public void DrawRing(in Transform transform, Ring ring)
     {
         var camera = ring.Camera.Get();
         var startAngle = ring.StartAngle;
@@ -1186,7 +1196,7 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void DrawLine(Transform transform, Line line)
+    public void DrawLine(in Transform transform, Line line)
     {
         var camera = line.Camera.Get();
         var position = transform.Position;
@@ -1212,7 +1222,7 @@ public sealed unsafe class Graphics
         Color? color = null,
         Font? font = null,
         float? fontSize = null,
-        Vector2? spacing = null,
+        in Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -1226,7 +1236,7 @@ public sealed unsafe class Graphics
         Color? color = null,
         Font? font = null,
         float? fontSize = null,
-        Vector2? spacing = null,
+        in Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -1273,7 +1283,7 @@ public sealed unsafe class Graphics
         Font? font = null,
         float? fontSize = null,
         float? strokeWidth = null,
-        Vector2? spacing = null,
+        in Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -1288,7 +1298,7 @@ public sealed unsafe class Graphics
         Font? font = null,
         float? fontSize = null,
         float? strokeWidth = null,
-        Vector2? spacing = null,
+        in Vector2? spacing = null,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -1407,7 +1417,7 @@ public sealed unsafe class Graphics
 
     public void DrawTexture(
         Texture texture,
-        Box box,
+        in Box box,
         Color? tint = null,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -1419,7 +1429,7 @@ public sealed unsafe class Graphics
     public void DrawTexture(
         Texture texture,
         Vector2 position,
-        Vector2? size = null,
+        in Vector2? size = null,
         Color? tint = null,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -1437,8 +1447,8 @@ public sealed unsafe class Graphics
 
     public void DrawTexture(
         Texture texture,
-        Box source,
-        Box dest,
+        in Box source,
+        in Box dest,
         Color? tint = null,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -1462,7 +1472,7 @@ public sealed unsafe class Graphics
 
     public void DrawTextureNPatch(
         Texture texture,
-        NPatchInfo nPatchInfo,
+        in NPatchInfo nPatchInfo,
         float x,
         float y,
         Color? tint = null,
@@ -1475,7 +1485,7 @@ public sealed unsafe class Graphics
 
     public void DrawTextureNPatch(
         Texture texture,
-        NPatchInfo nPatchInfo,
+        in NPatchInfo nPatchInfo,
         float x,
         float y,
         float width,
@@ -1498,8 +1508,8 @@ public sealed unsafe class Graphics
 
     public void DrawTextureNPatch(
         Texture texture,
-        NPatchInfo nPatchInfo,
-        Box box,
+        in NPatchInfo nPatchInfo,
+        in Box box,
         Color? tint = null,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -1510,9 +1520,9 @@ public sealed unsafe class Graphics
 
     public void DrawTextureNPatch(
         Texture texture,
-        NPatchInfo nPatchInfo,
+        in NPatchInfo nPatchInfo,
         Vector2 position,
-        Vector2? size = null,
+        in Vector2? size = null,
         Color? tint = null,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -1531,9 +1541,9 @@ public sealed unsafe class Graphics
 
     public void DrawTextureNPatch(
         Texture texture,
-        NPatchInfo nPatchInfo,
-        Box source,
-        Box dest,
+        in NPatchInfo nPatchInfo,
+        in Box source,
+        in Box dest,
         Color? tint = null,
         Interpolation? interpolation = null,
         Camera? camera = null
@@ -1574,12 +1584,12 @@ public sealed unsafe class Graphics
         DrawSprite(new Transform(position + size * 0.5f, size), sprite);
     }
 
-    public void DrawSprite(Box box, Sprite sprite)
+    public void DrawSprite(in Box box, Sprite sprite)
     {
         DrawSprite(box.Position, box.Size, sprite);
     }
 
-    public void DrawSprite(Transform transform, Sprite sprite)
+    public void DrawSprite(in Transform transform, Sprite sprite)
     {
         var camera = sprite.Camera.Get();
         var texture = sprite.Texture;
@@ -1622,7 +1632,7 @@ public sealed unsafe class Graphics
         DrawGrid(new Vector2(x, y), new Vector2(width, height), cellSize, color, thick, camera);
     }
 
-    public void DrawGrid(Box box, float cellSize, Color? color = null, float? thick = null, Camera? camera = null)
+    public void DrawGrid(in Box box, float cellSize, Color? color = null, float? thick = null, Camera? camera = null)
     {
         DrawGrid(box.Position, box.Size, cellSize, color, thick, camera);
     }
@@ -1673,12 +1683,12 @@ public sealed unsafe class Graphics
         DrawGrid(new Transform(position + size * 0.5f, size), grid);
     }
 
-    public void DrawGrid(Box box, Grid grid)
+    public void DrawGrid(in Box box, Grid grid)
     {
         DrawGrid(box.Position, box.Size, grid);
     }
 
-    public void DrawGrid(Transform transform, Grid grid)
+    public void DrawGrid(in Transform transform, Grid grid)
     {
         var camera = grid.Camera.Get();
         var color = grid.Color;
@@ -1707,7 +1717,7 @@ public sealed unsafe class Graphics
     }
 
     public void DrawSplineLinearSpan(
-        ReadOnlySpan<Vector2> points,
+        in ReadOnlySpan<Vector2> points,
         Color? color = null,
         float? thick = null,
         Camera? camera = null
@@ -1742,7 +1752,7 @@ public sealed unsafe class Graphics
     }
 
     public void DrawSplineBasisSpan(
-        ReadOnlySpan<Vector2> points,
+        in ReadOnlySpan<Vector2> points,
         Color? color = null,
         float? thick = null,
         Camera? camera = null
@@ -1777,7 +1787,7 @@ public sealed unsafe class Graphics
     }
 
     public void DrawSplineCatmullRomSpan(
-        ReadOnlySpan<Vector2> points,
+        in ReadOnlySpan<Vector2> points,
         Color? color = null,
         float? thick = null,
         Camera? camera = null
@@ -1812,7 +1822,7 @@ public sealed unsafe class Graphics
     }
 
     public void DrawSplineBezierQuadraticSpan(
-        ReadOnlySpan<Vector2> points,
+        in ReadOnlySpan<Vector2> points,
         Color? color = null,
         float? thick = null,
         Camera? camera = null
@@ -1847,7 +1857,7 @@ public sealed unsafe class Graphics
     }
 
     public void DrawSplineBezierCubicSpan(
-        ReadOnlySpan<Vector2> points,
+        in ReadOnlySpan<Vector2> points,
         Color? color = null,
         float? thick = null,
         Camera? camera = null

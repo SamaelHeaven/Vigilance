@@ -126,17 +126,17 @@ public record struct Vector2
         return f == 0 ? Zero : new Vector2(v.X / f, v.Y / f);
     }
 
-    public readonly Vector2 Transform(Matrix3x2 matrix)
+    public readonly Vector2 Transform(in Matrix3x2 matrix)
     {
         return System.Numerics.Vector2.Transform(this, matrix);
     }
 
-    public readonly Vector2 Transform(Matrix4x4 matrix)
+    public readonly Vector2 Transform(in Matrix4x4 matrix)
     {
         return System.Numerics.Vector2.Transform(this, matrix);
     }
 
-    public readonly Vector2 Transform(Quaternion quaternion)
+    public readonly Vector2 Transform(in Quaternion quaternion)
     {
         return System.Numerics.Vector2.Transform(this, quaternion);
     }

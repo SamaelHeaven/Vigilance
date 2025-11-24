@@ -527,7 +527,7 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
             OnReleaseEvent?.Invoke(@event);
     }
 
-    public void Render(Transform transform, Graphics graphics)
+    public void Render(in Transform transform, Graphics graphics)
     {
         graphics.PushMatrix();
         graphics.Translate(transform.Position);
@@ -597,7 +597,7 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
         Node.MarkAsDirty();
     }
 
-    internal void Render(Transform transform, Graphics graphics, CameraProvider camera)
+    internal void Render(in Transform transform, Graphics graphics, CameraProvider camera)
     {
         if (!IsLayoutReady || Display == DisplayMode.None)
             return;

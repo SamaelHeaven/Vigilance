@@ -25,7 +25,7 @@ public record struct Quad
         TopRight = topRight;
     }
 
-    public Quad(Transform transform)
+    public Quad(in Transform transform)
     {
         var position = transform.Position;
         var size = transform.Scale.Abs();
@@ -42,7 +42,7 @@ public record struct Quad
         TopRight = topRight.Rotate(rotation, rotationPoint);
     }
 
-    public Quad(Box box)
+    public Quad(in Box box)
     {
         TopLeft = box.Position;
         BottomLeft = box.Position + Vector2.Down * box.Height;
@@ -51,7 +51,7 @@ public record struct Quad
     }
 
     public static implicit operator (Vector2 TopLeft, Vector2 BottomLeft, Vector2 BottomRight, Vector2 TopRight)(
-        Quad quad
+        in Quad quad
     )
     {
         return (quad.TopLeft, quad.BottomLeft, quad.BottomRight, quad.TopRight);
@@ -64,7 +64,7 @@ public record struct Quad
         return new Quad(quad.TopLeft, quad.BottomLeft, quad.BottomRight, quad.TopRight);
     }
 
-    public static implicit operator ReadOnlySpan<Vector2>(Quad quad)
+    public static implicit operator ReadOnlySpan<Vector2>(in Quad quad)
     {
         return quad.AsSpan();
     }
@@ -82,7 +82,7 @@ public record struct Quad
         topRight = TopRight;
     }
 
-    public readonly Quad Transform(Matrix3x2 matrix)
+    public readonly Quad Transform(in Matrix3x2 matrix)
     {
         return new Quad(
             TopLeft.Transform(matrix),
@@ -92,7 +92,7 @@ public record struct Quad
         );
     }
 
-    public readonly Quad Transform(Matrix4x4 matrix)
+    public readonly Quad Transform(in Matrix4x4 matrix)
     {
         return new Quad(
             TopLeft.Transform(matrix),
@@ -102,7 +102,7 @@ public record struct Quad
         );
     }
 
-    public readonly Quad Transform(Quaternion quaternion)
+    public readonly Quad Transform(in Quaternion quaternion)
     {
         return new Quad(
             TopLeft.Transform(quaternion),
@@ -112,12 +112,12 @@ public record struct Quad
         );
     }
 
-    public static Quad operator +(Quad a, Vector2 b)
+    public static Quad operator +(in Quad a, Vector2 b)
     {
         return new Quad(a.TopLeft + b, a.BottomLeft + b, a.BottomRight + b, a.TopRight + b);
     }
 
-    public static Quad operator +(Quad a, Quad b)
+    public static Quad operator +(in Quad a, in Quad b)
     {
         return new Quad(
             a.TopLeft + b.TopLeft,
@@ -127,12 +127,12 @@ public record struct Quad
         );
     }
 
-    public static Quad operator -(Quad a, Vector2 b)
+    public static Quad operator -(in Quad a, Vector2 b)
     {
         return new Quad(a.TopLeft - b, a.BottomLeft - b, a.BottomRight - b, a.TopRight - b);
     }
 
-    public static Quad operator -(Quad a, Quad b)
+    public static Quad operator -(in Quad a, in Quad b)
     {
         return new Quad(
             a.TopLeft - b.TopLeft,
@@ -142,12 +142,12 @@ public record struct Quad
         );
     }
 
-    public static Quad operator *(Quad a, Vector2 b)
+    public static Quad operator *(in Quad a, Vector2 b)
     {
         return new Quad(a.TopLeft * b, a.BottomLeft * b, a.BottomRight * b, a.TopRight * b);
     }
 
-    public static Quad operator *(Quad a, Quad b)
+    public static Quad operator *(in Quad a, in Quad b)
     {
         return new Quad(
             a.TopLeft * b.TopLeft,
@@ -157,12 +157,12 @@ public record struct Quad
         );
     }
 
-    public static Quad operator /(Quad a, Vector2 b)
+    public static Quad operator /(in Quad a, Vector2 b)
     {
         return new Quad(a.TopLeft / b, a.BottomLeft / b, a.BottomRight / b, a.TopRight / b);
     }
 
-    public static Quad operator /(Quad a, Quad b)
+    public static Quad operator /(in Quad a, in Quad b)
     {
         return new Quad(
             a.TopLeft / b.TopLeft,
@@ -179,7 +179,7 @@ public record struct Quad
         return new PointEnumerator(this);
     }
 
-    public unsafe ReadOnlySpan<Vector2> AsSpan()
+    public readonly unsafe ReadOnlySpan<Vector2> AsSpan()
     {
         fixed (Quad* quad = &this)
         {
@@ -187,12 +187,12 @@ public record struct Quad
         }
     }
 
-    public ValueEnumerable<FromSpan<Vector2>, Vector2> AsValueEnumerable()
+    public readonly ValueEnumerable<FromSpan<Vector2>, Vector2> AsValueEnumerable()
     {
         return AsSpan().AsValueEnumerable();
     }
 
-    ValueEnumerable<StructEnumerator<PointEnumerator, Vector2>, Vector2> IStructEnumerable<
+    readonly ValueEnumerable<StructEnumerator<PointEnumerator, Vector2>, Vector2> IStructEnumerable<
         PointEnumerator,
         Vector2
     >.AsValueEnumerable()
@@ -205,7 +205,7 @@ public record struct Quad
         private readonly Quad _quad;
         private int _index;
 
-        internal PointEnumerator(Quad quad)
+        internal PointEnumerator(in Quad quad)
         {
             _quad = quad;
             Reset();

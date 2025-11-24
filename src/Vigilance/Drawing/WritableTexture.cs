@@ -64,23 +64,23 @@ public readonly unsafe struct WritableTexture : IDisposable
         return _texture.Copy();
     }
 
-    public void Update(Image image, Box? box = null)
+    public void Update(Image image, in Box? box = null)
     {
         Update(new ReadOnlySpan<PixelGrayscale>(image.RImage.Data, image.DataSize), box);
     }
 
-    public void Update(WritableImage image, Box? box = null)
+    public void Update(WritableImage image, in Box? box = null)
     {
         Update((Image)image, box);
     }
 
-    public void Update<T>(WritableImage<T> image, Box? box = null)
+    public void Update<T>(WritableImage<T> image, in Box? box = null)
         where T : unmanaged, IPixel
     {
         Update(image.AsSpan(), box);
     }
 
-    public void Update<T>(ReadOnlySpan<T> pixels, Box? box = null)
+    public void Update<T>(in ReadOnlySpan<T> pixels, in Box? box = null)
         where T : unmanaged, IPixel
     {
         var source = box ?? new Box(Vector2.Zero, Size);

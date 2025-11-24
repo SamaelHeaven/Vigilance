@@ -241,7 +241,7 @@ public static unsafe partial class FileSystem
         return WriteBytesSpan(path, bytes.AsSpan());
     }
 
-    public static bool WriteBytesSpan(string path, ReadOnlySpan<byte> bytes)
+    public static bool WriteBytesSpan(string path, in ReadOnlySpan<byte> bytes)
     {
         path = FormatPath(path);
         using var pathBuffer = path.ToUtf8Buffer();

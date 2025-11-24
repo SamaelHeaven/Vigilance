@@ -90,7 +90,7 @@ public sealed unsafe class Font : IDisposable
     public Vector2 MeasureText(
         string text,
         float? fontSize = null,
-        Vector2? spacing = null,
+        in Vector2? spacing = null,
         TextHeightMode? textHeightMode = null
     )
     {
@@ -127,7 +127,7 @@ public sealed unsafe class Font : IDisposable
     public TextBoundEnumerable GetTextBounds(
         string text,
         float? fontSize = null,
-        Vector2? spacing = null,
+        in Vector2? spacing = null,
         DictionaryView<char, GlyphInfo>? glyphInfos = null
     )
     {
@@ -363,7 +363,7 @@ public sealed unsafe class Font : IDisposable
             string text,
             float fontSize,
             Vector2 spacing,
-            DictionaryView<char, GlyphInfo>? glyphInfos
+            in DictionaryView<char, GlyphInfo>? glyphInfos
         )
         {
             _font = font;

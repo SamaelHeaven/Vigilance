@@ -11,7 +11,7 @@ public sealed unsafe class Texture : IDisposable
     internal RenderTexture? RenderTexture;
     internal Texture2D Texture2D;
 
-    internal Texture(Texture2D texture2D, RenderTexture? renderTexture = null)
+    internal Texture(in Texture2D texture2D, RenderTexture? renderTexture = null)
     {
         Game.EnsureRunning();
         Texture2D = texture2D;

@@ -108,7 +108,7 @@ public readonly struct WritableImage : IDisposable
         Crop(new Vector2(x, y), new Vector2(width, height));
     }
 
-    public void Crop(Box box)
+    public void Crop(in Box box)
     {
         Crop(box.Position, box.Size);
     }
@@ -153,7 +153,7 @@ public readonly struct WritableImage : IDisposable
         KernelConvolutionSpan(kernel.AsSpan());
     }
 
-    public void KernelConvolutionSpan(ReadOnlySpan<float> kernel)
+    public void KernelConvolutionSpan(in ReadOnlySpan<float> kernel)
     {
         Raylib.ImageKernelConvolution(ref Image.RImage, kernel, kernel.Length);
     }
@@ -402,7 +402,7 @@ public readonly unsafe struct WritableImage<T>
         _image.Crop(x, y, width, height);
     }
 
-    public void Crop(Box box)
+    public void Crop(in Box box)
     {
         _image.Crop(box);
     }
@@ -437,7 +437,7 @@ public readonly unsafe struct WritableImage<T>
         _image.KernelConvolution(kernel);
     }
 
-    public void KernelConvolutionSpan(ReadOnlySpan<float> kernel)
+    public void KernelConvolutionSpan(in ReadOnlySpan<float> kernel)
     {
         _image.KernelConvolutionSpan(kernel);
     }

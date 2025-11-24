@@ -230,12 +230,7 @@ public sealed unsafe partial class Scene
         _postRenderAction += action;
     }
 
-    public void Emit<T>(T @event)
-    {
-        Emit(ref @event);
-    }
-
-    public void Emit<T>(ref T @event)
+    public void Emit<T>(in T @event)
     {
         EnsureInitialized();
         var type = typeof(T);
@@ -244,17 +239,12 @@ public sealed unsafe partial class Scene
         ((Action<T>)action).Invoke(@event);
     }
 
-    public void Enqueue<T>(T @event)
-    {
-        Enqueue(ref @event);
-    }
-
-    public void Enqueue<T>(ref T @event)
+    public void Enqueue<T>(in T @event)
     {
         EnsureInitialized();
         if (!IsDeferred)
         {
-            Emit(ref @event);
+            Emit(@event);
             return;
         }
 
@@ -268,7 +258,7 @@ public sealed unsafe partial class Scene
                 () =>
                 {
                     while (queue.TryDequeue(out var @event))
-                        Emit(ref @event);
+                        Emit(@event);
                 }
             );
         }

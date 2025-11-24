@@ -22,7 +22,7 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
         _type = entity.IsValid ? flecs.ecs_get_type(entity.Scene.World, entity.Id) : null;
     }
 
-    public ValueEnumerable Values => new(this);
+    public readonly ValueEnumerable Values => new(this);
 
     public ref Components Deferred(bool deferred = true)
     {
@@ -30,17 +30,17 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
         return ref this;
     }
 
-    public OfTypeEnumerable<T> OfType<T>()
+    public readonly OfTypeEnumerable<T> OfType<T>()
     {
         return new OfTypeEnumerable<T>(this);
     }
 
-    public Enumerator GetEnumerator()
+    public readonly Enumerator GetEnumerator()
     {
-        return new Enumerator(ref this);
+        return new Enumerator(this);
     }
 
-    public ValueEnumerable<StructEnumerator<Enumerator, Component>, Component> AsValueEnumerable()
+    public readonly ValueEnumerable<StructEnumerator<Enumerator, Component>, Component> AsValueEnumerable()
     {
         return new StructEnumerator<Enumerator, Component>(GetEnumerator());
     }
@@ -70,7 +70,7 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
 
         public Component Current { get; private set; }
 
-        internal Enumerator(ref Components components)
+        internal Enumerator(in Components components)
         {
             _components = components;
             Reset();

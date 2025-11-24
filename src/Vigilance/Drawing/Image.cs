@@ -9,7 +9,7 @@ public sealed unsafe class Image : IDisposable
 {
     internal Raylib_cs.BleedingEdge.Image RImage;
 
-    internal Image(Raylib_cs.BleedingEdge.Image image)
+    internal Image(in Raylib_cs.BleedingEdge.Image image)
     {
         RImage = image;
     }

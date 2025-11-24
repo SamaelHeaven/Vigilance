@@ -266,7 +266,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return Order.CompareTo(other.Order);
     }
 
-    public ref readonly Entity SetTransform(Transform transform)
+    public ref readonly Entity SetTransform(in Transform transform)
     {
         Transform = transform;
         return ref this;
@@ -386,16 +386,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return true;
     }
 
-    public T GetOrDefault<T>(T defaultValue)
-    {
-        EnsureValid();
-        if (Type<T>.IsTag)
-            return FlecsEntity.Has<T>() ? default! : defaultValue;
-        ref readonly var value = ref FlecsEntity.GetSafe<T>();
-        return Unsafe.IsNullRef(in value) ? defaultValue : value;
-    }
-
-    public T GetOrDefault<T>(ref T defaultValue)
+    public T GetOrDefault<T>(in T defaultValue)
     {
         EnsureValid();
         if (Type<T>.IsTag)
@@ -442,13 +433,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return ref this;
     }
 
-    public ref readonly Entity Set<T>(T data)
-    {
-        Set(ref data);
-        return ref this;
-    }
-
-    public ref readonly Entity Set<T>(ref T data)
+    public ref readonly Entity Set<T>(in T data)
     {
         EnsureValid();
         ComponentMetadata<T>.EnsureInitialized();
@@ -457,7 +442,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         var hadT = flecsEntity.Has(id);
         var isTag = Type<T>.IsTag;
         if (!isTag)
-            flecsEntity.Set(ref data);
+            flecsEntity.Set(data);
         else
             flecsEntity.Add<T>();
         if (!isTag && hadT)
