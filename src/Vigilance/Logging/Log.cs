@@ -39,17 +39,22 @@ public static unsafe partial class Log
         {
             EnableAnsiSupport();
             if (Platform.Web.IsCurrent)
-                throw new PlatformNotSupportedException();
+                goto ERROR;
             Raylib.SetTraceLogCallback(&UnmanagedLog);
             Raylib.TraceLog(TraceLogLevel.Info, message);
         }
         catch
         {
-            _config.Logger = null;
-            Raylib.SetTraceLogCallback(null);
-            Warning("Failed to initialize custom logging");
-            Info(message);
+            goto ERROR;
         }
+
+        return;
+
+        ERROR:
+        _config.Logger = null;
+        Raylib.SetTraceLogCallback(null);
+        Warning("Failed to initialize custom logging");
+        Info(message);
     }
 
     public static void Invoke<T>(T value)
@@ -80,7 +85,6 @@ public static unsafe partial class Log
                 }
 
                 Console.WriteLine(message);
-                Console.Out.Flush();
             }
             else
             {
