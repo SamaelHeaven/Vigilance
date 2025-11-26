@@ -161,15 +161,15 @@ public class UIText : UIElement
             case TextOverflow.Wrap:
             default:
             {
-                var initialCapacity = (int)(Value.Length * 1.2);
+                var initialCapacity = (int)(Value.Length * 1.25);
                 using var lines =
                     initialCapacity <= 256
                         ? new ValueStringBuilder(stackalloc char[initialCapacity])
                         : new ValueStringBuilder(initialCapacity);
                 using var currentLine =
-                    initialCapacity <= 256
-                        ? new ValueStringBuilder(stackalloc char[initialCapacity])
-                        : new ValueStringBuilder();
+                    Value.Length <= 256
+                        ? new ValueStringBuilder(stackalloc char[Value.Length])
+                        : new ValueStringBuilder(Value.Length);
                 var any = false;
                 foreach (var range in Value.AsSpan().Split(' '))
                 {
