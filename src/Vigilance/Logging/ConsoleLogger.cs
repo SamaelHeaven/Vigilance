@@ -5,7 +5,7 @@ public sealed class ConsoleLogger : ILogger
     public void Log(LogLevel level, string message)
     {
         if (!Console.IsOutputRedirected)
-            Console.Write($"{Ansi.Reset}");
+            Console.Write(Ansi.Reset);
         Console.ResetColor();
         if (level is > LogLevel.All and < LogLevel.None)
         {
@@ -18,9 +18,8 @@ public sealed class ConsoleLogger : ILogger
 
             if (!Console.IsOutputRedirected)
                 Console.Write($"{Ansi.Style.Bold} ");
-            Console.Write(level.ToString().ToUpper());
-            if (!Console.IsOutputRedirected)
-                Console.Write($" {Ansi.Reset}");
+            Console.Write(level.ToUpperString());
+            Console.Write(Console.IsOutputRedirected ? ":" : $" {Ansi.Reset}");
             Console.ResetColor();
             Console.Write(" ");
         }
