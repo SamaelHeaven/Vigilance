@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using Flecs.NET.Core;
 
 namespace Vigilance.Core;
@@ -29,6 +30,15 @@ public readonly unsafe record struct Component
         var handle = GCHandle.FromIntPtr(*(nint*)ptr);
         var box = (StrongBox<T>)handle.Target!;
         return ref box.Value!;
+    }
+
+    private bool PrintMembers(StringBuilder builder)
+    {
+        builder.Append("Id = ");
+        builder.Append(Id);
+        builder.Append(", Type = ");
+        builder.Append(Type);
+        return true;
     }
 }
 
