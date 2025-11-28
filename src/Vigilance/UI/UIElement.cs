@@ -493,6 +493,8 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
 
     public virtual void Update(Entity entity)
     {
+        if (!IsLayoutReady)
+            return;
         var @event = new UIEvent { Entity = entity, Element = this };
         var oldMouseInside = IsMouseInside;
         IsMouseInside =

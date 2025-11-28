@@ -200,8 +200,6 @@ public class UIScrollContainer : UIContainer
 
     protected override void UpdateSelf(Entity entity)
     {
-        if (!IsLayoutReady)
-            return;
         var offset = Vector2.Zero;
         var size = Vector2.Zero;
         var direction = Direction;

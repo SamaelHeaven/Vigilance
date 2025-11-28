@@ -101,6 +101,16 @@ public static unsafe partial class Log
         Invoke(level, handler.GetFormattedText());
     }
 
+    public static void Trace<T>(T value)
+    {
+        Invoke(LogLevel.Trace, value);
+    }
+
+    public static void Trace(TraceLogHandler handler)
+    {
+        Invoke(LogLevel.Trace, handler.GetFormattedText());
+    }
+
     public static void Debug<T>(T value)
     {
         Invoke(LogLevel.Debug, value);

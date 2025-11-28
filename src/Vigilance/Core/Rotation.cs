@@ -1,7 +1,3 @@
 namespace Vigilance.Core;
 
-internal readonly record struct Rotation(float Value)
-{
-    public Rotation()
-        : this(0) { }
-}
+internal record struct Rotation(float Value);

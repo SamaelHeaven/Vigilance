@@ -35,6 +35,32 @@ public ref struct LogHandler
 }
 
 [InterpolatedStringHandler]
+public ref struct TraceLogHandler
+{
+    private LogHandler _handler;
+
+    public TraceLogHandler(int literalLength, int formattedCount)
+    {
+        _handler = new LogHandler(literalLength, formattedCount, LogLevel.Trace);
+    }
+
+    public void AppendLiteral(string str)
+    {
+        _handler.AppendLiteral(str);
+    }
+
+    public void AppendFormatted<T>(T value)
+    {
+        _handler.AppendFormatted(value);
+    }
+
+    public string GetFormattedText()
+    {
+        return _handler.GetFormattedText();
+    }
+}
+
+[InterpolatedStringHandler]
 public ref struct DebugLogHandler
 {
     private LogHandler _handler;

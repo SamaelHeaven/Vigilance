@@ -73,93 +73,104 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public Vector2 Position
     {
-        get => GetOrDefault(new Position()).Value;
+        get
+        {
+            EnsureValid();
+            return FlecsEntity.Get<Position>().Value;
+        }
         set
         {
             EnsureValid();
-            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(
-                Scene.Cache.ImmediatePositionMap,
-                Id,
-                out _
-            );
-            if (Precision.AreEqual(value, current))
+            var flecsEntity = FlecsEntity;
+            ref var position = ref flecsEntity.GetSafe<Position>();
+            if (Precision.AreEqual(value, position.Value))
                 return;
-            current = value;
-            Scene.DeferSetPosition(Id, value);
-            SetInternal(new Position(value));
+            position.Value = value;
+            ref var transform = ref CollectionsMarshal.GetValueRefOrNullRef(Scene.Cache.TransformMap, Id);
+            transform.Position = value;
+            flecsEntity.CsWorld().Event<SetEvent>().Id<Position>().Entity(Id).Enqueue();
         }
     }
 
     public Vector2 Scale
     {
-        get => GetOrDefault(new Scale()).Value;
+        get
+        {
+            EnsureValid();
+            return FlecsEntity.Get<Scale>().Value;
+        }
         set
         {
             EnsureValid();
-            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(
-                Scene.Cache.ImmediateScaleMap,
-                Id,
-                out var exists
-            );
-            if (!exists)
-                current = Vector2.One;
-            if (Precision.AreEqual(value, current))
+            var flecsEntity = FlecsEntity;
+            ref var scale = ref flecsEntity.GetSafe<Scale>();
+            if (Precision.AreEqual(value, scale.Value))
                 return;
-            current = value;
-            Scene.DeferSetScale(Id, value);
-            SetInternal(new Scale(value));
+            scale.Value = value;
+            ref var transform = ref CollectionsMarshal.GetValueRefOrNullRef(Scene.Cache.TransformMap, Id);
+            transform.Scale = value;
+            flecsEntity.CsWorld().Event<SetEvent>().Id<Scale>().Entity(Id).Enqueue();
         }
     }
 
     public float Rotation
     {
-        get => GetOrDefault(new Rotation()).Value;
+        get
+        {
+            EnsureValid();
+            return FlecsEntity.Get<Rotation>().Value;
+        }
         set
         {
             EnsureValid();
-            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(
-                Scene.Cache.ImmediateRotationMap,
-                Id,
-                out _
-            );
-            if (Precision.AreEqual(value, current))
+            var flecsEntity = FlecsEntity;
+            ref var rotation = ref flecsEntity.GetSafe<Rotation>();
+            if (Precision.AreEqual(value, rotation.Value))
                 return;
-            current = value;
-            Scene.DeferSetRotation(Id, value);
-            SetInternal(new Rotation(value));
+            rotation.Value = value;
+            ref var transform = ref CollectionsMarshal.GetValueRefOrNullRef(Scene.Cache.TransformMap, Id);
+            transform.Rotation = value;
+            flecsEntity.CsWorld().Event<SetEvent>().Id<Rotation>().Entity(Id).Enqueue();
         }
     }
 
     public Vector2 PivotPoint
     {
-        get => GetOrDefault(new PivotPoint()).Value;
+        get
+        {
+            EnsureValid();
+            return FlecsEntity.Get<PivotPoint>().Value;
+        }
         set
         {
             EnsureValid();
-            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(
-                Scene.Cache.ImmediatePivotPointMap,
-                Id,
-                out _
-            );
-            if (Precision.AreEqual(value, current))
+            var flecsEntity = FlecsEntity;
+            ref var pivotPoint = ref flecsEntity.GetSafe<PivotPoint>();
+            if (Precision.AreEqual(value, pivotPoint.Value))
                 return;
-            current = value;
-            Scene.DeferSetPivotPoint(Id, value);
-            SetInternal(new PivotPoint(value));
+            pivotPoint.Value = value;
+            ref var transform = ref CollectionsMarshal.GetValueRefOrNullRef(Scene.Cache.TransformMap, Id);
+            transform.PivotPoint = value;
+            flecsEntity.CsWorld().Event<SetEvent>().Id<PivotPoint>().Entity(Id).Enqueue();
         }
     }
 
     public int ZIndex
     {
-        get => GetOrDefault(new ZIndex()).Value;
+        get
+        {
+            EnsureValid();
+            return FlecsEntity.Get<ZIndex>().Value;
+        }
         set
         {
             EnsureValid();
-            ref var current = ref CollectionsMarshal.GetValueRefOrAddDefault(Scene.Cache.ImmediateZIndexMap, Id, out _);
-            if (Precision.AreEqual(value, current))
+            var flecsEntity = FlecsEntity;
+            ref var zIndex = ref flecsEntity.GetSafe<ZIndex>();
+            if (value == zIndex.Value)
                 return;
-            current = value;
-            SetInternal(new ZIndex(value));
+            zIndex.Value = value;
+            flecsEntity.CsWorld().Event<SetEvent>().Id<ZIndex>().Entity(Id).Enqueue();
         }
     }
 
@@ -173,17 +184,6 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         set
         {
             EnsureValid();
-            if (value)
-            {
-                if (!Scene.Cache.ImmediateDisabledSet.Add(Id))
-                    return;
-            }
-            else
-            {
-                if (!Scene.Cache.ImmediateDisabledSet.Remove(Id))
-                    return;
-            }
-
             var flecsEntity = FlecsEntity;
             flecs.ecs_enable(flecsEntity.World, flecsEntity.Id, value);
         }
@@ -587,14 +587,6 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return true;
     }
 
-    private ref readonly Entity SetInternal<T>(T data)
-    {
-        var flecsEntity = FlecsEntity;
-        flecsEntity.Set(ref data);
-        flecsEntity.CsWorld().Event<SetEvent>().Id<T>().Entity(Id).Enqueue();
-        return ref this;
-    }
-
     public struct ChildEnumerable : IStructEnumerable<ChildEnumerator, Entity>
     {
         private readonly Entity _entity;
@@ -806,7 +798,7 @@ public static unsafe partial class EntityExtensions
 {
     extension(Flecs.NET.Core.Entity entity)
     {
-        public ref readonly T GetSafe<T>()
+        public ref T GetSafe<T>()
         {
             var ptr = flecs.ecs_get_id(entity.World, entity.Id, Type<T>.Id(entity.World));
             return ref Component.FromPointer<T>((nint)ptr);

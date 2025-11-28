@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 namespace Vigilance.Codegen.Generators;
 
 [Generator]
-public sealed class LoggerGenerator : SourceGenerator
+public sealed class LogGenerator : SourceGenerator
 {
     protected override void Generate(StringBuilder sb)
     {
@@ -19,6 +19,7 @@ public sealed class LoggerGenerator : SourceGenerator
         );
         Log(sb, "Invoke");
         Log(sb, "Invoke", true);
+        Log(sb, "Trace");
         Log(sb, "Debug");
         Log(sb, "Info");
         Log(sb, "Warning");

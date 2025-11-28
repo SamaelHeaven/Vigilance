@@ -1,9 +1,13 @@
-﻿using System.Collections;
+﻿using System.Buffers;
+using System.Collections;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Flecs.NET.Bindings;
 using Flecs.NET.Core;
 using Vigilance.Drawing;
 using Vigilance.Math;
 using ZLinq;
+using ZLinq.Internal;
 
 namespace Vigilance.Core;
 
@@ -13,10 +17,6 @@ public sealed unsafe partial class Scene
     private readonly Dictionary<Type, Delegate> _listeners = new();
     private readonly List<RenderCommand> _renderCommands = new();
     private readonly GameSystemsFunc _systemsFunc;
-
-    private readonly Queue<(TransformOperation Operation, ulong EntityId, TransformData Data)> _transformOperations =
-        new();
-
     private int _deferred;
     private Action? _deferredAction;
     private Action? _fixedUpdateAction;
@@ -45,7 +45,7 @@ public sealed unsafe partial class Scene
         OnSetParent(SetParentCallback);
     }
 
-    public ListView<IGameSystem> Systems => _systems is null ? throw new NullReferenceException() : _systems;
+    public ListView<IGameSystem> Systems => _systems ?? throw new NullReferenceException();
 
     public Camera Camera { get; } = new();
 
@@ -100,18 +100,23 @@ public sealed unsafe partial class Scene
             entity = World.Entity();
         else
             entity =
-                World.Lookup(name, false) != Flecs.NET.Core.Entity.Null()
+                World.Lookup(name, false).Id.Value != 0
                     ? throw new InvalidOperationException($"Entity \"{name}\" already exists.")
                     : World.Entity(name);
         var id = entity.Id.Value;
         var result = new Entity(id, this);
-        Cache.TransformMap.Add(id, new Transform());
-        Cache.NameMap.Add(id, name.IsEmpty ? $"#{id}" : name);
+        var deferred = IsDeferred;
+        if (deferred)
+            flecs.ecs_defer_suspend(World);
         entity.Set(new ZIndex());
         entity.Set(new Position());
         entity.Set(new Scale());
         entity.Set(new Rotation());
         entity.Set(new PivotPoint());
+        if (deferred)
+            flecs.ecs_defer_resume(World);
+        Cache.TransformMap.Add(id, new Transform());
+        Cache.NameMap.Add(id, name.IsEmpty ? $"#{id}" : name);
         World.Event<AddEvent>().Id<ZIndex>().Entity(id).Enqueue();
         return result;
     }
@@ -121,6 +126,12 @@ public sealed unsafe partial class Scene
         EnsureInitialized();
         ComponentMetadata<T>.EnsureInitialized();
         return new Component(Type<T>.Id(World), this, typeof(T));
+    }
+
+    public ComponentEnumerable Components()
+    {
+        EnsureInitialized();
+        return new ComponentEnumerable(this);
     }
 
     public Entity Lookup(ulong id)
@@ -311,10 +322,9 @@ public sealed unsafe partial class Scene
     public void EndDefer()
     {
         if (!IsDeferred)
-            return;
+            throw new InvalidOperationException("Scene is not in a deferred state.");
         if (--_deferred != 0)
             return;
-        ExecuteTransformOperations();
         World.DeferEnd();
         var action = _deferredAction;
         _deferredAction = null;
@@ -322,54 +332,22 @@ public sealed unsafe partial class Scene
         EmitEvents();
     }
 
+    public void SuspendDefer()
+    {
+        EnsureInitialized();
+        World.DeferSuspend();
+    }
+
+    public void ResumeDefer()
+    {
+        EnsureInitialized();
+        World.DeferResume();
+    }
+
     public Entity SetScope(in Entity entity)
     {
         var oldScope = World.SetScope(entity.Id);
         return new Entity(oldScope.Id.Value, this);
-    }
-
-    internal void DeferSetPosition(ulong entityId, Vector2 position)
-    {
-        if (IsDeferred)
-        {
-            _transformOperations.Enqueue((TransformOperation.Position, entityId, position));
-            return;
-        }
-
-        SetPosition(entityId, position);
-    }
-
-    internal void DeferSetScale(ulong entityId, Vector2 scale)
-    {
-        if (IsDeferred)
-        {
-            _transformOperations.Enqueue((TransformOperation.Scale, entityId, scale));
-            return;
-        }
-
-        SetScale(entityId, scale);
-    }
-
-    internal void DeferSetRotation(ulong entityId, float rotation)
-    {
-        if (IsDeferred)
-        {
-            _transformOperations.Enqueue((TransformOperation.Rotation, entityId, rotation));
-            return;
-        }
-
-        SetRotation(entityId, rotation);
-    }
-
-    internal void DeferSetPivotPoint(ulong entityId, Vector2 pivotPoint)
-    {
-        if (IsDeferred)
-        {
-            _transformOperations.Enqueue((TransformOperation.PivotPoint, entityId, pivotPoint));
-            return;
-        }
-
-        SetPivotPoint(entityId, pivotPoint);
     }
 
     internal void Stop()
@@ -435,74 +413,6 @@ public sealed unsafe partial class Scene
             events.EmitAction.Invoke();
     }
 
-    private void ExecuteTransformOperations()
-    {
-        while (_transformOperations.TryDequeue(out var operation))
-            switch (operation.Operation)
-            {
-                case TransformOperation.Position:
-                    SetPosition(operation.EntityId, operation.Data);
-                    break;
-                case TransformOperation.Scale:
-                    SetScale(operation.EntityId, operation.Data);
-                    break;
-                case TransformOperation.Rotation:
-                    SetRotation(operation.EntityId, operation.Data);
-                    break;
-                case TransformOperation.PivotPoint:
-                    SetPivotPoint(operation.EntityId, operation.Data);
-                    break;
-            }
-    }
-
-    private void SetPosition(ulong entityId, Vector2 position)
-    {
-        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(
-            Cache.TransformMap,
-            entityId,
-            out var exists
-        );
-        if (!exists)
-            transform.Scale = Vector2.One;
-        transform.Position = position;
-    }
-
-    private void SetScale(ulong entityId, Vector2 scale)
-    {
-        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(
-            Cache.TransformMap,
-            entityId,
-            out var exists
-        );
-        if (!exists)
-            transform.Scale = Vector2.One;
-        transform.Scale = scale;
-    }
-
-    private void SetRotation(ulong entityId, float rotation)
-    {
-        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(
-            Cache.TransformMap,
-            entityId,
-            out var exists
-        );
-        if (!exists)
-            transform.Scale = Vector2.One;
-        transform.Rotation = rotation;
-    }
-
-    private void SetPivotPoint(ulong entityId, Vector2 pivotPoint)
-    {
-        ref var transform = ref CollectionsMarshal.GetValueRefOrAddDefault(
-            Cache.TransformMap,
-            entityId,
-            out var exists
-        );
-        if (!exists)
-            transform.Scale = Vector2.One;
-        transform.PivotPoint = pivotPoint;
-    }
-
     ~Scene()
     {
         Game.Defer(() =>
@@ -524,12 +434,6 @@ public sealed unsafe partial class Scene
 
     internal readonly struct CachedData
     {
-        public readonly HashSet<ulong> ImmediateDisabledSet = new();
-        public readonly Dictionary<ulong, Vector2> ImmediatePivotPointMap = new();
-        public readonly Dictionary<ulong, Vector2> ImmediatePositionMap = new();
-        public readonly Dictionary<ulong, float> ImmediateRotationMap = new();
-        public readonly Dictionary<ulong, Vector2> ImmediateScaleMap = new();
-        public readonly Dictionary<ulong, int> ImmediateZIndexMap = new();
         public readonly Dictionary<ulong, string> NameMap = new();
         public readonly Dictionary<ulong, Entity> ParentMap = new();
         public readonly Dictionary<ulong, Transform> TransformMap = new();
@@ -550,41 +454,104 @@ public sealed unsafe partial class Scene
         }
     }
 
-    private enum TransformOperation
+    public readonly struct ComponentEnumerable : IStructEnumerable<ComponentEnumerator, Component>
     {
-        Position,
-        Scale,
-        Rotation,
-        PivotPoint,
+        private readonly Scene _scene;
+
+        internal ComponentEnumerable(Scene scene)
+        {
+            _scene = scene;
+        }
+
+        public ComponentEnumerator GetEnumerator()
+        {
+            return new ComponentEnumerator(_scene);
+        }
+
+        public ValueEnumerable<ComponentEnumerator, Component> AsValueEnumerable()
+        {
+            return new ValueEnumerable<ComponentEnumerator, Component>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<ComponentEnumerator, Component>, Component> IStructEnumerable<
+            ComponentEnumerator,
+            Component
+        >.AsValueEnumerable()
+        {
+            return new StructEnumerator<ComponentEnumerator, Component>(GetEnumerator());
+        }
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    private struct TransformData
+    public struct ComponentEnumerator : IStructEnumerator<Component>, IValueEnumerator<Component>
     {
-        [FieldOffset(0)]
-        public Vector2 Vector2;
+        private int _index;
+        private readonly int _count;
+        private readonly Component[] _array;
 
-        [FieldOffset(0)]
-        public float Float;
-
-        public static implicit operator Vector2(TransformData data)
+        internal ComponentEnumerator(Scene scene)
         {
-            return data.Vector2;
+            _index = -1;
+            _count = ComponentMetadata.Map.Count;
+            _array = ArrayPool<Component>.Shared.Rent(_count);
+            var i = 0;
+            foreach (var metadata in ComponentMetadata.Map.Values)
+                _array[i++] = new Component(metadata.IdFunc.Invoke(scene), scene, metadata.Type);
         }
 
-        public static implicit operator float(TransformData data)
+        public Component Current => _array[_index];
+
+        public bool MoveNext()
         {
-            return data.Float;
+            return ++_index < _count;
         }
 
-        public static implicit operator TransformData(Vector2 vector2)
+        public void Reset()
         {
-            return new TransformData { Vector2 = vector2 };
+            _index = -1;
         }
 
-        public static implicit operator TransformData(float f)
+        public bool TryGetNext(out Component current)
         {
-            return new TransformData { Float = f };
+            if (!MoveNext())
+            {
+                Unsafe.SkipInit(out current);
+                return false;
+            }
+
+            current = Current;
+            return true;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<Component> span)
+        {
+            span = new ReadOnlySpan<Component>(_array, 0, _count);
+            return true;
+        }
+
+        public bool TryCopyTo(scoped Span<Component> destination, Index offset)
+        {
+            if (
+                !EnumeratorHelper.TryGetSlice(
+                    new ReadOnlySpan<Component>(_array, 0, _count),
+                    offset,
+                    destination.Length,
+                    out var slice
+                )
+            )
+                return false;
+            slice.CopyTo(destination);
+            return true;
+        }
+
+        public void Dispose()
+        {
+            ArrayPool<Component>.Shared.Return(_array);
         }
     }
 
@@ -602,15 +569,8 @@ public sealed unsafe partial class Scene
 
     private void DestroyCallback(Entity entity)
     {
-        var id = entity.Id;
-        Cache.NameMap.Remove(id);
-        Cache.TransformMap.Remove(id);
-        Cache.ImmediateZIndexMap.Remove(id);
-        Cache.ImmediatePositionMap.Remove(id);
-        Cache.ImmediateScaleMap.Remove(id);
-        Cache.ImmediateRotationMap.Remove(id);
-        Cache.ImmediatePivotPointMap.Remove(id);
-        Cache.ImmediateDisabledSet.Remove(id);
+        Cache.NameMap.Remove(entity.Id);
+        Cache.TransformMap.Remove(entity.Id);
     }
 
     #endregion

@@ -20,7 +20,7 @@ public readonly unsafe record struct Component
     public ref readonly ComponentMetadata Metadata =>
         ref CollectionsMarshal.GetValueRefOrNullRef(ComponentMetadata.Map, Type);
 
-    public static ref readonly T FromPointer<T>(nint ptr)
+    public static ref T FromPointer<T>(nint ptr)
     {
         if (ptr == 0)
             return ref Unsafe.NullRef<T>();
@@ -46,6 +46,8 @@ public readonly struct ComponentMetadata
 
     public required int Alignment { get; init; }
 
+    public required Func<Scene, ulong> IdFunc { get; init; }
+
     public required Func<object?> DefaultFunc { get; init; }
 
     public required Func<nint, object?> FromPointerFunc { get; init; }
@@ -53,7 +55,7 @@ public readonly struct ComponentMetadata
     public required Action<Entity, object?> SetAction { get; init; }
 }
 
-public struct ComponentMetadata<T>
+public unsafe struct ComponentMetadata<T>
 {
     static ComponentMetadata()
     {
@@ -67,6 +69,7 @@ public struct ComponentMetadata<T>
                 IsTag = Type<T>.IsTag,
                 Size = Type<T>.Size,
                 Alignment = Type<T>.Alignment,
+                IdFunc = scene => Type<T>.Id(scene.World),
                 DefaultFunc = () => default(T),
                 FromPointerFunc = ptr =>
                 {
