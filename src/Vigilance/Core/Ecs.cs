@@ -19,8 +19,16 @@ public sealed class EcsConfig
 
 public static class EcsConfigExtensions
 {
-    public static ConfigBuilder Ecs(this ConfigBuilder builder, Action<EcsConfig> config)
+    extension(ConfigBuilder builder)
     {
-        return builder.Add(config);
+        public ConfigBuilder Ecs(Action<EcsConfig> config)
+        {
+            return builder.Add(config);
+        }
+
+        public ConfigBuilder Systems(GameSystemsFunc config)
+        {
+            return builder.Ecs(ecs => ecs.Systems = config);
+        }
     }
 }
