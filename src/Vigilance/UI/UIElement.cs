@@ -10,7 +10,7 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
+public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 {
     private bool _click;
     internal Node Node = Flex.CreateDefaultNode();
@@ -448,9 +448,9 @@ public abstract class UIElement : IComposable<UIComponent>, IDeepCloneable
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
-    public UIComponent ToComponent()
+    public UIElement ToComponent()
     {
-        return new UIComponent(this);
+        return this;
     }
 
     object IDeepCloneable.DeepClone()
