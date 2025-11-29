@@ -337,7 +337,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public object? Get(in Component component)
     {
         EnsureValid();
-        ref readonly var metadata = ref component.Metadata;
+        var metadata = component.Metadata;
         if (metadata.IsTag)
             return FlecsEntity.Has(component.Id) ? metadata.DefaultFunc.Invoke() : null;
         var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);
@@ -368,7 +368,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         EnsureValid();
         value = null!;
-        ref readonly var metadata = ref component.Metadata;
+        var metadata = component.Metadata;
         var flecsEntity = FlecsEntity;
         if (metadata.IsTag)
         {
@@ -407,7 +407,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public object? GetOrDefault(in Component component, object? defaultValue)
     {
         EnsureValid();
-        ref readonly var metadata = ref component.Metadata;
+        var metadata = component.Metadata;
         if (metadata.IsTag)
             return FlecsEntity.Has(component.Id) ? metadata.DefaultFunc.Invoke() : defaultValue;
         var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);
@@ -418,7 +418,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public object? GetOrDefault(in Component component, Func<object?> defaultValue)
     {
         EnsureValid();
-        ref readonly var metadata = ref component.Metadata;
+        var metadata = component.Metadata;
         if (metadata.IsTag)
             return FlecsEntity.Has(component.Id) ? metadata.DefaultFunc.Invoke() : defaultValue.Invoke();
         var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);

@@ -12,14 +12,13 @@ public readonly unsafe record struct Component
         Id = id;
         Scene = scene;
         Type = type;
+        Metadata = ComponentMetadata.Map[type];
     }
 
     public ulong Id { get; }
     public Scene Scene { get; }
     public Type Type { get; }
-
-    public ref readonly ComponentMetadata Metadata =>
-        ref CollectionsMarshal.GetValueRefOrNullRef(ComponentMetadata.Map, Type);
+    public ComponentMetadata Metadata { get; }
 
     public static ref T FromPointer<T>(nint ptr)
     {
@@ -42,7 +41,7 @@ public readonly unsafe record struct Component
     }
 }
 
-public readonly struct ComponentMetadata
+public sealed class ComponentMetadata
 {
     internal static readonly Dictionary<Type, ComponentMetadata> Map = new();
 
