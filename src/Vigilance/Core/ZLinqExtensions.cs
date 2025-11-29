@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using Vigilance.Math;
 using ZLinq;
+using ZLinq.Traversables;
 
 namespace Vigilance.Core;
 
@@ -19,6 +20,30 @@ public static class ZLinqExtensions
     extension<TTraverser, T>(TTraverser traverser)
         where TTraverser : struct, ITraverser<TTraverser, T>
     {
+        public ValueEnumerable<Descendants<TTraverser, T>, T> DescendantsPreOrder()
+        {
+            return new ValueEnumerable<Descendants<TTraverser, T>, T>(new Descendants<TTraverser, T>(traverser, false));
+        }
+
+        public ValueEnumerable<Descendants<TTraverser, T>, T> DescendantsPreOrderAndSelf()
+        {
+            return new ValueEnumerable<Descendants<TTraverser, T>, T>(new Descendants<TTraverser, T>(traverser, true));
+        }
+
+        public ValueEnumerable<DescendantsPostOrder<TTraverser, T>, T> DescendantsPostOrder()
+        {
+            return new ValueEnumerable<DescendantsPostOrder<TTraverser, T>, T>(
+                new DescendantsPostOrder<TTraverser, T>(traverser, false)
+            );
+        }
+
+        public ValueEnumerable<DescendantsPostOrder<TTraverser, T>, T> DescendantsPostOrderAndSelf()
+        {
+            return new ValueEnumerable<DescendantsPostOrder<TTraverser, T>, T>(
+                new DescendantsPostOrder<TTraverser, T>(traverser, true)
+            );
+        }
+
         public ValueEnumerable<DescendantsLevelOrder<TTraverser, T>, T> DescendantsLevelOrder()
         {
             return new ValueEnumerable<DescendantsLevelOrder<TTraverser, T>, T>(
@@ -96,6 +121,116 @@ public readonly struct ValueEnumerableAdapter<TEnumerator, TValue>
     }
 }
 
+public struct DescendantsPostOrder<TTraverser, T> : IValueEnumerator<T>
+    where TTraverser : struct, ITraverser<TTraverser, T>
+{
+    private T[]? _stack;
+    private int _top;
+    private int _count;
+    private TTraverser _traverser;
+    private readonly bool _withSelf;
+
+    public DescendantsPostOrder(in TTraverser traverser, bool withSelf)
+    {
+        _traverser = traverser;
+        _withSelf = withSelf;
+        _stack = null;
+        _top = 0;
+        _count = 0;
+    }
+
+    public bool TryGetNext(out T current)
+    {
+        Initialize();
+        if (_top == 0)
+        {
+            Unsafe.SkipInit(out current);
+            return false;
+        }
+
+        current = _stack![--_top];
+        return true;
+    }
+
+    public bool TryGetNonEnumeratedCount(out int count)
+    {
+        Initialize();
+        count = _count;
+        return true;
+    }
+
+    public bool TryGetSpan(out ReadOnlySpan<T> span)
+    {
+        span = default;
+        return false;
+    }
+
+    public bool TryCopyTo(scoped Span<T> destination, Index offset)
+    {
+        return false;
+    }
+
+    public void Dispose()
+    {
+        _traverser.Dispose();
+        if (_stack is not null)
+        {
+            ArrayPool<T>.Shared.Return(_stack, RuntimeHelpers.IsReferenceOrContainsReferences<T>());
+            _stack = null;
+        }
+
+        _top = 0;
+    }
+
+    private void Initialize()
+    {
+        if (_stack is not null)
+            return;
+        int count;
+        count = _traverser.TryGetChildCount(out count) ? count : -1;
+        var top = 0;
+        var stack = count >= 0 ? ArrayPool<T>.Shared.Rent(count.Max(16)) : ArrayPool<T>.Shared.Rent(16);
+        try
+        {
+            _stack = count >= 0 ? ArrayPool<T>.Shared.Rent(count.Max(16)) : ArrayPool<T>.Shared.Rent(16);
+            if (_withSelf)
+                Push(_traverser.Origin, ref stack, ref top);
+            else
+                foreach (var child in _traverser.Children<TTraverser, T>())
+                    Push(child, ref stack, ref top);
+            while (top > 0)
+            {
+                ref readonly var node = ref stack![--top];
+                Push(node, ref _stack, ref _top);
+                using var traverser = _traverser.ConvertToTraverser(node);
+                foreach (var child in traverser.Children<TTraverser, T>())
+                    Push(child, ref stack, ref top);
+            }
+        }
+        finally
+        {
+            ArrayPool<T>.Shared.Return(stack!, RuntimeHelpers.IsReferenceOrContainsReferences<T>());
+        }
+
+        _count = _top;
+    }
+
+    private static void Push(in T item, ref T[]? stack, ref int top)
+    {
+        if (top == stack!.Length)
+            Grow(ref stack);
+        stack![top++] = item;
+    }
+
+    private static void Grow(ref T[]? stack)
+    {
+        var array = ArrayPool<T>.Shared.Rent(stack!.Length * 2);
+        Array.Copy(stack, array, stack.Length);
+        ArrayPool<T>.Shared.Return(stack, RuntimeHelpers.IsReferenceOrContainsReferences<T>());
+        stack = array;
+    }
+}
+
 public struct DescendantsLevelOrder<TTraverser, T> : IValueEnumerator<T>
     where TTraverser : struct, ITraverser<TTraverser, T>
 {
@@ -117,8 +252,8 @@ public struct DescendantsLevelOrder<TTraverser, T> : IValueEnumerator<T>
         if (_queue is null)
         {
             _queue = _traverser.TryGetChildCount(out var count)
-                ? ArrayPool<T>.Shared.Rent(count.Max(4))
-                : ArrayPool<T>.Shared.Rent(4);
+                ? ArrayPool<T>.Shared.Rent(count.Max(16))
+                : ArrayPool<T>.Shared.Rent(16);
             if (_withSelf)
                 Enqueue(_traverser.Origin);
             else
