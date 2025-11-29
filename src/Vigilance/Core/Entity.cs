@@ -626,13 +626,12 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         {
             _entity = entity;
             _deferred = deferred;
-            Reset();
         }
 
         public bool MoveNext()
         {
             if (_iter.world == null)
-                return false;
+                Reset();
             if (_index < _iter.count)
             {
                 _index++;

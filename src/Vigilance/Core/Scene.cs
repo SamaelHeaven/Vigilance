@@ -484,24 +484,28 @@ public sealed unsafe partial class Scene
 
     public struct ComponentEnumerator : IStructEnumerator<Component>, IValueEnumerator<Component>
     {
+        private readonly Scene _scene;
         private int _index;
-        private readonly int _count;
-        private readonly Component[] _array;
+        private int _count;
+        private Component[]? _array;
 
         internal ComponentEnumerator(Scene scene)
         {
             _index = -1;
+            _scene = scene;
+        }
+
+        public Component Current => _array![_index];
+
+        public bool MoveNext()
+        {
+            if (_array is not null)
+                return ++_index < _count;
             _count = ComponentMetadata.Map.Count;
             _array = ArrayPool<Component>.Shared.Rent(_count);
             var i = 0;
             foreach (var metadata in ComponentMetadata.Map.Values)
-                _array[i++] = new Component(metadata.IdFunc.Invoke(scene), scene, metadata.Type);
-        }
-
-        public Component Current => _array[_index];
-
-        public bool MoveNext()
-        {
+                _array[i++] = new Component(metadata.IdFunc.Invoke(_scene), _scene, metadata.Type);
             return ++_index < _count;
         }
 
@@ -551,7 +555,8 @@ public sealed unsafe partial class Scene
 
         public void Dispose()
         {
-            ArrayPool<Component>.Shared.Return(_array);
+            if (_array is not null)
+                ArrayPool<Component>.Shared.Return(_array);
         }
     }
 

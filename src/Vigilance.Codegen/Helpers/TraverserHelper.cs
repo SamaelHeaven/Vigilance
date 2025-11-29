@@ -40,6 +40,26 @@ public static class TraverserHelper
                     {
                         return element.AsTraverser().DescendantsAndSelf();
                     }
+                    
+                    public ZLinq.ValueEnumerable<ZLinq.Traversables.Descendants<{{traverser}}, {{element}}>, {{element}}> DescendantsPreOrder()
+                    {
+                        return element.AsTraverser().DescendantsPreOrder();
+                    }
+                    
+                    public ZLinq.ValueEnumerable<ZLinq.Traversables.Descendants<{{traverser}}, {{element}}>, {{element}}> DescendantsPreOrderAndSelf()
+                    {
+                        return element.AsTraverser().DescendantsPreOrderAndSelf();
+                    }
+                    
+                    public ZLinq.ValueEnumerable<Vigilance.Core.DescendantsLevelOrder<{{traverser}}, {{element}}>, {{element}}> DescendantsLevelOrder()
+                    {
+                        return element.AsTraverser().DescendantsLevelOrder();
+                    }
+                    
+                    public ZLinq.ValueEnumerable<Vigilance.Core.DescendantsLevelOrder<{{traverser}}, {{element}}>, {{element}}> DescendantsLevelOrderAndSelf()
+                    {
+                        return element.AsTraverser().DescendantsLevelOrderAndSelf();
+                    }
                 
                     public ZLinq.ValueEnumerable<ZLinq.Traversables.Ancestors<{{traverser}}, {{element}}>, {{element}}> Ancestors()
                     {
@@ -92,6 +112,26 @@ public static class TraverserHelper
                     public ZLinq.ValueEnumerable<ZLinq.Traversables.Descendants<{{traverser}}, {{element}}>, {{element}}> DescendantsAndSelf()
                     {
                         return ZLinq.TraverserExtensions.DescendantsAndSelf<{{traverser}}, {{element}}>(traverser);
+                    }
+                    
+                    public ZLinq.ValueEnumerable<ZLinq.Traversables.Descendants<{{traverser}}, {{element}}>, {{element}}> DescendantsPreOrder()
+                    {
+                        return ZLinq.TraverserExtensions.Descendants<{{traverser}}, {{element}}>(traverser);
+                    }
+
+                    public ZLinq.ValueEnumerable<ZLinq.Traversables.Descendants<{{traverser}}, {{element}}>, {{element}}> DescendantsPreOrderAndSelf()
+                    {
+                        return ZLinq.TraverserExtensions.DescendantsAndSelf<{{traverser}}, {{element}}>(traverser);
+                    }
+                    
+                    public ZLinq.ValueEnumerable<Vigilance.Core.DescendantsLevelOrder<{{traverser}}, {{element}}>, {{element}}> DescendantsLevelOrder()
+                    {
+                        return Vigilance.Core.ZLinqExtensions.DescendantsLevelOrder<{{traverser}}, {{element}}>(traverser);
+                    }
+                    
+                    public ZLinq.ValueEnumerable<Vigilance.Core.DescendantsLevelOrder<{{traverser}}, {{element}}>, {{element}}> DescendantsLevelOrderAndSelf()
+                    {
+                        return Vigilance.Core.ZLinqExtensions.DescendantsLevelOrderAndSelf<{{traverser}}, {{element}}>(traverser);
                     }
                 
                     public ZLinq.ValueEnumerable<ZLinq.Traversables.Ancestors<{{traverser}}, {{element}}>, {{element}}> Ancestors()

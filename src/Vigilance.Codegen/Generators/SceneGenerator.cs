@@ -126,7 +126,6 @@ public sealed class SceneGenerator : SourceGenerator
                         _scene = scene;
                         _withDisabled = withDisabled;
                         _deferred = deferred;
-                        Reset();
                     }
                 
                     private Entity CurrentEntity
@@ -150,6 +149,8 @@ public sealed class SceneGenerator : SourceGenerator
 
                     public bool MoveNext()
                     {
+                        if (!_query.HasValue)
+                            Reset();
                         if (_index < _iter.count)
                         {
                             _index++;

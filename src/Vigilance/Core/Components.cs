@@ -65,7 +65,8 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
     public struct Enumerator : IStructEnumerator<Component>
     {
         private readonly Components _components;
-        private readonly bool _valid;
+        private bool _valid;
+        private bool _initialized;
         private int _index;
 
         public Component Current { get; private set; }
@@ -73,14 +74,19 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
         internal Enumerator(in Components components)
         {
             _components = components;
-            Reset();
-            _valid = _components.Entity.IsValid;
-            if (_valid && _components._deferred)
-                _components.Entity.Scene.BeginDefer();
         }
 
         public bool MoveNext()
         {
+            if (!_initialized)
+            {
+                Reset();
+                _valid = _components.Entity.IsValid;
+                if (_valid && _components._deferred)
+                    _components.Entity.Scene.BeginDefer();
+                _initialized = true;
+            }
+
             if (!_valid)
                 return false;
             if (_components._type == null)
@@ -124,6 +130,9 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
 
         public void Dispose()
         {
+            if (!_initialized)
+                return;
+            _initialized = false;
             if (_valid && _components._deferred)
                 _components.Entity.Scene.EndDefer();
         }
