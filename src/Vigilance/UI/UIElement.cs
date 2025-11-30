@@ -643,13 +643,12 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
                 case RenderPhase.End:
                 {
                     EndRender(ref data, graphics, camera);
-                    data = default;
                     break;
                 }
             }
         }
 
-        ArrayPool<RenderData>.Shared.Return(stack);
+        ArrayPool<RenderData>.Shared.Return(stack, true);
     }
 
     private static void BeginRender(
