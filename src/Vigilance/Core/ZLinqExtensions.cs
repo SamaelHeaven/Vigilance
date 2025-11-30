@@ -189,10 +189,10 @@ public struct DescendantsPostOrder<TTraverser, T> : IValueEnumerator<T>
         int count;
         count = _traverser.TryGetChildCount(out count) ? count : -1;
         var top = 0;
-        var stack = count >= 0 ? ArrayPool<T>.Shared.Rent(count.Max(4)) : ArrayPool<T>.Shared.Rent(4);
+        var stack = count >= 0 ? ArrayPool<T>.Shared.Rent(count.Max(16)) : ArrayPool<T>.Shared.Rent(16);
         try
         {
-            _stack = count >= 0 ? ArrayPool<T>.Shared.Rent(count.Max(4)) : ArrayPool<T>.Shared.Rent(4);
+            _stack = count >= 0 ? ArrayPool<T>.Shared.Rent(count.Max(16)) : ArrayPool<T>.Shared.Rent(16);
             if (_withSelf)
                 Push(_traverser.Origin, ref stack, ref top);
             else
@@ -252,8 +252,8 @@ public struct DescendantsLevelOrder<TTraverser, T> : IValueEnumerator<T>
         if (_queue is null)
         {
             _queue = _traverser.TryGetChildCount(out var count)
-                ? ArrayPool<T>.Shared.Rent(count.Max(4))
-                : ArrayPool<T>.Shared.Rent(4);
+                ? ArrayPool<T>.Shared.Rent(count.Max(16))
+                : ArrayPool<T>.Shared.Rent(16);
             if (_withSelf)
                 Enqueue(_traverser.Origin);
             else

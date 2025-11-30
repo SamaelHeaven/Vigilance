@@ -627,28 +627,34 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
     {
         if (!IsLayoutReady || Display == DisplayMode.None)
             return;
-        var stack = ArrayPool<RenderData>.Shared.Rent(4);
+        var capacity = this.DescendantsAndSelf().Count();
+        var stack = ArrayPool<RenderData>.Shared.Rent(capacity);
         var count = 0;
-        stack[count++] = new RenderData(this, transform);
-        while (count != 0)
+        try
         {
-            ref var data = ref stack[--count];
-            switch (data.Phase)
+            stack[count++] = new RenderData(this, transform);
+            while (count != 0)
             {
-                case RenderPhase.Begin:
+                ref var data = ref stack[--count];
+                switch (data.Phase)
                 {
-                    BeginRender(ref stack, ref count, ref data, graphics, camera);
-                    break;
-                }
-                case RenderPhase.End:
-                {
-                    EndRender(ref data, graphics, camera);
-                    break;
+                    case RenderPhase.Begin:
+                    {
+                        BeginRender(ref stack, ref count, ref data, graphics, camera);
+                        break;
+                    }
+                    case RenderPhase.End:
+                    {
+                        EndRender(ref data, graphics, camera);
+                        break;
+                    }
                 }
             }
         }
-
-        ArrayPool<RenderData>.Shared.Return(stack, true);
+        finally
+        {
+            ArrayPool<RenderData>.Shared.Return(stack, true);
+        }
     }
 
     private static void BeginRender(
