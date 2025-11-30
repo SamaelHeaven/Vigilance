@@ -1,9 +1,7 @@
 using System.ComponentModel;
-using System.Numerics;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Input;
-using Vigilance.Logging;
 using Vigilance.Math;
 using ZLinq;
 using Vector2 = Vigilance.Math.Vector2;
