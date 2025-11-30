@@ -13,8 +13,8 @@ namespace Vigilance.UI;
 public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 {
     private bool _click;
-    private RenderContext[] _renderContexts = new RenderContext[16];
-    private int _renderContextsCount = 0;
+    private RenderData[] _renderStack = new RenderData[16];
+    private int _renderStackCount = 0;
     internal Node Node = Flex.CreateDefaultNode();
 
     protected UIElement()
@@ -561,8 +561,8 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
     protected virtual object DeepClone()
     {
         var result = (UIElement)MemberwiseClone();
-        result._renderContexts = new RenderContext[16];
-        result._renderContextsCount = 0;
+        result._renderStack = new RenderData[16];
+        result._renderStackCount = 0;
         result._click = false;
         result.IsLayoutReady = false;
         result.Parent = null;
@@ -587,29 +587,27 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 
     private void Render(in Transform transform, Graphics graphics, CameraProvider camera)
     {
-        if (_renderContextsCount == _renderContexts.Length)
-            Array.Resize(ref _renderContexts, _renderContexts.Length * 2);
-        _renderContexts[_renderContextsCount++] = new RenderContext(this, transform);
-        while (_renderContextsCount != 0)
+        if (!IsLayoutReady || Display == DisplayMode.None)
+            return;
+        _renderStack[_renderStackCount++] = new RenderData(this, transform);
+        while (_renderStackCount != 0)
         {
-            var ctx = _renderContexts[--_renderContextsCount];
-            switch (ctx.Phase)
+            ref var data = ref _renderStack[--_renderStackCount];
+            switch (data.Phase)
             {
                 case RenderPhase.Begin:
                 {
-                    BeginRender(ref _renderContexts, ref _renderContextsCount, ref ctx, graphics, camera);
+                    BeginRender(ref _renderStack, ref _renderStackCount, ref data, graphics, camera);
                     break;
                 }
                 case RenderPhase.End:
                 {
-                    EndRender(ref ctx, graphics, camera);
+                    EndRender(ref data, graphics, camera);
+                    data = default;
                     break;
                 }
             }
         }
-
-        Array.Clear(_renderContexts, 0, _renderContextsCount);
-        _renderContextsCount = 0;
     }
 
     private static void Update(UIElement element, in Entity entity)
@@ -654,85 +652,83 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
     }
 
     private static void BeginRender(
-        ref RenderContext[] contexts,
-        ref int contextsCount,
-        ref RenderContext ctx,
+        ref RenderData[] stack,
+        ref int count,
+        ref RenderData data,
         Graphics graphics,
         CameraProvider camera
     )
     {
-        if (!ctx.ShouldRender)
+        if (!data.ShouldRender)
             return;
-        var position = ctx.Element.LayoutPosition;
-        var size = ctx.Element.LayoutSize;
+        count++;
+        var element = data.Element;
+        var position = element.LayoutPosition;
+        var size = element.LayoutSize;
         var offset = position + size * 0.5f;
-        if (ctx.Element is { Position: Position.Absolute, Parent: not null })
+        if (element is { Position: Position.Absolute, Parent: not null })
         {
-            ctx.OldMatrix = graphics.PopMatrix();
-            offset = new Vector2(ctx.Element.LayoutLeft, ctx.Element.LayoutTop) + size * 0.5f;
+            data.OldMatrix = graphics.PopMatrix();
+            offset = new Vector2(element.LayoutLeft, element.LayoutTop) + size * 0.5f;
         }
 
         graphics.PushMatrix();
-        graphics.Translate(ctx.Transform.Position + offset);
-        graphics.Scale(ctx.Transform.Scale);
-        graphics.Skew(ctx.Element.Skew);
+        graphics.Translate(data.Transform.Position + offset);
+        graphics.Scale(data.Transform.Scale);
+        graphics.Skew(element.Skew);
         graphics.Translate(-offset);
-        graphics.Rotate(ctx.Transform.Rotation, ctx.Transform.PivotPoint + position + size * 0.5f);
+        graphics.Rotate(data.Transform.Rotation, data.Transform.PivotPoint + position + size * 0.5f);
         var matrix = graphics.GetMatrix();
-        ctx.Element.RenderedGraphics = graphics;
-        ctx.Element.RenderedMatrix = matrix;
-        ctx.Element.RenderedCamera = camera.Get();
-        if (ctx.Element.RenderedCamera is not null)
-            matrix *= ctx.Element.RenderedCamera.Matrix;
-        ctx.Element.RenderedBounds = new Quad(new Transform(offset, size)).Transform(matrix);
-        var layoutBox = new Box(ctx.Element.RenderedBounds);
-        ctx.OldClip = graphics.GetClip();
-        ctx.Element.WasRenderedOutside = ctx.OldClip.HasValue && !Collision.CheckBoxes(ctx.OldClip.Value, layoutBox);
-        ctx.OverflowHidden = ctx.Element.Overflow == Overflow.Hidden;
-        if (ctx.OverflowHidden)
+        element.RenderedGraphics = graphics;
+        element.RenderedMatrix = matrix;
+        element.RenderedCamera = camera.Get();
+        if (element.RenderedCamera is not null)
+            matrix *= element.RenderedCamera.Matrix;
+        element.RenderedBounds = new Quad(new Transform(offset, size)).Transform(matrix);
+        var layoutBox = new Box(element.RenderedBounds);
+        data.OldClip = graphics.GetClip();
+        element.WasRenderedOutside = data.OldClip.HasValue && !Collision.CheckBoxes(data.OldClip.Value, layoutBox);
+        data.OverflowHidden = element.Overflow == Overflow.Hidden;
+        if (data.OverflowHidden)
         {
             var newClip = layoutBox;
-            if (ctx.OldClip.HasValue)
-                newClip = Collision.CheckBoxes(ctx.OldClip.Value, newClip, out var intersection)
+            if (data.OldClip.HasValue)
+                newClip = Collision.CheckBoxes(data.OldClip.Value, newClip, out var intersection)
                     ? intersection
                     : new Box();
             graphics.SetClip(newClip);
         }
 
-        ctx.Element.RenderedClip = graphics.GetClip();
-        ctx.OldCulling = graphics.Culling();
-        ctx.HadCulling = ctx.Element.Culling.HasValue;
-        if (ctx.HadCulling)
-            graphics.SetCulling(ctx.Element.Culling!.Value);
-        ctx.Phase = RenderPhase.End;
-        if (contextsCount == contexts.Length)
-            Array.Resize(ref contexts, contexts.Length * 2);
-        contexts[contextsCount++] = ctx;
-        var children = ctx.Element.Children();
+        element.RenderedClip = graphics.GetClip();
+        data.OldCulling = graphics.Culling();
+        data.HadCulling = element.Culling.HasValue;
+        if (data.HadCulling)
+            graphics.SetCulling(element.Culling!.Value);
+        data.Phase = RenderPhase.End;
+        var children = element.Children();
         var childrenCount = children.Count();
-        var contextsEnd = contextsCount + childrenCount;
-        if (contextsEnd > contexts.Length)
-            Array.Resize(ref contexts, contextsEnd * 2);
-        var i = contextsEnd;
+        count += childrenCount;
+        if (count > stack.Length)
+            Array.Resize(ref stack, count * 2);
+        var i = count;
         foreach (var child in children.OrderBy(e => e.ZIndex))
-            contexts[--i] = new RenderContext(child, child.LayoutTransform);
-        contextsCount = contextsEnd;
-        ctx.Element.BeginRender(graphics, camera);
-        ctx.Element.RenderSelf(graphics, camera);
+            stack[--i] = new RenderData(child, child.LayoutTransform);
+        element.BeginRender(graphics, camera);
+        element.RenderSelf(graphics, camera);
     }
 
-    private static void EndRender(ref RenderContext ctx, Graphics graphics, CameraProvider camera)
+    private static void EndRender(ref RenderData data, Graphics graphics, CameraProvider camera)
     {
-        if (!ctx.ShouldRender)
+        if (!data.ShouldRender)
             return;
-        ctx.Element.EndRender(graphics, camera);
-        if (ctx.HadCulling)
-            graphics.SetCulling(ctx.OldCulling);
-        if (ctx.OverflowHidden)
-            graphics.SetClip(ctx.OldClip);
+        data.Element.EndRender(graphics, camera);
+        if (data.HadCulling)
+            graphics.SetCulling(data.OldCulling);
+        if (data.OverflowHidden)
+            graphics.SetClip(data.OldClip);
         graphics.PopMatrix();
-        if (ctx.OldMatrix.HasValue)
-            graphics.PushMatrix(ctx.OldMatrix.Value);
+        if (data.OldMatrix.HasValue)
+            graphics.PushMatrix(data.OldMatrix.Value);
     }
 
     private void MarkReady()
@@ -741,7 +737,7 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
             element.IsLayoutReady = true;
     }
 
-    private struct RenderContext
+    private struct RenderData
     {
         public readonly UIElement Element;
         public readonly Transform Transform;
@@ -753,7 +749,7 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         public bool HadCulling;
         public bool OverflowHidden;
 
-        public RenderContext(UIElement element, in Transform transform)
+        public RenderData(UIElement element, in Transform transform)
         {
             Element = element;
             Transform = transform;
