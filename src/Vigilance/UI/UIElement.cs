@@ -13,7 +13,7 @@ namespace Vigilance.UI;
 public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 {
     private bool _click;
-    private RenderData[] _renderStack = new RenderData[16];
+    private RenderData[] _renderStack = new RenderData[4];
     private int _renderStackCount = 0;
     internal Node Node = Flex.CreateDefaultNode();
 
@@ -561,7 +561,7 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
     protected virtual object DeepClone()
     {
         var result = (UIElement)MemberwiseClone();
-        result._renderStack = new RenderData[16];
+        result._renderStack = new RenderData[4];
         result._renderStackCount = 0;
         result._click = false;
         result.IsLayoutReady = false;
