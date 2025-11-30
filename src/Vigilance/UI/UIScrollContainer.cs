@@ -1,9 +1,12 @@
 using System.ComponentModel;
+using System.Numerics;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Input;
+using Vigilance.Logging;
 using Vigilance.Math;
 using ZLinq;
+using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
@@ -302,7 +305,7 @@ public class UIScrollContainer : UIContainer
     {
         var horizontalVisible = IsHorizontalScrollBarVisible;
         var verticalVisible = IsVerticalScrollBarVisible;
-        var matrix = graphics.GetMatrix(camera);
+        var matrix = graphics.GetMatrix(camera) * Matrix3x2.CreateTranslation(-ScrollOffset);
         const float trackOffset = 1;
         Box box;
         graphics.PopMatrix();

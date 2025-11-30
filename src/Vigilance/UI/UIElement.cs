@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Numerics;
 using FlexLayoutSharp;
 using Vigilance.Core;
@@ -13,8 +14,6 @@ namespace Vigilance.UI;
 public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 {
     private bool _click;
-    private RenderData[] _renderStack = new RenderData[4];
-    private int _renderStackCount = 0;
     internal Node Node = Flex.CreateDefaultNode();
 
     protected UIElement()
@@ -561,8 +560,6 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
     protected virtual object DeepClone()
     {
         var result = (UIElement)MemberwiseClone();
-        result._renderStack = new RenderData[4];
-        result._renderStackCount = 0;
         result._click = false;
         result.IsLayoutReady = false;
         result.Parent = null;
@@ -583,31 +580,6 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
     protected void MarkDirty()
     {
         Node.MarkAsDirty();
-    }
-
-    private void Render(in Transform transform, Graphics graphics, CameraProvider camera)
-    {
-        if (!IsLayoutReady || Display == DisplayMode.None)
-            return;
-        _renderStack[_renderStackCount++] = new RenderData(this, transform);
-        while (_renderStackCount != 0)
-        {
-            ref var data = ref _renderStack[--_renderStackCount];
-            switch (data.Phase)
-            {
-                case RenderPhase.Begin:
-                {
-                    BeginRender(ref _renderStack, ref _renderStackCount, ref data, graphics, camera);
-                    break;
-                }
-                case RenderPhase.End:
-                {
-                    EndRender(ref data, graphics, camera);
-                    data = default;
-                    break;
-                }
-            }
-        }
     }
 
     private static void Update(UIElement element, in Entity entity)
@@ -649,6 +621,40 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         }
 
         element.UpdateSelf(entity);
+    }
+
+    private void Render(in Transform transform, Graphics graphics, CameraProvider camera)
+    {
+        if (!IsLayoutReady || Display == DisplayMode.None)
+            return;
+        var stack = ArrayPool<RenderData>.Shared.Rent(4);
+        var count = 0;
+        try
+        {
+            stack[count++] = new RenderData(this, transform);
+            while (count != 0)
+            {
+                ref var data = ref stack[--count];
+                switch (data.Phase)
+                {
+                    case RenderPhase.Begin:
+                    {
+                        BeginRender(ref stack, ref count, ref data, graphics, camera);
+                        break;
+                    }
+                    case RenderPhase.End:
+                    {
+                        EndRender(ref data, graphics, camera);
+                        data = default;
+                        break;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<RenderData>.Shared.Return(stack);
+        }
     }
 
     private static void BeginRender(
@@ -709,7 +715,13 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         var childrenCount = children.Count();
         count += childrenCount;
         if (count > stack.Length)
-            Array.Resize(ref stack, count * 2);
+        {
+            var newStack = ArrayPool<RenderData>.Shared.Rent(count * 2);
+            Array.Copy(stack, newStack, stack.Length);
+            ArrayPool<RenderData>.Shared.Return(stack, true);
+            stack = newStack;
+        }
+
         var i = count;
         foreach (var child in children.OrderBy(e => e.ZIndex))
             stack[--i] = new RenderData(child, child.LayoutTransform);
