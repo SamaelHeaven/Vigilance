@@ -13,6 +13,8 @@ namespace Vigilance.UI;
 public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 {
     private bool _click;
+    private RenderContext[] _renderContexts = new RenderContext[16];
+    private int _renderContextsCount = 0;
     internal Node Node = Flex.CreateDefaultNode();
 
     protected UIElement()
@@ -62,8 +64,21 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 
     public bool LayoutHadOverflow => Node.LayoutGetHadOverflow();
 
-    public Vector2 LayoutPosition =>
-        new(LayoutLeft + (Parent?.LayoutPosition.X ?? 0), LayoutTop + (Parent?.LayoutPosition.Y ?? 0));
+    public Vector2 LayoutPosition
+    {
+        get
+        {
+            var x = LayoutLeft;
+            var y = LayoutTop;
+            foreach (var parent in this.Ancestors())
+            {
+                x += parent.LayoutLeft;
+                y += parent.LayoutTop;
+            }
+
+            return new Vector2(x, y);
+        }
+    }
 
     public Vector2 LayoutSize => new(LayoutWidth, LayoutHeight);
 
@@ -98,23 +113,16 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 
     public UIParent? Parent { get; internal set; }
 
-    public UIParent? Root
-    {
-        get
-        {
-            var parent = Parent;
-            while (parent?.Parent is not null)
-                parent = parent.Parent;
-            return parent;
-        }
-    }
+    public UIParent? Root => (UIParent?)this.Ancestors().LastOrDefault();
 
     public bool IsVisible
     {
         get
         {
-            var visible = IsLayoutReady && Display != DisplayMode.None && !WasRenderedOutside;
-            return (Parent?.IsVisible ?? true) && visible;
+            foreach (var element in this.AncestorsAndSelf())
+                if (!(element.IsLayoutReady && element.Display != DisplayMode.None && !element.WasRenderedOutside))
+                    return false;
+            return true;
         }
     }
 
@@ -491,42 +499,12 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         Update(Entity.Null);
     }
 
-    public virtual void Update(Entity entity)
+    public void Update(Entity entity)
     {
         if (!IsLayoutReady)
             return;
-        var @event = new UIEvent { Entity = entity, Element = this };
-        var oldMouseInside = IsMouseInside;
-        IsMouseInside =
-            RenderedGraphics == Renderer.Graphics
-            && Mouse.OnScreen
-            && IsVisible
-            && Collision.CheckPointQuad(Mouse.Position, RenderedBounds);
-        OnUpdateEvent?.Invoke(@event);
-        switch (oldMouseInside)
-        {
-            case false when IsMouseInside:
-                OnMouseEnterEvent?.Invoke(@event);
-                break;
-            case true when !IsMouseInside:
-                OnMouseLeaveEvent?.Invoke(@event);
-                break;
-        }
-
-        if (Mouse.IsButtonPressed(MouseButton.Left))
-        {
-            _click = IsMouseInside;
-            if (IsMouseInside)
-                OnPressEvent?.Invoke(@event);
-        }
-
-        if (!Mouse.IsButtonReleased(MouseButton.Left))
-            return;
-        _click = _click && IsMouseInside;
-        if (_click)
-            OnClickEvent?.Invoke(@event);
-        if (IsMouseInside)
-            OnReleaseEvent?.Invoke(@event);
+        foreach (var element in this.DescendantsPostOrderAndSelf())
+            Update(element, entity);
     }
 
     public void Render(in Transform transform, Graphics graphics)
@@ -560,23 +538,31 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 
     public RenderTexture ToTexture(float? width = null, float? height = null)
     {
-        var el = (UIElement)DeepClone();
-        el.CalculateLayout(width, height);
-        var texture = new RenderTexture(el.LayoutSize.X, el.LayoutSize.Y);
-        el.Render(texture.Graphics);
+        var element = (UIElement)DeepClone();
+        element.CalculateLayout(width, height);
+        var texture = new RenderTexture(element.LayoutSize);
+        element.Render(texture.Graphics);
         return texture;
     }
+
+    protected virtual void UpdateSelf(Entity entity) { }
+
+    protected virtual void BeginRender(Graphics graphics, CameraProvider camera) { }
+
+    protected virtual void RenderSelf(Graphics graphics, CameraProvider camera) { }
+
+    protected virtual void EndRender(Graphics graphics, CameraProvider camera) { }
 
     protected virtual Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         return Vector2.NaN;
     }
 
-    protected abstract void Render(Graphics graphics, CameraProvider camera);
-
     protected virtual object DeepClone()
     {
         var result = (UIElement)MemberwiseClone();
+        result._renderContexts = new RenderContext[16];
+        result._renderContextsCount = 0;
         result._click = false;
         result.IsLayoutReady = false;
         result.Parent = null;
@@ -599,67 +585,192 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         Node.MarkAsDirty();
     }
 
-    internal void Render(in Transform transform, Graphics graphics, CameraProvider camera)
+    private void Render(in Transform transform, Graphics graphics, CameraProvider camera)
     {
-        if (!IsLayoutReady || Display == DisplayMode.None)
-            return;
-        Matrix3x2? oldMatrix = null;
-        var position = LayoutPosition;
-        var size = LayoutSize;
-        var offset = position + size * 0.5f;
-        if (Position == Position.Absolute && Parent is not null)
+        if (_renderContextsCount == _renderContexts.Length)
+            Array.Resize(ref _renderContexts, _renderContexts.Length * 2);
+        _renderContexts[_renderContextsCount++] = new RenderContext(this, transform);
+        while (_renderContextsCount != 0)
         {
-            oldMatrix = graphics.PopMatrix();
-            offset = new Vector2(LayoutLeft, LayoutTop) + size * 0.5f;
+            var ctx = _renderContexts[--_renderContextsCount];
+            switch (ctx.Phase)
+            {
+                case RenderPhase.Begin:
+                {
+                    BeginRender(ref _renderContexts, ref _renderContextsCount, ref ctx, graphics, camera);
+                    break;
+                }
+                case RenderPhase.End:
+                {
+                    EndRender(ref ctx, graphics, camera);
+                    break;
+                }
+            }
+        }
+
+        Array.Clear(_renderContexts, 0, _renderContextsCount);
+        _renderContextsCount = 0;
+    }
+
+    private static void Update(UIElement element, in Entity entity)
+    {
+        if (!element.IsLayoutReady)
+            return;
+        var @event = new UIEvent { Entity = entity, Element = element };
+        var oldMouseInside = element.IsMouseInside;
+        element.IsMouseInside =
+            element.RenderedGraphics == Renderer.Graphics
+            && Mouse.OnScreen
+            && element.IsVisible
+            && Collision.CheckPointQuad(Mouse.Position, element.RenderedBounds);
+        element.OnUpdateEvent?.Invoke(@event);
+        switch (oldMouseInside)
+        {
+            case false when element.IsMouseInside:
+                element.OnMouseEnterEvent?.Invoke(@event);
+                break;
+            case true when !element.IsMouseInside:
+                element.OnMouseLeaveEvent?.Invoke(@event);
+                break;
+        }
+
+        if (Mouse.IsButtonPressed(MouseButton.Left))
+        {
+            element._click = element.IsMouseInside;
+            if (element.IsMouseInside)
+                element.OnPressEvent?.Invoke(@event);
+        }
+
+        if (Mouse.IsButtonReleased(MouseButton.Left))
+        {
+            element._click = element is { _click: true, IsMouseInside: true };
+            if (element._click)
+                element.OnClickEvent?.Invoke(@event);
+            if (element.IsMouseInside)
+                element.OnReleaseEvent?.Invoke(@event);
+        }
+
+        element.UpdateSelf(entity);
+    }
+
+    private static void BeginRender(
+        ref RenderContext[] contexts,
+        ref int contextsCount,
+        ref RenderContext ctx,
+        Graphics graphics,
+        CameraProvider camera
+    )
+    {
+        if (!ctx.ShouldRender)
+            return;
+        var position = ctx.Element.LayoutPosition;
+        var size = ctx.Element.LayoutSize;
+        var offset = position + size * 0.5f;
+        if (ctx.Element is { Position: Position.Absolute, Parent: not null })
+        {
+            ctx.OldMatrix = graphics.PopMatrix();
+            offset = new Vector2(ctx.Element.LayoutLeft, ctx.Element.LayoutTop) + size * 0.5f;
         }
 
         graphics.PushMatrix();
-        graphics.Translate(transform.Position + offset);
-        graphics.Scale(transform.Scale);
-        graphics.Skew(Skew);
+        graphics.Translate(ctx.Transform.Position + offset);
+        graphics.Scale(ctx.Transform.Scale);
+        graphics.Skew(ctx.Element.Skew);
         graphics.Translate(-offset);
-        graphics.Rotate(transform.Rotation, transform.PivotPoint + position + size * 0.5f);
+        graphics.Rotate(ctx.Transform.Rotation, ctx.Transform.PivotPoint + position + size * 0.5f);
         var matrix = graphics.GetMatrix();
-        RenderedGraphics = graphics;
-        RenderedMatrix = matrix;
-        RenderedCamera = camera.Get();
-        if (RenderedCamera is not null)
-            matrix *= RenderedCamera.Matrix;
-        RenderedBounds = new Quad(new Transform(offset, size)).Transform(matrix);
-        var layoutBox = new Box(RenderedBounds);
-        var oldClip = graphics.GetClip();
-        WasRenderedOutside = oldClip.HasValue && !Collision.CheckBoxes(oldClip.Value, layoutBox);
-        var overflowHidden = Overflow == Overflow.Hidden;
-        if (overflowHidden)
+        ctx.Element.RenderedGraphics = graphics;
+        ctx.Element.RenderedMatrix = matrix;
+        ctx.Element.RenderedCamera = camera.Get();
+        if (ctx.Element.RenderedCamera is not null)
+            matrix *= ctx.Element.RenderedCamera.Matrix;
+        ctx.Element.RenderedBounds = new Quad(new Transform(offset, size)).Transform(matrix);
+        var layoutBox = new Box(ctx.Element.RenderedBounds);
+        ctx.OldClip = graphics.GetClip();
+        ctx.Element.WasRenderedOutside = ctx.OldClip.HasValue && !Collision.CheckBoxes(ctx.OldClip.Value, layoutBox);
+        ctx.OverflowHidden = ctx.Element.Overflow == Overflow.Hidden;
+        if (ctx.OverflowHidden)
         {
             var newClip = layoutBox;
-            if (oldClip.HasValue)
-                newClip = Collision.CheckBoxes(oldClip.Value, newClip, out var intersection) ? intersection : new Box();
+            if (ctx.OldClip.HasValue)
+                newClip = Collision.CheckBoxes(ctx.OldClip.Value, newClip, out var intersection)
+                    ? intersection
+                    : new Box();
             graphics.SetClip(newClip);
         }
 
-        RenderedClip = graphics.GetClip();
-        var oldCulling = graphics.Culling();
-        var hasCulling = Culling.HasValue;
-        if (hasCulling)
-            graphics.SetCulling(Culling!.Value);
-        Render(graphics, camera);
-        if (hasCulling)
-            graphics.SetCulling(oldCulling);
-        if (overflowHidden)
-            graphics.SetClip(oldClip);
+        ctx.Element.RenderedClip = graphics.GetClip();
+        ctx.OldCulling = graphics.Culling();
+        ctx.HadCulling = ctx.Element.Culling.HasValue;
+        if (ctx.HadCulling)
+            graphics.SetCulling(ctx.Element.Culling!.Value);
+        ctx.Phase = RenderPhase.End;
+        if (contextsCount == contexts.Length)
+            Array.Resize(ref contexts, contexts.Length * 2);
+        contexts[contextsCount++] = ctx;
+        var children = ctx.Element.Children();
+        var childrenCount = children.Count();
+        var contextsEnd = contextsCount + childrenCount;
+        if (contextsEnd > contexts.Length)
+            Array.Resize(ref contexts, contextsEnd * 2);
+        var i = contextsEnd;
+        foreach (var child in children.OrderBy(e => e.ZIndex))
+            contexts[--i] = new RenderContext(child, child.LayoutTransform);
+        contextsCount = contextsEnd;
+        ctx.Element.BeginRender(graphics, camera);
+        ctx.Element.RenderSelf(graphics, camera);
+    }
+
+    private static void EndRender(ref RenderContext ctx, Graphics graphics, CameraProvider camera)
+    {
+        if (!ctx.ShouldRender)
+            return;
+        ctx.Element.EndRender(graphics, camera);
+        if (ctx.HadCulling)
+            graphics.SetCulling(ctx.OldCulling);
+        if (ctx.OverflowHidden)
+            graphics.SetClip(ctx.OldClip);
         graphics.PopMatrix();
-        if (oldMatrix.HasValue)
-            graphics.PushMatrix(oldMatrix.Value);
+        if (ctx.OldMatrix.HasValue)
+            graphics.PushMatrix(ctx.OldMatrix.Value);
     }
 
     private void MarkReady()
     {
-        IsLayoutReady = true;
-        if (this is not UIParent parent)
-            return;
-        foreach (var element in parent.Children)
-            element.MarkReady();
+        foreach (var element in this.DescendantsAndSelf())
+            element.IsLayoutReady = true;
+    }
+
+    private struct RenderContext
+    {
+        public readonly UIElement Element;
+        public readonly Transform Transform;
+        public Matrix3x2? OldMatrix;
+        public Box? OldClip;
+        public RenderPhase Phase;
+        public readonly bool ShouldRender;
+        public bool OldCulling;
+        public bool HadCulling;
+        public bool OverflowHidden;
+
+        public RenderContext(UIElement element, in Transform transform)
+        {
+            Element = element;
+            Transform = transform;
+            OldMatrix = null;
+            OldClip = null;
+            Phase = RenderPhase.Begin;
+            ShouldRender = element.IsLayoutReady && element.Display != DisplayMode.None;
+            OldCulling = false;
+            HadCulling = false;
+            OverflowHidden = false;
+        }
+    }
+
+    private enum RenderPhase
+    {
+        Begin,
+        End,
     }
 
     public struct Traverser : ITraverser<Traverser, UIElement>

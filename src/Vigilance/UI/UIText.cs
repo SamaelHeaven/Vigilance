@@ -120,6 +120,19 @@ public class UIText : UIElement
         }
     }
 
+    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
+    {
+        _text.Camera = camera;
+        graphics.DrawText(LayoutPosition, _text);
+    }
+
+    protected override object DeepClone()
+    {
+        var result = (UIText)base.DeepClone();
+        result._text = _text.DeepClone();
+        return result;
+    }
+
     protected override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         var maxWidth = widthMode == MeasureMode.Undefined ? float.PositiveInfinity : width;
@@ -214,18 +227,5 @@ public class UIText : UIElement
                 return _text.Size;
             }
         }
-    }
-
-    protected override void Render(Graphics graphics, CameraProvider camera)
-    {
-        _text.Camera = camera;
-        graphics.DrawText(LayoutPosition, _text);
-    }
-
-    protected override object DeepClone()
-    {
-        var result = (UIText)base.DeepClone();
-        result._text = _text.DeepClone();
-        return result;
     }
 }

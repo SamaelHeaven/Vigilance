@@ -292,16 +292,19 @@ public class UIScrollContainer : UIContainer
         ScrollOffset = -offset;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void BeginRender(Graphics graphics, CameraProvider camera)
+    {
+        graphics.PushMatrix();
+        graphics.Translate(ScrollOffset);
+    }
+
+    protected override void EndRender(Graphics graphics, CameraProvider camera)
     {
         var horizontalVisible = IsHorizontalScrollBarVisible;
         var verticalVisible = IsVerticalScrollBarVisible;
         var matrix = graphics.GetMatrix(camera);
         const float trackOffset = 1;
         Box box;
-        graphics.PushMatrix();
-        graphics.Translate(ScrollOffset);
-        base.Render(graphics, camera);
         graphics.PopMatrix();
         if (horizontalVisible)
         {

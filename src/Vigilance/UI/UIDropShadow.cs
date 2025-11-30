@@ -38,7 +38,7 @@ public class UIDropShadow : UIElement
         IsTextureDirty = true;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
     {
         var offset = 1 + _blur * _blur;
         if (IsTextureDirty)

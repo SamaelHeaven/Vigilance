@@ -1,5 +1,4 @@
 using Vigilance.Core;
-using Vigilance.Drawing;
 using ZLinq;
 
 namespace Vigilance.UI;
@@ -36,25 +35,6 @@ public abstract class UIParent : UIElement
     }
 
     public ChildEnumerable Children => new(this);
-
-    protected override void Render(Graphics graphics, CameraProvider camera)
-    {
-        RenderSelf(graphics, camera);
-        foreach (var element in ChildrenList.AsValueEnumerable().OrderBy(e => e.ZIndex))
-            element.Render(element.LayoutTransform, graphics, camera);
-    }
-
-    protected virtual void RenderSelf(Graphics graphics, CameraProvider camera) { }
-
-    public override void Update(Entity entity)
-    {
-        foreach (var element in Children)
-            element.Update(entity);
-        base.Update(entity);
-        UpdateSelf(entity);
-    }
-
-    protected virtual void UpdateSelf(Entity entity) { }
 
     public void Add(UIElement? element)
     {
