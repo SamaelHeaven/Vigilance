@@ -303,12 +303,12 @@ public class UIScrollContainer : UIContainer
 
     protected override void EndRender(Graphics graphics, CameraProvider camera)
     {
+        graphics.PopMatrix();
+        Box box;
+        var matrix = graphics.GetMatrix(camera);
         var horizontalVisible = IsHorizontalScrollBarVisible;
         var verticalVisible = IsVerticalScrollBarVisible;
-        var matrix = graphics.GetMatrix(camera) * Matrix3x2.CreateTranslation(-ScrollOffset);
         const float trackOffset = 1;
-        Box box;
-        graphics.PopMatrix();
         if (horizontalVisible)
         {
             box = GetScrollBarTrackBox(ScrollBarDirection.Horizontal);
