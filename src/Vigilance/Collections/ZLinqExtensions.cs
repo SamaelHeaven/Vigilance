@@ -168,6 +168,8 @@ public struct DescendantsPostOrder<TTraverser, T> : IValueEnumerator<T>
                 if (!subTraversable.TryGetHasChild(out var hasChild) || hasChild)
                     _stack.Push(subTraversable);
             }
+
+            _stack.AsSpan().Reverse();
         }
 
         ref var traverser = ref _stack.PeekRefOrNullRef();
@@ -337,6 +339,11 @@ internal sealed class RefStack<T>
         stack._prev = _last;
         _last = stack;
         _gate = 0;
+    }
+
+    public Span<T> AsSpan()
+    {
+        return _array.AsSpan(0, _size);
     }
 
     public void Push(in T value)
