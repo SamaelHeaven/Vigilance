@@ -48,10 +48,8 @@ public class UIRectangle : UIContainer
         graphics.DrawRectangle(LayoutPosition, LayoutSize, _rectangle);
     }
 
-    protected override object DeepClone()
+    protected override void CloneSelf()
     {
-        var result = (UIRectangle)base.DeepClone();
-        result._rectangle = _rectangle.DeepClone();
-        return result;
+        _rectangle = _rectangle.DeepClone();
     }
 }

@@ -57,10 +57,8 @@ public class UIRing : UIContainer
         graphics.DrawRing(new Transform(position + size * 0.5f), _ring);
     }
 
-    protected override object DeepClone()
+    protected override void CloneSelf()
     {
-        var result = (UIRing)base.DeepClone();
-        result._ring = _ring.DeepClone();
-        return result;
+        _ring = _ring.DeepClone();
     }
 }

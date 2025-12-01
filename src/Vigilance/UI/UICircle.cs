@@ -47,10 +47,8 @@ public class UICircle : UIContainer
         graphics.DrawCircle(new Transform(position + size * 0.5f, size), _circle);
     }
 
-    protected override object DeepClone()
+    protected override void CloneSelf()
     {
-        var result = (UICircle)base.DeepClone();
-        result._circle = _circle.DeepClone();
-        return result;
+        _circle = _circle.DeepClone();
     }
 }

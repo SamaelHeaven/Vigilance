@@ -1,5 +1,4 @@
 using Vigilance.Collections;
-using Vigilance.Core;
 using ZLinq;
 
 namespace Vigilance.UI;
@@ -107,15 +106,6 @@ public abstract class UIParent : UIElement
     {
         foreach (var element in Children)
             element.Remove();
-    }
-
-    protected override object DeepClone()
-    {
-        var result = (UIParent)base.DeepClone();
-        result.ChildrenList = new LinkedList<UIElement>();
-        foreach (var element in ChildrenList.AsValueEnumerable().Select(el => el.DeepClone()))
-            result.Add(element);
-        return result;
     }
 
     internal void Remove(UIElement element)

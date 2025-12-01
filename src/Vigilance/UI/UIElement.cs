@@ -11,9 +11,10 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
+public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>, IDeepCloneable
 {
     private bool _click;
+    private RenderData _renderData;
     internal Node Node = Flex.CreateDefaultNode();
 
     protected UIElement()
@@ -455,6 +456,11 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
+    public int CompareTo(UIElement? other)
+    {
+        return other is null ? 1 : ZIndex.CompareTo(other.ZIndex);
+    }
+
     public UIElement ToComponent()
     {
         return this;
@@ -462,7 +468,8 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 
     object IDeepCloneable.DeepClone()
     {
-        return DeepClone();
+        // WIP
+        return this;
     }
 
     public event Action<UIEvent>? OnUpdateEvent;
@@ -527,7 +534,7 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 
     public void Render(Graphics graphics)
     {
-        Render(LayoutTransform, graphics, Camera);
+        Render(graphics, Camera);
     }
 
     public RenderTexture ToTexture(Vector2 size)
@@ -537,12 +544,14 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
 
     public RenderTexture ToTexture(float? width = null, float? height = null)
     {
-        var element = (UIElement)DeepClone();
+        var element = this.DeepClone();
         element.CalculateLayout(width, height);
         var texture = new RenderTexture(element.LayoutSize);
         element.Render(texture.Graphics);
         return texture;
     }
+
+    protected virtual void CloneSelf() { }
 
     protected virtual void UpdateSelf(Entity entity) { }
 
@@ -555,26 +564,6 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
     protected virtual Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         return Vector2.NaN;
-    }
-
-    protected virtual object DeepClone()
-    {
-        var result = (UIElement)MemberwiseClone();
-        result._click = false;
-        result.IsLayoutReady = false;
-        result.Parent = null;
-        result.Node = Flex.CreateDefaultNode();
-        Flex.NodeCopyStyle(result.Node, Node);
-        result.Attributes = Attributes.DeepClone();
-        if (IsLayoutCustom)
-            result.Node.SetMeasureFunc(
-                (_, width, widthMode, height, heightMode) =>
-                {
-                    var size = result.Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
-                    return new Size(size.X, size.Y);
-                }
-            );
-        return result;
     }
 
     protected void MarkDirty()
@@ -623,29 +612,30 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         element.UpdateSelf(entity);
     }
 
-    private void Render(in Transform transform, Graphics graphics, CameraProvider camera)
+    private void Render(Graphics graphics, CameraProvider camera)
     {
         if (!IsLayoutReady || Display == DisplayMode.None)
             return;
         var capacity = this.DescendantsAndSelf().Count();
-        var stack = ArrayPool<RenderData>.Shared.Rent(capacity);
+        var stack = ArrayPool<UIElement>.Shared.Rent(capacity);
         var count = 0;
         try
         {
-            stack[count++] = new RenderData(this, transform);
+            stack[count++] = this;
+            _renderData = default;
             while (count != 0)
             {
-                ref var data = ref stack[--count];
-                switch (data.Phase)
+                var element = stack[--count];
+                switch (element._renderData.Phase)
                 {
                     case RenderPhase.Begin:
                     {
-                        BeginRender(ref stack, ref count, ref data, graphics, camera);
+                        BeginRender(ref stack, ref count, element, graphics, camera);
                         break;
                     }
                     case RenderPhase.End:
                     {
-                        EndRender(ref data, graphics, camera);
+                        EndRender(element, graphics, camera);
                         break;
                     }
                 }
@@ -653,22 +643,23 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         }
         finally
         {
-            ArrayPool<RenderData>.Shared.Return(stack, true);
+            ArrayPool<UIElement>.Shared.Return(stack, true);
         }
     }
 
     private static void BeginRender(
-        ref RenderData[] stack,
+        ref UIElement[] stack,
         ref int count,
-        ref RenderData data,
+        UIElement element,
         Graphics graphics,
         CameraProvider camera
     )
     {
-        if (!data.ShouldRender)
+        if (!element.IsLayoutReady || element.Display == DisplayMode.None)
             return;
         count++;
-        var element = data.Element;
+        ref var data = ref element._renderData;
+        var transform = element.LayoutTransform;
         var position = element.LayoutPosition;
         var size = element.LayoutSize;
         var offset = position + size * 0.5f;
@@ -679,11 +670,11 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         }
 
         graphics.PushMatrix();
-        graphics.Translate(data.Transform.Position + offset);
-        graphics.Scale(data.Transform.Scale);
+        graphics.Translate(transform.Position + offset);
+        graphics.Scale(transform.Scale);
         graphics.Skew(element.Skew);
         graphics.Translate(-offset);
-        graphics.Rotate(data.Transform.Rotation, data.Transform.PivotPoint + position + size * 0.5f);
+        graphics.Rotate(transform.Rotation, transform.PivotPoint + position + size * 0.5f);
         var matrix = graphics.GetMatrix();
         element.RenderedGraphics = graphics;
         element.RenderedMatrix = matrix;
@@ -706,42 +697,69 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         }
 
         element.RenderedClip = graphics.GetClip();
-        data.OldCulling = graphics.Culling();
-        data.HadCulling = element.Culling.HasValue;
-        if (data.HadCulling)
+        if (element.Culling.HasValue)
+        {
+            data.OldCulling = graphics.Culling();
             graphics.SetCulling(element.Culling!.Value);
+        }
+
         data.Phase = RenderPhase.End;
         var children = element.Children();
         var childrenCount = children.Count();
         count += childrenCount;
         if (count > stack.Length)
         {
-            var newStack = ArrayPool<RenderData>.Shared.Rent(count * 2);
+            var newStack = ArrayPool<UIElement>.Shared.Rent(count * 2);
             Array.Copy(stack, newStack, stack.Length);
-            ArrayPool<RenderData>.Shared.Return(stack, true);
+            ArrayPool<UIElement>.Shared.Return(stack, true);
             stack = newStack;
         }
 
         var i = count;
         foreach (var child in children)
-            stack[--i] = new RenderData(child, child.LayoutTransform);
+        {
+            stack[--i] = child;
+            child._renderData = default;
+        }
+
         stack.AsSpan(i, count - i).Sort();
         element.BeginRender(graphics, camera);
         element.RenderSelf(graphics, camera);
     }
 
-    private static void EndRender(ref RenderData data, Graphics graphics, CameraProvider camera)
+    private static void EndRender(UIElement element, Graphics graphics, CameraProvider camera)
     {
-        if (!data.ShouldRender)
+        if (!element.IsLayoutReady || element.Display == DisplayMode.None)
             return;
-        data.Element.EndRender(graphics, camera);
-        if (data.HadCulling)
-            graphics.SetCulling(data.OldCulling);
+        ref var data = ref element._renderData;
+        element.EndRender(graphics, camera);
+        if (data.OldCulling.HasValue)
+            graphics.SetCulling(data.OldCulling.Value);
         if (data.OverflowHidden)
             graphics.SetClip(data.OldClip);
         graphics.PopMatrix();
         if (data.OldMatrix.HasValue)
             graphics.PushMatrix(data.OldMatrix.Value);
+    }
+
+    private static UIElement Clone(UIElement element)
+    {
+        var result = (UIElement)element.MemberwiseClone();
+        result._click = false;
+        result.IsLayoutReady = false;
+        result.Parent = null;
+        result.Node = Flex.CreateDefaultNode();
+        Flex.NodeCopyStyle(result.Node, element.Node);
+        result.Attributes = element.Attributes.DeepClone();
+        if (element.IsLayoutCustom)
+            result.Node.SetMeasureFunc(
+                (_, width, widthMode, height, heightMode) =>
+                {
+                    var size = result.Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
+                    return new Size(size.X, size.Y);
+                }
+            );
+        return result;
     }
 
     private void MarkReady()
@@ -750,38 +768,16 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
             element.IsLayoutReady = true;
     }
 
-    private struct RenderData : IComparable<RenderData>
+    private struct RenderData
     {
-        public readonly UIElement Element;
-        public readonly Transform Transform;
         public Matrix3x2? OldMatrix;
         public Box? OldClip;
         public RenderPhase Phase;
-        public readonly bool ShouldRender;
-        public bool OldCulling;
-        public bool HadCulling;
+        public bool? OldCulling;
         public bool OverflowHidden;
-
-        public RenderData(UIElement element, in Transform transform)
-        {
-            Element = element;
-            Transform = transform;
-            OldMatrix = null;
-            OldClip = null;
-            Phase = RenderPhase.Begin;
-            ShouldRender = element.IsLayoutReady && element.Display != DisplayMode.None;
-            OldCulling = false;
-            HadCulling = false;
-            OverflowHidden = false;
-        }
-
-        public int CompareTo(RenderData other)
-        {
-            return Element.ZIndex.CompareTo(other.Element.ZIndex);
-        }
     }
 
-    private enum RenderPhase
+    private enum RenderPhase : byte
     {
         Begin,
         End,

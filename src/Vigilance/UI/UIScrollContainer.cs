@@ -341,12 +341,10 @@ public class UIScrollContainer : UIContainer
         RenderedVerticalScrollBarThumbBounds = box.Transform(matrix);
     }
 
-    protected override object DeepClone()
+    protected override void CloneSelf()
     {
-        var result = (UIScrollContainer)base.DeepClone();
-        result._scrollBarTrackRectangle = _scrollBarTrackRectangle.DeepClone();
-        result._scrollBarThumbRectangle = _scrollBarThumbRectangle.DeepClone();
-        return result;
+        _scrollBarTrackRectangle = _scrollBarTrackRectangle.DeepClone();
+        _scrollBarThumbRectangle = _scrollBarThumbRectangle.DeepClone();
     }
 
     protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraProvider camera)

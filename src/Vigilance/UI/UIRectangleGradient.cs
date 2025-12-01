@@ -85,10 +85,8 @@ public class UIRectangleGradient : UIContainer
         graphics.DrawRectangleGradient(LayoutPosition, LayoutSize, _rectangle);
     }
 
-    protected override object DeepClone()
+    protected override void CloneSelf()
     {
-        var result = (UIRectangleGradient)base.DeepClone();
-        result._rectangle = _rectangle.DeepClone();
-        return result;
+        _rectangle = _rectangle.DeepClone();
     }
 }

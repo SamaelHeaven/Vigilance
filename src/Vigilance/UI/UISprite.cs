@@ -64,10 +64,8 @@ public class UISprite : UIContainer
         graphics.DrawSprite(LayoutPosition, LayoutSize, _sprite);
     }
 
-    protected override object DeepClone()
+    protected override void CloneSelf()
     {
-        var result = (UISprite)base.DeepClone();
-        result._sprite = _sprite.DeepClone();
-        return result;
+        _sprite = _sprite.DeepClone();
     }
 }

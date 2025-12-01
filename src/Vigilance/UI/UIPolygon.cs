@@ -59,10 +59,8 @@ public class UIPolygon : UIContainer
         graphics.DrawRegularPolygon(new Transform(position + size * 0.5f, size), _polygon);
     }
 
-    protected override object DeepClone()
+    protected override void CloneSelf()
     {
-        var result = (UIPolygon)base.DeepClone();
-        result._polygon = _polygon.DeepClone();
-        return result;
+        _polygon = _polygon.DeepClone();
     }
 }

@@ -126,11 +126,9 @@ public class UIText : UIElement
         graphics.DrawText(LayoutPosition, _text);
     }
 
-    protected override object DeepClone()
+    protected override void CloneSelf()
     {
-        var result = (UIText)base.DeepClone();
-        result._text = _text.DeepClone();
-        return result;
+        _text = _text.DeepClone();
     }
 
     protected override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)

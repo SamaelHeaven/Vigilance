@@ -44,10 +44,8 @@ public class UIGrid : UIContainer
         graphics.DrawGrid(LayoutPosition, LayoutSize, _grid);
     }
 
-    protected override object DeepClone()
+    protected override void CloneSelf()
     {
-        var result = (UIGrid)base.DeepClone();
-        result._grid = _grid.DeepClone();
-        return result;
+        _grid = _grid.DeepClone();
     }
 }
