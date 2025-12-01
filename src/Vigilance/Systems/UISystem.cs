@@ -8,7 +8,7 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
 {
     public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
 
-    public override void PostUpdate()
+    public override void Update()
     {
         foreach (var (entity, element) in Entries<UIElement>())
         {

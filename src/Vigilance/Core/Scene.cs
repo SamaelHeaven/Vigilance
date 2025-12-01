@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
+using Vigilance.Collections;
 using Vigilance.Drawing;
 using Vigilance.Math;
 using ZLinq;

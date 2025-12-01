@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Raylib_cs.BleedingEdge;
+using Vigilance.Collections;
 using Vigilance.Core;
 using ZLinq;
 

@@ -34,7 +34,7 @@ public sealed unsafe class Image : IDisposable
 
     public int DataSize => Raylib.GetPixelDataSize(Width, Height, RImage.Format);
 
-    public bool IsValid => RImage.Data != null;
+    public bool IsValid => RImage.Data is not null;
 
     public PixelFormat Format => (PixelFormat)RImage.Format;
 
@@ -99,7 +99,7 @@ public sealed unsafe class Image : IDisposable
     public bool TryExportToMemory(string fileType, out byte[] bytes)
     {
         var bytesBuffer = Raylib.ExportImageToMemory(RImage, fileType, out var size);
-        if (bytesBuffer == null)
+        if (bytesBuffer is null)
         {
             bytes = Array.Empty<byte>();
             return false;

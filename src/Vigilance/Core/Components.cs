@@ -3,6 +3,7 @@
 using System.Runtime.InteropServices;
 using Flecs.NET.Bindings;
 using LinkDotNet.StringBuilder;
+using Vigilance.Collections;
 using ZLinq;
 
 namespace Vigilance.Core;
@@ -89,7 +90,7 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
 
             if (!_valid)
                 return false;
-            if (_components._type == null)
+            if (_components._type is null)
                 return false;
             var scene = _components.Entity.Scene;
             while (++_index < _components._type->count)

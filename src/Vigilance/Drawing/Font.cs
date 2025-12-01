@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using FreeTypeSharp;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
 using ZLinq;

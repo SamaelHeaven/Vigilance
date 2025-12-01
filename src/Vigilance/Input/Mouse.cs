@@ -1,4 +1,5 @@
 ﻿using Raylib_cs.BleedingEdge;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
 using Vector2 = Vigilance.Math.Vector2;

@@ -79,7 +79,7 @@ public sealed class SceneGenerator : SourceGenerator
     )
     {
         return $$"""
-                public struct {{name}}Enumerable{{typeParams}} : IStructEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
+                public struct {{name}}Enumerable{{typeParams}} : Collections.IStructEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
                 {
                     private readonly Scene _scene;
                     private Inclusion _withDisabled;
@@ -97,9 +97,9 @@ public sealed class SceneGenerator : SourceGenerator
                         return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled, _deferred);
                     }
                     
-                    public ZLinq.ValueEnumerable<StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>, {{type}}> AsValueEnumerable()
+                    public ZLinq.ValueEnumerable<Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>, {{type}}> AsValueEnumerable()
                     {
-                        return new StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
+                        return new Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
                     }
                     
                     public ref {{name}}Enumerable{{typeParams}} WithDisabled(Inclusion value = Inclusion.Include) {
@@ -113,7 +113,7 @@ public sealed class SceneGenerator : SourceGenerator
                     }
                 }
                 
-                public unsafe struct {{name}}Enumerator{{typeParams}} : IStructEnumerator<{{type}}> {
+                public unsafe struct {{name}}Enumerator{{typeParams}} : Collections.IStructEnumerator<{{type}}> {
                     private readonly Scene _scene;
                     private readonly Inclusion _withDisabled;
                     private readonly bool _deferred;

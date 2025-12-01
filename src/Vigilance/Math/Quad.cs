@@ -1,6 +1,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
-using Vigilance.Core;
+using Vigilance.Collections;
 using ZLinq;
 using ZLinq.Linq;
 

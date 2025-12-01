@@ -78,7 +78,7 @@ public sealed class Sound : IDisposable
 
     public bool IsStopped => !IsPlaying;
 
-    public unsafe bool IsValid => _sound.Stream.Buffer != null;
+    public unsafe bool IsValid => _sound.Stream.Buffer is not null;
 
     public void Dispose()
     {

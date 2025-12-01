@@ -2,7 +2,7 @@ using System.Collections;
 using System.Runtime.CompilerServices;
 using ZLinq;
 
-namespace Vigilance.Core;
+namespace Vigilance.Collections;
 
 public interface IStructEnumerable<TEnumerator, TValue> : IEnumerable<TValue>
     where TEnumerator : IEnumerator<TValue>

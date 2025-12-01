@@ -1,4 +1,4 @@
-using Vigilance.Core;
+using Vigilance.Collections;
 using Vigilance.Math;
 using ZLinq;
 using ZLinq.Linq;

@@ -1,8 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using Vigilance.Core;
 using ZLinq;
 using ZLinq.Linq;
 
-namespace Vigilance.Core;
+namespace Vigilance.Collections;
 
 public interface ISpanView<TValue>
 {

@@ -723,8 +723,9 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
         }
 
         var i = count;
-        foreach (var child in children.OrderBy(e => e.ZIndex))
+        foreach (var child in children)
             stack[--i] = new RenderData(child, child.LayoutTransform);
+        stack.AsSpan(i, count - i).Sort();
         element.BeginRender(graphics, camera);
         element.RenderSelf(graphics, camera);
     }
@@ -749,7 +750,7 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
             element.IsLayoutReady = true;
     }
 
-    private struct RenderData
+    private struct RenderData : IComparable<RenderData>
     {
         public readonly UIElement Element;
         public readonly Transform Transform;
@@ -772,6 +773,11 @@ public abstract class UIElement : IComposable<UIElement>, IDeepCloneable
             OldCulling = false;
             HadCulling = false;
             OverflowHidden = false;
+        }
+
+        public int CompareTo(RenderData other)
+        {
+            return Element.ZIndex.CompareTo(other.Element.ZIndex);
         }
     }
 

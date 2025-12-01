@@ -1,3 +1,4 @@
+using Vigilance.Collections;
 using Vigilance.Core;
 using ZLinq;
 

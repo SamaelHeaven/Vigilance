@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
+using Vigilance.Collections;
 using Vigilance.Logging;
 using Vigilance.Math;
 using ZLinq;
@@ -630,7 +631,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
         public bool MoveNext()
         {
-            if (_iter.world == null)
+            if (_iter.world is null)
                 Reset();
             if (_index < _iter.count)
             {
@@ -661,11 +662,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
 
         public readonly Entity Current =>
-            _iter.world == null ? Null : new Entity(_iter.entities[_index], _entity.Scene);
+            _iter.world is null ? Null : new Entity(_iter.entities[_index], _entity.Scene);
 
         public void Dispose()
         {
-            if (_iter.world == null)
+            if (_iter.world is null)
                 return;
             fixed (flecs.ecs_iter_t* iter = &_iter)
             {

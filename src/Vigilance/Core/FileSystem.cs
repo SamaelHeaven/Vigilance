@@ -180,7 +180,7 @@ public static unsafe partial class FileSystem
 
         int bytesRead;
         var data = Raylib.LoadFileData(pathBuffer, &bytesRead);
-        if (data == null)
+        if (data is null)
         {
             bytes = Array.Empty<byte>();
             return false;
