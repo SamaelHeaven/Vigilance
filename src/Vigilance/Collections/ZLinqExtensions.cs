@@ -163,12 +163,7 @@ public struct DescendantsPostOrder<TTraverser, T> : IValueEnumerator<T>
         {
             _stack = RefStack<TTraverser>.Rent();
             foreach (var child in _traverser.Children<TTraverser, T>())
-            {
-                using var subTraversable = _traverser.ConvertToTraverser(child);
-                if (!subTraversable.TryGetHasChild(out var hasChild) || hasChild)
-                    _stack.Push(subTraversable);
-            }
-
+                _stack.Push(_traverser.ConvertToTraverser(child));
             _stack.AsSpan().Reverse();
         }
 

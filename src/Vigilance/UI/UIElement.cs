@@ -468,8 +468,22 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     object IDeepCloneable.DeepClone()
     {
-        // WIP
-        return this;
+        var cloneMap = new Dictionary<UIElement, UIElement>();
+        foreach (var node in this.DescendantsPostOrderAndSelf())
+        {
+            var clone = Clone(node);
+            if (clone is UIParent parent)
+            {
+                parent.ChildrenList = new LinkedList<UIElement>();
+                foreach (var child in node.Children())
+                    parent.Add(cloneMap[child]);
+            }
+
+            clone.CloneSelf();
+            cloneMap[node] = clone;
+        }
+
+        return cloneMap[this];
     }
 
     public event Action<UIEvent>? OnUpdateEvent;
