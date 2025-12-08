@@ -15,7 +15,7 @@ public sealed class HttpRequest(string url, string method, Action<HttpResponse>?
 
     public string Text
     {
-        get => Encoding.UTF8.GetString(Body ?? Array.Empty<byte>());
+        get => Encoding.UTF8.GetString(Body ?? []);
         set => Body = Encoding.UTF8.GetBytes(value);
     }
 

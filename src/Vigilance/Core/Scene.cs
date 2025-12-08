@@ -16,7 +16,7 @@ public sealed unsafe partial class Scene
 {
     private readonly Dictionary<Type, (ICollection Queue, Action EmitAction)> _events = new();
     private readonly Dictionary<Type, Delegate> _listeners = new();
-    private readonly List<RenderCommand> _renderCommands = new();
+    private readonly List<RenderCommand> _renderCommands = [];
     private readonly GameSystemsFunc _systemsFunc;
     private int _deferred;
     private Action? _deferredAction;
@@ -59,13 +59,13 @@ public sealed unsafe partial class Scene
     public static Scene Build<T>(GameSystemsFunc? systems = null)
         where T : IGameSystem, new()
     {
-        return new Scene(() => (systems?.Invoke() ?? Array.Empty<IGameSystem>()).Concat([new T()]));
+        return new Scene(() => (systems?.Invoke() ?? []).Concat([new T()]));
     }
 
     public static Scene Build<T>(Func<T> factory, GameSystemsFunc? systems = null)
         where T : IGameSystem
     {
-        return new Scene(() => (systems?.Invoke() ?? Array.Empty<IGameSystem>()).Concat([factory.Invoke()]));
+        return new Scene(() => (systems?.Invoke() ?? []).Concat([factory.Invoke()]));
     }
 
     public void Restart()

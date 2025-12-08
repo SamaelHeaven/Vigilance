@@ -23,7 +23,7 @@ public static unsafe partial class FileSystem
 
     public static string WorkingDirectory => FormatPath(Utf8Buffer.GetString(Raylib.GetWorkingDirectory()));
 
-    public static string[] DroppedFiles => !Raylib.IsFileDropped() ? Array.Empty<string>() : Raylib.GetDroppedFiles();
+    public static string[] DroppedFiles => !Raylib.IsFileDropped() ? [] : Raylib.GetDroppedFiles();
 
     internal static void Initialize()
     {
@@ -174,7 +174,7 @@ public static unsafe partial class FileSystem
         using var pathBuffer = path.ToUtf8Buffer();
         if (!Raylib.FileExists(pathBuffer))
         {
-            bytes = Array.Empty<byte>();
+            bytes = [];
             return false;
         }
 
@@ -182,7 +182,7 @@ public static unsafe partial class FileSystem
         var data = Raylib.LoadFileData(pathBuffer, &bytesRead);
         if (data is null)
         {
-            bytes = Array.Empty<byte>();
+            bytes = [];
             return false;
         }
 
@@ -211,7 +211,7 @@ public static unsafe partial class FileSystem
         using var stream = assembly.GetManifestResourceStream(resource);
         if (stream is null)
         {
-            bytes = Array.Empty<byte>();
+            bytes = [];
             return false;
         }
 

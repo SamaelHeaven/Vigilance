@@ -5,7 +5,8 @@ namespace Vigilance.UI;
 
 public abstract class UIParent : UIElement
 {
-    internal LinkedList<UIElement> ChildrenList = new();
+    internal List<UIElement> ChildrenList = [];
+    internal Queue<DeferredData> DeferredQueue = [];
 
     public UIParent this[UIElement? element]
     {
@@ -41,7 +42,7 @@ public abstract class UIParent : UIElement
         if (element is null)
             return;
         element.Remove();
-        ChildrenList.AddLast(element);
+        ChildrenList.Add(element);
         element.Parent = this;
         if (!IsLayoutCustom)
             Node.AddChild(element.Node);
@@ -63,13 +64,9 @@ public abstract class UIParent : UIElement
 
     public void Insert(int index, UIElement element)
     {
-        var oldNode = ChildrenList.AsValueEnumerable().ElementAtOrDefault(index);
+        ChildrenList.Insert(index, element);
         element.Remove();
         element.Parent = this;
-        if (oldNode is null)
-            ChildrenList.AddLast(element);
-        else
-            ChildrenList.AddBefore(ChildrenList.Find(oldNode)!, element);
         if (!IsLayoutCustom)
             Node.InsertChild(element.Node, index);
         MarkDirty();
@@ -77,25 +74,15 @@ public abstract class UIParent : UIElement
 
     public int IndexOf(UIElement element)
     {
-        var index = 0;
-        foreach (var child in ChildrenList)
-        {
-            if (child == element)
-                return index;
-            index++;
-        }
-
-        return -1;
+        return ChildrenList.IndexOf(element);
     }
 
     public bool Replace(int index, UIElement element)
     {
-        var oldNode = ChildrenList.AsValueEnumerable().ElementAtOrDefault(index);
-        if (oldNode is null)
-            return false;
+        ChildrenList[index].Remove();
         element.Remove();
         element.Parent = this;
-        ChildrenList.Find(oldNode)!.Value = element;
+        ChildrenList[index] = element;
         if (!IsLayoutCustom)
             Node.ReplaceChild(index, element.Node);
         MarkDirty();
@@ -117,9 +104,22 @@ public abstract class UIParent : UIElement
         MarkDirty();
     }
 
-    public readonly struct ChildEnumerable
-        : IStructEnumerable<ChildEnumerator, UIElement>,
-            IReadOnlyCollection<UIElement>
+    internal struct DeferredData
+    {
+        public DeferredOperation Operation;
+        public UIElement? Element;
+        public int Index;
+    }
+
+    internal enum DeferredOperation
+    {
+        Add,
+        Remove,
+        Insert,
+        Replace,
+    }
+
+    public readonly struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
     {
         private readonly UIParent _parent;
 
@@ -139,6 +139,8 @@ public abstract class UIParent : UIElement
         }
 
         public int Count => _parent.ChildrenList.Count;
+
+        public UIElement this[int index] => _parent.ChildrenList[index];
     }
 
     public struct ChildEnumerator : IStructEnumerator<UIElement>

@@ -101,7 +101,7 @@ public sealed unsafe class Image : IDisposable
         var bytesBuffer = Raylib.ExportImageToMemory(RImage, fileType, out var size);
         if (bytesBuffer is null)
         {
-            bytes = Array.Empty<byte>();
+            bytes = [];
             return false;
         }
 

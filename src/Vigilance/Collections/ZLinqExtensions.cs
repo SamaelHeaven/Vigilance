@@ -306,7 +306,7 @@ internal sealed class RefStack<T>
 
     private RefStack(int initialSize)
     {
-        _array = initialSize == 0 ? Array.Empty<T>() : new T[initialSize];
+        _array = initialSize == 0 ? [] : new T[initialSize];
         _size = 0;
     }
 
@@ -382,7 +382,7 @@ internal sealed class RefQueue<T>
 
     private RefQueue(int initialSize)
     {
-        _array = initialSize == 0 ? Array.Empty<T>() : new T[initialSize];
+        _array = initialSize == 0 ? [] : new T[initialSize];
     }
 
     public static RefQueue<T> Rent()

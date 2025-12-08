@@ -5,12 +5,12 @@ namespace Vigilance.Input;
 
 public sealed class InputAxis
 {
-    private readonly List<GamepadAxis> _gamepadAxes = new();
+    private readonly List<GamepadAxis> _gamepadAxes = [];
     private readonly List<Gamepad> _gamepads = Gamepad.Gamepads.AsValueEnumerable().ToList();
-    private readonly List<GamepadButton> _negativeGamepadButtons = new();
-    private readonly List<Key> _negativeKeys = new();
-    private readonly List<GamepadButton> _positiveGamepadButtons = new();
-    private readonly List<Key> _positiveKeys = new();
+    private readonly List<GamepadButton> _negativeGamepadButtons = [];
+    private readonly List<Key> _negativeKeys = [];
+    private readonly List<GamepadButton> _positiveGamepadButtons = [];
+    private readonly List<Key> _positiveKeys = [];
 
     public IReadOnlyList<Key> NegativeKeys
     {

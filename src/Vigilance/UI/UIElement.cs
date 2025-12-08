@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using FlexLayoutSharp;
 using Vigilance.Core;
 using Vigilance.Drawing;
@@ -11,10 +12,9 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>, IDeepCloneable
+public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 {
     private bool _click;
-    private RenderData _renderData;
     internal Node Node = Flex.CreateDefaultNode();
 
     protected UIElement()
@@ -456,11 +456,6 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
-    public int CompareTo(UIElement? other)
-    {
-        return other is null ? 1 : ZIndex.CompareTo(other.ZIndex);
-    }
-
     public UIElement ToComponent()
     {
         return this;
@@ -474,16 +469,27 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
             var clone = Clone(node);
             if (clone is UIParent parent)
             {
-                parent.ChildrenList = new LinkedList<UIElement>();
                 foreach (var child in node.Children())
                     parent.Add(cloneMap[child]);
             }
-
             clone.CloneSelf();
             cloneMap[node] = clone;
         }
 
         return cloneMap[this];
+    }
+
+    object IShallowCloneable.ShallowClone()
+    {
+        var clone = Clone(this);
+        if (clone is UIParent parent)
+        {
+            foreach (var child in this.Children())
+                parent.Add(child);
+            return clone;
+        }
+        clone.CloneSelf();
+        return clone;
     }
 
     public event Action<UIEvent>? OnUpdateEvent;
@@ -558,10 +564,11 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     public RenderTexture ToTexture(float? width = null, float? height = null)
     {
-        var element = this.DeepClone();
-        element.CalculateLayout(width, height);
-        var texture = new RenderTexture(element.LayoutSize);
-        element.Render(texture.Graphics);
+        var layoutSize = LayoutSize;
+        CalculateLayout(width, height);
+        var texture = new RenderTexture(LayoutSize);
+        Render(texture.Graphics);
+        CalculateLayout(layoutSize);
         return texture;
     }
 
@@ -631,25 +638,26 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         if (!IsLayoutReady || Display == DisplayMode.None)
             return;
         var capacity = this.DescendantsAndSelf().Count();
-        var stack = ArrayPool<UIElement>.Shared.Rent(capacity);
+        var stack = ArrayPool<RenderData>.Shared.Rent(capacity);
         var count = 0;
+        var maxCount = 0;
         try
         {
-            stack[count++] = this;
-            _renderData = default;
+            stack[count++] = new RenderData { Element = this };
             while (count != 0)
             {
-                var element = stack[--count];
-                switch (element._renderData.Phase)
+                maxCount = maxCount.Max(count);
+                ref var data = ref stack[--count];
+                switch (data.Phase)
                 {
                     case RenderPhase.Begin:
                     {
-                        BeginRender(ref stack, ref count, element, graphics, camera);
+                        BeginRender(ref stack, ref count, ref maxCount, ref data, graphics, camera);
                         break;
                     }
                     case RenderPhase.End:
                     {
-                        EndRender(element, graphics, camera);
+                        EndRender(ref data, graphics, camera);
                         break;
                     }
                 }
@@ -657,22 +665,24 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         }
         finally
         {
-            ArrayPool<UIElement>.Shared.Return(stack, true);
+            Array.Clear(stack, 0, maxCount);
+            ArrayPool<RenderData>.Shared.Return(stack);
         }
     }
 
     private static void BeginRender(
-        ref UIElement[] stack,
+        ref RenderData[] stack,
         ref int count,
-        UIElement element,
+        ref int maxCount,
+        ref RenderData data,
         Graphics graphics,
         CameraProvider camera
     )
     {
+        var element = data.Element;
         if (!element.IsLayoutReady || element.Display == DisplayMode.None)
             return;
         count++;
-        ref var data = ref element._renderData;
         var transform = element.LayoutTransform;
         var position = element.LayoutPosition;
         var size = element.LayoutSize;
@@ -723,29 +733,26 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         count += childrenCount;
         if (count > stack.Length)
         {
-            var newStack = ArrayPool<UIElement>.Shared.Rent(count * 2);
-            Array.Copy(stack, newStack, stack.Length);
-            ArrayPool<UIElement>.Shared.Return(stack, true);
+            var newStack = ArrayPool<RenderData>.Shared.Rent(count * 2);
+            Array.Copy(stack, newStack, maxCount);
+            Array.Clear(stack, 0, maxCount);
+            ArrayPool<RenderData>.Shared.Return(stack);
             stack = newStack;
         }
 
         var i = count;
         foreach (var child in children)
-        {
-            stack[--i] = child;
-            child._renderData = default;
-        }
-
+            stack[--i] = new RenderData { Element = child };
         stack.AsSpan(i, count - i).Sort();
         element.BeginRender(graphics, camera);
         element.RenderSelf(graphics, camera);
     }
 
-    private static void EndRender(UIElement element, Graphics graphics, CameraProvider camera)
+    private static void EndRender(ref RenderData data, Graphics graphics, CameraProvider camera)
     {
+        var element = data.Element;
         if (!element.IsLayoutReady || element.Display == DisplayMode.None)
             return;
-        ref var data = ref element._renderData;
         element.EndRender(graphics, camera);
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
@@ -773,6 +780,11 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
                     return new Size(size.X, size.Y);
                 }
             );
+        if (result is not UIParent parent)
+            return result;
+        parent.ChildrenList = [];
+        parent.DeferredQueue = [];
+        // TODO: Handle deferring...?
         return result;
     }
 
@@ -782,13 +794,20 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
             element.IsLayoutReady = true;
     }
 
-    private struct RenderData
+    [StructLayout(LayoutKind.Auto)]
+    private struct RenderData : IComparable<RenderData>
     {
+        public UIElement Element;
         public Matrix3x2? OldMatrix;
         public Box? OldClip;
         public RenderPhase Phase;
         public bool? OldCulling;
         public bool OverflowHidden;
+
+        public int CompareTo(RenderData other)
+        {
+            return Element.ZIndex.CompareTo(other.Element.ZIndex);
+        }
     }
 
     private enum RenderPhase : byte
