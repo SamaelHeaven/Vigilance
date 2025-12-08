@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using FlexLayoutSharp;
 using Vigilance.Core;
 using Vigilance.Drawing;
@@ -12,9 +11,10 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public abstract class UIElement : IComposable<UIElement>, IFullCloneable
+public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>, IFullCloneable
 {
     private bool _click;
+    private RenderData _renderData;
     internal Node Node = Flex.CreateDefaultNode();
 
     protected UIElement()
@@ -456,6 +456,11 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
+    public int CompareTo(UIElement? other)
+    {
+        return other is null ? 1 : ZIndex.CompareTo(other.ZIndex);
+    }
+
     public UIElement ToComponent()
     {
         return this;
@@ -468,10 +473,8 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         {
             var clone = Clone(node);
             if (clone is UIParent parent)
-            {
                 foreach (var child in node.Children())
                     parent.Add(cloneMap[child]);
-            }
             clone.CloneSelf();
             cloneMap[node] = clone;
         }
@@ -488,6 +491,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
                 parent.Add(child);
             return clone;
         }
+
         clone.CloneSelf();
         return clone;
     }
@@ -564,11 +568,12 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
     public RenderTexture ToTexture(float? width = null, float? height = null)
     {
-        var layoutSize = LayoutSize;
-        CalculateLayout(width, height);
-        var texture = new RenderTexture(LayoutSize);
-        Render(texture.Graphics);
-        CalculateLayout(layoutSize);
+        var element = this.ShallowClone();
+        var layoutSize = element.LayoutSize;
+        element.CalculateLayout(width, height);
+        var texture = new RenderTexture(element.LayoutSize);
+        element.Render(texture.Graphics);
+        element.CalculateLayout(layoutSize);
         return texture;
     }
 
@@ -638,51 +643,47 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         if (!IsLayoutReady || Display == DisplayMode.None)
             return;
         var capacity = this.DescendantsAndSelf().Count();
-        var stack = ArrayPool<RenderData>.Shared.Rent(capacity);
+        var stack = ArrayPool<UIElement>.Shared.Rent(capacity);
         var count = 0;
         var maxCount = 0;
         try
         {
-            stack[count++] = new RenderData { Element = this };
+            stack[count++] = this;
+            _renderData = default;
             while (count != 0)
             {
                 maxCount = maxCount.Max(count);
-                ref var data = ref stack[--count];
-                switch (data.Phase)
+                var element = stack[--count];
+                switch (element._renderData.Phase)
                 {
                     case RenderPhase.Begin:
-                    {
-                        BeginRender(ref stack, ref count, ref maxCount, ref data, graphics, camera);
+                        BeginRender(ref stack, ref count, ref maxCount, element, graphics, camera);
                         break;
-                    }
                     case RenderPhase.End:
-                    {
-                        EndRender(ref data, graphics, camera);
+                        EndRender(element, graphics, camera);
                         break;
-                    }
                 }
             }
         }
         finally
         {
             Array.Clear(stack, 0, maxCount);
-            ArrayPool<RenderData>.Shared.Return(stack);
+            ArrayPool<UIElement>.Shared.Return(stack);
         }
     }
 
     private static void BeginRender(
-        ref RenderData[] stack,
+        ref UIElement[] stack,
         ref int count,
         ref int maxCount,
-        ref RenderData data,
+        UIElement element,
         Graphics graphics,
         CameraProvider camera
     )
     {
-        var element = data.Element;
         if (!element.IsLayoutReady || element.Display == DisplayMode.None)
             return;
-        count++;
+        ref var data = ref stack[count++]._renderData;
         var transform = element.LayoutTransform;
         var position = element.LayoutPosition;
         var size = element.LayoutSize;
@@ -733,26 +734,30 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         count += childrenCount;
         if (count > stack.Length)
         {
-            var newStack = ArrayPool<RenderData>.Shared.Rent(count * 2);
+            var newStack = ArrayPool<UIElement>.Shared.Rent(count * 2);
             Array.Copy(stack, newStack, maxCount);
             Array.Clear(stack, 0, maxCount);
-            ArrayPool<RenderData>.Shared.Return(stack);
+            ArrayPool<UIElement>.Shared.Return(stack);
             stack = newStack;
         }
 
         var i = count;
         foreach (var child in children)
-            stack[--i] = new RenderData { Element = child };
+        {
+            stack[--i] = child;
+            child._renderData = default;
+        }
+
         stack.AsSpan(i, count - i).Sort();
         element.BeginRender(graphics, camera);
         element.RenderSelf(graphics, camera);
     }
 
-    private static void EndRender(ref RenderData data, Graphics graphics, CameraProvider camera)
+    private static void EndRender(UIElement element, Graphics graphics, CameraProvider camera)
     {
-        var element = data.Element;
         if (!element.IsLayoutReady || element.Display == DisplayMode.None)
             return;
+        ref var data = ref element._renderData;
         element.EndRender(graphics, camera);
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
@@ -782,9 +787,9 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
             );
         if (result is not UIParent parent)
             return result;
-        parent.ChildrenList = [];
-        parent.DeferredQueue = [];
-        // TODO: Handle deferring...?
+        parent.ChildrenList = new List<UIElement>(parent.ChildrenList.Count);
+        parent.ChildrenOperations = [];
+        parent.Deferred = 0;
         return result;
     }
 
@@ -794,23 +799,16 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
             element.IsLayoutReady = true;
     }
 
-    [StructLayout(LayoutKind.Auto)]
-    private struct RenderData : IComparable<RenderData>
+    private struct RenderData
     {
-        public UIElement Element;
         public Matrix3x2? OldMatrix;
         public Box? OldClip;
         public RenderPhase Phase;
         public bool? OldCulling;
         public bool OverflowHidden;
-
-        public int CompareTo(RenderData other)
-        {
-            return Element.ZIndex.CompareTo(other.Element.ZIndex);
-        }
     }
 
-    private enum RenderPhase : byte
+    private enum RenderPhase
     {
         Begin,
         End,
@@ -818,16 +816,14 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
     public struct Traverser : ITraverser<Traverser, UIElement>
     {
-        private LinkedListNode<UIElement>? _node;
-        private LinkedListNode<UIElement>? _next;
+        private UIParent.ChildEnumerator _enumerator;
+        private bool _hasEnumerator;
 
         public UIElement Origin { get; }
 
         internal Traverser(UIElement origin)
         {
             Origin = origin;
-            _node = null;
-            _next = null;
         }
 
         public Traverser ConvertToTraverser(UIElement next)
@@ -837,16 +833,13 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
         public bool TryGetChildCount(out int count)
         {
-            count = 0;
-            if (Origin is UIParent parent)
-                count = parent.ChildrenList.Count;
+            count = Origin is UIParent parent ? parent.Children.Count : 0;
             return true;
         }
 
         public bool TryGetHasChild(out bool hasChild)
         {
-            TryGetChildCount(out var count);
-            hasChild = count > 0;
+            hasChild = Origin is UIParent { Children.Count: > 0 };
             return true;
         }
 
@@ -864,17 +857,21 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
         public bool TryGetNextChild(out UIElement child)
         {
-            if (Origin is not UIParent parent)
+            if (!_hasEnumerator)
             {
-                child = null!;
-                return false;
+                if (Origin is not UIParent parent)
+                {
+                    child = null!;
+                    return false;
+                }
+
+                _enumerator = parent.Children.GetEnumerator();
+                _hasEnumerator = true;
             }
 
-            _node = _node is null ? parent.ChildrenList.First : _next;
-            if (_node is not null)
+            if (_enumerator.MoveNext())
             {
-                child = _node.Value;
-                _next = _node.Next;
+                child = _enumerator.Current;
                 return true;
             }
 
@@ -884,31 +881,22 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
         public bool TryGetNextSibling(out UIElement next)
         {
-            if (_node is not null)
+            BEGIN:
+            if (_hasEnumerator)
             {
-                _node = _next;
-                if (_node is not null)
+                if (_enumerator.MoveNext())
                 {
-                    next = _node.Value;
-                    _next = _node.Next;
+                    next = _enumerator.Current;
                     return true;
                 }
             }
             else if (TryGetParent(out var parent))
             {
-                var node = parent.ChildrenList.First;
-                while (node is not null && node.Value != Origin)
-                    node = node.Next;
-                if (node is not null)
-                {
-                    _node = node.Next;
-                    if (_node is not null)
-                    {
-                        next = _node.Value;
-                        _next = _node.Next;
-                        return true;
-                    }
-                }
+                _enumerator = parent.Children.GetEnumerator();
+                _hasEnumerator = true;
+                while (_enumerator.MoveNext())
+                    if (_enumerator.Current == Origin)
+                        goto BEGIN;
             }
 
             next = null!;
@@ -917,33 +905,34 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
         public bool TryGetPreviousSibling(out UIElement previous)
         {
-            if (_node is not null)
+            BEGIN:
+            if (_hasEnumerator)
             {
-                _node = _next;
-                if (_node is not null && _node.Value != Origin)
+                if (_enumerator.MoveNext())
                 {
-                    previous = _node.Value;
-                    _next = _node.Next;
-                    return true;
+                    previous = _enumerator.Current;
+                    if (previous != Origin)
+                        return true;
                 }
             }
             else if (TryGetParent(out var parent))
             {
-                var node = parent.ChildrenList.First;
-                if (node is not null && node.Value != Origin)
-                {
-                    _node = node;
-                    previous = _node.Value;
-                    _next = _node.Next;
-                    return true;
-                }
+                _enumerator = parent.Children.GetEnumerator();
+                _hasEnumerator = true;
+                goto BEGIN;
             }
 
             previous = null!;
             return false;
         }
 
-        public void Dispose() { }
+        public void Dispose()
+        {
+            if (!_hasEnumerator)
+                return;
+            _enumerator.Dispose();
+            _hasEnumerator = false;
+        }
     }
 }
 

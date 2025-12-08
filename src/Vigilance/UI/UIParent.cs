@@ -1,12 +1,18 @@
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
+using Vigilance.Core;
 using ZLinq;
+using ZLinq.Internal;
 
 namespace Vigilance.UI;
 
 public abstract class UIParent : UIElement
 {
     internal List<UIElement> ChildrenList = [];
-    internal Queue<DeferredData> DeferredQueue = [];
+    internal Queue<ChildrenOperation> ChildrenOperations = [];
+    internal int Deferred;
+
+    public bool IsDeferred => Deferred > 0;
 
     public UIParent this[UIElement? element]
     {
@@ -41,6 +47,12 @@ public abstract class UIParent : UIElement
     {
         if (element is null)
             return;
+        if (IsDeferred)
+        {
+            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Add, element));
+            return;
+        }
+
         element.Remove();
         ChildrenList.Add(element);
         element.Parent = this;
@@ -64,6 +76,12 @@ public abstract class UIParent : UIElement
 
     public void Insert(int index, UIElement element)
     {
+        if (IsDeferred)
+        {
+            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Insert, element, index));
+            return;
+        }
+
         ChildrenList.Insert(index, element);
         element.Remove();
         element.Parent = this;
@@ -77,8 +95,14 @@ public abstract class UIParent : UIElement
         return ChildrenList.IndexOf(element);
     }
 
-    public bool Replace(int index, UIElement element)
+    public void Replace(int index, UIElement element)
     {
+        if (IsDeferred)
+        {
+            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Replace, element, index));
+            return;
+        }
+
         ChildrenList[index].Remove();
         element.Remove();
         element.Parent = this;
@@ -86,7 +110,6 @@ public abstract class UIParent : UIElement
         if (!IsLayoutCustom)
             Node.ReplaceChild(index, element.Node);
         MarkDirty();
-        return true;
     }
 
     public void Clear()
@@ -95,8 +118,43 @@ public abstract class UIParent : UIElement
             element.Remove();
     }
 
+    public void BeginDefer()
+    {
+        Deferred++;
+    }
+
+    public void EndDefer()
+    {
+        if (!IsDeferred)
+            throw new InvalidOperationException("Element is not in a deferred state.");
+        if (--Deferred != 0)
+            return;
+        while (ChildrenOperations.TryDequeue(out var operation))
+            switch (operation.Type)
+            {
+                case ChildrenOperationType.Add:
+                    Add(operation.Element);
+                    break;
+                case ChildrenOperationType.Remove:
+                    Remove(operation.Element!);
+                    break;
+                case ChildrenOperationType.Insert:
+                    Insert(operation.Index, operation.Element!);
+                    break;
+                case ChildrenOperationType.Replace:
+                    Replace(operation.Index, operation.Element!);
+                    break;
+            }
+    }
+
     internal void Remove(UIElement element)
     {
+        if (IsDeferred)
+        {
+            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Remove, element));
+            return;
+        }
+
         ChildrenList.Remove(element);
         element.Parent = null;
         if (!IsLayoutCustom)
@@ -104,14 +162,14 @@ public abstract class UIParent : UIElement
         MarkDirty();
     }
 
-    internal struct DeferredData
+    internal readonly struct ChildrenOperation(ChildrenOperationType type, UIElement? element = null, int index = 0)
     {
-        public DeferredOperation Operation;
-        public UIElement? Element;
-        public int Index;
+        public readonly ChildrenOperationType Type = type;
+        public readonly UIElement? Element = element;
+        public readonly int Index = index;
     }
 
-    internal enum DeferredOperation
+    internal enum ChildrenOperationType
     {
         Add,
         Remove,
@@ -133,7 +191,15 @@ public abstract class UIParent : UIElement
             return new ChildEnumerator(_parent);
         }
 
-        public ValueEnumerable<StructEnumerator<ChildEnumerator, UIElement>, UIElement> AsValueEnumerable()
+        public ValueEnumerable<ChildEnumerator, UIElement> AsValueEnumerable()
+        {
+            return new ValueEnumerable<ChildEnumerator, UIElement>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<ChildEnumerator, UIElement>, UIElement> IStructEnumerable<
+            ChildEnumerator,
+            UIElement
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<ChildEnumerator, UIElement>(GetEnumerator());
         }
@@ -143,35 +209,70 @@ public abstract class UIParent : UIElement
         public UIElement this[int index] => _parent.ChildrenList[index];
     }
 
-    public struct ChildEnumerator : IStructEnumerator<UIElement>
+    public struct ChildEnumerator : IStructEnumerator<UIElement>, IValueEnumerator<UIElement>
     {
         private readonly UIParent _parent;
-        private LinkedListNode<UIElement>? _current;
-        private LinkedListNode<UIElement>? _next;
+        private int _index;
 
         internal ChildEnumerator(UIParent parent)
         {
             _parent = parent;
-            Reset();
+            _index = -1;
         }
 
         public bool MoveNext()
         {
-            _current = _next;
-            if (_current is null)
-                return false;
-            _next = _current.Next;
-            return _current?.Value is not null;
+            if (_index < 0)
+                _parent.BeginDefer();
+            _index++;
+            return _index < _parent.ChildrenList.Count;
         }
 
         public void Reset()
         {
-            _next = _parent.ChildrenList.First;
-            _current = null;
+            if (_index >= 0)
+                _parent.EndDefer();
+            _index = -1;
         }
 
-        public UIElement Current => _current?.Value!;
+        public UIElement Current => _parent.ChildrenList[_index];
 
-        public void Dispose() { }
+        public void Dispose()
+        {
+            if (_index >= 0)
+                _parent.EndDefer();
+        }
+
+        public bool TryGetNext(out UIElement current)
+        {
+            if (MoveNext())
+            {
+                current = Current;
+                return true;
+            }
+
+            Unsafe.SkipInit(out current);
+            return false;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _parent.ChildrenList.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<UIElement> span)
+        {
+            span = _parent.ChildrenList.AsSpan();
+            return true;
+        }
+
+        public bool TryCopyTo(scoped Span<UIElement> destination, Index offset)
+        {
+            if (!EnumeratorHelper.TryGetSlice(_parent.ChildrenList.AsSpan(), offset, destination.Length, out var slice))
+                return false;
+            slice.CopyTo(destination);
+            return true;
+        }
     }
 }
