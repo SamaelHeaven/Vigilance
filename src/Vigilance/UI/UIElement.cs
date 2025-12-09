@@ -456,12 +456,12 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
-    public int CompareTo(UIElement? other)
+    int IComparable<UIElement>.CompareTo(UIElement? other)
     {
         return other is null ? 1 : ZIndex.CompareTo(other.ZIndex);
     }
 
-    public UIElement ToComponent()
+    UIElement IComposable<UIElement>.ToComponent()
     {
         return this;
     }
@@ -649,7 +649,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         try
         {
             stack[count++] = this;
-            _renderData = default;
+            _renderData = new RenderData(this);
             while (count != 0)
             {
                 maxCount = maxCount.Max(count);
@@ -681,9 +681,9 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         CameraProvider camera
     )
     {
-        if (!element.IsLayoutReady || element.Display == DisplayMode.None)
-            return;
         ref var data = ref stack[count++]._renderData;
+        if (!data.ShouldRender)
+            return;
         var transform = element.LayoutTransform;
         var position = element.LayoutPosition;
         var size = element.LayoutSize;
@@ -741,23 +741,27 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
             stack = newStack;
         }
 
+        var shouldSort = false;
         var i = count;
         foreach (var child in children)
         {
             stack[--i] = child;
-            child._renderData = default;
+            child._renderData = new RenderData(child);
+            if (child.ZIndex != 0)
+                shouldSort = true;
         }
 
-        stack.AsSpan(i, count - i).Sort();
+        if (shouldSort)
+            stack.AsSpan(i, count - i).Sort();
         element.BeginRender(graphics, camera);
         element.RenderSelf(graphics, camera);
     }
 
     private static void EndRender(UIElement element, Graphics graphics, CameraProvider camera)
     {
-        if (!element.IsLayoutReady || element.Display == DisplayMode.None)
-            return;
         ref var data = ref element._renderData;
+        if (!data.ShouldRender)
+            return;
         element.EndRender(graphics, camera);
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
@@ -801,11 +805,17 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     private struct RenderData
     {
+        public RenderPhase Phase;
         public Matrix3x2? OldMatrix;
         public Box? OldClip;
-        public RenderPhase Phase;
         public bool? OldCulling;
         public bool OverflowHidden;
+        public readonly bool ShouldRender;
+
+        public RenderData(UIElement element)
+        {
+            ShouldRender = element.IsLayoutReady && element.Display != DisplayMode.None;
+        }
     }
 
     private enum RenderPhase
