@@ -643,7 +643,8 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         _renderData = new RenderData(this);
         if (!_renderData.ShouldRender)
             return;
-        var stack = ArrayPool<UIElement>.Shared.Rent(16);
+        var capacity = this.DescendantsAndSelf().Count();
+        var stack = ArrayPool<UIElement>.Shared.Rent(capacity);
         var count = 0;
         var maxCount = 0;
         try
