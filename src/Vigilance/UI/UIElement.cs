@@ -640,16 +640,15 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     private void Render(Graphics graphics, CameraProvider camera)
     {
-        if (!IsLayoutReady || Display == DisplayMode.None)
+        _renderData = new RenderData(this);
+        if (!_renderData.ShouldRender)
             return;
-        var capacity = this.DescendantsAndSelf().Count();
-        var stack = ArrayPool<UIElement>.Shared.Rent(capacity);
+        var stack = ArrayPool<UIElement>.Shared.Rent(16);
         var count = 0;
         var maxCount = 0;
         try
         {
             stack[count++] = this;
-            _renderData = new RenderData(this);
             while (count != 0)
             {
                 maxCount = maxCount.Max(count);
