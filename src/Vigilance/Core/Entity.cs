@@ -478,6 +478,18 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return ref this;
     }
 
+    public void TriggerSet<T>()
+    {
+        EnsureValid();
+        FlecsEntity.CsWorld().Event<SetEvent>().Id<T>().Entity(Id).Enqueue();
+    }
+
+    public void TriggerSet(in Component component)
+    {
+        EnsureValid();
+        FlecsEntity.CsWorld().Event<SetEvent>().Id(component.Id).Entity(Id).Enqueue();
+    }
+
     public ref readonly Entity Remove<T>()
     {
         EnsureValid();
