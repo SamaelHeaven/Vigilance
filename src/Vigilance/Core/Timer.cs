@@ -19,7 +19,7 @@ public sealed class Timer
         TimeLeft = initialTime ?? delay;
         Delay = delay;
         RepeatCount = repeatCount;
-        TimeStepFunc = timeStepFunc ?? (static () => Time.Delta);
+        TimeStepFunc = timeStepFunc ?? (() => Time.Delta);
     }
 
     public bool IsFinished => TimeLeft <= TimeSpan.Zero;

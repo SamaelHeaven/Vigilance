@@ -36,7 +36,7 @@ public sealed class Animation : IListView<AnimationFrame>
         RepeatCount = repeatCount;
         Index = startIndex;
         StartIndex = startIndex;
-        TimeStepFunc = timeStepFunc ?? (static () => Time.Delta);
+        TimeStepFunc = timeStepFunc ?? (() => Time.Delta);
     }
 
     public TimeSpan Delay { get; set; }

@@ -40,7 +40,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
-    public string Path => this.AncestorsAndSelf().Reverse().Select(e => e.Name).JoinToString(".");
+    public string Path => this.AncestorsAndSelf().Select(e => e.Name).Reverse().JoinToString(".");
 
     public bool IsValid => Scene?.Cache.TransformMap.ContainsKey(Id) ?? false;
 
@@ -501,8 +501,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public ref readonly Entity Remove(in Component component)
     {
         EnsureValid();
-        var flecsEntity = FlecsEntity;
-        flecsEntity.Remove(component.Id);
+        FlecsEntity.Remove(component.Id);
         return ref this;
     }
 
@@ -568,7 +567,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EnsureValid()
     {
-        Assert.Ensure(IsValid, "Entity must be valid.");
+        Debug.Assert(IsValid, "Entity must be valid.");
     }
 
     private bool PrintMembers(StringBuilder sb)

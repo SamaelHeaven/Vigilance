@@ -5,11 +5,11 @@ using Vigilance.Logging;
 
 namespace Vigilance.Core;
 
-public static class Assert
+public static class Debug
 {
     [Conditional("DEBUG")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Ensure(
+    public static void Assert(
         [DoesNotReturnIf(false)] bool condition,
         [CallerArgumentExpression(nameof(condition))] string message = ""
     )
