@@ -20,11 +20,15 @@ public sealed class DisplayConfig
     public bool DefaultFullscreenBorderless { get; set; } = true;
     public bool Maximized { get; set; } = false;
     public bool Decorated { get; set; } = true;
+    public bool Focused { get; set; } = true;
     public bool Vsync { get; set; } = true;
     public bool Resizable { get; set; } = true;
     public bool RunMinimized { get; set; } = true;
     public bool Msaa4X { get; set; } = false;
     public bool Hidden { get; set; } = false;
+    public bool TopMost { get; set; } = false;
+    public bool Transparent { get; set; } = false;
+    public bool Passthrough { get; set; } = false;
 }
 
 public static class DisplayConfigExtensions

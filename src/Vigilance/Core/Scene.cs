@@ -18,7 +18,6 @@ public sealed unsafe partial class Scene
     private readonly Dictionary<Type, Delegate> _listeners = new();
     private readonly List<RenderCommand> _renderCommands = [];
     private readonly GameSystemsFunc _systemsFunc;
-    private int _deferred;
     private Action? _deferredAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
@@ -52,7 +51,9 @@ public sealed unsafe partial class Scene
 
     public bool IsInitialized { get; private set; }
 
-    public bool IsDeferred => _deferred != 0;
+    public bool IsDeferred => DeferredCount != 0;
+
+    public int DeferredCount { get; private set; }
 
     public EntityEnumerable Entities => GetEntities();
 
@@ -315,7 +316,7 @@ public sealed unsafe partial class Scene
 
     public void BeginDefer()
     {
-        if (0 != _deferred++)
+        if (0 != DeferredCount++)
             return;
         World.DeferBegin();
     }
@@ -324,7 +325,7 @@ public sealed unsafe partial class Scene
     {
         if (!IsDeferred)
             throw new InvalidOperationException("Scene is not in a deferred state.");
-        if (--_deferred != 0)
+        if (--DeferredCount != 0)
             return;
         World.DeferEnd();
         var action = _deferredAction;

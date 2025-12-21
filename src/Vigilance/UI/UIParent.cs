@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -8,11 +9,18 @@ namespace Vigilance.UI;
 
 public abstract class UIParent : UIElement
 {
-    internal List<UIElement> ChildrenList = [];
-    internal Queue<ChildrenOperation> ChildrenOperations = [];
-    internal int Deferred;
+    public enum ChildrenOperationType
+    {
+        Add,
+        Remove,
+        Insert,
+        Replace,
+    }
 
-    public bool IsDeferred => Deferred > 0;
+    internal List<UIElement> ChildrenList = [];
+    public Queue<ChildrenOperation> ChildrenOperations { get; internal set; } = [];
+    public bool IsDeferred => DeferredCount > 0;
+    public int DeferredCount { get; internal set; }
 
     public UIParent this[UIElement? element]
     {
@@ -120,31 +128,17 @@ public abstract class UIParent : UIElement
 
     public void BeginDefer()
     {
-        Deferred++;
+        DeferredCount++;
     }
 
     public void EndDefer()
     {
         if (!IsDeferred)
             throw new InvalidOperationException("Element is not in a deferred state.");
-        if (--Deferred != 0)
+        if (--DeferredCount != 0)
             return;
         while (ChildrenOperations.TryDequeue(out var operation))
-            switch (operation.Type)
-            {
-                case ChildrenOperationType.Add:
-                    Add(operation.Element);
-                    break;
-                case ChildrenOperationType.Remove:
-                    Remove(operation.Element!);
-                    break;
-                case ChildrenOperationType.Insert:
-                    Insert(operation.Index, operation.Element!);
-                    break;
-                case ChildrenOperationType.Replace:
-                    Replace(operation.Index, operation.Element!);
-                    break;
-            }
+            operation.Execute(this);
     }
 
     internal void Remove(UIElement element)
@@ -162,19 +156,32 @@ public abstract class UIParent : UIElement
         MarkDirty();
     }
 
-    internal readonly struct ChildrenOperation(ChildrenOperationType type, UIElement? element = null, int index = 0)
+    public readonly record struct ChildrenOperation(
+        ChildrenOperationType Type,
+        UIElement? Element = null,
+        int Index = 0
+    )
     {
-        public readonly ChildrenOperationType Type = type;
-        public readonly UIElement? Element = element;
-        public readonly int Index = index;
-    }
-
-    internal enum ChildrenOperationType
-    {
-        Add,
-        Remove,
-        Insert,
-        Replace,
+        public void Execute(UIParent parent)
+        {
+            switch (Type)
+            {
+                case ChildrenOperationType.Add:
+                    parent.Add(Element);
+                    break;
+                case ChildrenOperationType.Remove:
+                    parent.Remove(Element!);
+                    break;
+                case ChildrenOperationType.Insert:
+                    parent.Insert(Index, Element!);
+                    break;
+                case ChildrenOperationType.Replace:
+                    parent.Replace(Index, Element!);
+                    break;
+                default:
+                    throw new InvalidEnumArgumentException(nameof(Type), (int)Type, typeof(ChildrenOperationType));
+            }
+        }
     }
 
     public readonly struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>

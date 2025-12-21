@@ -44,7 +44,7 @@ public class UIDropShadow : UIElement
         if (IsTextureDirty)
         {
             IsTextureDirty = false;
-            using var targetTexture = Target.ToTexture(Target.LayoutSize);
+            using var targetTexture = Target.ShallowClone().ToTexture(Target.LayoutSize);
             var image = targetTexture.ToImage();
             var result = new WritableImage<PixelGrayAlpha>(image.Width + offset * 2, image.Height + offset * 2);
             for (var y = 0; y < image.Height; y++)

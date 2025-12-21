@@ -84,25 +84,9 @@ public record struct Color
 
     public static Color FromHex(string hex)
     {
-        try
-        {
-            if (hex.StartsWith('#'))
-                hex = hex[1..];
-            if (hex.Length != 6 && hex.Length != 8)
-                throw new Exception();
-            var result = new Color
-            {
-                R = Convert.ToByte(hex[..2], 16),
-                G = Convert.ToByte(hex[2..4], 16),
-                B = Convert.ToByte(hex[4..6], 16),
-                A = hex.Length == 8 ? Convert.ToByte(hex[6..8], 16) : (byte)255,
-            };
-            return result;
-        }
-        catch (Exception)
-        {
-            throw new ArgumentException($"Invalid hexadecimal color code: '{hex}'.");
-        }
+        return TryFromHex(hex, out var color)
+            ? color
+            : throw new ArgumentException($"Invalid hexadecimal color code: '{hex}'.");
     }
 
     public static Color FromHsv(float hue, float saturation, float value)
@@ -133,6 +117,65 @@ public record struct Color
         result.B = (byte)((value - value * saturation * k) * 255.0f);
         result.A = (byte)(255 * alpha);
         return result;
+    }
+
+    public static bool TryFromHex(string? hex, out Color color)
+    {
+        color = default;
+        if (string.IsNullOrEmpty(hex))
+            return false;
+        var start = 0;
+        if (hex[0] == '#')
+        {
+            if (hex.Length == 1)
+                return false;
+            start = 1;
+        }
+
+        var len = hex.Length - start;
+        if (len != 6 && len != 8)
+            return false;
+        if (
+            !TryParseByte(hex, start + 0, out var r)
+            || !TryParseByte(hex, start + 2, out var g)
+            || !TryParseByte(hex, start + 4, out var b)
+        )
+            return false;
+        byte a = 255;
+        if (len == 8 && !TryParseByte(hex, start + 6, out a))
+            return false;
+        color = new Color
+        {
+            R = r,
+            G = g,
+            B = b,
+            A = a,
+        };
+        return true;
+
+        static bool TryParseByte(string hex, int index, out byte value)
+        {
+            value = 0;
+            if (index + 1 >= hex.Length)
+                return false;
+            var hi = HexValue(hex[index]);
+            var lo = HexValue(hex[index + 1]);
+            if (hi < 0 || lo < 0)
+                return false;
+            value = (byte)((hi << 4) | lo);
+            return true;
+        }
+
+        static int HexValue(char c)
+        {
+            return c switch
+            {
+                >= '0' and <= '9' => c - '0',
+                >= 'a' and <= 'f' => c - 'a' + 10,
+                >= 'A' and <= 'F' => c - 'A' + 10,
+                _ => -1,
+            };
+        }
     }
 
     public readonly void Deconstruct(out byte r, out byte g, out byte b)

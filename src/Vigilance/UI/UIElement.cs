@@ -13,6 +13,13 @@ namespace Vigilance.UI;
 
 public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>, IFullCloneable
 {
+    [Flags]
+    public enum CloneOptions
+    {
+        None = 0,
+        SkipChildren = 1,
+    }
+
     private bool _click;
     private RenderData _renderData;
     internal Node Node = Flex.CreateDefaultNode();
@@ -468,30 +475,41 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     object IDeepCloneable.DeepClone()
     {
-        var cloneMap = new Dictionary<UIElement, UIElement>();
-        foreach (var node in this.DescendantsPostOrderAndSelf())
-        {
-            var clone = Clone(node);
-            if (clone is UIParent parent)
-                foreach (var child in node.Children())
-                    parent.Add(cloneMap[child]);
-            clone.CloneSelf();
-            cloneMap[node] = clone;
-        }
-
-        return cloneMap[this];
+        return DeepClone(CloneOptions.None);
     }
 
     object IShallowCloneable.ShallowClone()
     {
-        var clone = Clone(this);
-        if (clone is UIParent parent)
+        return ShallowClone(CloneOptions.None);
+    }
+
+    internal object DeepClone(CloneOptions options)
+    {
+        Dictionary<UIElement, UIElement>? cloneMap = null;
+        UIElement clone = null!;
+        foreach (var node in this.DescendantsPostOrderAndSelf())
         {
-            foreach (var child in this.Children())
-                parent.Add(child);
-            return clone;
+            clone = Clone(node, options);
+            if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
+                foreach (var child in node.Children())
+                    parent.Add(
+                        (cloneMap ??= new Dictionary<UIElement, UIElement>(this.DescendantsAndSelf().Count()))[child]
+                    );
+            clone.CloneSelf();
+            if ((options & CloneOptions.SkipChildren) == 0)
+                break;
+            cloneMap?[node] = clone;
         }
 
+        return cloneMap is null ? clone : cloneMap[this];
+    }
+
+    internal object ShallowClone(CloneOptions options)
+    {
+        var clone = Clone(this, options);
+        if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
+            foreach (var child in this.Children())
+                parent.Add(child);
         clone.CloneSelf();
         return clone;
     }
@@ -518,10 +536,10 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         CalculateLayout(size.X, size.Y);
     }
 
-    public void CalculateLayout(float? width = null, float? height = null)
+    public void CalculateLayout(float width = float.NaN, float height = float.NaN)
     {
         MarkReady();
-        Flex.CalculateLayout(Node, width ?? float.NaN, height ?? float.NaN, FlexLayoutSharp.Direction.LTR);
+        Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
     }
 
     public void Update()
@@ -566,14 +584,11 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         return ToTexture(size.X, size.Y);
     }
 
-    public RenderTexture ToTexture(float? width = null, float? height = null)
+    public RenderTexture ToTexture(float width = float.NaN, float height = float.NaN)
     {
-        var element = this.ShallowClone();
-        var layoutSize = element.LayoutSize;
-        element.CalculateLayout(width, height);
-        var texture = new RenderTexture(element.LayoutSize);
-        element.Render(texture.Graphics);
-        element.CalculateLayout(layoutSize);
+        CalculateLayout(width, height);
+        var texture = new RenderTexture(LayoutSize);
+        Render(texture.Graphics);
         return texture;
     }
 
@@ -772,7 +787,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
             graphics.PushMatrix(data.OldMatrix.Value);
     }
 
-    private static UIElement Clone(UIElement element)
+    private static UIElement Clone(UIElement element, CloneOptions options)
     {
         var result = (UIElement)element.MemberwiseClone();
         result._click = false;
@@ -780,7 +795,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         result.Parent = null;
         result.Node = Flex.CreateDefaultNode();
         Flex.NodeCopyStyle(result.Node, element.Node);
-        result.Attributes = element.Attributes.DeepClone();
+        result.Attributes = element.Attributes.ShallowClone();
         if (element.IsLayoutCustom)
             result.Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
@@ -791,9 +806,11 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
             );
         if (result is not UIParent parent)
             return result;
-        parent.ChildrenList = new List<UIElement>(parent.ChildrenList.Count);
+        parent.ChildrenList = options.HasFlag(CloneOptions.SkipChildren)
+            ? []
+            : new List<UIElement>(parent.ChildrenList.Count);
         parent.ChildrenOperations = [];
-        parent.Deferred = 0;
+        parent.DeferredCount = 0;
         return result;
     }
 
@@ -985,6 +1002,16 @@ public static partial class UIElementExtensions
         {
             el = element;
             return el;
+        }
+
+        public T DeepClone(UIElement.CloneOptions options)
+        {
+            return (T)element.DeepClone(options);
+        }
+
+        public T ShallowClone(UIElement.CloneOptions options)
+        {
+            return (T)element.ShallowClone(options);
         }
     }
 }

@@ -250,6 +250,42 @@ public static unsafe class Display
         }
     }
 
+    public static bool TopMost
+    {
+        get => _config.TopMost;
+        set
+        {
+            if (value == _config.TopMost)
+                return;
+            _config.TopMost = value;
+            ToggleWindowState(ConfigFlags.WindowTopMost, value);
+        }
+    }
+
+    public static bool Transparent
+    {
+        get => _config.Transparent;
+        set
+        {
+            if (value == _config.Transparent)
+                return;
+            _config.Transparent = value;
+            ToggleWindowState(ConfigFlags.WindowTransparent, value);
+        }
+    }
+
+    public static bool Passthrough
+    {
+        get => _config.Passthrough;
+        set
+        {
+            if (value == _config.Passthrough)
+                return;
+            _config.Passthrough = value;
+            ToggleWindowState(ConfigFlags.WindowMousePassthrough, value);
+        }
+    }
+
     public static bool RunMinimized => _config.RunMinimized;
 
     public static bool Msaa4X => _config.Msaa4X;
@@ -419,6 +455,8 @@ public static unsafe class Display
             flags |= ConfigFlags.WindowResizable;
         if (!_config.Decorated)
             flags |= ConfigFlags.WindowUndecorated;
+        if (!_config.Focused)
+            flags |= ConfigFlags.WindowUnfocused;
         if (_config.Vsync)
             flags |= ConfigFlags.VSyncHint;
         if (_config.RunMinimized)
@@ -427,6 +465,12 @@ public static unsafe class Display
             flags |= ConfigFlags.Msaa4XHint;
         if (_config.Hidden)
             flags |= ConfigFlags.WindowHidden;
+        if (_config.TopMost)
+            flags |= ConfigFlags.WindowTopMost;
+        if (_config.Transparent)
+            flags |= ConfigFlags.WindowTransparent;
+        if (_config.Passthrough)
+            flags |= ConfigFlags.WindowMousePassthrough;
         return flags;
     }
 

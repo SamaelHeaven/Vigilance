@@ -2,7 +2,7 @@ using Vigilance.Core;
 
 namespace Vigilance.UI;
 
-public sealed class Attributes() : Dictionary<string, object>, IDeepCloneable
+public sealed class Attributes() : Dictionary<string, object>, IFullCloneable
 {
     public Attributes(params ReadOnlySpan<(string, object)> attributes)
         : this()
@@ -35,5 +35,10 @@ public sealed class Attributes() : Dictionary<string, object>, IDeepCloneable
                 _ => value,
             };
         return result;
+    }
+
+    object IShallowCloneable.ShallowClone()
+    {
+        return new Attributes(this);
     }
 }
