@@ -7,7 +7,6 @@ using System.Text;
 using Flecs.NET.Bindings;
 using Flecs.NET.Core;
 using Vigilance.Collections;
-using Vigilance.Logging;
 using Vigilance.Math;
 using ZLinq;
 
@@ -43,7 +42,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public string Path => this.AncestorsAndSelf().Reverse().Select(e => e.Name).JoinToString(".");
 
-    public bool IsValid => Scene.Cache.TransformMap.ContainsKey(Id);
+    public bool IsValid => Scene?.Cache.TransformMap.ContainsKey(Id) ?? false;
 
     public bool IsNull => Id == 0;
 
@@ -566,10 +565,10 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     }
 
     [Conditional("DEBUG")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void EnsureValid()
     {
-        if (!IsValid)
-            Log.Fatal($"Entity is not valid.\n{new StackTrace(true).ToString().TrimEnd()}");
+        Assert.Ensure(IsValid, "Entity must be valid.");
     }
 
     private bool PrintMembers(StringBuilder sb)
