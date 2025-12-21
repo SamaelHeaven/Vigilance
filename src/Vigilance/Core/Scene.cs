@@ -57,18 +57,6 @@ public sealed unsafe partial class Scene
 
     public EntityEnumerable Entities => GetEntities();
 
-    public static Scene Build<T>(GameSystemsFunc? systems = null)
-        where T : IGameSystem, new()
-    {
-        return new Scene(() => (systems?.Invoke() ?? []).Concat([new T()]));
-    }
-
-    public static Scene Build<T>(Func<T> factory, GameSystemsFunc? systems = null)
-        where T : IGameSystem
-    {
-        return new Scene(() => (systems?.Invoke() ?? []).Concat([factory.Invoke()]));
-    }
-
     public void Restart()
     {
         if (!IsInitialized)

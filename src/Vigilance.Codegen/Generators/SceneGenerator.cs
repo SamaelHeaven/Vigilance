@@ -20,10 +20,34 @@ public sealed class SceneGenerator : SourceGenerator
 
             """
         );
+        Build(sb);
         Entities(sb);
         Components(sb);
         Entries(sb);
         sb.AppendLine("}");
+    }
+
+    private static void Build(StringBuilder sb)
+    {
+        sb.BeginRegion("Build");
+        for (var i = 0; i < 16; i++)
+        {
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            var wheres = string.Join(" ", Enumerable.Range(0, i + 1).Select(n => $"where T{n} : IGameSystem, new()"));
+            var newArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"new T{n}()"));
+            sb.AppendLine(
+                $$"""
+                    public static Scene Build<{{typeParams}}>(GameSystemsFunc? systems = null)
+                        {{wheres}}
+                    {
+                        return new Scene(() => (systems?.Invoke() ?? []).Concat([{{newArgs}}]));
+                    }
+                    
+                """
+            );
+        }
+
+        sb.EndRegion();
     }
 
     private static void Entities(StringBuilder sb)
