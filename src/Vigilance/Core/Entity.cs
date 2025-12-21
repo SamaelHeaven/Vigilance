@@ -427,6 +427,24 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return value ?? defaultValue.Invoke();
     }
 
+    public ref T GetRef<T>()
+    {
+        EnsureValid();
+        return ref Type<T>.IsTag ? ref Unsafe.NullRef<T>() : ref FlecsEntity.GetSafe<T>();
+    }
+
+    public void* GetPointer<T>()
+    {
+        EnsureValid();
+        return Type<T>.IsTag ? null : flecs.ecs_get_id(Scene.World, Id, Type<T>.Id(Scene.World));
+    }
+
+    public void* GetPointer(in Component component)
+    {
+        EnsureValid();
+        return component.Metadata.IsTag ? null : flecs.ecs_get_id(Scene.World, Id, component.Id);
+    }
+
     [OverloadResolutionPriority(1)]
     public ref readonly Entity Set<T>(IComposable<T> composable)
     {

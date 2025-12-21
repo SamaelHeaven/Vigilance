@@ -31,6 +31,16 @@ public readonly unsafe record struct Component
         return ref box.Value!;
     }
 
+    public bool Equals(Component other)
+    {
+        return Id == other.Id && Scene == other.Scene;
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Id, Scene);
+    }
+
     private bool PrintMembers(StringBuilder builder)
     {
         builder.Append("Id = ");
