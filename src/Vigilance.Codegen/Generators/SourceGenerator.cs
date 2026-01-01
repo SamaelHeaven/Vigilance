@@ -11,7 +11,20 @@ public abstract class SourceGenerator : ISourceGenerator
     public void Execute(GeneratorExecutionContext context)
     {
         var sb = new StringBuilder();
+        sb.Append(
+            """
+            #nullable enable
+
+
+            """
+        );
         Generate(sb);
+        sb.Append(
+            """
+
+            #nullable restore
+            """
+        );
         var name = GetType().Name;
         const string suffix = "Generator";
         context.AddSource(

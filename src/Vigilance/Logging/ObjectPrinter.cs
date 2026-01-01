@@ -19,7 +19,7 @@ public static class ObjectPrinter
     private static readonly Dictionary<Type, PropertyInfo[]> _properties = new();
 
     public static string Print<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-        T obj,
+        in T obj,
         Filter? filter = null,
         bool removeNulls = false
     )
@@ -27,6 +27,7 @@ public static class ObjectPrinter
     {
         var type = typeof(T);
         var sb = new ValueStringBuilder(stackalloc char[256]);
+        object boxed = obj;
         try
         {
             sb.Append(type.Name);
@@ -37,10 +38,10 @@ public static class ObjectPrinter
             var i = 0;
             if (filter.HasValue)
                 foreach (var prop in filter.Value.Apply(props!))
-                    PrintProperty(ref sb, obj, prop, ref i, removeNulls);
+                    PrintProperty(ref sb, boxed, prop, ref i, removeNulls);
             else
                 foreach (var prop in props!)
-                    PrintProperty(ref sb, obj, prop, ref i, removeNulls);
+                    PrintProperty(ref sb, boxed, prop, ref i, removeNulls);
             if (i > 0)
                 sb.Append(' ');
             sb.Append('}');

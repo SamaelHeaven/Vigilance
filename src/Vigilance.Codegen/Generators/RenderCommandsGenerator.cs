@@ -35,10 +35,10 @@ public sealed class RenderCommandsGenerator : SourceGenerator
             sb.AppendLine(
                 $$"""
                     public void AddRange<{{(context ? "TContext, " : "")}}{{typeParams}}>({{(
-                          context ? "TContext context, " : ""
-                      )}}{{$"Scene.EntryEnumerable<{typeParams}>"}} entries, Action<Entity, {{(
-                      context ? "TContext, " : ""
-                  )}}({{typeParams}})> action)
+                        context ? "TContext context, " : ""
+                    )}}{{$"Scene.EntryEnumerable<{typeParams}>"}} entries, Action<Entity, {{(
+                    context ? "TContext, " : ""
+                )}}({{typeParams}})> action)
                     {
                         foreach (var entry in entries)
                             Add(entry.Item1, {{(context ? "context, " : "")}}({{items}}), action);
@@ -57,12 +57,12 @@ public sealed class RenderCommandsGenerator : SourceGenerator
             var type = i == 0 ? typeParams : $"({typeParams})";
             sb.AppendLine(
                 $$"""
-                public void AddRange<TSystem, {{typeParams}}>(TSystem system, Action<Entity, {{(
-                      context ? "TSystem, " : ""
-                  )}} {{type}}> action) where TSystem : GameSystem
-                {
-                    AddRange({{(context ? "system, " : "")}}system.Entries<{{typeParams}}>(), action);
-                }
+                    public void AddRange<TSystem, {{typeParams}}>(TSystem system, Action<Entity, {{(
+                        context ? "TSystem, " : ""
+                    )}} {{type}}> action) where TSystem : GameSystem
+                    {
+                        AddRange({{(context ? "system, " : "")}}system.Entries<{{typeParams}}>(), action);
+                    }
 
                 """
             );

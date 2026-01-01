@@ -20,6 +20,13 @@ public readonly unsafe record struct Component
     public Type Type { get; }
     public ComponentMetadata Metadata { get; }
 
+    public bool IsNull => Id == 0;
+
+    public bool Equals(Component other)
+    {
+        return Id == other.Id && Scene == other.Scene;
+    }
+
     public static ref T FromPointer<T>(nint ptr)
     {
         if (ptr == 0)
@@ -29,11 +36,6 @@ public readonly unsafe record struct Component
         var handle = GCHandle.FromIntPtr(*(nint*)ptr);
         var box = (StrongBox<T>)handle.Target!;
         return ref box.Value!;
-    }
-
-    public bool Equals(Component other)
-    {
-        return Id == other.Id && Scene == other.Scene;
     }
 
     public override int GetHashCode()

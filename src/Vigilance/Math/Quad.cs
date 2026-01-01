@@ -1,21 +1,60 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Vigilance.Collections;
+using Vigilance.Logging;
 using ZLinq;
 using ZLinq.Linq;
 
 namespace Vigilance.Math;
 
 [StructLayout(LayoutKind.Sequential)]
-public record struct Quad
+public unsafe struct Quad
     : IStructEnumerable<Quad.PointEnumerator, Vector2>,
         ISpanView<Vector2>,
-        IReadOnlyCollection<Vector2>
+        IReadOnlyCollection<Vector2>,
+        IEquatable<Quad>
 {
-    public Vector2 TopLeft { get; set; }
-    public Vector2 BottomLeft { get; set; }
-    public Vector2 BottomRight { get; set; }
-    public Vector2 TopRight { get; set; }
+    private fixed float _points[8];
+
+    public Vector2 TopLeft
+    {
+        readonly get => new(_points[0], _points[1]);
+        set
+        {
+            _points[0] = value.X;
+            _points[1] = value.Y;
+        }
+    }
+
+    public Vector2 BottomLeft
+    {
+        readonly get => new(_points[2], _points[3]);
+        set
+        {
+            _points[2] = value.X;
+            _points[3] = value.Y;
+        }
+    }
+
+    public Vector2 BottomRight
+    {
+        readonly get => new(_points[4], _points[5]);
+        set
+        {
+            _points[4] = value.X;
+            _points[5] = value.Y;
+        }
+    }
+
+    public Vector2 TopRight
+    {
+        readonly get => new(_points[6], _points[7]);
+        set
+        {
+            _points[6] = value.X;
+            _points[7] = value.Y;
+        }
+    }
 
     public Quad(Vector2 topLeft, Vector2 bottomLeft, Vector2 bottomRight, Vector2 topRight)
     {
@@ -172,18 +211,56 @@ public record struct Quad
         );
     }
 
+    public static bool operator ==(in Quad left, in Quad right)
+    {
+        return left.Equals(in right);
+    }
+
+    public static bool operator !=(in Quad left, in Quad right)
+    {
+        return !left.Equals(in right);
+    }
+
     public readonly int Count => 4;
+
+    public readonly bool Equals(in Quad other)
+    {
+        return TopLeft == other.TopLeft
+            && BottomLeft == other.BottomLeft
+            && BottomRight == other.BottomRight
+            && TopRight == other.TopRight;
+    }
+
+    public readonly bool Equals(Quad other)
+    {
+        return Equals(in other);
+    }
+
+    public override readonly bool Equals(object? obj)
+    {
+        return obj is Quad other && Equals(other);
+    }
+
+    public override readonly int GetHashCode()
+    {
+        return HashCode.Combine(TopLeft, BottomLeft, BottomRight, TopRight);
+    }
+
+    public override readonly string ToString()
+    {
+        return ObjectPrinter.Print(this);
+    }
 
     public readonly PointEnumerator GetEnumerator()
     {
         return new PointEnumerator(this);
     }
 
-    public readonly unsafe ReadOnlySpan<Vector2> AsSpan()
+    public readonly ReadOnlySpan<Vector2> AsSpan()
     {
-        fixed (Quad* quad = &this)
+        fixed (float* points = _points)
         {
-            return new ReadOnlySpan<Vector2>((Vector2*)quad, Count);
+            return new ReadOnlySpan<Vector2>((Vector2*)points, Count);
         }
     }
 

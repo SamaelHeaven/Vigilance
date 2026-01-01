@@ -1,6 +1,6 @@
 namespace Vigilance.Core;
 
-public enum Inclusion
+public enum Inclusion : byte
 {
     Exclude,
     Only,

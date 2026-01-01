@@ -118,6 +118,24 @@ public sealed unsafe partial class Scene
         return new Component(Type<T>.Id(World), this, typeof(T));
     }
 
+    public Component Component(ulong id)
+    {
+        EnsureInitialized();
+        if (id == 0)
+            return default;
+        ref Type? type = ref CollectionsMarshal.GetValueRefOrNullRef(Cache.ComponentMap, id)!;
+        if (!Unsafe.IsNullRef(in type))
+            return new Component(id, this, type);
+        var entity = new Flecs.NET.Core.Entity(World, id);
+        if (!entity.IsAlive())
+            return default;
+        type = ref entity.GetSafe<Type>()!;
+        if (Unsafe.IsNullRef(in type))
+            return default;
+        Cache.ComponentMap.Add(id, type);
+        return new Component(id, this, type);
+    }
+
     public ComponentEnumerable Components()
     {
         EnsureInitialized();

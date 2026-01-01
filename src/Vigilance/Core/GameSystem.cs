@@ -1,5 +1,4 @@
 using Vigilance.Drawing;
-using Vigilance.Math;
 
 namespace Vigilance.Core;
 
@@ -7,15 +6,17 @@ public delegate IEnumerable<IGameSystem> GameSystemsFunc();
 
 public interface IGameSystem : IComparable<IGameSystem>
 {
+    public int Order => 0;
+
     int IComparable<IGameSystem>.CompareTo(IGameSystem? other)
     {
-        return other is null ? 1 : 0;
+        return other is null ? 1 : Order.CompareTo(other.Order);
     }
 
     void Configure(Scene scene);
 }
 
-public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
+public abstract partial class GameSystem : IGameSystem
 {
     protected GameSystem(
         bool isDisabled = false,
@@ -32,26 +33,11 @@ public abstract partial class GameSystem : IGameSystem, IComparable<GameSystem>
 
     public Scene Scene { get; private set; } = null!;
     public bool IsDisabled { get; set; }
-    public int Order { get; set; }
     public Inclusion QueryWithDisabled { get; set; }
     public bool QueryDeferred { get; set; }
 
     public Scene.EntityEnumerable Entities => GetEntities();
-
-    public int CompareTo(GameSystem? other)
-    {
-        return other is null ? 1 : Order.CompareTo(other.Order);
-    }
-
-    public int CompareTo(IGameSystem? other)
-    {
-        return other switch
-        {
-            GameSystem system => CompareTo(system),
-            null => 1,
-            _ => (int)((long)-other.CompareTo(this)).Clamp(int.MinValue, int.MaxValue),
-        };
-    }
+    public int Order { get; set; }
 
     public void Configure(Scene scene)
     {
