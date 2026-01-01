@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Vigilance.Collections;
 using Vigilance.Logging;
 using ZLinq;
@@ -9,6 +10,7 @@ namespace Vigilance.Math;
 
 public struct Quad : ISpanView<Vector2>, ISpanViewEnumerable<Quad, Vector2>
 {
+    public const int Length = 4;
     private Points _points;
 
     public Quad(Vector2 topLeft, Vector2 bottomLeft, Vector2 bottomRight, Vector2 topRight)
@@ -68,11 +70,9 @@ public struct Quad : ISpanView<Vector2>, ISpanViewEnumerable<Quad, Vector2>
         set => _points[3] = value;
     }
 
-    public readonly unsafe ReadOnlySpan<Vector2> AsSpan()
+    public readonly ReadOnlySpan<Vector2> AsSpan()
     {
-#pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference
-        return _points;
-#pragma warning restore CS9084 // Struct member returns 'this' or other instance members by reference
+        return MemoryMarshal.CreateReadOnlySpan(in _points[0], Length);
     }
 
     public readonly ValueEnumerable<FromSpan<Vector2>, Vector2> AsValueEnumerable()
@@ -245,7 +245,7 @@ public struct Quad : ISpanView<Vector2>, ISpanViewEnumerable<Quad, Vector2>
         return ObjectPrinter.Print(this);
     }
 
-    [InlineArray(4)]
+    [InlineArray(Length)]
     private struct Points
     {
         private Vector2 _element0;

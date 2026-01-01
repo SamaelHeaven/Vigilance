@@ -1,29 +1,30 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Vigilance.Collections;
 using ZLinq;
 using ZLinq.Linq;
 
 namespace Vigilance.Core;
 
-public struct IdArray : ISpanView<ulong>
+public struct InlineIds : ISpanView<ulong>
 {
-    public const int Size = 16;
+    public const int Length = 16;
     private Elements _elements;
 
     public readonly int Count
     {
         get
         {
-            for (var i = 0; i < Size; i++)
+            for (var i = 0; i < Length; i++)
                 if (_elements[i] == 0)
                     return i;
-            return Size;
+            return Length;
         }
     }
 
     public void Add(ulong value)
     {
-        for (var i = 0; i < Size; i++)
+        for (var i = 0; i < Length; i++)
         {
             ref var element = ref _elements[i];
             if (element != 0)
@@ -32,14 +33,12 @@ public struct IdArray : ISpanView<ulong>
             return;
         }
 
-        throw new InvalidOperationException($"{nameof(IdArray)} is full.");
+        throw new InvalidOperationException($"{nameof(InlineIds)} is full.");
     }
 
-    public readonly unsafe ReadOnlySpan<ulong> AsSpan()
+    public readonly ReadOnlySpan<ulong> AsSpan()
     {
-#pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference
-        return ((ReadOnlySpan<ulong>)_elements)[..Count];
-#pragma warning restore CS9084 // Struct member returns 'this' or other instance members by reference
+        return MemoryMarshal.CreateReadOnlySpan(in _elements[0], Count);
     }
 
     public readonly ValueEnumerable<FromSpan<ulong>, ulong> AsValueEnumerable()
@@ -47,7 +46,7 @@ public struct IdArray : ISpanView<ulong>
         return AsSpan().AsValueEnumerable();
     }
 
-    [InlineArray(Size)]
+    [InlineArray(Length)]
     private struct Elements
     {
         private ulong _element0;
