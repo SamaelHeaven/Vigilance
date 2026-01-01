@@ -178,74 +178,88 @@ public interface IArrayView<TValue> : IStructEnumerable<ArrayEnumerator<TValue>,
     new ValueEnumerable<FromArray<TValue>, TValue> AsValueEnumerable();
 }
 
-public readonly struct ListView<TValue>(List<TValue> list) : IListView<TValue>, IReadOnlyList<TValue>, ISpanView<TValue>
+public readonly record struct ListView<TValue> : IListView<TValue>, IReadOnlyList<TValue>, ISpanView<TValue>
 {
-    public List<TValue>.Enumerator GetEnumerator()
+    private readonly List<TValue> _list;
+
+    internal ListView(List<TValue> list)
     {
-        return list.GetEnumerator();
+        _list = list;
     }
 
-    ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
+    public List<TValue>.Enumerator GetEnumerator()
     {
-        return list.AsSpan().AsValueEnumerable();
+        return _list.GetEnumerator();
     }
 
     public ValueEnumerable<FromList<TValue>, TValue> AsValueEnumerable()
     {
-        return list.AsValueEnumerable();
+        return _list.AsValueEnumerable();
     }
 
-    public int Count => list.Count;
+    public int Count => _list.Count;
 
-    public TValue this[int index] => list[index];
+    public TValue this[int index] => _list[index];
+
+    ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
+    {
+        return _list.AsSpan().AsValueEnumerable();
+    }
+
+    public ReadOnlySpan<TValue> AsSpan()
+    {
+        return _list.AsSpan();
+    }
 
     public static implicit operator ListView<TValue>(List<TValue> list)
     {
         return new ListView<TValue>(list);
     }
-
-    public ReadOnlySpan<TValue> AsSpan()
-    {
-        return list.AsSpan();
-    }
 }
 
-public readonly struct DictionaryView<TKey, TValue>(Dictionary<TKey, TValue> dictionary)
+public readonly record struct DictionaryView<TKey, TValue>
     : IDictionaryView<TKey, TValue>,
         IReadOnlyDictionary<TKey, TValue>
     where TKey : notnull
 {
+    private readonly Dictionary<TKey, TValue> _dictionary;
+
+    internal DictionaryView(Dictionary<TKey, TValue> dictionary)
+    {
+        _dictionary = dictionary;
+    }
+
+    public Dictionary<TKey, TValue>.KeyCollection Keys => _dictionary.Keys;
+
+    public Dictionary<TKey, TValue>.ValueCollection Values => _dictionary.Values;
+
     public Dictionary<TKey, TValue>.Enumerator GetEnumerator()
     {
-        return dictionary.GetEnumerator();
+        return _dictionary.GetEnumerator();
     }
 
     public ValueEnumerable<FromDictionary<TKey, TValue>, KeyValuePair<TKey, TValue>> AsValueEnumerable()
     {
-        return dictionary.AsValueEnumerable();
+        return _dictionary.AsValueEnumerable();
     }
 
-    public int Count => dictionary.Count;
+    public int Count => _dictionary.Count;
 
     public bool ContainsKey(TKey key)
     {
-        return dictionary.ContainsKey(key);
+        return _dictionary.ContainsKey(key);
     }
 
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        return dictionary.TryGetValue(key, out value);
+        return _dictionary.TryGetValue(key, out value);
     }
 
-    public TValue this[TKey key] => dictionary[key];
+    public TValue this[TKey key] => _dictionary[key];
 
-    public Dictionary<TKey, TValue>.KeyCollection Keys => dictionary.Keys;
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => _dictionary.Keys;
 
-    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => dictionary.Keys;
-
-    public Dictionary<TKey, TValue>.ValueCollection Values => dictionary.Values;
-
-    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => dictionary.Values;
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => _dictionary.Values;
 
     public static implicit operator DictionaryView<TKey, TValue>(Dictionary<TKey, TValue> dictionary)
     {
@@ -253,42 +267,49 @@ public readonly struct DictionaryView<TKey, TValue>(Dictionary<TKey, TValue> dic
     }
 }
 
-public readonly struct SortedDictionaryView<TKey, TValue>(SortedDictionary<TKey, TValue> sortedDictionary)
+public readonly record struct SortedDictionaryView<TKey, TValue>
     : ISortedDictionaryView<TKey, TValue>,
         IReadOnlyDictionary<TKey, TValue>
     where TKey : notnull
 {
-    public SortedDictionary<TKey, TValue>.Enumerator GetEnumerator()
+    private readonly SortedDictionary<TKey, TValue> _sortedDictionary;
+
+    internal SortedDictionaryView(SortedDictionary<TKey, TValue> sortedDictionary)
     {
-        return sortedDictionary.GetEnumerator();
+        _sortedDictionary = sortedDictionary;
     }
 
-    public ValueEnumerable<FromSortedDictionary<TKey, TValue>, KeyValuePair<TKey, TValue>> AsValueEnumerable()
-    {
-        return sortedDictionary.AsValueEnumerable();
-    }
+    public SortedDictionary<TKey, TValue>.KeyCollection Keys => _sortedDictionary.Keys;
 
-    public int Count => sortedDictionary.Count;
+    public SortedDictionary<TKey, TValue>.ValueCollection Values => _sortedDictionary.Values;
 
     public bool ContainsKey(TKey key)
     {
-        return sortedDictionary.ContainsKey(key);
+        return _sortedDictionary.ContainsKey(key);
     }
 
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        return sortedDictionary.TryGetValue(key, out value);
+        return _sortedDictionary.TryGetValue(key, out value);
     }
 
-    public TValue this[TKey key] => sortedDictionary[key];
+    public TValue this[TKey key] => _sortedDictionary[key];
 
-    public SortedDictionary<TKey, TValue>.KeyCollection Keys => sortedDictionary.Keys;
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => _sortedDictionary.Keys;
 
-    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => sortedDictionary.Keys;
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => _sortedDictionary.Values;
 
-    public SortedDictionary<TKey, TValue>.ValueCollection Values => sortedDictionary.Values;
+    public SortedDictionary<TKey, TValue>.Enumerator GetEnumerator()
+    {
+        return _sortedDictionary.GetEnumerator();
+    }
 
-    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => sortedDictionary.Values;
+    public ValueEnumerable<FromSortedDictionary<TKey, TValue>, KeyValuePair<TKey, TValue>> AsValueEnumerable()
+    {
+        return _sortedDictionary.AsValueEnumerable();
+    }
+
+    public int Count => _sortedDictionary.Count;
 
     public static implicit operator SortedDictionaryView<TKey, TValue>(SortedDictionary<TKey, TValue> dictionary)
     {
@@ -296,53 +317,60 @@ public readonly struct SortedDictionaryView<TKey, TValue>(SortedDictionary<TKey,
     }
 }
 
-public readonly struct HashSetView<TValue>(HashSet<TValue> hashSet) : IHashSetView<TValue>, IReadOnlySet<TValue>
+public readonly record struct HashSetView<TValue> : IHashSetView<TValue>, IReadOnlySet<TValue>
 {
+    private readonly HashSet<TValue> _hashSet;
+
+    internal HashSetView(HashSet<TValue> hashSet)
+    {
+        _hashSet = hashSet;
+    }
+
     public HashSet<TValue>.Enumerator GetEnumerator()
     {
-        return hashSet.GetEnumerator();
+        return _hashSet.GetEnumerator();
     }
 
     public ValueEnumerable<FromHashSet<TValue>, TValue> AsValueEnumerable()
     {
-        return hashSet.AsValueEnumerable();
+        return _hashSet.AsValueEnumerable();
     }
 
-    public int Count => hashSet.Count;
+    public int Count => _hashSet.Count;
 
     public bool Contains(TValue item)
     {
-        return hashSet.Contains(item);
+        return _hashSet.Contains(item);
     }
 
     public bool IsProperSubsetOf(IEnumerable<TValue> other)
     {
-        return hashSet.IsProperSubsetOf(other);
+        return _hashSet.IsProperSubsetOf(other);
     }
 
     public bool IsProperSupersetOf(IEnumerable<TValue> other)
     {
-        return hashSet.IsProperSupersetOf(other);
+        return _hashSet.IsProperSupersetOf(other);
     }
 
     public bool IsSubsetOf(IEnumerable<TValue> other)
     {
-        return hashSet.IsSubsetOf(other);
+        return _hashSet.IsSubsetOf(other);
     }
 
     public bool IsSupersetOf(IEnumerable<TValue> other)
     {
-        return hashSet.IsSupersetOf(other);
+        return _hashSet.IsSupersetOf(other);
     }
 
     public bool Overlaps(IEnumerable<TValue> other)
     {
-        return hashSet.Overlaps(other);
+        return _hashSet.Overlaps(other);
     }
 
     public bool SetEquals(IEnumerable<TValue> other)
     {
-        return hashSet.SetEquals(other);
+        return _hashSet.SetEquals(other);
     }
 
     public static implicit operator HashSetView<TValue>(HashSet<TValue> hashSet)
@@ -351,54 +379,61 @@ public readonly struct HashSetView<TValue>(HashSet<TValue> hashSet) : IHashSetVi
     }
 }
 
-public readonly struct SortedSetView<TValue>(SortedSet<TValue> sortedSet) : ISortedSetView<TValue>, IReadOnlySet<TValue>
+public readonly record struct SortedSetView<TValue> : ISortedSetView<TValue>, IReadOnlySet<TValue>
 {
-    public SortedSet<TValue>.Enumerator GetEnumerator()
-    {
-        return sortedSet.GetEnumerator();
-    }
+    private readonly SortedSet<TValue> _sortedSet;
 
-    public ValueEnumerable<FromSortedSet<TValue>, TValue> AsValueEnumerable()
+    internal SortedSetView(SortedSet<TValue> sortedSet)
     {
-        return sortedSet.AsValueEnumerable();
+        _sortedSet = sortedSet;
     }
-
-    public int Count => sortedSet.Count;
 
     public bool Contains(TValue item)
     {
-        return sortedSet.Contains(item);
+        return _sortedSet.Contains(item);
     }
 
     public bool IsProperSubsetOf(IEnumerable<TValue> other)
     {
-        return sortedSet.IsProperSubsetOf(other);
+        return _sortedSet.IsProperSubsetOf(other);
     }
 
     public bool IsProperSupersetOf(IEnumerable<TValue> other)
     {
-        return sortedSet.IsProperSupersetOf(other);
+        return _sortedSet.IsProperSupersetOf(other);
     }
 
     public bool IsSubsetOf(IEnumerable<TValue> other)
     {
-        return sortedSet.IsSubsetOf(other);
+        return _sortedSet.IsSubsetOf(other);
     }
 
     public bool IsSupersetOf(IEnumerable<TValue> other)
     {
-        return sortedSet.IsSupersetOf(other);
+        return _sortedSet.IsSupersetOf(other);
     }
 
     public bool Overlaps(IEnumerable<TValue> other)
     {
-        return sortedSet.Overlaps(other);
+        return _sortedSet.Overlaps(other);
     }
 
     public bool SetEquals(IEnumerable<TValue> other)
     {
-        return sortedSet.SetEquals(other);
+        return _sortedSet.SetEquals(other);
     }
+
+    public SortedSet<TValue>.Enumerator GetEnumerator()
+    {
+        return _sortedSet.GetEnumerator();
+    }
+
+    public ValueEnumerable<FromSortedSet<TValue>, TValue> AsValueEnumerable()
+    {
+        return _sortedSet.AsValueEnumerable();
+    }
+
+    public int Count => _sortedSet.Count;
 
     public static implicit operator SortedSetView<TValue>(SortedSet<TValue> sortedSet)
     {
@@ -406,19 +441,26 @@ public readonly struct SortedSetView<TValue>(SortedSet<TValue> sortedSet) : ISor
     }
 }
 
-public readonly struct LinkedListView<TValue>(LinkedList<TValue> linkedList) : ILinkedListView<TValue>
+public readonly record struct LinkedListView<TValue> : ILinkedListView<TValue>
 {
+    private readonly LinkedList<TValue> _linkedList;
+
+    internal LinkedListView(LinkedList<TValue> linkedList)
+    {
+        _linkedList = linkedList;
+    }
+
     public LinkedList<TValue>.Enumerator GetEnumerator()
     {
-        return linkedList.GetEnumerator();
+        return _linkedList.GetEnumerator();
     }
 
     public ValueEnumerable<FromLinkedList<TValue>, TValue> AsValueEnumerable()
     {
-        return linkedList.AsValueEnumerable();
+        return _linkedList.AsValueEnumerable();
     }
 
-    public int Count => linkedList.Count;
+    public int Count => _linkedList.Count;
 
     public static implicit operator LinkedListView<TValue>(LinkedList<TValue> linkedList)
     {
@@ -426,19 +468,26 @@ public readonly struct LinkedListView<TValue>(LinkedList<TValue> linkedList) : I
     }
 }
 
-public readonly struct QueueView<TValue>(Queue<TValue> queue) : IQueueView<TValue>
+public readonly record struct QueueView<TValue> : IQueueView<TValue>
 {
+    private readonly Queue<TValue> _queue;
+
+    internal QueueView(Queue<TValue> queue)
+    {
+        _queue = queue;
+    }
+
     public Queue<TValue>.Enumerator GetEnumerator()
     {
-        return queue.GetEnumerator();
+        return _queue.GetEnumerator();
     }
 
     public ValueEnumerable<FromQueue<TValue>, TValue> AsValueEnumerable()
     {
-        return queue.AsValueEnumerable();
+        return _queue.AsValueEnumerable();
     }
 
-    public int Count => queue.Count;
+    public int Count => _queue.Count;
 
     public static implicit operator QueueView<TValue>(Queue<TValue> queue)
     {
@@ -446,19 +495,26 @@ public readonly struct QueueView<TValue>(Queue<TValue> queue) : IQueueView<TValu
     }
 }
 
-public readonly struct StackView<TValue>(Stack<TValue> stack) : IStackView<TValue>
+public readonly record struct StackView<TValue> : IStackView<TValue>
 {
+    private readonly Stack<TValue> _stack;
+
+    internal StackView(Stack<TValue> stack)
+    {
+        _stack = stack;
+    }
+
     public Stack<TValue>.Enumerator GetEnumerator()
     {
-        return stack.GetEnumerator();
+        return _stack.GetEnumerator();
     }
 
     public ValueEnumerable<FromStack<TValue>, TValue> AsValueEnumerable()
     {
-        return stack.AsValueEnumerable();
+        return _stack.AsValueEnumerable();
     }
 
-    public int Count => stack.Count;
+    public int Count => _stack.Count;
 
     public static implicit operator StackView<TValue>(Stack<TValue> stack)
     {
@@ -466,9 +522,14 @@ public readonly struct StackView<TValue>(Stack<TValue> stack) : IStackView<TValu
     }
 }
 
-public readonly struct ArrayView<TValue>(TValue[] array) : IArrayView<TValue>, IReadOnlyList<TValue>, ISpanView<TValue>
+public readonly record struct ArrayView<TValue> : IArrayView<TValue>, IReadOnlyList<TValue>, ISpanView<TValue>
 {
-    private readonly TValue[] _array = array;
+    private readonly TValue[] _array;
+
+    internal ArrayView(TValue[] array)
+    {
+        _array = array;
+    }
 
     public ArrayEnumerator<TValue> GetEnumerator()
     {
@@ -480,14 +541,19 @@ public readonly struct ArrayView<TValue>(TValue[] array) : IArrayView<TValue>, I
         return _array.AsValueEnumerable();
     }
 
+    public int Count => _array.Length;
+
+    public TValue this[int index] => _array[index];
+
     ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
     {
         return AsSpan().AsValueEnumerable();
     }
 
-    public int Count => _array.Length;
-
-    public TValue this[int index] => _array[index];
+    public ReadOnlySpan<TValue> AsSpan()
+    {
+        return _array;
+    }
 
     public static implicit operator ArrayView<TValue>(TValue[] array)
     {
@@ -497,11 +563,6 @@ public readonly struct ArrayView<TValue>(TValue[] array) : IArrayView<TValue>, I
     public static implicit operator ReadOnlySpan<TValue>(ArrayView<TValue> arrayView)
     {
         return arrayView._array;
-    }
-
-    public ReadOnlySpan<TValue> AsSpan()
-    {
-        return _array;
     }
 }
 
@@ -534,7 +595,7 @@ public struct ArrayEnumerator<TValue> : IStructEnumerator<TValue>
     public void Dispose() { }
 }
 
-public readonly struct SpanViewEnumerable<TSpanView, TValue> : ISpanViewEnumerable<TSpanView, TValue>
+public readonly record struct SpanViewEnumerable<TSpanView, TValue> : ISpanViewEnumerable<TSpanView, TValue>
     where TSpanView : ISpanView<TValue>
 {
     private readonly TSpanView _spanView;
