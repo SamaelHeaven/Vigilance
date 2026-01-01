@@ -202,9 +202,9 @@ public readonly struct WritableImage : IDisposable
 }
 
 public readonly unsafe struct WritableImage<T>
-    : IStructEnumerable<WritableImage<T>.PixelEnumerator, T>,
+    : ISpanView<T>,
+        ISpanViewEnumerable<WritableImage<T>, T>,
         IReadOnlyList<T>,
-        ISpanView<T>,
         IDisposable
     where T : unmanaged, IPixel
 {
@@ -302,32 +302,6 @@ public readonly unsafe struct WritableImage<T>
         return _image.ExportToMemory(fileType);
     }
 
-    public struct PixelEnumerator : IStructEnumerator<T>
-    {
-        private readonly WritableImage<T> _image;
-        private int _index;
-
-        internal PixelEnumerator(WritableImage<T> image)
-        {
-            _image = image;
-            Reset();
-        }
-
-        public bool MoveNext()
-        {
-            return ++_index < _image.PixelCount;
-        }
-
-        public void Reset()
-        {
-            _index = -1;
-        }
-
-        public T Current => _image[_index];
-
-        public void Dispose() { }
-    }
-
     public Span<T> AsSpan()
     {
         return new Span<T>((T*)_image.Image.RImage.Data, PixelCount);
@@ -338,14 +312,9 @@ public readonly unsafe struct WritableImage<T>
         return AsSpan();
     }
 
-    public PixelEnumerator GetEnumerator()
+    public SpanViewEnumerator<WritableImage<T>, T> GetEnumerator()
     {
-        return new PixelEnumerator(this);
-    }
-
-    ValueEnumerable<StructEnumerator<PixelEnumerator, T>, T> IStructEnumerable<PixelEnumerator, T>.AsValueEnumerable()
-    {
-        return new StructEnumerator<PixelEnumerator, T>(GetEnumerator());
+        return this.AsEnumerator<WritableImage<T>, T>();
     }
 
     public ValueEnumerable<FromSpan<T>, T> AsValueEnumerable()

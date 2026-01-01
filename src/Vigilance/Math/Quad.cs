@@ -1,5 +1,5 @@
 using System.Numerics;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Logging;
 using ZLinq;
@@ -7,54 +7,9 @@ using ZLinq.Linq;
 
 namespace Vigilance.Math;
 
-[StructLayout(LayoutKind.Sequential)]
-public unsafe struct Quad
-    : IStructEnumerable<Quad.PointEnumerator, Vector2>,
-        ISpanView<Vector2>,
-        IReadOnlyCollection<Vector2>,
-        IEquatable<Quad>
+public struct Quad : ISpanView<Vector2>, ISpanViewEnumerable<Quad, Vector2>
 {
-    private fixed float _points[8];
-
-    public Vector2 TopLeft
-    {
-        readonly get => new(_points[0], _points[1]);
-        set
-        {
-            _points[0] = value.X;
-            _points[1] = value.Y;
-        }
-    }
-
-    public Vector2 BottomLeft
-    {
-        readonly get => new(_points[2], _points[3]);
-        set
-        {
-            _points[2] = value.X;
-            _points[3] = value.Y;
-        }
-    }
-
-    public Vector2 BottomRight
-    {
-        readonly get => new(_points[4], _points[5]);
-        set
-        {
-            _points[4] = value.X;
-            _points[5] = value.Y;
-        }
-    }
-
-    public Vector2 TopRight
-    {
-        readonly get => new(_points[6], _points[7]);
-        set
-        {
-            _points[6] = value.X;
-            _points[7] = value.Y;
-        }
-    }
+    private Points _points;
 
     public Quad(Vector2 topLeft, Vector2 bottomLeft, Vector2 bottomRight, Vector2 topRight)
     {
@@ -87,6 +42,47 @@ public unsafe struct Quad
         BottomLeft = box.Position + Vector2.Down * box.Height;
         BottomRight = box.Position + box.Size;
         TopRight = box.Position + Vector2.Right * box.Width;
+    }
+
+    public Vector2 TopLeft
+    {
+        readonly get => _points[0];
+        set => _points[0] = value;
+    }
+
+    public Vector2 BottomLeft
+    {
+        readonly get => _points[1];
+        set => _points[1] = value;
+    }
+
+    public Vector2 BottomRight
+    {
+        readonly get => _points[2];
+        set => _points[2] = value;
+    }
+
+    public Vector2 TopRight
+    {
+        readonly get => _points[3];
+        set => _points[3] = value;
+    }
+
+    public readonly unsafe ReadOnlySpan<Vector2> AsSpan()
+    {
+#pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference
+        return _points;
+#pragma warning restore CS9084 // Struct member returns 'this' or other instance members by reference
+    }
+
+    public readonly ValueEnumerable<FromSpan<Vector2>, Vector2> AsValueEnumerable()
+    {
+        return AsSpan().AsValueEnumerable();
+    }
+
+    public readonly SpanViewEnumerator<Quad, Vector2> GetEnumerator()
+    {
+        return this.AsEnumerator<Quad, Vector2>();
     }
 
     public static implicit operator (Vector2 TopLeft, Vector2 BottomLeft, Vector2 BottomRight, Vector2 TopRight)(
@@ -221,8 +217,6 @@ public unsafe struct Quad
         return !left.Equals(in right);
     }
 
-    public readonly int Count => 4;
-
     public readonly bool Equals(in Quad other)
     {
         return TopLeft == other.TopLeft
@@ -251,66 +245,9 @@ public unsafe struct Quad
         return ObjectPrinter.Print(this);
     }
 
-    public readonly PointEnumerator GetEnumerator()
+    [InlineArray(4)]
+    private struct Points
     {
-        return new PointEnumerator(this);
-    }
-
-    public readonly ReadOnlySpan<Vector2> AsSpan()
-    {
-        fixed (float* points = _points)
-        {
-            return new ReadOnlySpan<Vector2>((Vector2*)points, Count);
-        }
-    }
-
-    public readonly ValueEnumerable<FromSpan<Vector2>, Vector2> AsValueEnumerable()
-    {
-        return AsSpan().AsValueEnumerable();
-    }
-
-    readonly ValueEnumerable<StructEnumerator<PointEnumerator, Vector2>, Vector2> IStructEnumerable<
-        PointEnumerator,
-        Vector2
-    >.AsValueEnumerable()
-    {
-        return new StructEnumerator<PointEnumerator, Vector2>(GetEnumerator());
-    }
-
-    public struct PointEnumerator : IStructEnumerator<Vector2>
-    {
-        private readonly Quad _quad;
-        private int _index;
-
-        internal PointEnumerator(in Quad quad)
-        {
-            _quad = quad;
-            Reset();
-        }
-
-        public bool MoveNext()
-        {
-            if (_index >= 4)
-                return false;
-            _index++;
-            return true;
-        }
-
-        public void Reset()
-        {
-            _index = 0;
-        }
-
-        public readonly Vector2 Current =>
-            _index switch
-            {
-                0 => _quad.TopLeft,
-                1 => _quad.BottomLeft,
-                2 => _quad.BottomRight,
-                3 => _quad.TopRight,
-                _ => throw new IndexOutOfRangeException(),
-            };
-
-        public void Dispose() { }
+        private Vector2 _element0;
     }
 }

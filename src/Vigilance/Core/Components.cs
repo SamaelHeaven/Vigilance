@@ -93,9 +93,9 @@ public unsafe struct Components : IStructEnumerable<Components.Enumerator, Compo
             if (_components._type is null)
                 return false;
             var scene = _components.Entity.Scene;
-            while (++_index < _components._type->count)
+            while (_index + 1 < _components._type->count)
             {
-                var id = _components._type->array[_index];
+                var id = _components._type->array[++_index];
                 if (
                     id == scene.Cache.PositionId
                     || id == scene.Cache.ScaleId

@@ -12,8 +12,27 @@ public interface ISpanView<TValue>
     ValueEnumerable<FromSpan<TValue>, TValue> AsValueEnumerable();
 }
 
-public interface IListView<TValue> : IStructEnumerable<List<TValue>.Enumerator, TValue>
+public interface ISpanViewEnumerable<TView, TValue>
+    : IStructEnumerable<SpanViewEnumerator<TView, TValue>, TValue>,
+        IReadOnlyCollection<TValue>
+    where TView : ISpanView<TValue>
 {
+    // ReSharper disable once GenericEnumeratorNotDisposed
+    int IReadOnlyCollection<TValue>.Count => GetEnumerator().AsSpan().Length;
+
+    ValueEnumerable<StructEnumerator<SpanViewEnumerator<TView, TValue>, TValue>, TValue> IStructEnumerable<
+        SpanViewEnumerator<TView, TValue>,
+        TValue
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<SpanViewEnumerator<TView, TValue>, TValue>(GetEnumerator());
+    }
+}
+
+public interface IListView<TValue> : IStructEnumerable<List<TValue>.Enumerator, TValue>, IReadOnlyCollection<TValue>
+{
+    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
     ValueEnumerable<StructEnumerator<List<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         List<TValue>.Enumerator,
         TValue
@@ -26,9 +45,12 @@ public interface IListView<TValue> : IStructEnumerable<List<TValue>.Enumerator, 
 }
 
 public interface IDictionaryView<TKey, TValue>
-    : IStructEnumerable<Dictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>
+    : IStructEnumerable<Dictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
+        IReadOnlyCollection<KeyValuePair<TKey, TValue>>
     where TKey : notnull
 {
+    int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+
     ValueEnumerable<
         StructEnumerator<Dictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
         KeyValuePair<TKey, TValue>
@@ -41,9 +63,12 @@ public interface IDictionaryView<TKey, TValue>
 }
 
 public interface ISortedDictionaryView<TKey, TValue>
-    : IStructEnumerable<SortedDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>
+    : IStructEnumerable<SortedDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
+        IReadOnlyCollection<KeyValuePair<TKey, TValue>>
     where TKey : notnull
 {
+    int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+
     ValueEnumerable<
         StructEnumerator<SortedDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
         KeyValuePair<TKey, TValue>
@@ -57,8 +82,12 @@ public interface ISortedDictionaryView<TKey, TValue>
     new ValueEnumerable<FromSortedDictionary<TKey, TValue>, KeyValuePair<TKey, TValue>> AsValueEnumerable();
 }
 
-public interface IHashSetView<TValue> : IStructEnumerable<HashSet<TValue>.Enumerator, TValue>
+public interface IHashSetView<TValue>
+    : IStructEnumerable<HashSet<TValue>.Enumerator, TValue>,
+        IReadOnlyCollection<TValue>
 {
+    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
     ValueEnumerable<StructEnumerator<HashSet<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         HashSet<TValue>.Enumerator,
         TValue
@@ -70,8 +99,12 @@ public interface IHashSetView<TValue> : IStructEnumerable<HashSet<TValue>.Enumer
     new ValueEnumerable<FromHashSet<TValue>, TValue> AsValueEnumerable();
 }
 
-public interface ISortedSetView<TValue> : IStructEnumerable<SortedSet<TValue>.Enumerator, TValue>
+public interface ISortedSetView<TValue>
+    : IStructEnumerable<SortedSet<TValue>.Enumerator, TValue>,
+        IReadOnlyCollection<TValue>
 {
+    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
     ValueEnumerable<StructEnumerator<SortedSet<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         SortedSet<TValue>.Enumerator,
         TValue
@@ -83,8 +116,12 @@ public interface ISortedSetView<TValue> : IStructEnumerable<SortedSet<TValue>.En
     new ValueEnumerable<FromSortedSet<TValue>, TValue> AsValueEnumerable();
 }
 
-public interface ILinkedListView<TValue> : IStructEnumerable<LinkedList<TValue>.Enumerator, TValue>
+public interface ILinkedListView<TValue>
+    : IStructEnumerable<LinkedList<TValue>.Enumerator, TValue>,
+        IReadOnlyCollection<TValue>
 {
+    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
     ValueEnumerable<StructEnumerator<LinkedList<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         LinkedList<TValue>.Enumerator,
         TValue
@@ -96,8 +133,10 @@ public interface ILinkedListView<TValue> : IStructEnumerable<LinkedList<TValue>.
     new ValueEnumerable<FromLinkedList<TValue>, TValue> AsValueEnumerable();
 }
 
-public interface IQueueView<TValue> : IStructEnumerable<Queue<TValue>.Enumerator, TValue>
+public interface IQueueView<TValue> : IStructEnumerable<Queue<TValue>.Enumerator, TValue>, IReadOnlyCollection<TValue>
 {
+    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
     ValueEnumerable<StructEnumerator<Queue<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         Queue<TValue>.Enumerator,
         TValue
@@ -109,8 +148,10 @@ public interface IQueueView<TValue> : IStructEnumerable<Queue<TValue>.Enumerator
     new ValueEnumerable<FromQueue<TValue>, TValue> AsValueEnumerable();
 }
 
-public interface IStackView<TValue> : IStructEnumerable<Stack<TValue>.Enumerator, TValue>
+public interface IStackView<TValue> : IStructEnumerable<Stack<TValue>.Enumerator, TValue>, IReadOnlyCollection<TValue>
 {
+    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
     ValueEnumerable<StructEnumerator<Stack<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         Stack<TValue>.Enumerator,
         TValue
@@ -122,8 +163,10 @@ public interface IStackView<TValue> : IStructEnumerable<Stack<TValue>.Enumerator
     new ValueEnumerable<FromStack<TValue>, TValue> AsValueEnumerable();
 }
 
-public interface IArrayView<TValue> : IStructEnumerable<ArrayEnumerator<TValue>, TValue>
+public interface IArrayView<TValue> : IStructEnumerable<ArrayEnumerator<TValue>, TValue>, IReadOnlyCollection<TValue>
 {
+    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
     ValueEnumerable<StructEnumerator<ArrayEnumerator<TValue>, TValue>, TValue> IStructEnumerable<
         ArrayEnumerator<TValue>,
         TValue
@@ -363,9 +406,7 @@ public readonly struct SortedSetView<TValue>(SortedSet<TValue> sortedSet) : ISor
     }
 }
 
-public readonly struct LinkedListView<TValue>(LinkedList<TValue> linkedList)
-    : ILinkedListView<TValue>,
-        IReadOnlyCollection<TValue>
+public readonly struct LinkedListView<TValue>(LinkedList<TValue> linkedList) : ILinkedListView<TValue>
 {
     public LinkedList<TValue>.Enumerator GetEnumerator()
     {
@@ -385,7 +426,7 @@ public readonly struct LinkedListView<TValue>(LinkedList<TValue> linkedList)
     }
 }
 
-public readonly struct QueueView<TValue>(Queue<TValue> queue) : IQueueView<TValue>, IReadOnlyCollection<TValue>
+public readonly struct QueueView<TValue>(Queue<TValue> queue) : IQueueView<TValue>
 {
     public Queue<TValue>.Enumerator GetEnumerator()
     {
@@ -405,7 +446,7 @@ public readonly struct QueueView<TValue>(Queue<TValue> queue) : IQueueView<TValu
     }
 }
 
-public readonly struct StackView<TValue>(Stack<TValue> stack) : IStackView<TValue>, IReadOnlyCollection<TValue>
+public readonly struct StackView<TValue>(Stack<TValue> stack) : IStackView<TValue>
 {
     public Stack<TValue>.Enumerator GetEnumerator()
     {
@@ -477,7 +518,10 @@ public struct ArrayEnumerator<TValue> : IStructEnumerator<TValue>
 
     public bool MoveNext()
     {
-        return ++_index < _array.Length;
+        if (_index + 1 >= _array.Length)
+            return false;
+        _index++;
+        return true;
     }
 
     public void Reset()
@@ -488,6 +532,72 @@ public struct ArrayEnumerator<TValue> : IStructEnumerator<TValue>
     public readonly TValue Current => _array[_index];
 
     public void Dispose() { }
+}
+
+public readonly struct SpanViewEnumerable<TSpanView, TValue> : ISpanViewEnumerable<TSpanView, TValue>
+    where TSpanView : ISpanView<TValue>
+{
+    private readonly TSpanView _spanView;
+
+    internal SpanViewEnumerable(in TSpanView spanView)
+    {
+        _spanView = spanView;
+    }
+
+    public SpanViewEnumerator<TSpanView, TValue> GetEnumerator()
+    {
+        return new SpanViewEnumerator<TSpanView, TValue>(_spanView);
+    }
+
+    public ReadOnlySpan<TValue> AsSpan()
+    {
+        return _spanView.AsSpan();
+    }
+
+    public ValueEnumerable<FromSpan<TValue>, TValue> AsValueEnumerable()
+    {
+        return AsSpan().AsValueEnumerable();
+    }
+}
+
+public struct SpanViewEnumerator<TSpanView, TValue> : IStructEnumerator<TValue>, ISpanView<TValue>
+    where TSpanView : ISpanView<TValue>
+{
+    private readonly TSpanView _spanView;
+    private int _index;
+
+    internal SpanViewEnumerator(in TSpanView spanView)
+    {
+        _spanView = spanView;
+        Reset();
+    }
+
+    public bool MoveNext()
+    {
+        if (_index + 1 >= _spanView.AsSpan().Length)
+            return false;
+        _index++;
+        return true;
+    }
+
+    public void Reset()
+    {
+        _index = -1;
+    }
+
+    public readonly TValue Current => _spanView.AsSpan()[_index];
+
+    public void Dispose() { }
+
+    public ReadOnlySpan<TValue> AsSpan()
+    {
+        return _spanView.AsSpan();
+    }
+
+    public ValueEnumerable<FromSpan<TValue>, TValue> AsValueEnumerable()
+    {
+        return _spanView.AsValueEnumerable();
+    }
 }
 
 public static class ViewExtensions
@@ -539,5 +649,19 @@ public static class ViewExtensions
     public static ArrayView<TValue> AsView<TValue>(this TValue[] array)
     {
         return array;
+    }
+
+    extension<TSpanView, TValue>(TSpanView spanView)
+        where TSpanView : ISpanView<TValue>
+    {
+        public SpanViewEnumerable<TSpanView, TValue> AsEnumerable()
+        {
+            return new SpanViewEnumerable<TSpanView, TValue>(spanView);
+        }
+
+        public SpanViewEnumerator<TSpanView, TValue> AsEnumerator()
+        {
+            return new SpanViewEnumerator<TSpanView, TValue>(spanView);
+        }
     }
 }

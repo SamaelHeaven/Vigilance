@@ -74,7 +74,7 @@ public sealed class Triangle : IFullCloneable
 
         public bool MoveNext()
         {
-            if (_index >= 3)
+            if (_index + 1 >= 3)
                 return false;
             _index++;
             return true;
@@ -82,7 +82,7 @@ public sealed class Triangle : IFullCloneable
 
         public void Reset()
         {
-            _index = 0;
+            _index = -1;
         }
 
         public readonly Vector2 Current

@@ -231,8 +231,10 @@ public abstract class UIParent : UIElement
         {
             if (_index < 0)
                 _parent.BeginDefer();
+            if (_index + 1 >= _parent.ChildrenList.Count)
+                return false;
             _index++;
-            return _index < _parent.ChildrenList.Count;
+            return true;
         }
 
         public void Reset()

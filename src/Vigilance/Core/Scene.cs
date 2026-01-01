@@ -507,14 +507,19 @@ public sealed unsafe partial class Scene
 
         public bool MoveNext()
         {
-            if (_array is not null)
-                return ++_index < _count;
-            _count = ComponentMetadata.Map.Count;
-            _array = ArrayPool<Component>.Shared.Rent(_count);
-            var i = 0;
-            foreach (var metadata in ComponentMetadata.Map.Values)
-                _array[i++] = new Component(metadata.IdFunc.Invoke(_scene), _scene, metadata.Type);
-            return ++_index < _count;
+            if (_array is null)
+            {
+                _count = ComponentMetadata.Map.Count;
+                _array = ArrayPool<Component>.Shared.Rent(_count);
+                var i = 0;
+                foreach (var metadata in ComponentMetadata.Map.Values)
+                    _array[i++] = new Component(metadata.IdFunc.Invoke(_scene), _scene, metadata.Type);
+            }
+
+            if (_index + 1 >= _count)
+                return false;
+            _index++;
+            return true;
         }
 
         public void Reset()

@@ -1,13 +1,14 @@
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using ZLinq;
 using ZLinq.Linq;
 
 namespace Vigilance.Core;
 
-public unsafe struct IdArray : ISpanView<ulong>
+public struct IdArray : ISpanView<ulong>
 {
     public const int Size = 16;
-    private fixed ulong _elements[Size];
+    private Elements _elements;
 
     public readonly int Count
     {
@@ -34,16 +35,21 @@ public unsafe struct IdArray : ISpanView<ulong>
         throw new InvalidOperationException($"{nameof(IdArray)} is full.");
     }
 
-    public readonly ReadOnlySpan<ulong> AsSpan()
+    public readonly unsafe ReadOnlySpan<ulong> AsSpan()
     {
-        fixed (ulong* ptr = _elements)
-        {
-            return new ReadOnlySpan<ulong>(ptr, Count);
-        }
+#pragma warning disable CS9084 // Struct member returns 'this' or other instance members by reference
+        return ((ReadOnlySpan<ulong>)_elements)[..Count];
+#pragma warning restore CS9084 // Struct member returns 'this' or other instance members by reference
     }
 
     public readonly ValueEnumerable<FromSpan<ulong>, ulong> AsValueEnumerable()
     {
         return AsSpan().AsValueEnumerable();
+    }
+
+    [InlineArray(Size)]
+    private struct Elements
+    {
+        private ulong _element0;
     }
 }
