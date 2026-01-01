@@ -10,9 +10,6 @@ using Vigilance.Collections;
 using Vigilance.Math;
 using ZLinq;
 
-// ReSharper disable PossiblyImpureMethodCallOnReadonlyVariable
-#pragma warning disable CS8656 // Call to non-readonly member from a 'readonly' member results in an implicit copy.
-
 namespace Vigilance.Core;
 
 public readonly unsafe partial record struct Entity : IComparable<Entity>

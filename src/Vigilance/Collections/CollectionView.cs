@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using Vigilance.Core;
 using ZLinq;
@@ -5,28 +6,28 @@ using ZLinq.Linq;
 
 namespace Vigilance.Collections;
 
-public interface ISpanView<TValue>
+public interface ISpanView<TValue> : IStructEnumerable<SpanViewEnumerator<TValue>, TValue>, IReadOnlyCollection<TValue>
 {
-    ReadOnlySpan<TValue> AsSpan();
+    int IReadOnlyCollection<TValue>.Count => AsSpan().Length;
 
-    ValueEnumerable<FromSpan<TValue>, TValue> AsValueEnumerable();
-}
-
-public interface ISpanViewEnumerable<TView, TValue>
-    : IStructEnumerable<SpanViewEnumerator<TView, TValue>, TValue>,
-        IReadOnlyCollection<TValue>
-    where TView : ISpanView<TValue>
-{
-    // ReSharper disable once GenericEnumeratorNotDisposed
-    int IReadOnlyCollection<TValue>.Count => GetEnumerator().AsSpan().Length;
-
-    ValueEnumerable<StructEnumerator<SpanViewEnumerator<TView, TValue>, TValue>, TValue> IStructEnumerable<
-        SpanViewEnumerator<TView, TValue>,
+    ValueEnumerable<StructEnumerator<SpanViewEnumerator<TValue>, TValue>, TValue> IStructEnumerable<
+        SpanViewEnumerator<TValue>,
         TValue
     >.AsValueEnumerable()
     {
-        return new StructEnumerator<SpanViewEnumerator<TView, TValue>, TValue>(GetEnumerator());
+        return new StructEnumerator<SpanViewEnumerator<TValue>, TValue>(new SpanViewEnumerator<TValue>(this));
     }
+
+    SpanViewEnumerator<TValue> IStructEnumerable<SpanViewEnumerator<TValue>, TValue>.GetEnumerator()
+    {
+        return new SpanViewEnumerator<TValue>(this);
+    }
+
+    ReadOnlySpan<TValue> AsSpan();
+
+    new ValueEnumerable<FromSpan<TValue>, TValue> AsValueEnumerable();
+
+    new ValueEnumerator<FromSpan<TValue>, TValue> GetEnumerator();
 }
 
 public interface IListView<TValue> : IStructEnumerable<List<TValue>.Enumerator, TValue>, IReadOnlyCollection<TValue>
@@ -187,6 +188,11 @@ public readonly record struct ListView<TValue> : IListView<TValue>, IReadOnlyLis
         _list = list;
     }
 
+    IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
     public List<TValue>.Enumerator GetEnumerator()
     {
         return _list.GetEnumerator();
@@ -199,7 +205,17 @@ public readonly record struct ListView<TValue> : IListView<TValue>, IReadOnlyLis
 
     public int Count => _list.Count;
 
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
     public TValue this[int index] => _list[index];
+
+    ValueEnumerator<FromSpan<TValue>, TValue> ISpanView<TValue>.GetEnumerator()
+    {
+        return new ValueEnumerator<FromSpan<TValue>, TValue>(AsSpan().AsValueEnumerable().Enumerator);
+    }
 
     ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
     {
@@ -531,6 +547,11 @@ public readonly record struct ArrayView<TValue> : IArrayView<TValue>, IReadOnlyL
         _array = array;
     }
 
+    IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
     public ArrayEnumerator<TValue> GetEnumerator()
     {
         return new ArrayEnumerator<TValue>(_array);
@@ -543,7 +564,17 @@ public readonly record struct ArrayView<TValue> : IArrayView<TValue>, IReadOnlyL
 
     public int Count => _array.Length;
 
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
     public TValue this[int index] => _array[index];
+
+    ValueEnumerator<FromSpan<TValue>, TValue> ISpanView<TValue>.GetEnumerator()
+    {
+        return new ValueEnumerator<FromSpan<TValue>, TValue>(AsSpan().AsValueEnumerable().Enumerator);
+    }
 
     ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
     {
@@ -595,39 +626,12 @@ public struct ArrayEnumerator<TValue> : IStructEnumerator<TValue>
     public void Dispose() { }
 }
 
-public readonly record struct SpanViewEnumerable<TSpanView, TValue> : ISpanViewEnumerable<TSpanView, TValue>
-    where TSpanView : ISpanView<TValue>
+public struct SpanViewEnumerator<TValue> : IStructEnumerator<TValue>, ISpanView<TValue>
 {
-    private readonly TSpanView _spanView;
-
-    internal SpanViewEnumerable(in TSpanView spanView)
-    {
-        _spanView = spanView;
-    }
-
-    public SpanViewEnumerator<TSpanView, TValue> GetEnumerator()
-    {
-        return new SpanViewEnumerator<TSpanView, TValue>(_spanView);
-    }
-
-    public ReadOnlySpan<TValue> AsSpan()
-    {
-        return _spanView.AsSpan();
-    }
-
-    public ValueEnumerable<FromSpan<TValue>, TValue> AsValueEnumerable()
-    {
-        return AsSpan().AsValueEnumerable();
-    }
-}
-
-public struct SpanViewEnumerator<TSpanView, TValue> : IStructEnumerator<TValue>, ISpanView<TValue>
-    where TSpanView : ISpanView<TValue>
-{
-    private readonly TSpanView _spanView;
+    private readonly ISpanView<TValue> _spanView;
     private int _index;
 
-    internal SpanViewEnumerator(in TSpanView spanView)
+    internal SpanViewEnumerator(ISpanView<TValue> spanView)
     {
         _spanView = spanView;
         Reset();
@@ -653,6 +657,11 @@ public struct SpanViewEnumerator<TSpanView, TValue> : IStructEnumerator<TValue>,
     public ReadOnlySpan<TValue> AsSpan()
     {
         return _spanView.AsSpan();
+    }
+
+    public ValueEnumerator<FromSpan<TValue>, TValue> GetEnumerator()
+    {
+        return new ValueEnumerator<FromSpan<TValue>, TValue>(AsValueEnumerable().Enumerator);
     }
 
     public ValueEnumerable<FromSpan<TValue>, TValue> AsValueEnumerable()
@@ -710,19 +719,5 @@ public static class ViewExtensions
     public static ArrayView<TValue> AsView<TValue>(this TValue[] array)
     {
         return array;
-    }
-
-    extension<TSpanView, TValue>(TSpanView spanView)
-        where TSpanView : ISpanView<TValue>
-    {
-        public SpanViewEnumerable<TSpanView, TValue> AsEnumerable()
-        {
-            return new SpanViewEnumerable<TSpanView, TValue>(spanView);
-        }
-
-        public SpanViewEnumerator<TSpanView, TValue> AsEnumerator()
-        {
-            return new SpanViewEnumerator<TSpanView, TValue>(spanView);
-        }
     }
 }

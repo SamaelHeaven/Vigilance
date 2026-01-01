@@ -20,8 +20,6 @@ public readonly unsafe record struct Component
     public Type Type { get; }
     public ComponentMetadata Metadata { get; }
 
-    public bool IsNull => Id == 0;
-
     public bool Equals(Component other)
     {
         return Id == other.Id && Scene == other.Scene;

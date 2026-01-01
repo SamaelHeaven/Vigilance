@@ -8,7 +8,7 @@ using ZLinq.Linq;
 
 namespace Vigilance.Math;
 
-public struct Quad : ISpanView<Vector2>, ISpanViewEnumerable<Quad, Vector2>
+public struct Quad : ISpanView<Vector2>
 {
     public const int Length = 4;
     private Points _points;
@@ -75,14 +75,14 @@ public struct Quad : ISpanView<Vector2>, ISpanViewEnumerable<Quad, Vector2>
         return MemoryMarshal.CreateReadOnlySpan(in _points[0], Length);
     }
 
+    public ValueEnumerator<FromSpan<Vector2>, Vector2> GetEnumerator()
+    {
+        return new ValueEnumerator<FromSpan<Vector2>, Vector2>(AsValueEnumerable().Enumerator);
+    }
+
     public readonly ValueEnumerable<FromSpan<Vector2>, Vector2> AsValueEnumerable()
     {
         return AsSpan().AsValueEnumerable();
-    }
-
-    public readonly SpanViewEnumerator<Quad, Vector2> GetEnumerator()
-    {
-        return this.AsEnumerator<Quad, Vector2>();
     }
 
     public static implicit operator (Vector2 TopLeft, Vector2 BottomLeft, Vector2 BottomRight, Vector2 TopRight)(

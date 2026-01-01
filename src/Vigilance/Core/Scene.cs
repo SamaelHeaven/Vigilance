@@ -120,20 +120,33 @@ public sealed unsafe partial class Scene
 
     public Component Component(ulong id)
     {
+        return Component(id, out var component)
+            ? component
+            : throw new InvalidOperationException($"Component \"{id}\" does not exists.");
+    }
+
+    public bool Component(ulong id, out Component component)
+    {
         EnsureInitialized();
+        Unsafe.SkipInit(out component);
         if (id == 0)
-            return default;
+            return false;
         ref Type? type = ref CollectionsMarshal.GetValueRefOrNullRef(Cache.ComponentMap, id)!;
         if (!Unsafe.IsNullRef(in type))
-            return new Component(id, this, type);
+        {
+            component = new Component(id, this, type);
+            return true;
+        }
+
         var entity = new Flecs.NET.Core.Entity(World, id);
         if (!entity.IsAlive())
-            return default;
+            return false;
         type = ref entity.GetSafe<Type>()!;
         if (Unsafe.IsNullRef(in type))
-            return default;
+            return false;
         Cache.ComponentMap.Add(id, type);
-        return new Component(id, this, type);
+        component = new Component(id, this, type);
+        return true;
     }
 
     public ComponentEnumerable Components()

@@ -46,6 +46,11 @@ public struct InlineIds : ISpanView<ulong>
         return AsSpan().AsValueEnumerable();
     }
 
+    public ValueEnumerator<FromSpan<ulong>, ulong> GetEnumerator()
+    {
+        return new ValueEnumerator<FromSpan<ulong>, ulong>(AsValueEnumerable().Enumerator);
+    }
+
     [InlineArray(Length)]
     private struct Elements
     {
