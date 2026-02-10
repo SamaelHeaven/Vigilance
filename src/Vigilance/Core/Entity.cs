@@ -182,7 +182,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         {
             EnsureValid();
             var flecsEntity = FlecsEntity;
-            flecs.ecs_enable(flecsEntity.World, flecsEntity.Id, value);
+            flecs.ecs_enable(flecsEntity.World, flecsEntity.Id, !value);
         }
     }
 

@@ -24,9 +24,13 @@ public sealed class SceneGenerator : SourceGenerator
         Entities(sb);
         Components(sb);
         Entries(sb);
+        ComponentObserver(sb, "OnAdd", "World.Event<AddEvent>().Desc.@event");
+        ComponentObserver(sb, "OnSet", "World.Event<SetEvent>().Desc.@event");
+        ComponentObserver(sb, "OnAddOrSet", "Flecs.NET.Core.Ecs.OnSet");
+        ComponentObserver(sb, "OnRemove", "Flecs.NET.Core.Ecs.OnRemove");
         sb.AppendLine("}");
     }
-
+    
     private static void Build(StringBuilder sb)
     {
         sb.BeginRegion("Build");
@@ -89,6 +93,45 @@ public sealed class SceneGenerator : SourceGenerator
             sb.AppendLine(QueryIterator("Entry", type, typeParams, current, "Entries", $"<{typeParams}>"));
         }
 
+        sb.EndRegion();
+    }
+    
+    private static void ComponentObserver(StringBuilder sb, string name, string eventId)
+    {
+        sb.BeginRegion(name);
+        for (var i = 0; i < 16; i++)
+        {
+            var typeParams = $"<{string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"))}>";
+            sb.AppendLine(
+                $$"""
+                    public ComponentObserver{{typeParams}} {{name}}{{typeParams}}() 
+                    {
+                        return new ComponentObserver{{typeParams}}(this, {{eventId}});
+                    }
+                    
+                    public void {{name}}{{typeParams}}(ComponentObserver{{typeParams}}.EachAction action) 
+                    {
+                        {{name}}{{typeParams}}().Each(action);
+                    }
+                    
+                    public void {{name}}{{typeParams}}(ComponentObserver{{typeParams}}.EachEntityAction action) 
+                    {
+                        {{name}}{{typeParams}}().Each(action);
+                    }
+                  
+                    public void {{name}}{{typeParams}}(ComponentObserver{{typeParams}}.EachRefAction action) 
+                    {
+                        {{name}}{{typeParams}}().Each(action);
+                    }
+                  
+                    public void {{name}}{{typeParams}}(ComponentObserver{{typeParams}}.EachEntityRefAction action) 
+                    {
+                        {{name}}{{typeParams}}().Each(action);
+                    }
+                  
+                """
+            );
+        }
         sb.EndRegion();
     }
 

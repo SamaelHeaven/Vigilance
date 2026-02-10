@@ -6,6 +6,7 @@ using Flecs.NET.Bindings;
 using Flecs.NET.Core;
 using Vigilance.Collections;
 using Vigilance.Drawing;
+using Vigilance.Logging;
 using Vigilance.Math;
 using ZLinq;
 using ZLinq.Internal;
@@ -42,7 +43,7 @@ public sealed unsafe partial class Scene
     {
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
         Cache = new CachedData(this);
-        OnSetParent(SetParentCallback);
+        //OnSetParent(SetParentCallback); TODO
     }
 
     public ListView<IGameSystem> Systems => _systems ?? throw new NullReferenceException();
@@ -53,7 +54,7 @@ public sealed unsafe partial class Scene
 
     public bool IsDeferred => DeferredCount != 0;
 
-    public int DeferredCount { get; private set; }
+    public int DeferredCount { get; internal set; }
 
     public EntityEnumerable Entities => GetEntities();
 
@@ -399,8 +400,8 @@ public sealed unsafe partial class Scene
         foreach (var system in _systems)
             system.Configure(this);
         EndDefer();
-        OnRemoveParent(RemoveParentCallback);
-        OnDestroy(DestroyCallback);
+        //OnRemoveParent(RemoveParentCallback); TODO
+        //OnDestroy(DestroyCallback);
         IsInitialized = true;
         _initializeAction?.Invoke();
         Time.Restart();
@@ -443,15 +444,15 @@ public sealed unsafe partial class Scene
         });
     }
 
-    public void OnInstantiate(Action<Entity> action)
-    {
-        OnAdd<ZIndex>(action);
-    }
+    //public void OnInstantiate(Action<Entity> action) TODO
+    //{
+    //    OnAdd<ZIndex>(action);
+    //}
 
-    public void OnDestroy(Action<Entity> action)
-    {
-        OnRemove<ZIndex>(action);
-    }
+    //public void OnDestroy(Action<Entity> action) TODO
+    //{
+    //    OnRemove<ZIndex>(action);
+    //}
 
     internal readonly struct CachedData
     {
@@ -602,469 +603,6 @@ public sealed unsafe partial class Scene
     {
         Cache.NameMap.Remove(entity.Id);
         Cache.TransformMap.Remove(entity.Id);
-    }
-
-    #endregion
-
-    #region OnAdd
-
-    public void OnAdd<T>(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<AddEvent>()
-            .Each(
-                (it, i, ref _) =>
-                {
-                    action.Invoke(new Entity(it.Handle->entities[i], this));
-                }
-            );
-    }
-
-    public void OnAdd<T>(Action<T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<AddEvent>()
-            .Each(
-                (_, _, ref t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
-
-    public void OnAdd<T>(Action<Entity, T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<AddEvent>()
-            .Each(
-                (it, i, ref t) =>
-                {
-                    action.Invoke(new Entity(it.Handle->entities[i], this), t);
-                }
-            );
-    }
-
-    #endregion
-
-    #region OnSet
-
-    public void OnSet<T>(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<SetEvent>()
-            .Each(
-                (it, i, ref _) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnSet<T>(Action<T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<SetEvent>()
-            .Each(
-                (_, _, ref t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
-
-    public void OnSet<T>(Action<Entity, T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<SetEvent>()
-            .Each(
-                (it, i, ref t) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity, t);
-                }
-            );
-    }
-
-    #endregion
-
-    #region OnAddOrSet
-
-    public void OnAddOrSet<T>(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnSet)
-            .Each(
-                (it, i, ref _) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnAddOrSet<T>(Action<T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnSet)
-            .Each(
-                (_, _, ref t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
-
-    public void OnAddOrSet<T>(Action<Entity, T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnSet)
-            .Each(
-                (it, i, ref t) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity, t);
-                }
-            );
-    }
-
-    #endregion
-
-    #region OnRemove
-
-    public void OnRemove<T>(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i, ref _) =>
-                {
-                    action.Invoke(new Entity(it.Handle->entities[i], this));
-                }
-            );
-    }
-
-    public void OnRemove<T>(Action<T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (_, _, ref t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
-
-    public void OnRemove<T>(Action<Entity, T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i, ref t) =>
-                {
-                    action.Invoke(new Entity(it.Handle->entities[i], this), t);
-                }
-            );
-    }
-
-    #endregion
-
-    #region OnSetPosition
-
-    public void OnSetPosition(Action<Entity> action)
-    {
-        OnSet<Position>(action);
-    }
-
-    public void OnSetPosition(Action<Entity, Vector2> action)
-    {
-        OnSet(
-            (Entity entity, Position position) =>
-            {
-                action.Invoke(entity, position.Value);
-            }
-        );
-    }
-
-    #endregion
-
-    #region OnSetScale
-
-    public void OnSetScale(Action<Entity> action)
-    {
-        OnSet<Scale>(action);
-    }
-
-    public void OnSetScale(Action<Entity, Vector2> action)
-    {
-        OnSet(
-            (Entity entity, Scale scale) =>
-            {
-                action.Invoke(entity, scale.Value);
-            }
-        );
-    }
-
-    #endregion
-
-    #region OnSetRotation
-
-    public void OnSetRotation(Action<Entity> action)
-    {
-        OnSet<Rotation>(action);
-    }
-
-    public void OnSetRotation(Action<Entity, float> action)
-    {
-        OnSet(
-            (Entity entity, Rotation rotation) =>
-            {
-                action.Invoke(entity, rotation.Value);
-            }
-        );
-    }
-
-    #endregion
-
-    #region OnSetPivotPoint
-
-    public void OnSetPivotPoint(Action<Entity> action)
-    {
-        OnSet<PivotPoint>(action);
-    }
-
-    public void OnSetPivotPoint(Action<Entity, Vector2> action)
-    {
-        OnSet(
-            (Entity entity, PivotPoint pivotPoint) =>
-            {
-                action.Invoke(entity, pivotPoint.Value);
-            }
-        );
-    }
-
-    #endregion
-
-    #region OnSetZIndex
-
-    public void OnSetZIndex(Action<Entity> action)
-    {
-        OnSet<ZIndex>(action);
-    }
-
-    public void OnSetZIndex(Action<Entity, int> action)
-    {
-        OnSet(
-            (Entity entity, ZIndex zIndex) =>
-            {
-                action.Invoke(entity, zIndex.Value);
-            }
-        );
-    }
-
-    #endregion
-
-    #region OnSetDisabled
-
-    public void OnSetDisabled(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .Flags(Flecs.NET.Core.Ecs.Disabled)
-            .Event(Flecs.NET.Core.Ecs.OnAdd)
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnSetDisabled(Action<Entity, bool> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .Flags(Flecs.NET.Core.Ecs.Disabled)
-            .Event(Flecs.NET.Core.Ecs.OnAdd)
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity, it.Event() == Flecs.NET.Core.Ecs.OnAdd);
-                }
-            );
-    }
-
-    public void OnDisable(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .Flags(Flecs.NET.Core.Ecs.Disabled)
-            .Event(Flecs.NET.Core.Ecs.OnAdd)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnEnable(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .Flags(Flecs.NET.Core.Ecs.Disabled)
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    #endregion
-
-    #region OnSetParent
-
-    public void OnSetParent(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .With<ZIndex>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
-            .Event(Flecs.NET.Core.Ecs.OnAdd)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnSetParent(Action<Entity, Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .With<ZIndex>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
-            .Event(Flecs.NET.Core.Ecs.OnAdd)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    var parent = new Entity(entity.FlecsEntity.Parent(), this);
-                    action.Invoke(entity, parent);
-                }
-            );
-    }
-
-    #endregion
-
-    #region OnRemoveParent
-
-    public void OnRemoveParent(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .With<ZIndex>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnRemoveParent(Action<Entity, Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .With<ZIndex>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    var parent = new Entity(entity.FlecsEntity.Parent(), this);
-                    action.Invoke(entity, parent);
-                }
-            );
     }
 
     #endregion

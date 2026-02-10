@@ -10,7 +10,7 @@ public sealed class GraphicsSystem(Graphics? graphics = null) : GameSystem(query
 
     public override void Configure()
     {
-        Scene.OnAddOrSet<Sprite>(OnSetSprite);
+        //Scene.OnAddOrSet<Sprite>(OnSetSprite); TODO
     }
 
     public override void Render(RenderCommands commands)
