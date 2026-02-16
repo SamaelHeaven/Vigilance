@@ -39,13 +39,31 @@ public sealed class EntityGenerator : SourceGenerator
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"flecsEntity.Has<T{n}>()"));
+            var hasChecks = string.Join(
+                " && ",
+                Enumerable.Range(0, i + 1).Select(n => $"Scene.Table<T{n}>().Has(this)")
+            );
             sb.AppendLine(
                 $$"""
                     public bool Has<{{typeParams}}>()
                     {
                         EnsureValid();
-                        var flecsEntity = FlecsEntity;
+                        return {{hasChecks}};
+                    }
+                    
+                """
+            );
+        }
+
+        for (var i = 0; i < 16; i++)
+        {
+            var tableParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"Table table{n}"));
+            var hasChecks = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"table{n}.Has(this)"));
+            sb.AppendLine(
+                $$"""
+                    public bool Has({{tableParams}})
+                    {
+                        EnsureValid();
                         return {{hasChecks}};
                     }
                     

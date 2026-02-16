@@ -84,7 +84,7 @@ public static class UIDropShadowExtensions
             new UIDropShadow(element, blur, color)
             {
                 ZIndex = -1,
-                Position = Position.Absolute,
+                Position = PositionType.Absolute,
                 Translate = translate ?? default,
             }
         );

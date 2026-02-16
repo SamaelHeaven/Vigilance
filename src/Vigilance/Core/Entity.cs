@@ -2,10 +2,8 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
-using Flecs.NET.Bindings;
-using Flecs.NET.Core;
+using LinkDotNet.StringBuilder;
 using Vigilance.Collections;
 using Vigilance.Math;
 using ZLinq;
@@ -14,160 +12,59 @@ namespace Vigilance.Core;
 
 public readonly unsafe partial record struct Entity : IComparable<Entity>
 {
-    public const ulong RecycledIdMask = 0x7FFFFFFF;
-
-    public Entity(ulong id, Scene scene)
+    internal Entity(ulong id, Scene scene)
     {
-        Id = id;
+        Index = GetIndex(id);
+        Generation = GetGeneration(id);
         Scene = scene;
     }
 
-    public static Entity Null => new(0, null!);
-    public ulong Id { get; }
+    internal Entity(int index, int generation, Scene scene)
+    {
+        Index = index;
+        Generation = generation;
+        Scene = scene;
+    }
+
+    public int Index { get; }
+    public int Generation { get; }
     public Scene Scene { get; }
 
-    internal Flecs.NET.Core.Entity FlecsEntity => new(Scene.World, Id);
+    public static Entity Null => default;
+
+    public bool IsNull => Index == 0;
+
+    public bool IsValid => !Scene.Lookup(Index, Generation).IsNull;
+
+    public ulong Id => GetId(Index, Generation);
+
+    public string Path => this.AncestorsAndSelf().Select(e => e.Name).Reverse().JoinToString(".");
 
     public string Name
     {
         get
         {
             EnsureValid();
-            return Scene.Cache.NameMap[Id];
+            return Get<Name>();
         }
     }
-
-    public string Path => this.AncestorsAndSelf().Select(e => e.Name).Reverse().JoinToString(".");
-
-    public bool IsValid => Scene?.Cache.TransformMap.ContainsKey(Id) ?? false;
-
-    public bool IsNull => Id == 0;
 
     public Entity Parent
     {
         get
         {
             EnsureValid();
-            return Scene.Cache.ParentMap.GetValueOrDefault(Id, Null);
-        }
-    }
-
-    public Transform Transform
-    {
-        get
-        {
-            EnsureValid();
-            return Scene.Cache.TransformMap[Id];
-        }
-        set
-        {
-            Position = value.Position;
-            Scale = value.Scale;
-            Rotation = value.Rotation;
-            PivotPoint = value.PivotPoint;
-        }
-    }
-
-    public Vector2 Position
-    {
-        get
-        {
-            EnsureValid();
-            return FlecsEntity.Get<Position>().Value;
+            var child = GetRef<Child>();
+            return child.IsNull ? Null : new Entity(child.Read.ParentId, Scene);
         }
         set
         {
             EnsureValid();
-            var flecsEntity = FlecsEntity;
-            ref var position = ref flecsEntity.GetSafe<Position>();
-            if (Precision.AreEqual(value, position.Value))
-                return;
-            position.Value = value;
-            ref var transform = ref CollectionsMarshal.GetValueRefOrNullRef(Scene.Cache.TransformMap, Id);
-            transform.Position = value;
-            flecsEntity.CsWorld().Event<SetEvent>().Id<Position>().Entity(Id).Enqueue();
-        }
-    }
-
-    public Vector2 Scale
-    {
-        get
-        {
-            EnsureValid();
-            return FlecsEntity.Get<Scale>().Value;
-        }
-        set
-        {
-            EnsureValid();
-            var flecsEntity = FlecsEntity;
-            ref var scale = ref flecsEntity.GetSafe<Scale>();
-            if (Precision.AreEqual(value, scale.Value))
-                return;
-            scale.Value = value;
-            ref var transform = ref CollectionsMarshal.GetValueRefOrNullRef(Scene.Cache.TransformMap, Id);
-            transform.Scale = value;
-            flecsEntity.CsWorld().Event<SetEvent>().Id<Scale>().Entity(Id).Enqueue();
-        }
-    }
-
-    public float Rotation
-    {
-        get
-        {
-            EnsureValid();
-            return FlecsEntity.Get<Rotation>().Value;
-        }
-        set
-        {
-            EnsureValid();
-            var flecsEntity = FlecsEntity;
-            ref var rotation = ref flecsEntity.GetSafe<Rotation>();
-            if (Precision.AreEqual(value, rotation.Value))
-                return;
-            rotation.Value = value;
-            ref var transform = ref CollectionsMarshal.GetValueRefOrNullRef(Scene.Cache.TransformMap, Id);
-            transform.Rotation = value;
-            flecsEntity.CsWorld().Event<SetEvent>().Id<Rotation>().Entity(Id).Enqueue();
-        }
-    }
-
-    public Vector2 PivotPoint
-    {
-        get
-        {
-            EnsureValid();
-            return FlecsEntity.Get<PivotPoint>().Value;
-        }
-        set
-        {
-            EnsureValid();
-            var flecsEntity = FlecsEntity;
-            ref var pivotPoint = ref flecsEntity.GetSafe<PivotPoint>();
-            if (Precision.AreEqual(value, pivotPoint.Value))
-                return;
-            pivotPoint.Value = value;
-            ref var transform = ref CollectionsMarshal.GetValueRefOrNullRef(Scene.Cache.TransformMap, Id);
-            transform.PivotPoint = value;
-            flecsEntity.CsWorld().Event<SetEvent>().Id<PivotPoint>().Entity(Id).Enqueue();
-        }
-    }
-
-    public int ZIndex
-    {
-        get
-        {
-            EnsureValid();
-            return FlecsEntity.Get<ZIndex>().Value;
-        }
-        set
-        {
-            EnsureValid();
-            var flecsEntity = FlecsEntity;
-            ref var zIndex = ref flecsEntity.GetSafe<ZIndex>();
-            if (value == zIndex.Value)
-                return;
-            zIndex.Value = value;
-            flecsEntity.CsWorld().Event<SetEvent>().Id<ZIndex>().Entity(Id).Enqueue();
+            value = Scene.Lookup(value.Index, value.Generation);
+            if (value.IsNull)
+                Remove<Child>();
+            else
+                Set(new Child(value.Id));
         }
     }
 
@@ -176,13 +73,15 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return FlecsEntity.Has(Flecs.NET.Core.Ecs.Disabled);
+            return Has<Disabled>();
         }
         set
         {
             EnsureValid();
-            var flecsEntity = FlecsEntity;
-            flecs.ecs_enable(flecsEntity.World, flecsEntity.Id, value);
+            if (value)
+                Set<Disabled>();
+            else
+                Remove<Disabled>();
         }
     }
 
@@ -190,6 +89,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         get
         {
+            EnsureValid();
             var transform = Transform;
             for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 transform += entity.Transform;
@@ -201,6 +101,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         get
         {
+            EnsureValid();
             var position = Position;
             for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 position += entity.Position;
@@ -212,6 +113,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         get
         {
+            EnsureValid();
             var scale = Scale;
             for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 scale *= entity.Scale;
@@ -223,6 +125,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         get
         {
+            EnsureValid();
             var rotation = Rotation;
             for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 rotation += entity.Rotation;
@@ -234,6 +137,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         get
         {
+            EnsureValid();
             var pivotPoint = PivotPoint;
             for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 pivotPoint += entity.PivotPoint;
@@ -245,6 +149,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         get
         {
+            EnsureValid();
             var zIndex = ZIndex;
             for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
                 zIndex += entity.ZIndex;
@@ -252,131 +157,243 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
-    public Components Components => new(this);
+    public Transform Transform
+    {
+        get
+        {
+            EnsureValid();
+            return Get<Transform>();
+        }
+        set
+        {
+            EnsureValid();
+            var table = Scene.Table<Transform>();
+            ref var transform = ref table.GetRef(this);
+            var oldTransform = transform;
+            if (Precision.AreEqual(value, oldTransform))
+                return;
+            transform = value;
+            var positionTable = Scene.Table<Position>();
+            ref var position = ref positionTable.GetRef(this);
+            var oldPosition = position;
+            var positionChanged = !Precision.AreEqual(value.Position, oldPosition);
+            if (positionChanged)
+                position.Value = value.Position;
+            var scaleTable = Scene.Table<Scale>();
+            ref var scale = ref scaleTable.GetRef(this);
+            var oldScale = scale;
+            var scaleChanged = !Precision.AreEqual(value.Scale, oldScale);
+            if (scaleChanged)
+                scale.Value = value.Scale;
+            var rotationTable = Scene.Table<Rotation>();
+            ref var rotation = ref rotationTable.GetRef(this);
+            var oldRotation = rotation;
+            var rotationChanged = !Precision.AreEqual(value.Rotation, oldRotation);
+            if (rotationChanged)
+                rotation.Value = value.Rotation;
+            var pivotPointTable = Scene.Table<PivotPoint>();
+            ref var pivotPoint = ref pivotPointTable.GetRef(this);
+            var oldPivotPoint = pivotPoint;
+            var pivotPointChanged = !Precision.AreEqual(value.PivotPoint, oldPivotPoint);
+            if (pivotPointChanged)
+                pivotPoint.Value = value.PivotPoint;
+            table.Enqueue(Table.Event<Transform>.Set(this, oldTransform, value));
+            if (positionChanged)
+                positionTable.Enqueue(Table.Event<Position>.Set(this, oldPosition, value.Position));
+            if (scaleChanged)
+                scaleTable.Enqueue(Table.Event<Scale>.Set(this, oldScale, value.Scale));
+            if (rotationChanged)
+                rotationTable.Enqueue(Table.Event<Rotation>.Set(this, oldRotation, value.Rotation));
+            if (pivotPointChanged)
+                pivotPointTable.Enqueue(Table.Event<PivotPoint>.Set(this, oldPivotPoint, value.PivotPoint));
+        }
+    }
+
+    public Vector2 Position
+    {
+        get
+        {
+            EnsureValid();
+            return Get<Position>();
+        }
+        set
+        {
+            EnsureValid();
+            var table = Scene.Table<Position>();
+            ref var position = ref table.GetRef(this);
+            var oldPosition = position;
+            if (Precision.AreEqual(value, oldPosition))
+                return;
+            position.Value = value;
+            var transformTable = Scene.Table<Transform>();
+            ref var transform = ref transformTable.GetRef(this);
+            var oldTransform = transform;
+            transform.Position = value;
+            table.Enqueue(Table.Event<Position>.Set(this, oldPosition, value));
+            transformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
+        }
+    }
+
+    public Vector2 Scale
+    {
+        get
+        {
+            EnsureValid();
+            return Get<Scale>();
+        }
+        set
+        {
+            EnsureValid();
+            var table = Scene.Table<Scale>();
+            ref var scale = ref table.GetRef(this);
+            var oldScale = scale;
+            if (Precision.AreEqual(value, oldScale))
+                return;
+            scale.Value = value;
+            var transformTable = Scene.Table<Transform>();
+            ref var transform = ref transformTable.GetRef(this);
+            var oldTransform = transform;
+            transform.Scale = value;
+            table.Enqueue(Table.Event<Scale>.Set(this, oldScale, value));
+            transformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
+        }
+    }
+
+    public float Rotation
+    {
+        get
+        {
+            EnsureValid();
+            return Get<Rotation>();
+        }
+        set
+        {
+            EnsureValid();
+            var table = Scene.Table<Rotation>();
+            ref var rotation = ref table.GetRef(this);
+            var oldRotation = rotation;
+            if (Precision.AreEqual(value, oldRotation))
+                return;
+            rotation.Value = value;
+            var transformTable = Scene.Table<Transform>();
+            ref var transform = ref transformTable.GetRef(this);
+            var oldTransform = transform;
+            transform.Rotation = value;
+            table.Enqueue(Table.Event<Rotation>.Set(this, oldRotation, value));
+            transformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
+        }
+    }
+
+    public Vector2 PivotPoint
+    {
+        get
+        {
+            EnsureValid();
+            return Get<PivotPoint>();
+        }
+        set
+        {
+            EnsureValid();
+            var table = Scene.Table<PivotPoint>();
+            ref var pivotPoint = ref table.GetRef(this);
+            var oldPivotPoint = pivotPoint;
+            if (Precision.AreEqual(value, oldPivotPoint))
+                return;
+            pivotPoint.Value = value;
+            var transformTable = Scene.Table<Transform>();
+            ref var transform = ref transformTable.GetRef(this);
+            var oldTransform = transform;
+            transform.PivotPoint = value;
+            table.Enqueue(Table.Event<PivotPoint>.Set(this, oldPivotPoint, value));
+            transformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
+        }
+    }
+
+    public int ZIndex
+    {
+        get
+        {
+            EnsureValid();
+            return Get<ZIndex>();
+        }
+        set
+        {
+            EnsureValid();
+            var table = Scene.Table<ZIndex>();
+            ref var zIndex = ref table.GetRef(this);
+            var oldZIndex = zIndex;
+            if (value == oldZIndex.Value)
+                return;
+            zIndex.Value = value;
+            table.Enqueue(Table.Event<ZIndex>.Set(this, oldZIndex, value));
+        }
+    }
+
+    public ulong Order
+    {
+        get
+        {
+            EnsureValid();
+            return ((ulong)(uint)(WorldZIndex ^ int.MinValue) << 32) | (uint)Index;
+        }
+    }
+
+    public TableEnumerable Tables => new(this);
+
+    public ComponentEnumerable Components => new(this);
 
     public ChildEnumerable Children => new(this);
 
-    public ulong Order => ((ulong)(uint)(WorldZIndex ^ int.MinValue) << 32) | (Id & RecycledIdMask);
-
     public int CompareTo(Entity other)
     {
+        EnsureValid();
+        other.EnsureValid();
         return Order.CompareTo(other.Order);
     }
 
-    public ref readonly Entity SetTransform(in Transform transform)
+    public static ulong GetId(int index, int generation)
     {
-        Transform = transform;
-        return ref this;
+        return ((ulong)(uint)generation << 32) | (uint)index;
     }
 
-    public ref readonly Entity SetPosition(float v1, float? v2 = null)
+    public static int GetIndex(ulong id)
     {
-        Position = new Vector2(v1, v2 ?? v1);
-        return ref this;
+        return (int)(id & 0xFFFFFFFF);
     }
 
-    public ref readonly Entity SetPosition(Vector2 position)
+    public static int GetGeneration(ulong id)
     {
-        Position = position;
-        return ref this;
-    }
-
-    public ref readonly Entity SetScale(float v1, float? v2 = null)
-    {
-        Scale = new Vector2(v1, v2 ?? v1);
-        return ref this;
-    }
-
-    public ref readonly Entity SetScale(Vector2 scale)
-    {
-        Scale = scale;
-        return ref this;
-    }
-
-    public ref readonly Entity SetRotation(float rotation)
-    {
-        Rotation = rotation;
-        return ref this;
-    }
-
-    public ref readonly Entity SetPivotPoint(float v1, float? v2 = null)
-    {
-        PivotPoint = new Vector2(v1, v2 ?? v1);
-        return ref this;
-    }
-
-    public ref readonly Entity SetPivotPoint(Vector2 pivotPoint)
-    {
-        PivotPoint = pivotPoint;
-        return ref this;
-    }
-
-    public ref readonly Entity SetZIndex(int zIndex)
-    {
-        ZIndex = zIndex;
-        return ref this;
-    }
-
-    public ref readonly Entity SetDisabled(bool disabled = true)
-    {
-        IsDisabled = disabled;
-        return ref this;
+        return (int)(id >> 32);
     }
 
     public T Get<T>()
     {
         EnsureValid();
-        if (Type<T>.IsTag)
-            return FlecsEntity.Has<T>() ? default! : Unsafe.NullRef<T>();
-        return FlecsEntity.Get<T>();
+        return Scene.Table<T>().GetRef(this);
     }
 
-    public object? Get(in Component component)
+    public object? Get(Table table)
     {
         EnsureValid();
-        var metadata = component.Metadata;
-        if (metadata.IsTag)
-            return FlecsEntity.Has(component.Id) ? metadata.DefaultFunc.Invoke() : null;
-        var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);
-        return metadata.FromPointerFunc.Invoke((nint)ptr);
+        return table.Get(this);
     }
 
     public bool TryGet<T>(out T value)
     {
         EnsureValid();
         Unsafe.SkipInit(out value);
-        var flecsEntity = FlecsEntity;
-        if (Type<T>.IsTag)
-        {
-            if (!flecsEntity.Has<T>())
-                return false;
-            value = default!;
-            return true;
-        }
-
-        ref readonly var data = ref flecsEntity.GetSafe<T>();
-        if (Unsafe.IsNullRef(in data))
+        var data = new ComponentRef<T>(ref Scene.Table<T>().GetRef(this));
+        if (data.IsNull)
             return false;
         value = data;
         return true;
     }
 
-    public bool TryGet(in Component component, out object value)
+    public bool TryGet(Table table, out object value)
     {
         EnsureValid();
         value = null!;
-        var metadata = component.Metadata;
-        var flecsEntity = FlecsEntity;
-        if (metadata.IsTag)
-        {
-            if (!flecsEntity.Has(component.Id))
-                return false;
-            value = metadata.DefaultFunc.Invoke()!;
-            return true;
-        }
-
-        var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);
-        var data = metadata.FromPointerFunc.Invoke((nint)ptr);
+        var data = table.Get(this);
         if (data is null)
             return false;
         value = data;
@@ -386,133 +403,205 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public T GetOrDefault<T>(in T defaultValue)
     {
         EnsureValid();
-        if (Type<T>.IsTag)
-            return FlecsEntity.Has<T>() ? default! : defaultValue;
-        ref readonly var value = ref FlecsEntity.GetSafe<T>();
-        return Unsafe.IsNullRef(in value) ? defaultValue : value;
+        var value = new ComponentRef<T>(ref Scene.Table<T>().GetRef(this));
+        return value.IsNull ? defaultValue : value;
     }
 
     public T GetOrDefault<T>(Func<T> defaultFunc)
     {
         EnsureValid();
-        if (Type<T>.IsTag)
-            return FlecsEntity.Has<T>() ? default! : defaultFunc.Invoke();
-        ref readonly var value = ref FlecsEntity.GetSafe<T>();
-        return Unsafe.IsNullRef(in value) ? defaultFunc.Invoke() : value;
+        var value = new ComponentRef<T>(ref Scene.Table<T>().GetRef(this));
+        return value.IsNull ? defaultFunc.Invoke() : value;
     }
 
-    public object? GetOrDefault(in Component component, object? defaultValue)
+    public object? GetOrDefault(Table table, object? defaultValue)
     {
         EnsureValid();
-        var metadata = component.Metadata;
-        if (metadata.IsTag)
-            return FlecsEntity.Has(component.Id) ? metadata.DefaultFunc.Invoke() : defaultValue;
-        var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);
-        var value = metadata.FromPointerFunc.Invoke((nint)ptr);
-        return value ?? defaultValue;
+        return table.Get(this) ?? defaultValue;
     }
 
-    public object? GetOrDefault(in Component component, Func<object?> defaultValue)
+    public object? GetOrDefault(Table table, Func<object?> defaultValue)
     {
         EnsureValid();
-        var metadata = component.Metadata;
-        if (metadata.IsTag)
-            return FlecsEntity.Has(component.Id) ? metadata.DefaultFunc.Invoke() : defaultValue.Invoke();
-        var ptr = flecs.ecs_get_id(Scene.World, Id, component.Id);
-        var value = metadata.FromPointerFunc.Invoke((nint)ptr);
-        return value ?? defaultValue.Invoke();
+        return table.Get(this) ?? defaultValue.Invoke();
     }
 
-    public ref T GetRef<T>()
+    public ComponentRef<T> GetRef<T>()
     {
         EnsureValid();
-        return ref Type<T>.IsTag ? ref Unsafe.NullRef<T>() : ref FlecsEntity.GetSafe<T>();
-    }
-
-    public void* GetPointer<T>()
-    {
-        EnsureValid();
-        return Type<T>.IsTag ? null : flecs.ecs_get_id(Scene.World, Id, Type<T>.Id(Scene.World));
-    }
-
-    public void* GetPointer(in Component component)
-    {
-        EnsureValid();
-        return component.Metadata.IsTag ? null : flecs.ecs_get_id(Scene.World, Id, component.Id);
+        return new ComponentRef<T>(ref Scene.Table<T>().GetRef(this));
     }
 
     [OverloadResolutionPriority(1)]
     public ref readonly Entity Set<T>(IComposable<T> composable)
     {
+        EnsureValid();
         Set(composable.ToComponent());
         return ref this;
     }
 
-    public ref readonly Entity Set<T>(in T data)
+    [OverloadResolutionPriority(1)]
+    public ref readonly Entity Set<T>(IComposable<T> composable, out ComponentRef<T> componentRef)
     {
         EnsureValid();
-        ComponentMetadata<T>.EnsureInitialized();
-        var flecsEntity = FlecsEntity;
-        var id = Type<T>.Id(flecsEntity.World);
-        var hadT = flecsEntity.Has(id);
-        var isTag = Type<T>.IsTag;
-        if (!isTag)
-            flecsEntity.Set(data);
-        else
-            flecsEntity.Add<T>();
-        if (!isTag && hadT)
-            flecsEntity.CsWorld().Event<SetEvent>().Id(id).Entity(Id).Enqueue();
-        else if (!hadT)
-            flecsEntity.CsWorld().Event<AddEvent>().Id(id).Entity(Id).Enqueue();
+        Set(composable.ToComponent(), out componentRef);
         return ref this;
     }
 
-    public ref readonly Entity Set(in Component component, object? value)
+    public ref readonly Entity Set<T>()
+        where T : new()
     {
         EnsureValid();
-        component.Metadata.SetAction.Invoke(this, value);
+        Scene.Table<T>().Set(this, new T());
         return ref this;
     }
 
-    public void TriggerSet<T>()
+    public ref readonly Entity Set<T>(out ComponentRef<T> componentRef)
+        where T : new()
     {
         EnsureValid();
-        FlecsEntity.CsWorld().Event<SetEvent>().Id<T>().Entity(Id).Enqueue();
-    }
-
-    public void TriggerSet(in Component component)
-    {
-        EnsureValid();
-        FlecsEntity.CsWorld().Event<SetEvent>().Id(component.Id).Entity(Id).Enqueue();
-    }
-
-    public ref readonly Entity Remove<T>()
-    {
-        EnsureValid();
-        var flecsEntity = FlecsEntity;
-        var id = Type<T>.Id(flecsEntity.World);
-        flecsEntity.Remove(id);
+        var value = new T();
+        ref var reference = ref Scene.Table<T>().Set(this, value);
+#pragma warning disable CS9082
+        componentRef = new ComponentRef<T>(ref reference);
+#pragma warning restore CS9082
         return ref this;
     }
 
-    public ref readonly Entity Remove(in Component component)
+    public ref readonly Entity Set<T>(in T value)
     {
         EnsureValid();
-        FlecsEntity.Remove(component.Id);
+        Scene.Table<T>().Set(this, value);
+        return ref this;
+    }
+
+    public ref readonly Entity Set<T>(T value, out ComponentRef<T> componentRef)
+    {
+        EnsureValid();
+#pragma warning disable CS9087
+        componentRef = new ComponentRef<T>(ref Scene.Table<T>().Set(this, value));
+#pragma warning restore CS9087
+        return ref this;
+    }
+
+    public ref readonly Entity Set(Table table, object? value)
+    {
+        EnsureValid();
+        table.Set(this, value);
+        return ref this;
+    }
+
+    public ref readonly Entity Remove<T>(bool ignoreErrors = false)
+    {
+        EnsureValid();
+        Scene
+            .Table<T>()
+            .Remove(this, ignoreErrors ? Table.OperationStrategy.IgnoreErrors : Table.OperationStrategy.Default);
+        return ref this;
+    }
+
+    public ref readonly Entity Remove(Table table, bool ignoreErrors = false)
+    {
+        EnsureValid();
+        table.Remove(this, ignoreErrors ? Table.OperationStrategy.IgnoreErrors : Table.OperationStrategy.Default);
         return ref this;
     }
 
     public void Clear()
     {
         EnsureValid();
-        foreach (var component in Components)
-            Remove(component);
+        foreach (var table in Tables.WithHidden())
+            Remove(table, true);
     }
 
     public void Destroy()
     {
         EnsureValid();
-        FlecsEntity.Destruct();
+        Scene.Destroy(this);
+    }
+
+    [Conditional("DEBUG")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void EnsureValid()
+    {
+        Debug.Assert(IsValid, "Entity must be valid.");
+    }
+
+    public ref readonly Entity SetTransform(in Transform transform)
+    {
+        EnsureValid();
+        Transform = transform;
+        return ref this;
+    }
+
+    public ref readonly Entity SetPosition(float v1, float? v2 = null)
+    {
+        EnsureValid();
+        Position = new Vector2(v1, v2 ?? v1);
+        return ref this;
+    }
+
+    public ref readonly Entity SetPosition(Vector2 position)
+    {
+        EnsureValid();
+        Position = position;
+        return ref this;
+    }
+
+    public ref readonly Entity SetScale(float v1, float? v2 = null)
+    {
+        EnsureValid();
+        Scale = new Vector2(v1, v2 ?? v1);
+        return ref this;
+    }
+
+    public ref readonly Entity SetScale(Vector2 scale)
+    {
+        EnsureValid();
+        Scale = scale;
+        return ref this;
+    }
+
+    public ref readonly Entity SetRotation(float rotation)
+    {
+        EnsureValid();
+        Rotation = rotation;
+        return ref this;
+    }
+
+    public ref readonly Entity SetPivotPoint(float v1, float? v2 = null)
+    {
+        EnsureValid();
+        PivotPoint = new Vector2(v1, v2 ?? v1);
+        return ref this;
+    }
+
+    public ref readonly Entity SetPivotPoint(Vector2 pivotPoint)
+    {
+        EnsureValid();
+        PivotPoint = pivotPoint;
+        return ref this;
+    }
+
+    public ref readonly Entity SetZIndex(int zIndex)
+    {
+        EnsureValid();
+        ZIndex = zIndex;
+        return ref this;
+    }
+
+    public ref readonly Entity SetDisabled(bool disabled = true)
+    {
+        EnsureValid();
+        IsDisabled = disabled;
+        return ref this;
+    }
+
+    public ref readonly Entity SetParent(in Entity parent)
+    {
+        EnsureValid();
+        Parent = parent;
+        return ref this;
     }
 
     public ref readonly Entity Scope(Action action)
@@ -547,26 +636,6 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return ref this;
     }
 
-    public ref readonly Entity ChildOf(Entity parent)
-    {
-        EnsureValid();
-        FlecsEntity.ChildOf(parent.Id);
-        return ref this;
-    }
-
-    public bool IsChildOf(Entity parent)
-    {
-        EnsureValid();
-        return FlecsEntity.Has(Flecs.NET.Core.Ecs.ChildOf, parent.Id);
-    }
-
-    [Conditional("DEBUG")]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void EnsureValid()
-    {
-        Debug.Assert(IsValid, "Entity must be valid.");
-    }
-
     private bool PrintMembers(StringBuilder sb)
     {
         if (Id == 0)
@@ -584,49 +653,187 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             return true;
         }
 
-        var name = Name;
-        if (name != $"#{Id}")
-        {
-            sb.Append(", Name = ");
-            sb.Append(Name);
-        }
-
         var path = Path;
-        if (path != name)
+        if (path != Name)
         {
             sb.Append(", Path = ");
             sb.Append(Path);
         }
 
-        if (IsDisabled)
-        {
-            sb.Append(", Disabled = ");
-            sb.Append(IsDisabled);
-        }
-
-        sb.Append(", ZIndex = ");
-        sb.Append(ZIndex);
-        sb.Append(", Transform = ");
-        sb.Append(Transform.ToString());
         sb.Append(", Components = ");
         sb.Append(Components.ToString());
         return true;
     }
 
-    public struct ChildEnumerable : IStructEnumerable<ChildEnumerator, Entity>
+    public struct TableEnumerable : IStructEnumerable<TableEnumerator, Table>
     {
         private readonly Entity _entity;
-        private bool _deferred;
+        private bool _withHidden;
 
-        internal ChildEnumerable(Entity entity)
+        internal TableEnumerable(in Entity entity)
         {
             _entity = entity;
+        }
+
+        public TableEnumerator GetEnumerator()
+        {
+            return new TableEnumerator(_entity, _withHidden);
+        }
+
+        public ValueEnumerable<StructEnumerator<TableEnumerator, Table>, Table> AsValueEnumerable()
+        {
+            return new StructEnumerator<TableEnumerator, Table>(GetEnumerator());
+        }
+
+        public ref TableEnumerable WithHidden(bool withHidden = true)
+        {
+            _withHidden = withHidden;
+            return ref this;
+        }
+    }
+
+    public struct TableEnumerator : IStructEnumerator<Table>
+    {
+        private readonly Entity _entity;
+        private readonly bool _withHidden;
+        private Scene.TableEnumerator _enumerator;
+
+        internal TableEnumerator(in Entity entity, bool withHidden)
+        {
+            _entity = entity;
+            _withHidden = withHidden;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            while (_enumerator.MoveNext())
+            {
+                var table = _enumerator.Current;
+                if (!_entity.Has(table))
+                    continue;
+                Current = table;
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            _entity.EnsureValid();
+            _enumerator = _entity.Scene.Tables.WithHidden(_withHidden).GetEnumerator();
+            Current = null!;
+        }
+
+        public Table Current { get; private set; } = null!;
+
+        public void Dispose()
+        {
+            _enumerator.Dispose();
+        }
+    }
+
+    public struct ComponentEnumerable : IStructEnumerable<ComponentEnumerator, object>
+    {
+        private readonly Entity _entity;
+        private bool _withHidden;
+
+        internal ComponentEnumerable(in Entity entity)
+        {
+            _entity = entity;
+        }
+
+        public ComponentEnumerator GetEnumerator()
+        {
+            return new ComponentEnumerator(_entity, _withHidden);
+        }
+
+        public ValueEnumerable<StructEnumerator<ComponentEnumerator, object>, object> AsValueEnumerable()
+        {
+            return new StructEnumerator<ComponentEnumerator, object>(GetEnumerator());
+        }
+
+        public ref ComponentEnumerable WithHidden(bool withHidden = true)
+        {
+            _withHidden = withHidden;
+            return ref this;
+        }
+
+        public override string ToString()
+        {
+            using var sb = new ValueStringBuilder(stackalloc char[256]);
+            sb.Append('[');
+            var any = false;
+            foreach (var component in this)
+            {
+                any = true;
+                sb.Append($"\n {component}, ");
+            }
+
+            if (any)
+                sb.Append('\n');
+            sb.Append(']');
+            return sb.ToString();
+        }
+    }
+
+    public struct ComponentEnumerator : IStructEnumerator<object>
+    {
+        private readonly Entity _entity;
+        private readonly bool _withHidden;
+        private Scene.TableEnumerator _enumerator;
+
+        internal ComponentEnumerator(in Entity entity, bool withHidden)
+        {
+            _entity = entity;
+            _withHidden = withHidden;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            while (_enumerator.MoveNext())
+            {
+                var table = _enumerator.Current;
+                if (!_entity.TryGet(table, out var value))
+                    continue;
+                Current = value;
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            _entity.EnsureValid();
+            _enumerator = _entity.Scene.Tables.WithHidden(_withHidden).GetEnumerator();
+            Current = null!;
+        }
+
+        public object Current { get; private set; } = null!;
+
+        public void Dispose()
+        {
+            _enumerator.Dispose();
+        }
+    }
+
+    public struct ChildEnumerable : IStructEnumerable<ChildEnumerator, Entity>
+    {
+        private readonly Entity _parent;
+        private bool _deferred;
+
+        internal ChildEnumerable(in Entity parent)
+        {
+            _parent = parent;
             _deferred = true;
         }
 
         public ChildEnumerator GetEnumerator()
         {
-            return new ChildEnumerator(_entity, _deferred);
+            return new ChildEnumerator(_parent, _deferred);
         }
 
         public ValueEnumerable<StructEnumerator<ChildEnumerator, Entity>, Entity> AsValueEnumerable()
@@ -643,74 +850,67 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public struct ChildEnumerator : IStructEnumerator<Entity>
     {
-        private readonly Entity _entity;
+        private readonly Entity _parent;
         private readonly bool _deferred;
-        private flecs.ecs_iter_t _iter;
-        private int _index;
+        private ulong _nextChildId;
+        private bool _disposed;
 
-        internal ChildEnumerator(Entity entity, bool deferred)
+        internal ChildEnumerator(in Entity parent, bool deferred)
         {
-            _entity = entity;
+            _parent = parent;
             _deferred = deferred;
+            Reset();
         }
 
         public bool MoveNext()
         {
-            if (_iter.world is null)
-                Reset();
-            if (_index < _iter.count)
+            if (_nextChildId == 0)
             {
-                _index++;
-                if (_index < _iter.count)
-                    return true;
+                Current = default;
+                return false;
             }
 
-            _index = 0;
-            fixed (flecs.ecs_iter_t* iter = &_iter)
-            {
-                return flecs.ecs_each_next(iter);
-            }
+            Current = new Entity(_nextChildId, _parent.Scene);
+            var childRef = Current.GetRef<Child>();
+            _nextChildId = childRef.IsNull ? 0 : childRef.Read.NextSiblingId;
+            return true;
         }
 
         public void Reset()
         {
-            _entity.EnsureValid();
-            Dispose();
+            if (_nextChildId > 0)
+                Dispose();
+            _parent.EnsureValid();
+            var parentRef = _parent.GetRef<Parent>();
+            _nextChildId = parentRef.IsNull ? 0 : parentRef.Read.FirstChildId;
+            Current = Null;
+            _disposed = false;
             if (_deferred)
-                _entity.Scene.BeginDefer();
-            _iter = flecs.ecs_each_id(_entity.Scene.World, Flecs.NET.Core.Ecs.Pair(flecs.EcsChildOf, _entity.Id));
-            _index = 0;
-            fixed (flecs.ecs_iter_t* iter = &_iter)
-            {
-                Flecs.NET.Core.Ecs.TableLock(iter);
-            }
+                _parent.Scene.BeginDefer();
         }
 
-        public readonly Entity Current =>
-            _iter.world is null ? Null : new Entity(_iter.entities[_index], _entity.Scene);
+        public Entity Current { get; private set; }
 
         public void Dispose()
         {
-            if (_iter.world is null)
+            if (_disposed)
                 return;
-            fixed (flecs.ecs_iter_t* iter = &_iter)
-            {
-                Flecs.NET.Core.Ecs.TableUnlock(iter);
-            }
-
             if (_deferred)
-                _entity.Scene.EndDefer();
-            _iter = default;
-            _index = 0;
+                _parent.Scene.EndDefer();
+            _disposed = true;
         }
     }
 
     public struct Traverser : ITraverser<Traverser, Entity>
     {
-        private ChildEnumerator _enumerator;
-        private bool _hasEnumerator;
-
+        private ulong _nextChildId;
+        private ulong _nextSiblingId;
+        private ulong _previousSiblingId;
         private readonly bool _deferred;
+        private bool _hasDeferBegun;
+        private bool _childrenInitialized;
+        private bool _nextSiblingInitialized;
+        private bool _previousSiblingInitialized;
 
         public Entity Origin { get; }
 
@@ -719,6 +919,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             origin.EnsureValid();
             Origin = origin;
             _deferred = deferred;
+        }
+
+        private void EnsureDeferred()
+        {
+            if (!_deferred || _hasDeferBegun)
+                return;
+            Origin.Scene.BeginDefer();
+            _hasDeferBegun = true;
         }
 
         public Traverser ConvertToTraverser(Entity next)
@@ -734,99 +942,91 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
         public bool TryGetHasChild(out bool hasChild)
         {
-            hasChild = false;
-            return false;
+            EnsureDeferred();
+            var parentRef = Origin.GetRef<Parent>();
+            hasChild = !parentRef.IsNull && parentRef.Read.FirstChildId != 0;
+            return true;
         }
 
         public bool TryGetParent(out Entity parent)
         {
+            EnsureDeferred();
             parent = Origin.Parent;
             return !parent.IsNull;
         }
 
         public bool TryGetNextChild(out Entity child)
         {
-            if (!_hasEnumerator)
+            EnsureDeferred();
+            if (!_childrenInitialized)
             {
-                _enumerator = Origin.Children.Deferred(_deferred).GetEnumerator();
-                _hasEnumerator = true;
+                var parentRef = Origin.GetRef<Parent>();
+                _nextChildId = parentRef.IsNull ? 0 : parentRef.Read.FirstChildId;
+                _childrenInitialized = true;
             }
 
-            if (_enumerator.MoveNext())
+            if (_nextChildId == 0)
             {
-                child = _enumerator.Current;
-                return true;
+                child = Null;
+                return false;
             }
 
-            child = Null;
-            return false;
+            child = new Entity(_nextChildId, Origin.Scene);
+            var childRef = child.GetRef<Child>();
+            _nextChildId = childRef.IsNull ? 0 : childRef.Read.NextSiblingId;
+            return true;
         }
 
         public bool TryGetNextSibling(out Entity next)
         {
-            BEGIN:
-            if (_hasEnumerator)
+            EnsureDeferred();
+            if (!_nextSiblingInitialized)
             {
-                if (_enumerator.MoveNext())
-                {
-                    next = _enumerator.Current;
-                    return true;
-                }
-            }
-            else if (TryGetParent(out var parent))
-            {
-                _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
-                _hasEnumerator = true;
-                while (_enumerator.MoveNext())
-                    if (_enumerator.Current.Id == Origin.Id)
-                        goto BEGIN;
+                var childRef = Origin.GetRef<Child>();
+                _nextSiblingId = childRef.IsNull ? 0 : childRef.Read.NextSiblingId;
+                _nextSiblingInitialized = true;
             }
 
-            next = Null;
-            return false;
+            if (_nextSiblingId == 0)
+            {
+                next = Null;
+                return false;
+            }
+
+            next = new Entity(_nextSiblingId, Origin.Scene);
+            var nextChildRef = next.GetRef<Child>();
+            _nextSiblingId = nextChildRef.IsNull ? 0 : nextChildRef.Read.NextSiblingId;
+            return true;
         }
 
         public bool TryGetPreviousSibling(out Entity previous)
         {
-            BEGIN:
-            if (_hasEnumerator)
+            EnsureDeferred();
+            if (!_previousSiblingInitialized)
             {
-                if (_enumerator.MoveNext())
-                {
-                    previous = _enumerator.Current;
-                    if (previous.Id != Origin.Id)
-                        return true;
-                }
-            }
-            else if (TryGetParent(out var parent))
-            {
-                _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
-                _hasEnumerator = true;
-                goto BEGIN;
+                var childRef = Origin.GetRef<Child>();
+                _previousSiblingId = childRef.IsNull ? 0 : childRef.Read.PreviousSiblingId;
+                _previousSiblingInitialized = true;
             }
 
-            previous = Null;
-            return false;
+            if (_previousSiblingId == 0)
+            {
+                previous = Null;
+                return false;
+            }
+
+            previous = new Entity(_previousSiblingId, Origin.Scene);
+            var prevChildRef = previous.GetRef<Child>();
+            _previousSiblingId = prevChildRef.IsNull ? 0 : prevChildRef.Read.PreviousSiblingId;
+            return true;
         }
 
         public void Dispose()
         {
-            if (!_hasEnumerator)
+            if (!_hasDeferBegun)
                 return;
-            _enumerator.Dispose();
-            _hasEnumerator = false;
-        }
-    }
-}
-
-public static unsafe partial class EntityExtensions
-{
-    extension(Flecs.NET.Core.Entity entity)
-    {
-        public ref T GetSafe<T>()
-        {
-            var ptr = flecs.ecs_get_id(entity.World, entity.Id, Type<T>.Id(entity.World));
-            return ref Component.FromPointer<T>((nint)ptr);
+            Origin.Scene.EndDefer();
+            _hasDeferBegun = false;
         }
     }
 }

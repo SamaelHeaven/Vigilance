@@ -21,7 +21,7 @@ public abstract partial class GameSystem : IGameSystem
     protected GameSystem(
         bool isDisabled = false,
         int order = 0,
-        Inclusion queryWithDisabled = Inclusion.Exclude,
+        bool queryWithDisabled = false,
         bool queryDeferred = true
     )
     {
@@ -33,7 +33,7 @@ public abstract partial class GameSystem : IGameSystem
 
     public Scene Scene { get; private set; } = null!;
     public bool IsDisabled { get; set; }
-    public Inclusion QueryWithDisabled { get; set; }
+    public bool QueryWithDisabled { get; set; }
     public bool QueryDeferred { get; set; }
 
     public Scene.EntityEnumerable Entities => GetEntities();

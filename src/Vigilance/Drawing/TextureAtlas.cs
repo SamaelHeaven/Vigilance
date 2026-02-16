@@ -71,9 +71,9 @@ public sealed class TextureAtlas : IListView<Box>, IReadOnlyList<Box>
         return _boxes.AsValueEnumerable();
     }
 
-    public Box this[int index] => GetRegion(index);
-
     public int Count => _boxes.Count;
+
+    public Box this[int index] => GetRegion(index);
 
     public Box GetRegion(int index)
     {

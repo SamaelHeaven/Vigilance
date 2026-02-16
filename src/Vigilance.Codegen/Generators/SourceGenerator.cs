@@ -4,32 +4,37 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Vigilance.Codegen.Generators;
 
-public abstract class SourceGenerator : ISourceGenerator
+public abstract class SourceGenerator : IIncrementalGenerator
 {
-    public void Initialize(GeneratorInitializationContext context) { }
-
-    public void Execute(GeneratorExecutionContext context)
+    public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var sb = new StringBuilder();
-        sb.Append(
-            """
-            #nullable enable
+        var compilationProvider = context.CompilationProvider;
+        context.RegisterSourceOutput(
+            compilationProvider,
+            (spc, _) =>
+            {
+                var sb = new StringBuilder();
+                sb.Append(
+                    """
+                    #nullable enable
 
 
-            """
-        );
-        Generate(sb);
-        sb.Append(
-            """
+                    """
+                );
+                Generate(sb);
+                sb.Append(
+                    """
 
-            #nullable restore
-            """
-        );
-        var name = GetType().Name;
-        const string suffix = "Generator";
-        context.AddSource(
-            $"{(name.EndsWith(suffix) ? name.Substring(0, name.Length - suffix.Length) : name)}.g.cs",
-            SourceText.From(sb.ToString(), Encoding.UTF8)
+                    #nullable restore
+                    """
+                );
+                var name = GetType().Name;
+                const string suffix = "Generator";
+                spc.AddSource(
+                    $"{(name.EndsWith(suffix) ? name.Substring(0, name.Length - suffix.Length) : name)}.g.cs",
+                    SourceText.From(sb.ToString(), Encoding.UTF8)
+                );
+            }
         );
     }
 

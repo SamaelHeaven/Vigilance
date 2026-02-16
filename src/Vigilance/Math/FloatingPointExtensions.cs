@@ -42,7 +42,7 @@ public static class FloatingPointExtensions
 
         public Vector2 DegToDirection()
         {
-            return RadToDirection(value.DegToRad());
+            return value.DegToRad().RadToDirection();
         }
 
         public Vector2 RadToDirection()
@@ -65,7 +65,7 @@ public static class FloatingPointExtensions
 
         public Vector2 DegToDirection()
         {
-            return RadToDirection(value.DegToRad());
+            return value.DegToRad().RadToDirection();
         }
 
         public Vector2 RadToDirection()

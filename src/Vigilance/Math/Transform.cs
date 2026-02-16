@@ -1,6 +1,12 @@
+using Vigilance.Core;
+
 namespace Vigilance.Math;
 
 public record struct Transform
+    : IWriteImmutableComponent,
+        IRemoveImmutableComponent,
+        ISkipAddEventComponent,
+        ISkipRemoveEventComponent
 {
     public Transform() { }
 

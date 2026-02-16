@@ -4,7 +4,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Systems;
 
-public sealed class GraphicsSystem(Graphics? graphics = null) : GameSystem(queryWithDisabled: Inclusion.Include)
+public sealed class GraphicsSystem(Graphics? graphics = null) : GameSystem(queryWithDisabled: true)
 {
     public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
 

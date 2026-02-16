@@ -356,10 +356,10 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         set => Node.StyleSetFlexShrink(value);
     }
 
-    public Position Position
+    public PositionType Position
     {
-        get => (Position)Node.StyleGetPositionType();
-        set => Node.StyleSetPositionType((PositionType)value);
+        get => (PositionType)Node.StyleGetPositionType();
+        set => Node.StyleSetPositionType((FlexLayoutSharp.PositionType)value);
     }
 
     public Insets Insets
@@ -703,7 +703,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         var position = element.LayoutPosition;
         var size = element.LayoutSize;
         var offset = position + size * 0.5f;
-        if (element is { Position: Position.Absolute, Parent: not null })
+        if (element is { Position: PositionType.Absolute, Parent: not null })
         {
             data.OldMatrix = graphics.PopMatrix();
             offset = new Vector2(element.LayoutLeft, element.LayoutTop) + size * 0.5f;

@@ -1,26 +1,32 @@
-﻿using System.Buffers;
+﻿#pragma warning disable CS9084
+
 using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Flecs.NET.Bindings;
-using Flecs.NET.Core;
 using Vigilance.Collections;
 using Vigilance.Drawing;
 using Vigilance.Math;
 using ZLinq;
-using ZLinq.Internal;
 
 namespace Vigilance.Core;
 
-public sealed unsafe partial class Scene
+public sealed partial class Scene
 {
-    private readonly Dictionary<Type, (ICollection Queue, Action EmitAction)> _events = new();
-    private readonly Dictionary<Type, Delegate> _listeners = new();
+    private readonly Dictionary<Type, (ICollection Queue, Action EmitAction)> _customEvents = [];
+    private readonly List<Table> _denseTables = [];
+    private readonly List<(int Index, int Generation)> _entities = [];
+    private readonly Queue<Event> _events = [];
+    private readonly Queue<int> _freeIndices = [];
+    private readonly Dictionary<Type, Delegate> _listeners = [];
+    private readonly Dictionary<string, ulong> _nameMap = [];
     private readonly List<RenderCommand> _renderCommands = [];
+    private readonly List<Table?> _sparseTables = [];
     private readonly GameSystemsFunc _systemsFunc;
     private Action? _deferredAction;
+    private Action<Entity>? _destroyAction;
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
+    private Action<Entity>? _instantiateAction;
     private Action? _onDispose;
     private Action? _postFixedUpdateAction;
     private Action? _postRenderAction;
@@ -35,27 +41,48 @@ public sealed unsafe partial class Scene
     private List<IGameSystem> _systems = null!;
     private float _time;
     private Action? _updateAction;
-    internal CachedData Cache;
-    internal World World = World.Create();
 
     public Scene(GameSystemsFunc? systems = null)
     {
+        _entities.Add((0, 0));
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
-        Cache = new CachedData(this);
-        OnSetParent(SetParentCallback);
+        OnSet<Position>(OnSetPosition);
+        OnSet<Scale>(OnSetScale);
+        OnSet<Rotation>(OnSetRotation);
+        OnSet<PivotPoint>(OnSetPivotPoint);
+        OnSet<Transform>(OnSetTransform);
+        OnAdd<Child>(OnAddChild);
+        OnSet<Child>(OnSetChild);
+        OnRemove<Child>(OnRemoveChild);
     }
 
     public ListView<IGameSystem> Systems => _systems ?? throw new NullReferenceException();
 
     public Camera Camera { get; } = new();
 
+    public Entity Scope
+    {
+        get;
+        set
+        {
+            EnsureInitialized();
+            if (!value.IsNull)
+                value.EnsureValid();
+            field = value;
+        }
+    }
+
     public bool IsInitialized { get; private set; }
 
-    public bool IsDeferred => DeferredCount != 0;
+    public bool IsDeferred => DeferredCount != 0 && SuspendedCount == 0;
 
     public int DeferredCount { get; private set; }
 
+    public int SuspendedCount { get; private set; }
+
     public EntityEnumerable Entities => GetEntities();
+
+    public TableEnumerable Tables => new(this);
 
     public void Restart()
     {
@@ -85,87 +112,79 @@ public sealed unsafe partial class Scene
     public Entity Entity(string name = "")
     {
         EnsureInitialized();
-        Flecs.NET.Core.Entity entity;
-        if (name.IsEmpty)
-            entity = World.Entity();
+        ulong id;
+        var recycle = _freeIndices.Count > 0;
+        ref var info = ref Unsafe.NullRef<(int Index, int Generation)>();
+        if (recycle)
+        {
+            var index = _freeIndices.Peek();
+            info = ref _entities.AsSpan()[index];
+            id = Core.Entity.GetId(index, info.Generation + 1);
+        }
         else
-            entity =
-                World.Lookup(name, false).Id.Value != 0
-                    ? throw new InvalidOperationException($"Entity \"{name}\" already exists.")
-                    : World.Entity(name);
-        var id = entity.Id.Value;
-        var result = new Entity(id, this);
-        var deferred = IsDeferred;
-        if (deferred)
-            flecs.ecs_defer_suspend(World);
+        {
+            id = Core.Entity.GetId(_entities.Count, 0);
+        }
+
+        name = name.Trim();
+        if (name.IsEmpty)
+            name = $"#{id}";
+        ref var nameId = ref CollectionsMarshal.GetValueRefOrAddDefault(_nameMap, name, out var exists);
+        if (exists)
+            throw new InvalidOperationException($"Entity \"{name}\" already exists.");
+        if (recycle)
+        {
+            info.Index = Core.Entity.GetIndex(id);
+            info.Generation++;
+            _freeIndices.Dequeue();
+        }
+        else
+        {
+            _entities.Add((_entities.Count, 0));
+        }
+
+        nameId = id;
+        var entity = new Entity(id, this);
+        SuspendDefer();
+        entity.Set(new Name(name));
         entity.Set(new ZIndex());
         entity.Set(new Position());
         entity.Set(new Scale());
         entity.Set(new Rotation());
         entity.Set(new PivotPoint());
-        if (deferred)
-            flecs.ecs_defer_resume(World);
-        Cache.TransformMap.Add(id, new Transform());
-        Cache.NameMap.Add(id, name.IsEmpty ? $"#{id}" : name);
-        World.Event<AddEvent>().Id<ZIndex>().Entity(id).Enqueue();
-        return result;
+        entity.Set(new Transform());
+        ResumeDefer();
+        if (!Scope.IsNull)
+            entity.Set(new Child(Scope.Id));
+        if (IsDeferred)
+            Enqueue(Event.Instantiate(entity));
+        else
+            _instantiateAction?.Invoke(entity);
+        return entity;
     }
 
-    public Component Component<T>()
+    public Entity Lookup(int index, int generation)
     {
         EnsureInitialized();
-        ComponentMetadata<T>.EnsureInitialized();
-        return new Component(Type<T>.Id(World), this, typeof(T));
-    }
-
-    public Component Component(ulong id)
-    {
-        return Component(id, out var component)
-            ? component
-            : throw new InvalidOperationException($"Component \"{id}\" does not exists.");
-    }
-
-    public bool Component(ulong id, out Component component)
-    {
-        EnsureInitialized();
-        Unsafe.SkipInit(out component);
-        if (id == 0)
-            return false;
-        ref Type? type = ref CollectionsMarshal.GetValueRefOrNullRef(Cache.ComponentMap, id)!;
-        if (!Unsafe.IsNullRef(in type))
-        {
-            component = new Component(id, this, type);
-            return true;
-        }
-
-        var entity = new Flecs.NET.Core.Entity(World, id);
-        if (!entity.IsAlive())
-            return false;
-        type = ref entity.GetSafe<Type>()!;
-        if (Unsafe.IsNullRef(in type))
-            return false;
-        Cache.ComponentMap.Add(id, type);
-        component = new Component(id, this, type);
-        return true;
-    }
-
-    public ComponentEnumerable Components()
-    {
-        EnsureInitialized();
-        return new ComponentEnumerable(this);
+        if (index == 0 || index >= _entities.Count)
+            return Core.Entity.Null;
+        var info = _entities[index];
+        if (info.Index != index || info.Generation != generation)
+            return Core.Entity.Null;
+        return new Entity(index, generation, this);
     }
 
     public Entity Lookup(ulong id)
     {
         EnsureInitialized();
-        var result = new Entity(new Flecs.NET.Core.Entity(World.Handle, id), this);
-        return result.IsValid ? result : Core.Entity.Null;
+        return Lookup(Core.Entity.GetIndex(id), Core.Entity.GetGeneration(id));
     }
 
-    public Entity Lookup(string path, bool recursive = true)
+    public Entity Lookup(string name)
     {
         EnsureInitialized();
-        return new Entity(World.Lookup(path, recursive), this);
+        ref var id = ref CollectionsMarshal.GetValueRefOrNullRef(_nameMap, name);
+        return Unsafe.IsNullRef(ref id) ? Core.Entity.Null : new Entity(id, this);
     }
 
     public void On<T>(Action<T> action)
@@ -281,7 +300,7 @@ public sealed unsafe partial class Scene
         }
 
         var type = typeof(T);
-        ref var events = ref CollectionsMarshal.GetValueRefOrAddDefault(_events, type, out var exists);
+        ref var events = ref CollectionsMarshal.GetValueRefOrAddDefault(_customEvents, type, out var exists);
         if (!exists)
         {
             var queue = new Queue<T>();
@@ -289,25 +308,14 @@ public sealed unsafe partial class Scene
                 queue,
                 () =>
                 {
-                    while (queue.TryDequeue(out var @event))
+                    if (queue.TryDequeue(out var @event))
                         Emit(@event);
                 }
             );
         }
 
         ((Queue<T>)events.Queue).Enqueue(@event);
-    }
-
-    public int Count()
-    {
-        EnsureInitialized();
-        return World.Count<ZIndex>();
-    }
-
-    public int Count<T>()
-    {
-        EnsureInitialized();
-        return World.Count<T>();
+        Enqueue(Event.Custom(type));
     }
 
     public void Defer(Action action)
@@ -335,9 +343,7 @@ public sealed unsafe partial class Scene
 
     public void BeginDefer()
     {
-        if (0 != DeferredCount++)
-            return;
-        World.DeferBegin();
+        DeferredCount++;
     }
 
     public void EndDefer()
@@ -346,29 +352,60 @@ public sealed unsafe partial class Scene
             throw new InvalidOperationException("Scene is not in a deferred state.");
         if (--DeferredCount != 0)
             return;
-        World.DeferEnd();
+        while (_events.TryDequeue(out var @event))
+            switch (@event.EventType)
+            {
+                case EventType.Instantiate:
+                    _instantiateAction?.Invoke(new Entity(@event.EntityId, this));
+                    break;
+                case EventType.Destroy:
+                    Destroy(new Entity(@event.EntityId, this));
+                    break;
+                case EventType.Custom:
+                    _customEvents[(Type)@event.Data].EmitAction.Invoke();
+                    break;
+                case EventType.TableOperation:
+                    ((Table)@event.Data).DequeueOperation();
+                    break;
+                case EventType.TableEvent:
+                    ((Table)@event.Data).DequeueEvent();
+                    break;
+            }
+
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
-        EmitEvents();
     }
 
     public void SuspendDefer()
     {
-        EnsureInitialized();
-        World.DeferSuspend();
+        SuspendedCount++;
     }
 
     public void ResumeDefer()
     {
-        EnsureInitialized();
-        World.DeferResume();
+        SuspendedCount--;
     }
 
     public Entity SetScope(in Entity entity)
     {
-        var oldScope = World.SetScope(entity.Id);
-        return new Entity(oldScope.Id.Value, this);
+        EnsureInitialized();
+        var oldScope = Scope;
+        Scope = entity;
+        return oldScope;
+    }
+
+    public Table<T> Table<T>()
+    {
+        var index = Core.Table<T>.Index;
+        while (_sparseTables.Count <= index)
+            _sparseTables.Add(null);
+        var table = (Table<T>?)_sparseTables[index];
+        if (table is not null)
+            return table;
+        _sparseTables[index] = table = new Table<T>(this);
+        _denseTables.Add(table);
+        return table;
     }
 
     internal void Stop()
@@ -391,16 +428,40 @@ public sealed unsafe partial class Scene
         Render();
     }
 
+    internal void Destroy(in Entity entity)
+    {
+        if (IsDeferred)
+        {
+            Enqueue(Event.Destroy(entity));
+            return;
+        }
+
+        _destroyAction?.Invoke(entity);
+        var name = entity.Name;
+        var tables = entity.Tables.WithHidden();
+        do
+        {
+            foreach (var table in tables)
+                table.Remove(entity, Core.Table.OperationStrategy.Force);
+        } while (tables.AsValueEnumerable().Any());
+
+        _nameMap.Remove(name);
+        ref var info = ref _entities.AsSpan()[entity.Index];
+        info.Index = 0;
+        _freeIndices.Enqueue(entity.Index);
+    }
+
+    internal void Enqueue(in Event @event)
+    {
+        _events.Enqueue(@event);
+    }
+
     private void Initialize()
     {
         _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(_systemsFunc.Invoke()).ToList();
         _systems.Sort();
-        BeginDefer();
         foreach (var system in _systems)
             system.Configure(this);
-        EndDefer();
-        OnRemoveParent(RemoveParentCallback);
-        OnDestroy(DestroyCallback);
         IsInitialized = true;
         _initializeAction?.Invoke();
         Time.Restart();
@@ -428,643 +489,371 @@ public sealed unsafe partial class Scene
         _postRenderAction?.Invoke();
     }
 
-    private void EmitEvents()
-    {
-        foreach (var events in _events.Values)
-            events.EmitAction.Invoke();
-    }
-
     ~Scene()
     {
-        Game.Defer(() =>
-        {
-            _onDispose?.Invoke();
-            World.Dispose();
-        });
+        if (_onDispose is not null)
+            Game.Defer(_onDispose);
     }
 
     public void OnInstantiate(Action<Entity> action)
     {
-        OnAdd<ZIndex>(action);
+        EnsureNotInitialized();
+        _instantiateAction += action;
     }
 
     public void OnDestroy(Action<Entity> action)
     {
-        OnRemove<ZIndex>(action);
+        EnsureNotInitialized();
+        _destroyAction += action;
     }
 
-    internal readonly struct CachedData
+    public void OnAdd<T>(Action<Entity> action)
     {
-        public readonly Dictionary<ulong, string> NameMap = new();
-        public readonly Dictionary<ulong, Entity> ParentMap = new();
-        public readonly Dictionary<ulong, Transform> TransformMap = new();
-        public readonly Dictionary<ulong, Type> ComponentMap = new();
-        public readonly ulong PositionId;
-        public readonly ulong ScaleId;
-        public readonly ulong RotationId;
-        public readonly ulong PivotPointId;
-        public readonly ulong ZIndexId;
-
-        public CachedData(Scene scene)
-        {
-            PositionId = Type<Position>.Id(scene.World);
-            ScaleId = Type<Scale>.Id(scene.World);
-            RotationId = Type<Rotation>.Id(scene.World);
-            PivotPointId = Type<PivotPoint>.Id(scene.World);
-            ZIndexId = Type<ZIndex>.Id(scene.World);
-        }
+        EnsureNotInitialized();
+        Table<T>().OnAdd((entity, _) => action.Invoke(entity));
     }
 
-    public readonly struct ComponentEnumerable : IStructEnumerable<ComponentEnumerator, Component>
+    public void OnAdd<T>(Action<T> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnAdd((_, value) => action.Invoke(value));
+    }
+
+    public void OnAdd<T>(Action<Entity, T> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnAdd(action);
+    }
+
+    public void OnAddOrSet<T>(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnAdd((entity, _) => action.Invoke(entity));
+        Table<T>().OnSet((entity, _, _) => action.Invoke(entity));
+    }
+
+    public void OnAddOrSet<T>(Action<T> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnAdd((_, value) => action.Invoke(value));
+        Table<T>().OnSet((_, _, value) => action.Invoke(value));
+    }
+
+    public void OnAddOrSet<T>(Action<Entity, T> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnAdd(action);
+        Table<T>().OnSet((entity, _, value) => action.Invoke(entity, value));
+    }
+
+    public void OnSet<T>(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnSet((entity, _, _) => action.Invoke(entity));
+    }
+
+    public void OnSet<T>(Action<T> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnSet((_, _, value) => action.Invoke(value));
+    }
+
+    public void OnSet<T>(Action<T, T> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnSet((_, oldValue, newValue) => action.Invoke(oldValue, newValue));
+    }
+
+    public void OnSet<T>(Action<Entity, T> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnSet((entity, _, value) => action.Invoke(entity, value));
+    }
+
+    public void OnSet<T>(Action<Entity, T, T> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnSet(action);
+    }
+
+    public void OnRemove<T>(Action<Entity> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnRemove((entity, _) => action.Invoke(entity));
+    }
+
+    public void OnRemove<T>(Action<T> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnRemove((_, value) => action.Invoke(value));
+    }
+
+    public void OnRemove<T>(Action<Entity, T> action)
+    {
+        EnsureNotInitialized();
+        Table<T>().OnRemove(action);
+    }
+
+    public unsafe struct TableEnumerable : IStructEnumerable<TableEnumerator, Table>
     {
         private readonly Scene _scene;
+        private bool _withHidden;
 
-        internal ComponentEnumerable(Scene scene)
+        internal TableEnumerable(Scene scene)
         {
             _scene = scene;
         }
 
-        public ComponentEnumerator GetEnumerator()
+        public TableEnumerator GetEnumerator()
         {
-            return new ComponentEnumerator(_scene);
+            return new TableEnumerator(_scene, _withHidden);
         }
 
-        public ValueEnumerable<ComponentEnumerator, Component> AsValueEnumerable()
+        public ValueEnumerable<StructEnumerator<TableEnumerator, Table>, Table> AsValueEnumerable()
         {
-            return new ValueEnumerable<ComponentEnumerator, Component>(GetEnumerator());
+            return new StructEnumerator<TableEnumerator, Table>(GetEnumerator());
         }
 
-        ValueEnumerable<StructEnumerator<ComponentEnumerator, Component>, Component> IStructEnumerable<
-            ComponentEnumerator,
-            Component
-        >.AsValueEnumerable()
+        public ref TableEnumerable WithHidden(bool withHidden = true)
         {
-            return new StructEnumerator<ComponentEnumerator, Component>(GetEnumerator());
+            _withHidden = withHidden;
+            return ref this;
         }
     }
 
-    public struct ComponentEnumerator : IStructEnumerator<Component>, IValueEnumerator<Component>
+    public struct TableEnumerator : IStructEnumerator<Table>
     {
         private readonly Scene _scene;
+        private readonly bool _withHidden;
         private int _index;
-        private int _count;
-        private Component[]? _array;
 
-        internal ComponentEnumerator(Scene scene)
+        internal TableEnumerator(Scene scene, bool withHidden)
         {
-            _index = -1;
             _scene = scene;
+            _withHidden = withHidden;
+            Reset();
         }
-
-        public Component Current => _array![_index];
 
         public bool MoveNext()
         {
-            if (_array is null)
+            do
             {
-                _count = ComponentMetadata.Map.Count;
-                _array = ArrayPool<Component>.Shared.Rent(_count);
-                var i = 0;
-                foreach (var metadata in ComponentMetadata.Map.Values)
-                    _array[i++] = new Component(metadata.IdFunc.Invoke(_scene), _scene, metadata.Type);
-            }
+                if (_index + 1 >= _scene._denseTables.Count)
+                    return false;
+                Current = _scene._denseTables[++_index];
+            } while (!_withHidden && Current.IsHidden);
 
-            if (_index + 1 >= _count)
-                return false;
-            _index++;
             return true;
         }
 
         public void Reset()
         {
             _index = -1;
+            Current = null!;
         }
 
-        public bool TryGetNext(out Component current)
+        public Table Current { get; private set; } = null!;
+
+        public void Dispose() { }
+    }
+
+    internal readonly record struct Event(EventType EventType, ulong EntityId, object Data)
+    {
+        public static Event Instantiate(in Entity entity)
         {
-            if (!MoveNext())
-            {
-                Unsafe.SkipInit(out current);
-                return false;
-            }
-
-            current = Current;
-            return true;
+            return new Event(EventType.Instantiate, entity.Id, null!);
         }
 
-        public bool TryGetNonEnumeratedCount(out int count)
+        public static Event Destroy(in Entity entity)
         {
-            count = _count;
-            return true;
+            return new Event(EventType.Destroy, entity.Id, null!);
         }
 
-        public bool TryGetSpan(out ReadOnlySpan<Component> span)
+        public static Event Custom(Type type)
         {
-            span = new ReadOnlySpan<Component>(_array, 0, _count);
-            return true;
+            return new Event(EventType.Custom, 0, type);
         }
 
-        public bool TryCopyTo(scoped Span<Component> destination, Index offset)
+        public static Event TableOperation(Table table)
         {
-            if (
-                !EnumeratorHelper.TryGetSlice(
-                    new ReadOnlySpan<Component>(_array, 0, _count),
-                    offset,
-                    destination.Length,
-                    out var slice
-                )
-            )
-                return false;
-            slice.CopyTo(destination);
-            return true;
+            return new Event(EventType.TableOperation, 0, table);
         }
 
-        public void Dispose()
+        public static Event TableEvent(Table table)
         {
-            if (_array is not null)
-                ArrayPool<Component>.Shared.Return(_array);
+            return new Event(EventType.TableEvent, 0, table);
         }
+    }
+
+    internal enum EventType
+    {
+        Instantiate,
+        Destroy,
+        Custom,
+        TableOperation,
+        TableEvent,
     }
 
     #region Callbacks
 
-    private void RemoveParentCallback(Entity entity)
+    private void OnSetPosition(Entity entity, Position position)
     {
-        Cache.ParentMap.Remove(entity.Id);
+        var table = Table<Transform>();
+        ref var transform = ref table.GetRef(entity);
+        var oldTransform = transform;
+        if (Precision.AreEqual(oldTransform.Position, position))
+            return;
+        transform.Position = position;
+        table.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
-    private void SetParentCallback(Entity entity, Entity parent)
+    private void OnSetScale(Entity entity, Scale scale)
     {
-        Cache.ParentMap[entity.Id] = parent;
+        var table = Table<Transform>();
+        ref var transform = ref table.GetRef(entity);
+        var oldTransform = transform;
+        if (Precision.AreEqual(oldTransform.Scale, scale))
+            return;
+        transform.Scale = scale;
+        table.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
-    private void DestroyCallback(Entity entity)
+    private void OnSetRotation(Entity entity, Rotation rotation)
     {
-        Cache.NameMap.Remove(entity.Id);
-        Cache.TransformMap.Remove(entity.Id);
+        var table = Table<Transform>();
+        ref var transform = ref table.GetRef(entity);
+        var oldTransform = transform;
+        if (Precision.AreEqual(oldTransform.Rotation, rotation))
+            return;
+        transform.Rotation = rotation;
+        table.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
-    #endregion
-
-    #region OnAdd
-
-    public void OnAdd<T>(Action<Entity> action)
+    private void OnSetPivotPoint(Entity entity, PivotPoint pivotPoint)
     {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<AddEvent>()
-            .Each(
-                (it, i, ref _) =>
-                {
-                    action.Invoke(new Entity(it.Handle->entities[i], this));
-                }
-            );
+        var table = Table<Transform>();
+        ref var transform = ref table.GetRef(entity);
+        var oldTransform = transform;
+        if (Precision.AreEqual(oldTransform.PivotPoint, pivotPoint))
+            return;
+        transform.PivotPoint = pivotPoint;
+        table.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
-    public void OnAdd<T>(Action<T> action)
+    private void OnSetTransform(Entity entity, Transform transform)
     {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<AddEvent>()
-            .Each(
-                (_, _, ref t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
+        var positionTable = Table<Position>();
+        ref var position = ref positionTable.GetRef(entity);
+        var oldPosition = position;
+        var positionChanged = !Precision.AreEqual(transform.Position, oldPosition);
+        if (positionChanged)
+            position.Value = transform.Position;
+        var scaleTable = Table<Scale>();
+        ref var scale = ref scaleTable.GetRef(entity);
+        var oldScale = scale;
+        var scaleChanged = !Precision.AreEqual(transform.Scale, oldScale);
+        if (scaleChanged)
+            scale.Value = transform.Scale;
+        var rotationTable = Table<Rotation>();
+        ref var rotation = ref rotationTable.GetRef(entity);
+        var oldRotation = rotation;
+        var rotationChanged = !Precision.AreEqual(transform.Rotation, oldRotation);
+        if (rotationChanged)
+            rotation.Value = transform.Rotation;
+        var pivotPointTable = Table<PivotPoint>();
+        ref var pivotPoint = ref pivotPointTable.GetRef(entity);
+        var oldPivotPoint = pivotPoint;
+        var pivotPointChanged = !Precision.AreEqual(transform.PivotPoint, oldPivotPoint);
+        if (pivotPointChanged)
+            pivotPoint.Value = transform.PivotPoint;
+        if (positionChanged)
+            positionTable.Emit(Core.Table.Event<Position>.Set(entity, oldPosition, transform.Position));
+        if (scaleChanged)
+            scaleTable.Emit(Core.Table.Event<Scale>.Set(entity, oldScale, transform.Scale));
+        if (rotationChanged)
+            rotationTable.Emit(Core.Table.Event<Rotation>.Set(entity, oldRotation, transform.Rotation));
+        if (pivotPointChanged)
+            pivotPointTable.Emit(Core.Table.Event<PivotPoint>.Set(entity, oldPivotPoint, transform.PivotPoint));
     }
 
-    public void OnAdd<T>(Action<Entity, T> action)
+    private void OnAddChild(Entity entity, Child child)
     {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<AddEvent>()
-            .Each(
-                (it, i, ref t) =>
-                {
-                    action.Invoke(new Entity(it.Handle->entities[i], this), t);
-                }
-            );
+        var table = Table<Child>();
+        var parentId = child.ParentId;
+        if (parentId == 0)
+            return;
+        var parentEntity = new Entity(parentId, this);
+        var parentRef = parentEntity.GetRef<Parent>();
+        if (parentRef.IsNull)
+            parentEntity.Set(new Parent(), out parentRef);
+        ref var parent = ref parentRef.Write;
+        ref var childRef = ref table.GetRef(entity);
+        var childId = entity.Id;
+        childRef.PreviousSiblingId = parent.LastChildId;
+        childRef.NextSiblingId = 0;
+        if (parent.LastChildId != 0)
+        {
+            var lastEntity = new Entity(parent.LastChildId, this);
+            ref var lastChild = ref table.GetRef(lastEntity);
+            lastChild.NextSiblingId = childId;
+        }
+        else
+        {
+            parent.FirstChildId = childId;
+        }
+
+        parent.LastChildId = childId;
     }
 
-    #endregion
-
-    #region OnSet
-
-    public void OnSet<T>(Action<Entity> action)
+    private void OnSetChild(Entity entity, Child oldChild, Child newChild)
     {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<SetEvent>()
-            .Each(
-                (it, i, ref _) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
+        var oldParentId = oldChild.ParentId;
+        var newParentId = newChild.ParentId;
+        if (oldParentId == newParentId)
+            return;
+        if (oldParentId != 0)
+            OnRemoveChild(entity, oldChild);
+        if (newParentId != 0)
+            OnAddChild(entity, newChild);
     }
 
-    public void OnSet<T>(Action<T> action)
+    private void OnRemoveChild(Entity entity, Child child)
     {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<SetEvent>()
-            .Each(
-                (_, _, ref t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
+        var parentId = child.ParentId;
+        if (parentId == 0)
+            return;
+        var table = Table<Child>();
+        var parentEntity = new Entity(parentId, this);
+        var parentRef = parentEntity.GetRef<Parent>();
+        if (parentRef.IsNull)
+            return;
+        ref var parent = ref parentRef.Write;
+        var prevId = child.PreviousSiblingId;
+        var nextId = child.NextSiblingId;
+        if (prevId != 0)
+        {
+            var prevEntity = new Entity(prevId, this);
+            ref var prev = ref table.GetRef(prevEntity);
+            prev.NextSiblingId = nextId;
+        }
+        else
+        {
+            parent.FirstChildId = nextId;
+        }
 
-    public void OnSet<T>(Action<Entity, T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event<SetEvent>()
-            .Each(
-                (it, i, ref t) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity, t);
-                }
-            );
-    }
+        if (nextId != 0)
+        {
+            var nextEntity = new Entity(nextId, this);
+            ref var next = ref table.GetRef(nextEntity);
+            next.PreviousSiblingId = prevId;
+        }
+        else
+        {
+            parent.LastChildId = prevId;
+        }
 
-    #endregion
-
-    #region OnAddOrSet
-
-    public void OnAddOrSet<T>(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnSet)
-            .Each(
-                (it, i, ref _) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnAddOrSet<T>(Action<T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnSet)
-            .Each(
-                (_, _, ref t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
-
-    public void OnAddOrSet<T>(Action<Entity, T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnSet)
-            .Each(
-                (it, i, ref t) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity, t);
-                }
-            );
-    }
-
-    #endregion
-
-    #region OnRemove
-
-    public void OnRemove<T>(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i, ref _) =>
-                {
-                    action.Invoke(new Entity(it.Handle->entities[i], this));
-                }
-            );
-    }
-
-    public void OnRemove<T>(Action<T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (_, _, ref t) =>
-                {
-                    action.Invoke(t);
-                }
-            );
-    }
-
-    public void OnRemove<T>(Action<Entity, T> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer<T>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i, ref t) =>
-                {
-                    action.Invoke(new Entity(it.Handle->entities[i], this), t);
-                }
-            );
-    }
-
-    #endregion
-
-    #region OnSetPosition
-
-    public void OnSetPosition(Action<Entity> action)
-    {
-        OnSet<Position>(action);
-    }
-
-    public void OnSetPosition(Action<Entity, Vector2> action)
-    {
-        OnSet(
-            (Entity entity, Position position) =>
-            {
-                action.Invoke(entity, position.Value);
-            }
-        );
-    }
-
-    #endregion
-
-    #region OnSetScale
-
-    public void OnSetScale(Action<Entity> action)
-    {
-        OnSet<Scale>(action);
-    }
-
-    public void OnSetScale(Action<Entity, Vector2> action)
-    {
-        OnSet(
-            (Entity entity, Scale scale) =>
-            {
-                action.Invoke(entity, scale.Value);
-            }
-        );
-    }
-
-    #endregion
-
-    #region OnSetRotation
-
-    public void OnSetRotation(Action<Entity> action)
-    {
-        OnSet<Rotation>(action);
-    }
-
-    public void OnSetRotation(Action<Entity, float> action)
-    {
-        OnSet(
-            (Entity entity, Rotation rotation) =>
-            {
-                action.Invoke(entity, rotation.Value);
-            }
-        );
-    }
-
-    #endregion
-
-    #region OnSetPivotPoint
-
-    public void OnSetPivotPoint(Action<Entity> action)
-    {
-        OnSet<PivotPoint>(action);
-    }
-
-    public void OnSetPivotPoint(Action<Entity, Vector2> action)
-    {
-        OnSet(
-            (Entity entity, PivotPoint pivotPoint) =>
-            {
-                action.Invoke(entity, pivotPoint.Value);
-            }
-        );
-    }
-
-    #endregion
-
-    #region OnSetZIndex
-
-    public void OnSetZIndex(Action<Entity> action)
-    {
-        OnSet<ZIndex>(action);
-    }
-
-    public void OnSetZIndex(Action<Entity, int> action)
-    {
-        OnSet(
-            (Entity entity, ZIndex zIndex) =>
-            {
-                action.Invoke(entity, zIndex.Value);
-            }
-        );
-    }
-
-    #endregion
-
-    #region OnSetDisabled
-
-    public void OnSetDisabled(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .Flags(Flecs.NET.Core.Ecs.Disabled)
-            .Event(Flecs.NET.Core.Ecs.OnAdd)
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnSetDisabled(Action<Entity, bool> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .Flags(Flecs.NET.Core.Ecs.Disabled)
-            .Event(Flecs.NET.Core.Ecs.OnAdd)
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity, it.Event() == Flecs.NET.Core.Ecs.OnAdd);
-                }
-            );
-    }
-
-    public void OnDisable(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .Flags(Flecs.NET.Core.Ecs.Disabled)
-            .Event(Flecs.NET.Core.Ecs.OnAdd)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnEnable(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .Flags(Flecs.NET.Core.Ecs.Disabled)
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    #endregion
-
-    #region OnSetParent
-
-    public void OnSetParent(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .With<ZIndex>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
-            .Event(Flecs.NET.Core.Ecs.OnAdd)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnSetParent(Action<Entity, Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .With<ZIndex>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
-            .Event(Flecs.NET.Core.Ecs.OnAdd)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    var parent = new Entity(entity.FlecsEntity.Parent(), this);
-                    action.Invoke(entity, parent);
-                }
-            );
-    }
-
-    #endregion
-
-    #region OnRemoveParent
-
-    public void OnRemoveParent(Action<Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .With<ZIndex>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    action.Invoke(entity);
-                }
-            );
-    }
-
-    public void OnRemoveParent(Action<Entity, Entity> action)
-    {
-        EnsureNotInitialized();
-        World
-            .Observer()
-            .With<ZIndex>()
-            .With(Flecs.NET.Core.Ecs.Disabled)
-            .Optional()
-            .With(Flecs.NET.Core.Ecs.ChildOf, Flecs.NET.Core.Ecs.Wildcard)
-            .Event(Flecs.NET.Core.Ecs.OnRemove)
-            .Each(
-                (it, i) =>
-                {
-                    var entity = new Entity(it.Handle->entities[i], this);
-                    var parent = new Entity(entity.FlecsEntity.Parent(), this);
-                    action.Invoke(entity, parent);
-                }
-            );
+        if (parent.FirstChildId == 0)
+            parentEntity.Remove<Parent>();
     }
 
     #endregion

@@ -53,9 +53,7 @@ public sealed class SceneGenerator : SourceGenerator
     private static void Entities(StringBuilder sb)
     {
         sb.BeginRegion("Entities");
-        sb.AppendLine(
-            QueryIterator("Entity", "Entity", "ZIndex", "CurrentEntity", "GetEntities", visibility: "internal")
-        );
+        sb.AppendLine(QueryIterator("Entity", "Entity", "GetEntities", "_entity", ["ZIndex"], visibility: "internal"));
         sb.EndRegion();
     }
 
@@ -68,10 +66,10 @@ public sealed class SceneGenerator : SourceGenerator
             var type = i == 0 ? "T0" : $"({typeParams})";
             var current =
                 i == 0
-                    ? "GetField<T0>(0)"
-                    : "(" + string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"GetField<T{n}>({n})")) + ")";
-            var queryArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            sb.AppendLine(QueryIterator("Component", type, queryArgs, current, "Components", $"<{typeParams}>"));
+                    ? "_field0"
+                    : "(" + string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}")) + ")";
+            var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
+            sb.AppendLine(QueryIterator("Component", type, "Components", current, tables, $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -84,9 +82,10 @@ public sealed class SceneGenerator : SourceGenerator
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             var type = $"(Entity, {typeParams})";
-            var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"GetField<T{n}>({n})"));
-            var current = $"(CurrentEntity, {getFields})";
-            sb.AppendLine(QueryIterator("Entry", type, typeParams, current, "Entries", $"<{typeParams}>"));
+            var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"));
+            var current = $"(_entity, {getFields})";
+            var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
+            sb.AppendLine(QueryIterator("Entry", type, "Entries", current, tables, $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -95,9 +94,9 @@ public sealed class SceneGenerator : SourceGenerator
     private static string QueryIterator(
         string name,
         string type,
-        string queryTypeParams,
-        string current,
         string methodName,
+        string current,
+        List<string> tables,
         string typeParams = "",
         string visibility = "public"
     )
@@ -106,13 +105,12 @@ public sealed class SceneGenerator : SourceGenerator
                 public struct {{name}}Enumerable{{typeParams}} : Collections.IStructEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
                 {
                     private readonly Scene _scene;
-                    private Inclusion _withDisabled;
+                    private bool _withDisabled;
                     private bool _deferred;
                 
                     internal {{name}}Enumerable(Scene scene)
                     {
                         _scene = scene;
-                        _withDisabled = Inclusion.Exclude;
                         _deferred = true;
                     }
                     
@@ -126,7 +124,7 @@ public sealed class SceneGenerator : SourceGenerator
                         return new Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
                     }
                     
-                    public ref {{name}}Enumerable{{typeParams}} WithDisabled(Inclusion value = Inclusion.Include) {
+                    public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool value = true) {
                         _withDisabled = value;
                         return ref this;
                     }
@@ -139,96 +137,83 @@ public sealed class SceneGenerator : SourceGenerator
                 
                 public unsafe struct {{name}}Enumerator{{typeParams}} : Collections.IStructEnumerator<{{type}}> {
                     private readonly Scene _scene;
-                    private readonly Inclusion _withDisabled;
+                    private readonly bool _withDisabled;
                     private readonly bool _deferred;
-                    private Flecs.NET.Core.Query<{{queryTypeParams}}>? _query;
-                    private Flecs.NET.Bindings.flecs.ecs_iter_t _iter;
+                    private bool _hasDeferBegun;
                     private int _index;
+                    private int _tableIndex;
+                    private Entity _entity;
+                    private Table<Disabled> _disabledTable;
+            {{string.Join("\n", tables.Select((t, i) => $"        private Table<{t}> _table{i};"))}}
+            {{string.Join("\n", tables.Select((t, i) => $"        private {t} _field{i} = default!;"))}}
                     
-                    internal {{name}}Enumerator(Scene scene, Inclusion withDisabled, bool deferred)
+                    internal {{name}}Enumerator(Scene scene, bool withDisabled, bool deferred)
                     {
                         _scene = scene;
                         _withDisabled = withDisabled;
                         _deferred = deferred;
-                    }
-                
-                    private Entity CurrentEntity
-                    {
-                        get
-                        {
-                            if (!_query.HasValue)
-                                return Core.Entity.Null;
-                            return new Entity(_iter.entities[_index], _scene);
-                        }
-                    }
-                    
-                    private ref readonly TField GetField<TField>(byte index)
-                    {
-                        fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
-                        {
-                            var ptr = Flecs.NET.Bindings.flecs.ecs_field_w_size(iter, Flecs.NET.Core.Type<TField>.Size, index);
-                            return ref Core.Component.FromPointer<TField>((nint)ptr);
-                        }
+                        _disabledTable = _scene.Table<Disabled>();
+            {{string.Join("\n", tables.Select((t, i) => $"            _table{i} = _scene.Table<{t}>();"))}}
+                        Reset();
                     }
 
                     public bool MoveNext()
                     {
-                        if (!_query.HasValue)
-                            Reset();
-                        if (_index < _iter.count)
+                        switch (_tableIndex) 
                         {
-                            _index++;
-                            if (_index < _iter.count)
-                                return true;
+            {{string.Join("\n", tables.Select((_, i) => $$"""
+                                case {{i}}:
+                                {
+                                    if (_index + 1 >= _table{{i}}.Components.Count) 
+                                        return false;
+                                    _index++;
+                                    _entity = new Entity(_table{{i}}.DenseIds[_index], _scene);
+                                    if (!_withDisabled && _disabledTable.Has(_entity))
+                                        goto case {{i}};
+                {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
+                                        ref var field{j} = ref _table{j}.GetRef(_entity);
+                                        if (System.Runtime.CompilerServices.Unsafe.IsNullRef(ref field{j}))
+                                            goto case {i};
+                                        _field{j} = field{j};
+                    """).Where(str => str != ""))}}
+                                    _field{{i}} = _table{{i}}.Components[_index];
+                                    return true;
+                                }
+                """))}}
                         }
-
-                        _index = 0;
-                        fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
-                        {
-                            return Flecs.NET.Bindings.flecs.ecs_query_next(iter);
-                        }
+                        
+                        return false;
                     }
 
                     public void Reset()
                     {
                         Dispose();
+                        _index = -1;
+                        _entity = Core.Entity.Null;
+            {{string.Join("\n", tables.Select((_, i) => $"            _field{i} = default!;"))}}
+                        var smallestCount = int.MaxValue;
+            {{string.Join("\n", tables.Select((_, i) => $$"""
+                            if (_table{{i}}.Components.Count < smallestCount)
+                            {
+                                smallestCount = _table{{i}}.Components.Count;
+                                _tableIndex = {{i}};
+                            }
+                            
+                """))}}
                         if (_deferred)
                             _scene.BeginDefer();
-                        var queryBuilder = _scene.World.QueryBuilder<{{queryTypeParams}}>().CacheKind(Flecs.NET.Bindings.flecs.ecs_query_cache_kind_t.EcsQueryCacheNone);
-                        queryBuilder = _withDisabled switch
-                        {
-                           Inclusion.Only => queryBuilder.With(Flecs.NET.Core.Ecs.Disabled),
-                           Inclusion.Include => queryBuilder.With(Flecs.NET.Core.Ecs.Disabled).Optional(),
-                           _ => queryBuilder
-                        };
-                        
-                        var query = queryBuilder.Build();
-                        _query = query;
-                        _iter = query.GetIter();
-                        _index = 0;
-                        fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
-                        {
-                            Flecs.NET.Core.Ecs.TableLock(iter);
-                        }
+                        _hasDeferBegun = true;
                     }
 
                     public {{type}} Current => {{current}};
 
                     public void Dispose()
                     {
-                        if (!_query.HasValue)
+                        if (!_hasDeferBegun)
                             return;
-                        fixed (Flecs.NET.Bindings.flecs.ecs_iter_t* iter = &_iter)
-                        {
-                            Flecs.NET.Core.Ecs.TableUnlock(iter);
-                        }
-
                         if (_deferred)
                             _scene.EndDefer();
-                        _query.Value.Dispose();
-                        _query = null;
-                        _iter = default;
-                        _index = 0;
+                        _hasDeferBegun = false;
                     }
                 }
                 
