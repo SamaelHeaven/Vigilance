@@ -143,7 +143,6 @@ public sealed class SceneGenerator : SourceGenerator
                     private int _index;
                     private int _tableIndex;
                     private Entity _entity;
-                    private Table<Disabled> _disabledTable;
             {{string.Join("\n", tables.Select((t, i) => $"        private Table<{t}> _table{i};"))}}
             {{string.Join("\n", tables.Select((t, i) => $"        private {t} _field{i} = default!;"))}}
                     
@@ -152,7 +151,6 @@ public sealed class SceneGenerator : SourceGenerator
                         _scene = scene;
                         _withDisabled = withDisabled;
                         _deferred = deferred;
-                        _disabledTable = _scene.Table<Disabled>();
             {{string.Join("\n", tables.Select((t, i) => $"            _table{i} = _scene.Table<{t}>();"))}}
                         Reset();
                     }
@@ -168,10 +166,10 @@ public sealed class SceneGenerator : SourceGenerator
                                         return false;
                                     _index++;
                                     _entity = new Entity(_table{{i}}.DenseIds[_index], _scene);
-                                    if (!_withDisabled && _disabledTable.Has(_entity))
+                                    if (!_withDisabled && _scene.DisabledTable.Has(_entity))
                                         goto case {{i}};
                 {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
-                                        ref var field{j} = ref _table{j}.GetRef(_entity);
+                                        ref var field{j} = ref _table{j}.GetRef(_entity).Value;
                                         if (System.Runtime.CompilerServices.Unsafe.IsNullRef(ref field{j}))
                                             goto case {i};
                                         _field{j} = field{j};

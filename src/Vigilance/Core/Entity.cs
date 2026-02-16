@@ -12,14 +12,14 @@ namespace Vigilance.Core;
 
 public readonly unsafe partial record struct Entity : IComparable<Entity>
 {
-    internal Entity(ulong id, Scene scene)
+    public Entity(ulong id, Scene scene)
     {
         Index = GetIndex(id);
         Generation = GetGeneration(id);
         Scene = scene;
     }
 
-    internal Entity(int index, int generation, Scene scene)
+    public Entity(int index, int generation, Scene scene)
     {
         Index = index;
         Generation = generation;
@@ -45,7 +45,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Get<Name>();
+            return Scene.NameTable.GetRef(this).Read;
         }
     }
 
@@ -54,7 +54,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            var child = GetRef<Child>();
+            var child = Scene.ChildTable.GetRef(this);
             return child.IsNull ? Null : new Entity(child.Read.ParentId, Scene);
         }
         set
@@ -62,9 +62,9 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             EnsureValid();
             value = Scene.Lookup(value.Index, value.Generation);
             if (value.IsNull)
-                Remove<Child>();
+                Scene.ChildTable.Remove(this);
             else
-                Set(new Child(value.Id));
+                Scene.ChildTable.Set(this, new Child(value.Id));
         }
     }
 
@@ -73,15 +73,15 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Has<Disabled>();
+            return Scene.DisabledTable.Has(this);
         }
         set
         {
             EnsureValid();
             if (value)
-                Set<Disabled>();
+                Scene.DisabledTable.Set(this, new Disabled());
             else
-                Remove<Disabled>();
+                Scene.DisabledTable.Remove(this);
         }
     }
 
@@ -162,50 +162,45 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Get<Transform>();
+            return Scene.TransformTable.GetRef(this);
         }
         set
         {
             EnsureValid();
-            var table = Scene.Table<Transform>();
-            ref var transform = ref table.GetRef(this);
+            ref var transform = ref Scene.TransformTable.GetRef(this).Value;
             var oldTransform = transform;
             if (Precision.AreEqual(value, oldTransform))
                 return;
             transform = value;
-            var positionTable = Scene.Table<Position>();
-            ref var position = ref positionTable.GetRef(this);
+            ref var position = ref Scene.PositionTable.GetRef(this).Value;
             var oldPosition = position;
             var positionChanged = !Precision.AreEqual(value.Position, oldPosition);
             if (positionChanged)
                 position.Value = value.Position;
-            var scaleTable = Scene.Table<Scale>();
-            ref var scale = ref scaleTable.GetRef(this);
+            ref var scale = ref Scene.ScaleTable.GetRef(this).Value;
             var oldScale = scale;
             var scaleChanged = !Precision.AreEqual(value.Scale, oldScale);
             if (scaleChanged)
                 scale.Value = value.Scale;
-            var rotationTable = Scene.Table<Rotation>();
-            ref var rotation = ref rotationTable.GetRef(this);
+            ref var rotation = ref Scene.RotationTable.GetRef(this).Value;
             var oldRotation = rotation;
             var rotationChanged = !Precision.AreEqual(value.Rotation, oldRotation);
             if (rotationChanged)
                 rotation.Value = value.Rotation;
-            var pivotPointTable = Scene.Table<PivotPoint>();
-            ref var pivotPoint = ref pivotPointTable.GetRef(this);
+            ref var pivotPoint = ref Scene.PivotPointTable.GetRef(this).Value;
             var oldPivotPoint = pivotPoint;
             var pivotPointChanged = !Precision.AreEqual(value.PivotPoint, oldPivotPoint);
             if (pivotPointChanged)
                 pivotPoint.Value = value.PivotPoint;
-            table.Enqueue(Table.Event<Transform>.Set(this, oldTransform, value));
+            Scene.TransformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, value));
             if (positionChanged)
-                positionTable.Enqueue(Table.Event<Position>.Set(this, oldPosition, value.Position));
+                Scene.PositionTable.Enqueue(Table.Event<Position>.Set(this, oldPosition, value.Position));
             if (scaleChanged)
-                scaleTable.Enqueue(Table.Event<Scale>.Set(this, oldScale, value.Scale));
+                Scene.ScaleTable.Enqueue(Table.Event<Scale>.Set(this, oldScale, value.Scale));
             if (rotationChanged)
-                rotationTable.Enqueue(Table.Event<Rotation>.Set(this, oldRotation, value.Rotation));
+                Scene.RotationTable.Enqueue(Table.Event<Rotation>.Set(this, oldRotation, value.Rotation));
             if (pivotPointChanged)
-                pivotPointTable.Enqueue(Table.Event<PivotPoint>.Set(this, oldPivotPoint, value.PivotPoint));
+                Scene.PivotPointTable.Enqueue(Table.Event<PivotPoint>.Set(this, oldPivotPoint, value.PivotPoint));
         }
     }
 
@@ -214,23 +209,21 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Get<Position>();
+            return Scene.PositionTable.GetRef(this).Read;
         }
         set
         {
             EnsureValid();
-            var table = Scene.Table<Position>();
-            ref var position = ref table.GetRef(this);
+            ref var position = ref Scene.PositionTable.GetRef(this).Value;
             var oldPosition = position;
             if (Precision.AreEqual(value, oldPosition))
                 return;
             position.Value = value;
-            var transformTable = Scene.Table<Transform>();
-            ref var transform = ref transformTable.GetRef(this);
+            ref var transform = ref Scene.TransformTable.GetRef(this).Value;
             var oldTransform = transform;
             transform.Position = value;
-            table.Enqueue(Table.Event<Position>.Set(this, oldPosition, value));
-            transformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
+            Scene.PositionTable.Enqueue(Table.Event<Position>.Set(this, oldPosition, value));
+            Scene.TransformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
         }
     }
 
@@ -239,23 +232,21 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Get<Scale>();
+            return Scene.ScaleTable.GetRef(this).Read;
         }
         set
         {
             EnsureValid();
-            var table = Scene.Table<Scale>();
-            ref var scale = ref table.GetRef(this);
+            ref var scale = ref Scene.ScaleTable.GetRef(this).Value;
             var oldScale = scale;
             if (Precision.AreEqual(value, oldScale))
                 return;
             scale.Value = value;
-            var transformTable = Scene.Table<Transform>();
-            ref var transform = ref transformTable.GetRef(this);
+            ref var transform = ref Scene.TransformTable.GetRef(this).Value;
             var oldTransform = transform;
             transform.Scale = value;
-            table.Enqueue(Table.Event<Scale>.Set(this, oldScale, value));
-            transformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
+            Scene.ScaleTable.Enqueue(Table.Event<Scale>.Set(this, oldScale, value));
+            Scene.TransformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
         }
     }
 
@@ -264,23 +255,21 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Get<Rotation>();
+            return Scene.RotationTable.GetRef(this).Read;
         }
         set
         {
             EnsureValid();
-            var table = Scene.Table<Rotation>();
-            ref var rotation = ref table.GetRef(this);
+            ref var rotation = ref Scene.RotationTable.GetRef(this).Value;
             var oldRotation = rotation;
             if (Precision.AreEqual(value, oldRotation))
                 return;
             rotation.Value = value;
-            var transformTable = Scene.Table<Transform>();
-            ref var transform = ref transformTable.GetRef(this);
+            ref var transform = ref Scene.TransformTable.GetRef(this).Value;
             var oldTransform = transform;
             transform.Rotation = value;
-            table.Enqueue(Table.Event<Rotation>.Set(this, oldRotation, value));
-            transformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
+            Scene.RotationTable.Enqueue(Table.Event<Rotation>.Set(this, oldRotation, value));
+            Scene.TransformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
         }
     }
 
@@ -289,23 +278,21 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Get<PivotPoint>();
+            return Scene.PivotPointTable.GetRef(this).Read;
         }
         set
         {
             EnsureValid();
-            var table = Scene.Table<PivotPoint>();
-            ref var pivotPoint = ref table.GetRef(this);
+            ref var pivotPoint = ref Scene.PivotPointTable.GetRef(this).Value;
             var oldPivotPoint = pivotPoint;
             if (Precision.AreEqual(value, oldPivotPoint))
                 return;
             pivotPoint.Value = value;
-            var transformTable = Scene.Table<Transform>();
-            ref var transform = ref transformTable.GetRef(this);
+            ref var transform = ref Scene.TransformTable.GetRef(this).Value;
             var oldTransform = transform;
             transform.PivotPoint = value;
-            table.Enqueue(Table.Event<PivotPoint>.Set(this, oldPivotPoint, value));
-            transformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
+            Scene.PivotPointTable.Enqueue(Table.Event<PivotPoint>.Set(this, oldPivotPoint, value));
+            Scene.TransformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
         }
     }
 
@@ -314,18 +301,17 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             EnsureValid();
-            return Get<ZIndex>();
+            return Scene.ZIndexTable.GetRef(this).Read;
         }
         set
         {
             EnsureValid();
-            var table = Scene.Table<ZIndex>();
-            ref var zIndex = ref table.GetRef(this);
+            ref var zIndex = ref Scene.ZIndexTable.GetRef(this).Value;
             var oldZIndex = zIndex;
             if (value == oldZIndex.Value)
                 return;
             zIndex.Value = value;
-            table.Enqueue(Table.Event<ZIndex>.Set(this, oldZIndex, value));
+            Scene.ZIndexTable.Enqueue(Table.Event<ZIndex>.Set(this, oldZIndex, value));
         }
     }
 
@@ -382,7 +368,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     {
         EnsureValid();
         Unsafe.SkipInit(out value);
-        var data = new ComponentRef<T>(ref Scene.Table<T>().GetRef(this));
+        var data = Scene.Table<T>().GetRef(this);
         if (data.IsNull)
             return false;
         value = data;
@@ -403,14 +389,14 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public T GetOrDefault<T>(in T defaultValue)
     {
         EnsureValid();
-        var value = new ComponentRef<T>(ref Scene.Table<T>().GetRef(this));
+        var value = Scene.Table<T>().GetRef(this);
         return value.IsNull ? defaultValue : value;
     }
 
     public T GetOrDefault<T>(Func<T> defaultFunc)
     {
         EnsureValid();
-        var value = new ComponentRef<T>(ref Scene.Table<T>().GetRef(this));
+        var value = Scene.Table<T>().GetRef(this);
         return value.IsNull ? defaultFunc.Invoke() : value;
     }
 
@@ -429,7 +415,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public ComponentRef<T> GetRef<T>()
     {
         EnsureValid();
-        return new ComponentRef<T>(ref Scene.Table<T>().GetRef(this));
+        return Scene.Table<T>().GetRef(this);
     }
 
     [OverloadResolutionPriority(1)]
@@ -460,11 +446,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         where T : new()
     {
         EnsureValid();
-        var value = new T();
-        ref var reference = ref Scene.Table<T>().Set(this, value);
-#pragma warning disable CS9082
-        componentRef = new ComponentRef<T>(ref reference);
-#pragma warning restore CS9082
+        componentRef = Scene.Table<T>().Set(this, new T());
         return ref this;
     }
 
@@ -475,12 +457,10 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return ref this;
     }
 
-    public ref readonly Entity Set<T>(T value, out ComponentRef<T> componentRef)
+    public ref readonly Entity Set<T>(scoped in T value, out ComponentRef<T> componentRef)
     {
         EnsureValid();
-#pragma warning disable CS9087
-        componentRef = new ComponentRef<T>(ref Scene.Table<T>().Set(this, value));
-#pragma warning restore CS9087
+        componentRef = Scene.Table<T>().Set(this, value);
         return ref this;
     }
 
@@ -491,19 +471,29 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return ref this;
     }
 
-    public ref readonly Entity Remove<T>(bool ignoreErrors = false)
+    public ref readonly Entity Remove<T>(bool ignoreImmutability = false)
     {
         EnsureValid();
         Scene
             .Table<T>()
-            .Remove(this, ignoreErrors ? Table.OperationStrategy.IgnoreErrors : Table.OperationStrategy.Default);
+            .Remove(
+                this,
+                ignoreImmutability
+                    ? Table.OperationStrategy.IgnoreImmutability
+                    : Table.OperationStrategy.EnforceImmutability
+            );
         return ref this;
     }
 
-    public ref readonly Entity Remove(Table table, bool ignoreErrors = false)
+    public ref readonly Entity Remove(Table table, bool ignoreImmutability = false)
     {
         EnsureValid();
-        table.Remove(this, ignoreErrors ? Table.OperationStrategy.IgnoreErrors : Table.OperationStrategy.Default);
+        table.Remove(
+            this,
+            ignoreImmutability
+                ? Table.OperationStrategy.IgnoreImmutability
+                : Table.OperationStrategy.EnforceImmutability
+        );
         return ref this;
     }
 
@@ -871,7 +861,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             }
 
             Current = new Entity(_nextChildId, _parent.Scene);
-            var childRef = Current.GetRef<Child>();
+            var childRef = _parent.Scene.ChildTable.GetRef(Current);
             _nextChildId = childRef.IsNull ? 0 : childRef.Read.NextSiblingId;
             return true;
         }
@@ -881,7 +871,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             if (_nextChildId > 0)
                 Dispose();
             _parent.EnsureValid();
-            var parentRef = _parent.GetRef<Parent>();
+            var parentRef = _parent.Scene.ParentTable.GetRef(_parent);
             _nextChildId = parentRef.IsNull ? 0 : parentRef.Read.FirstChildId;
             Current = Null;
             _disposed = false;
@@ -942,15 +932,13 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
         public bool TryGetHasChild(out bool hasChild)
         {
-            EnsureDeferred();
-            var parentRef = Origin.GetRef<Parent>();
+            var parentRef = Origin.Scene.ParentTable.GetRef(Origin);
             hasChild = !parentRef.IsNull && parentRef.Read.FirstChildId != 0;
             return true;
         }
 
         public bool TryGetParent(out Entity parent)
         {
-            EnsureDeferred();
             parent = Origin.Parent;
             return !parent.IsNull;
         }
@@ -960,7 +948,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             EnsureDeferred();
             if (!_childrenInitialized)
             {
-                var parentRef = Origin.GetRef<Parent>();
+                var parentRef = Origin.Scene.ParentTable.GetRef(Origin);
                 _nextChildId = parentRef.IsNull ? 0 : parentRef.Read.FirstChildId;
                 _childrenInitialized = true;
             }
@@ -972,7 +960,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             }
 
             child = new Entity(_nextChildId, Origin.Scene);
-            var childRef = child.GetRef<Child>();
+            var childRef = child.Scene.ChildTable.GetRef(child);
             _nextChildId = childRef.IsNull ? 0 : childRef.Read.NextSiblingId;
             return true;
         }
@@ -982,7 +970,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             EnsureDeferred();
             if (!_nextSiblingInitialized)
             {
-                var childRef = Origin.GetRef<Child>();
+                var childRef = Origin.Scene.ChildTable.GetRef(Origin);
                 _nextSiblingId = childRef.IsNull ? 0 : childRef.Read.NextSiblingId;
                 _nextSiblingInitialized = true;
             }
@@ -994,7 +982,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             }
 
             next = new Entity(_nextSiblingId, Origin.Scene);
-            var nextChildRef = next.GetRef<Child>();
+            var nextChildRef = next.Scene.ChildTable.GetRef(next);
             _nextSiblingId = nextChildRef.IsNull ? 0 : nextChildRef.Read.NextSiblingId;
             return true;
         }
@@ -1004,7 +992,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             EnsureDeferred();
             if (!_previousSiblingInitialized)
             {
-                var childRef = Origin.GetRef<Child>();
+                var childRef = Origin.Scene.ChildTable.GetRef(Origin);
                 _previousSiblingId = childRef.IsNull ? 0 : childRef.Read.PreviousSiblingId;
                 _previousSiblingInitialized = true;
             }
@@ -1016,7 +1004,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
             }
 
             previous = new Entity(_previousSiblingId, Origin.Scene);
-            var prevChildRef = previous.GetRef<Child>();
+            var prevChildRef = previous.Scene.ChildTable.GetRef(previous);
             _previousSiblingId = prevChildRef.IsNull ? 0 : prevChildRef.Read.PreviousSiblingId;
             return true;
         }

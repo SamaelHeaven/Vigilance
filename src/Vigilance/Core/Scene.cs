@@ -41,11 +41,31 @@ public sealed partial class Scene
     private List<IGameSystem> _systems = null!;
     private float _time;
     private Action? _updateAction;
+    internal Table<Child> ChildTable;
+    internal Table<Disabled> DisabledTable;
+    internal Table<Name> NameTable;
+    internal Table<Parent> ParentTable;
+    internal Table<PivotPoint> PivotPointTable;
+    internal Table<Position> PositionTable;
+    internal Table<Rotation> RotationTable;
+    internal Table<Scale> ScaleTable;
+    internal Table<Transform> TransformTable;
+    internal Table<ZIndex> ZIndexTable;
 
     public Scene(GameSystemsFunc? systems = null)
     {
         _entities.Add((0, 0));
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
+        NameTable = Table<Name>();
+        ZIndexTable = Table<ZIndex>();
+        PositionTable = Table<Position>();
+        ScaleTable = Table<Scale>();
+        RotationTable = Table<Rotation>();
+        PivotPointTable = Table<PivotPoint>();
+        TransformTable = Table<Transform>();
+        DisabledTable = Table<Disabled>();
+        ChildTable = Table<Child>();
+        ParentTable = Table<Parent>();
         OnSet<Position>(OnSetPosition);
         OnSet<Scale>(OnSetScale);
         OnSet<Rotation>(OnSetRotation);
@@ -146,16 +166,16 @@ public sealed partial class Scene
         nameId = id;
         var entity = new Entity(id, this);
         SuspendDefer();
-        entity.Set(new Name(name));
-        entity.Set(new ZIndex());
-        entity.Set(new Position());
-        entity.Set(new Scale());
-        entity.Set(new Rotation());
-        entity.Set(new PivotPoint());
-        entity.Set(new Transform());
+        NameTable.Set(entity, new Name(name));
+        ZIndexTable.Set(entity, new ZIndex());
+        PositionTable.Set(entity, new Position());
+        ScaleTable.Set(entity, new Scale());
+        RotationTable.Set(entity, new Rotation());
+        PivotPointTable.Set(entity, new PivotPoint());
+        TransformTable.Set(entity, new Transform());
         ResumeDefer();
         if (!Scope.IsNull)
-            entity.Set(new Child(Scope.Id));
+            ChildTable.Set(entity, new Child(Scope.Id));
         if (IsDeferred)
             Enqueue(Event.Instantiate(entity));
         else
@@ -698,103 +718,94 @@ public sealed partial class Scene
 
     private void OnSetPosition(Entity entity, Position position)
     {
-        var table = Table<Transform>();
-        ref var transform = ref table.GetRef(entity);
+        ref var transform = ref TransformTable.GetRef(entity).Value;
         var oldTransform = transform;
         if (Precision.AreEqual(oldTransform.Position, position))
             return;
         transform.Position = position;
-        table.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
+        TransformTable.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
     private void OnSetScale(Entity entity, Scale scale)
     {
-        var table = Table<Transform>();
-        ref var transform = ref table.GetRef(entity);
+        ref var transform = ref TransformTable.GetRef(entity).Value;
         var oldTransform = transform;
         if (Precision.AreEqual(oldTransform.Scale, scale))
             return;
         transform.Scale = scale;
-        table.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
+        TransformTable.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
     private void OnSetRotation(Entity entity, Rotation rotation)
     {
-        var table = Table<Transform>();
-        ref var transform = ref table.GetRef(entity);
+        ref var transform = ref TransformTable.GetRef(entity).Value;
         var oldTransform = transform;
         if (Precision.AreEqual(oldTransform.Rotation, rotation))
             return;
         transform.Rotation = rotation;
-        table.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
+        TransformTable.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
     private void OnSetPivotPoint(Entity entity, PivotPoint pivotPoint)
     {
-        var table = Table<Transform>();
-        ref var transform = ref table.GetRef(entity);
+        ref var transform = ref TransformTable.GetRef(entity).Value;
         var oldTransform = transform;
         if (Precision.AreEqual(oldTransform.PivotPoint, pivotPoint))
             return;
         transform.PivotPoint = pivotPoint;
-        table.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
+        TransformTable.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
     private void OnSetTransform(Entity entity, Transform transform)
     {
-        var positionTable = Table<Position>();
-        ref var position = ref positionTable.GetRef(entity);
+        ref var position = ref PositionTable.GetRef(entity).Value;
         var oldPosition = position;
         var positionChanged = !Precision.AreEqual(transform.Position, oldPosition);
         if (positionChanged)
             position.Value = transform.Position;
-        var scaleTable = Table<Scale>();
-        ref var scale = ref scaleTable.GetRef(entity);
+        ref var scale = ref ScaleTable.GetRef(entity).Value;
         var oldScale = scale;
         var scaleChanged = !Precision.AreEqual(transform.Scale, oldScale);
         if (scaleChanged)
             scale.Value = transform.Scale;
-        var rotationTable = Table<Rotation>();
-        ref var rotation = ref rotationTable.GetRef(entity);
+        ref var rotation = ref RotationTable.GetRef(entity).Value;
         var oldRotation = rotation;
         var rotationChanged = !Precision.AreEqual(transform.Rotation, oldRotation);
         if (rotationChanged)
             rotation.Value = transform.Rotation;
-        var pivotPointTable = Table<PivotPoint>();
-        ref var pivotPoint = ref pivotPointTable.GetRef(entity);
+        ref var pivotPoint = ref PivotPointTable.GetRef(entity).Value;
         var oldPivotPoint = pivotPoint;
         var pivotPointChanged = !Precision.AreEqual(transform.PivotPoint, oldPivotPoint);
         if (pivotPointChanged)
             pivotPoint.Value = transform.PivotPoint;
         if (positionChanged)
-            positionTable.Emit(Core.Table.Event<Position>.Set(entity, oldPosition, transform.Position));
+            PositionTable.Emit(Core.Table.Event<Position>.Set(entity, oldPosition, transform.Position));
         if (scaleChanged)
-            scaleTable.Emit(Core.Table.Event<Scale>.Set(entity, oldScale, transform.Scale));
+            ScaleTable.Emit(Core.Table.Event<Scale>.Set(entity, oldScale, transform.Scale));
         if (rotationChanged)
-            rotationTable.Emit(Core.Table.Event<Rotation>.Set(entity, oldRotation, transform.Rotation));
+            RotationTable.Emit(Core.Table.Event<Rotation>.Set(entity, oldRotation, transform.Rotation));
         if (pivotPointChanged)
-            pivotPointTable.Emit(Core.Table.Event<PivotPoint>.Set(entity, oldPivotPoint, transform.PivotPoint));
+            PivotPointTable.Emit(Core.Table.Event<PivotPoint>.Set(entity, oldPivotPoint, transform.PivotPoint));
     }
 
     private void OnAddChild(Entity entity, Child child)
     {
-        var table = Table<Child>();
         var parentId = child.ParentId;
         if (parentId == 0)
             return;
         var parentEntity = new Entity(parentId, this);
-        var parentRef = parentEntity.GetRef<Parent>();
+        var parentRef = ParentTable.GetRef(parentEntity);
         if (parentRef.IsNull)
-            parentEntity.Set(new Parent(), out parentRef);
-        ref var parent = ref parentRef.Write;
-        ref var childRef = ref table.GetRef(entity);
+            parentRef = ParentTable.Set(parentEntity, new Parent());
+        ref var parent = ref parentRef.Value;
+        ref var childRef = ref ChildTable.GetRef(entity).Value;
         var childId = entity.Id;
         childRef.PreviousSiblingId = parent.LastChildId;
         childRef.NextSiblingId = 0;
         if (parent.LastChildId != 0)
         {
             var lastEntity = new Entity(parent.LastChildId, this);
-            ref var lastChild = ref table.GetRef(lastEntity);
+            ref var lastChild = ref ChildTable.GetRef(lastEntity).Value;
             lastChild.NextSiblingId = childId;
         }
         else
@@ -822,18 +833,17 @@ public sealed partial class Scene
         var parentId = child.ParentId;
         if (parentId == 0)
             return;
-        var table = Table<Child>();
         var parentEntity = new Entity(parentId, this);
-        var parentRef = parentEntity.GetRef<Parent>();
+        var parentRef = ParentTable.GetRef(parentEntity);
         if (parentRef.IsNull)
             return;
-        ref var parent = ref parentRef.Write;
+        ref var parent = ref parentRef.Value;
         var prevId = child.PreviousSiblingId;
         var nextId = child.NextSiblingId;
         if (prevId != 0)
         {
             var prevEntity = new Entity(prevId, this);
-            ref var prev = ref table.GetRef(prevEntity);
+            ref var prev = ref ChildTable.GetRef(prevEntity).Value;
             prev.NextSiblingId = nextId;
         }
         else
@@ -844,7 +854,7 @@ public sealed partial class Scene
         if (nextId != 0)
         {
             var nextEntity = new Entity(nextId, this);
-            ref var next = ref table.GetRef(nextEntity);
+            ref var next = ref ChildTable.GetRef(nextEntity).Value;
             next.PreviousSiblingId = prevId;
         }
         else
@@ -853,7 +863,7 @@ public sealed partial class Scene
         }
 
         if (parent.FirstChildId == 0)
-            parentEntity.Remove<Parent>();
+            ParentTable.Remove(parentEntity);
     }
 
     #endregion

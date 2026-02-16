@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
 namespace Vigilance.Core;
 
@@ -11,6 +10,12 @@ public abstract class Table
         Add,
         Set,
         Remove,
+    }
+
+    public enum OperationStrategy
+    {
+        EnforceImmutability,
+        IgnoreImmutability,
     }
 
     internal static int CurrentIndex = -1;
@@ -35,28 +40,21 @@ public abstract class Table
 
     public abstract bool WriteImmutable { get; }
 
-    internal abstract bool Has(in Entity entity);
+    public abstract bool Has(in Entity entity);
 
-    internal abstract object? Get(in Entity entity);
+    public abstract object? Get(in Entity entity);
 
-    internal abstract void Set(
+    public abstract void Set(
         in Entity entity,
         object? component,
-        OperationStrategy strategy = OperationStrategy.Default
+        OperationStrategy strategy = OperationStrategy.EnforceImmutability
     );
 
-    internal abstract void Remove(in Entity entity, OperationStrategy strategy = OperationStrategy.Default);
+    public abstract void Remove(in Entity entity, OperationStrategy strategy = OperationStrategy.EnforceImmutability);
 
     internal abstract void DequeueOperation();
 
     internal abstract void DequeueEvent();
-
-    internal enum OperationStrategy
-    {
-        Default,
-        IgnoreErrors,
-        Force,
-    }
 
     public readonly record struct Event<T>(EventType Type, Entity Entity, T OldValue, T NewValue)
     {
@@ -74,6 +72,14 @@ public abstract class Table
         {
             return new Event<T>(EventType.Remove, entity, default!, value);
         }
+    }
+}
+
+public static class TableExtensions
+{
+    extension(Table.OperationStrategy)
+    {
+        internal static Table.OperationStrategy Force => (Table.OperationStrategy)(-1);
     }
 }
 
@@ -164,7 +170,7 @@ public sealed class Table<T> : Table
         }
     }
 
-    internal override bool Has(in Entity entity)
+    public override bool Has(in Entity entity)
     {
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
@@ -177,22 +183,22 @@ public sealed class Table<T> : Table
         return sparseValue != 0;
     }
 
-    internal override object? Get(in Entity entity)
+    public override object? Get(in Entity entity)
     {
-        ref var value = ref GetRef(in entity);
-        return Unsafe.IsNullRef(ref value) ? null : value;
+        var value = GetRef(in entity);
+        return value.IsNull ? null : value.Read;
     }
 
-    internal override void Set(
+    public override void Set(
         in Entity entity,
         object? component,
-        OperationStrategy strategy = OperationStrategy.Default
+        OperationStrategy strategy = OperationStrategy.EnforceImmutability
     )
     {
         Set(entity, (T)component!, strategy);
     }
 
-    internal override void Remove(in Entity entity, OperationStrategy strategy = OperationStrategy.Default)
+    public override void Remove(in Entity entity, OperationStrategy strategy = OperationStrategy.EnforceImmutability)
     {
         if (Scene.IsDeferred)
         {
@@ -215,11 +221,11 @@ public sealed class Table<T> : Table
         if (RemoveImmutable)
             switch (strategy)
             {
-                case OperationStrategy.Default:
+                case OperationStrategy.EnforceImmutability:
                     throw new InvalidOperationException(
                         $"Cannot remove {Type} because it implements {nameof(IRemoveImmutableComponent)}."
                     );
-                case OperationStrategy.IgnoreErrors:
+                case OperationStrategy.IgnoreImmutability:
                     return;
             }
 
@@ -265,29 +271,33 @@ public sealed class Table<T> : Table
         Emit(@event);
     }
 
-    internal ref T GetRef(in Entity entity)
+    internal ComponentRef<T> GetRef(in Entity entity)
     {
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
-            return ref Unsafe.NullRef<T>();
+            return ComponentRef<T>.Null;
         var chunk = _sparseChunks[chunkIndex];
         if (chunk == null)
-            return ref Unsafe.NullRef<T>();
+            return ComponentRef<T>.Null;
         var withinChunk = entity.Index % SparseChunkSize;
         var sparseValue = chunk[withinChunk];
         if (sparseValue == 0)
-            return ref Unsafe.NullRef<T>();
+            return ComponentRef<T>.Null;
         var denseIndex = sparseValue - 1;
-        return ref Components.AsSpan()[denseIndex];
+        return new ComponentRef<T>(ref Components.AsSpan()[denseIndex]);
     }
 
-    internal ref T Set(in Entity entity, in T component, OperationStrategy strategy = OperationStrategy.Default)
+    internal ComponentRef<T> Set(
+        in Entity entity,
+        scoped in T component,
+        OperationStrategy strategy = OperationStrategy.EnforceImmutability
+    )
     {
         if (Scene.IsDeferred)
         {
             _operations.Enqueue(new Operation(OperationType.Set, entity, component));
             Scene.Enqueue(Scene.Event.TableOperation(this));
-            return ref Unsafe.NullRef<T>();
+            return ComponentRef<T>.Null;
         }
 
         EnsureChunk(entity.Index);
@@ -302,18 +312,18 @@ public sealed class Table<T> : Table
             DenseIds.Add(entity.Id);
             chunk[withinChunk] = index;
             Emit(Event<T>.Add(entity, component));
-            return ref Components.AsSpan()[index - 1];
+            return new ComponentRef<T>(ref Components.AsSpan()[index - 1]);
         }
 
         if (SetImmutable)
             switch (strategy)
             {
-                case OperationStrategy.Default:
+                case OperationStrategy.EnforceImmutability:
                     throw new InvalidOperationException(
                         $"Cannot set {Type} because it implements {nameof(ISetImmutableComponent)}."
                     );
-                case OperationStrategy.IgnoreErrors:
-                    return ref Unsafe.NullRef<T>();
+                case OperationStrategy.IgnoreImmutability:
+                    return ComponentRef<T>.Null;
             }
 
         var denseIndex = sparseValue - 1;
@@ -321,7 +331,7 @@ public sealed class Table<T> : Table
         var oldValue = componentRef;
         componentRef = component;
         Emit(Event<T>.Set(entity, oldValue, component));
-        return ref componentRef!;
+        return new ComponentRef<T>(ref componentRef!);
     }
 
     internal void OnAdd(Action<Entity, T> action)

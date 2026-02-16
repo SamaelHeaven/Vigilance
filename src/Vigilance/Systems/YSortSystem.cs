@@ -10,6 +10,6 @@ public sealed class YSortSystem(float offset = 0) : GameSystem(queryWithDisabled
     public override void PreRender()
     {
         foreach (var (entity, ySort) in Entries<YSort>())
-            entity.Set<ZIndex>((int)(entity.WorldPosition.Y + Offset + ySort.Offset).Round());
+            entity.ZIndex = (int)(entity.WorldPosition.Y + Offset + ySort.Offset).Round();
     }
 }

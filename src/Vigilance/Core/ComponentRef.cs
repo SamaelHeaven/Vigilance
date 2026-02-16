@@ -4,20 +4,20 @@ namespace Vigilance.Core;
 
 public readonly ref struct ComponentRef<T>
 {
-    private readonly ref T _value;
+    internal readonly ref T Value;
 
     public ComponentRef(ref T value)
     {
-        _value = ref value;
+        Value = ref value;
     }
 
     public static ComponentRef<T> Null => new(ref Unsafe.NullRef<T>());
 
     public static bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public bool IsNull => Unsafe.IsNullRef(ref _value);
+    public bool IsNull => Unsafe.IsNullRef(ref Value);
 
-    public ref readonly T Read => ref _value;
+    public ref readonly T Read => ref Value;
 
     public ref T Write
     {
@@ -27,12 +27,12 @@ public readonly ref struct ComponentRef<T>
                 throw new InvalidOperationException(
                     $"Cannot write {typeof(T)} because it implements {nameof(IWriteImmutableComponent)}."
                 );
-            return ref _value;
+            return ref Value;
         }
     }
 
     public static implicit operator T(ComponentRef<T> componentRef)
     {
-        return componentRef._value;
+        return componentRef.Value;
     }
 }
