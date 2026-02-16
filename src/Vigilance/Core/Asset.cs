@@ -117,27 +117,35 @@ public static class Asset
             [MaybeNullWhen(false)] out TValue value
         )
         {
-            var key = keyFunc.Invoke();
-            var cacheTypeValue = cacheType ?? DefaultCacheType;
-            var weak = cacheTypeValue == CacheType.Weak;
-            var strong = cacheTypeValue == CacheType.Strong;
-            if (weak || strong)
+            try
             {
-                if (weakValues.TryGetValue(key, out var reference))
-                    if (reference.TryGetTarget(out value!))
+                var key = keyFunc.Invoke();
+                var cacheTypeValue = cacheType ?? DefaultCacheType;
+                var weak = cacheTypeValue == CacheType.Weak;
+                var strong = cacheTypeValue == CacheType.Strong;
+                if (weak || strong)
+                {
+                    if (weakValues.TryGetValue(key, out var reference))
+                        if (reference.TryGetTarget(out value!))
+                            return true;
+                    if (strongValues.TryGetValue(key, out value!))
                         return true;
-                if (strongValues.TryGetValue(key, out value!))
-                    return true;
-            }
+                }
 
-            value = valueFunc.Invoke();
-            if (value is null)
+                value = valueFunc.Invoke();
+                if (value is null)
+                    return false;
+                if (weak)
+                    weakValues[key] = new WeakReference<TValue>(value);
+                if (strong)
+                    strongValues[key] = value;
+                return true;
+            }
+            catch
+            {
+                value = null;
                 return false;
-            if (weak)
-                weakValues[key] = new WeakReference<TValue>(value);
-            if (strong)
-                strongValues[key] = value;
-            return true;
+            }
         }
 
         private static void Invalidate(TValue value, Dictionary<TKey, WeakReference<TValue>> values)

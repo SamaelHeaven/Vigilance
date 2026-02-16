@@ -53,7 +53,17 @@ public sealed class SceneGenerator : SourceGenerator
     private static void Entities(StringBuilder sb)
     {
         sb.BeginRegion("Entities");
-        sb.AppendLine(QueryIterator("Entity", "Entity", "GetEntities", "_entity", ["ZIndex"], visibility: "internal"));
+        sb.AppendLine(
+            QueryIterator(
+                "Entity",
+                "Entity",
+                "GetEntities",
+                "_entity",
+                ["ZIndex"],
+                visibility: "internal",
+                noFields: true
+            )
+        );
         sb.EndRegion();
     }
 
@@ -98,7 +108,8 @@ public sealed class SceneGenerator : SourceGenerator
         string current,
         List<string> tables,
         string typeParams = "",
-        string visibility = "public"
+        string visibility = "public",
+        bool noFields = false
     )
     {
         return $$"""
@@ -141,10 +152,10 @@ public sealed class SceneGenerator : SourceGenerator
                     private readonly bool _deferred;
                     private bool _hasDeferBegun;
                     private int _index;
-                    private int _tableIndex;
+                    {{(tables.Count > 1 ? "private int _tableIndex; " : "")}}
                     private Entity _entity;
             {{string.Join("\n", tables.Select((t, i) => $"        private Table<{t}> _table{i};"))}}
-            {{string.Join("\n", tables.Select((t, i) => $"        private {t} _field{i} = default!;"))}}
+            {{(noFields ? "" : string.Join("\n", tables.Select((t, i) => $"        private {t} _field{i} = default!;")))}}
                     
                     internal {{name}}Enumerator(Scene scene, bool withDisabled, bool deferred)
                     {
@@ -157,30 +168,31 @@ public sealed class SceneGenerator : SourceGenerator
 
                     public bool MoveNext()
                     {
-                        switch (_tableIndex) 
-                        {
+                        {{(tables.Count > 1 ? "switch (_tableIndex)\n            " : "")}}{
             {{string.Join("\n", tables.Select((_, i) => $$"""
-                                case {{i}}:
-                                {
+                                {{(tables.Count > 1 ? $"case {i}:\n                " : "")}}{
+                                    TABLE{{i}}:
                                     if (_index + 1 >= _table{{i}}.Components.Count) 
                                         return false;
                                     _index++;
                                     _entity = new Entity(_table{{i}}.DenseIds[_index], _scene);
                                     if (!_withDisabled && _scene.DisabledTable.Has(_entity))
-                                        goto case {{i}};
+                                        goto TABLE{{i}};
                 {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
                                         ref var field{j} = ref _table{j}.GetRef(_entity).Value;
                                         if (System.Runtime.CompilerServices.Unsafe.IsNullRef(ref field{j}))
-                                            goto case {i};
+                                            goto TABLE{i};
                                         _field{j} = field{j};
                     """).Where(str => str != ""))}}
-                                    _field{{i}} = _table{{i}}.Components[_index];
+                                    {{(noFields ? "" : $"_field{i} = _table{i}.Components[_index];")}}
                                     return true;
                                 }
                 """))}}
                         }
                         
+            #pragma warning disable CS0162
                         return false;
+            #pragma warning restore CS0162
                     }
 
                     public void Reset()
@@ -188,16 +200,15 @@ public sealed class SceneGenerator : SourceGenerator
                         Dispose();
                         _index = -1;
                         _entity = Core.Entity.Null;
-            {{string.Join("\n", tables.Select((_, i) => $"            _field{i} = default!;"))}}
-                        var smallestCount = int.MaxValue;
-            {{string.Join("\n", tables.Select((_, i) => $$"""
+            {{(noFields ? "" : string.Join("\n", tables.Select((_, i) => $"            _field{i} = default!;")))}}{{(tables.Count > 1 ? "            var smallestCount = int.MaxValue;\n" : "")}}
+            {{(tables.Count > 1 ? string.Join("\n", tables.Select((_, i) => $$"""
                             if (_table{{i}}.Components.Count < smallestCount)
                             {
                                 smallestCount = _table{{i}}.Components.Count;
                                 _tableIndex = {{i}};
                             }
                             
-                """))}}
+                """)) : "")}}
                         if (_deferred)
                             _scene.BeginDefer();
                         _hasDeferBegun = true;
