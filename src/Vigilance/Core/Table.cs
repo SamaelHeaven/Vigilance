@@ -24,6 +24,8 @@ public abstract class Table
 
     public abstract Type Type { get; }
 
+    public abstract int Count { get; }
+
     public abstract bool IsHidden { get; }
 
     public abstract bool SkipAddEvent { get; }
@@ -106,6 +108,8 @@ public sealed class Table<T> : Table
     public override Scene Scene { get; }
 
     public override Type Type { get; } = typeof(T);
+
+    public override int Count => Components.Count;
 
     public override bool IsHidden { get; } = typeof(IHiddenComponent).IsAssignableFrom(typeof(T));
 
