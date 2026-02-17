@@ -30,6 +30,8 @@ public abstract class Table
 
     public abstract int Count { get; }
 
+    public abstract int Capacity { get; set; }
+
     public abstract bool IsHidden { get; }
 
     public abstract bool SkipAddEvent { get; }
@@ -53,8 +55,6 @@ public abstract class Table
     public abstract void Set(in Entity entity, object? component, Flags flags = Flags.Default);
 
     public abstract void Remove(in Entity entity, Flags flags = Flags.Default);
-
-    public abstract void Shrink();
 
     internal abstract void DequeueOperation();
 
@@ -113,6 +113,16 @@ public sealed class Table<T> : Table
 
     public override int Count => Components.Count;
 
+    public override int Capacity
+    {
+        get => Components.Capacity;
+        set
+        {
+            Components.Capacity = value;
+            DenseIds.Capacity = value;
+        }
+    }
+
     public override bool IsHidden { get; } = typeof(IHiddenComponent).IsAssignableFrom(typeof(T));
 
     public override bool SkipAddEvent { get; } = typeof(ISkipAddEventComponent).IsAssignableFrom(typeof(T));
@@ -129,6 +139,11 @@ public sealed class Table<T> : Table
     public override bool RemoveImmutable { get; } = typeof(IRemoveImmutableComponent).IsAssignableFrom(typeof(T));
 
     public override bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
+
+    public ReadOnlySpan<T> AsSpan()
+    {
+        return Components.AsSpan();
+    }
 
     public void Enqueue(in Event<T> tableEvent)
     {
@@ -266,12 +281,6 @@ public sealed class Table<T> : Table
         DenseIds.RemoveAt(lastDenseIndex);
         chunk[withinChunk] = 0;
         Emit(Event<T>.Remove(entity, component));
-    }
-
-    public override void Shrink()
-    {
-        Components.Capacity = Components.Count;
-        DenseIds.Capacity = DenseIds.Count;
     }
 
     public ComponentRef<T> GetRef(in Entity entity)
