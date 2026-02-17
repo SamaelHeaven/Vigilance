@@ -47,7 +47,7 @@ public sealed class EntityGenerator : SourceGenerator
                 $$"""
                     public bool Has<{{typeParams}}>()
                     {
-                        EnsureValid();
+                        AssertValid();
                         return {{hasChecks}};
                     }
                     
@@ -63,7 +63,7 @@ public sealed class EntityGenerator : SourceGenerator
                 $$"""
                     public bool Has({{tableParams}})
                     {
-                        EnsureValid();
+                        AssertValid();
                         return {{hasChecks}};
                     }
                     
@@ -90,7 +90,7 @@ public sealed class EntityGenerator : SourceGenerator
                 $$"""
                     public bool TryGet<{{typeParams}}>({{outParams}})
                     {
-                        EnsureValid();
+                        AssertValid();
                         {{skipInits}}
                         return {{tryGets}};
                     }

@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
+// ReSharper disable ParameterOnlyUsedForPreconditionCheck.Global
+
 namespace Vigilance.Core;
 
 public abstract class Table
@@ -12,10 +14,11 @@ public abstract class Table
         Remove,
     }
 
-    public enum OperationStrategy
+    [Flags]
+    public enum Flags
     {
-        EnforceImmutability,
-        IgnoreImmutability,
+        Default = 0,
+        SilentOnImmutable = 1 << 0,
     }
 
     internal static int CurrentIndex = -1;
@@ -46,13 +49,11 @@ public abstract class Table
 
     public abstract object? Get(in Entity entity);
 
-    public abstract void Set(
-        in Entity entity,
-        object? component,
-        OperationStrategy strategy = OperationStrategy.EnforceImmutability
-    );
+    public abstract void Set(in Entity entity, object? component, Flags flags = Flags.Default);
 
-    public abstract void Remove(in Entity entity, OperationStrategy strategy = OperationStrategy.EnforceImmutability);
+    public abstract void Remove(in Entity entity, Flags flags = Flags.Default);
+
+    public abstract void Shrink();
 
     internal abstract void DequeueOperation();
 
@@ -79,9 +80,9 @@ public abstract class Table
 
 public static class TableExtensions
 {
-    extension(Table.OperationStrategy)
+    extension(Table.Flags)
     {
-        internal static Table.OperationStrategy Force => (Table.OperationStrategy)(-1);
+        internal static Table.Flags ForceMutable => (Table.Flags)(1 << 30);
     }
 }
 
@@ -130,6 +131,7 @@ public sealed class Table<T> : Table
 
     public void Enqueue(in Event<T> tableEvent)
     {
+        tableEvent.Entity.AssertValid();
         Scene.EnsureInitialized();
         if (Scene.IsDeferred)
         {
@@ -143,12 +145,18 @@ public sealed class Table<T> : Table
 
     public void Emit(in Event<T> tableEvent)
     {
+        tableEvent.Entity.AssertValid();
         Scene.EnsureInitialized();
         switch (tableEvent.Type)
         {
             case EventType.Add:
                 if (_addAction is not null && !SkipAddEvent)
+                {
+                    Scene.BeginDefer();
                     _addAction.Invoke(tableEvent.Entity, tableEvent.NewValue);
+                    Scene.EndDefer();
+                }
+
                 break;
             case EventType.Set:
                 if (
@@ -159,11 +167,21 @@ public sealed class Table<T> : Table
                         || !EqualityComparer<T>.Default.Equals(tableEvent.OldValue, tableEvent.NewValue)
                     )
                 )
+                {
+                    Scene.BeginDefer();
                     _setAction.Invoke(tableEvent.Entity, tableEvent.OldValue, tableEvent.NewValue);
+                    Scene.EndDefer();
+                }
+
                 break;
             case EventType.Remove:
                 if (_removeAction is not null && !SkipRemoveEvent)
+                {
+                    Scene.BeginDefer();
                     _removeAction.Invoke(tableEvent.Entity, tableEvent.NewValue);
+                    Scene.EndDefer();
+                }
+
                 break;
             default:
                 throw new InvalidEnumArgumentException(
@@ -176,6 +194,7 @@ public sealed class Table<T> : Table
 
     public override bool Has(in Entity entity)
     {
+        entity.AssertValid();
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -189,21 +208,20 @@ public sealed class Table<T> : Table
 
     public override object? Get(in Entity entity)
     {
+        entity.AssertValid();
         var value = GetRef(in entity);
         return value.IsNull ? null : value.Read;
     }
 
-    public override void Set(
-        in Entity entity,
-        object? component,
-        OperationStrategy strategy = OperationStrategy.EnforceImmutability
-    )
+    public override void Set(in Entity entity, object? component, Flags flags = Flags.Default)
     {
-        Set(entity, (T)component!, strategy);
+        entity.AssertValid();
+        Set(entity, (T)component!, flags);
     }
 
-    public override void Remove(in Entity entity, OperationStrategy strategy = OperationStrategy.EnforceImmutability)
+    public override void Remove(in Entity entity, Flags flags = Flags.Default)
     {
+        entity.AssertValid();
         if (Scene.IsDeferred)
         {
             _operations.Enqueue(new Operation(OperationType.Remove, entity, default!));
@@ -222,17 +240,13 @@ public sealed class Table<T> : Table
         if (sparseValue == 0)
             return;
         var denseIndex = sparseValue - 1;
-        if (RemoveImmutable)
-            switch (strategy)
-            {
-                case OperationStrategy.EnforceImmutability:
-                    throw new InvalidOperationException(
-                        $"Cannot remove {Type} because it implements {nameof(IRemoveImmutableComponent)}."
-                    );
-                case OperationStrategy.IgnoreImmutability:
-                    return;
-            }
-
+        if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
+            if ((flags & Flags.SilentOnImmutable) != 0)
+                return;
+            else
+                throw new InvalidOperationException(
+                    $"Cannot remove {Type} because it implements {nameof(IRemoveImmutableComponent)}."
+                );
         var component = Components[denseIndex];
         var lastDenseIndex = Components.Count - 1;
         if (denseIndex != lastDenseIndex)
@@ -253,30 +267,15 @@ public sealed class Table<T> : Table
         Emit(Event<T>.Remove(entity, component));
     }
 
-    internal override void DequeueOperation()
+    public override void Shrink()
     {
-        if (!_operations.TryDequeue(out var operation))
-            return;
-        switch (operation.Type)
-        {
-            case OperationType.Set:
-                Set(operation.Entity, operation.Value);
-                break;
-            case OperationType.Remove:
-                Remove(operation.Entity);
-                break;
-        }
+        Components.Capacity = Components.Count;
+        DenseIds.Capacity = DenseIds.Count;
     }
 
-    internal override void DequeueEvent()
+    public ComponentRef<T> GetRef(in Entity entity)
     {
-        if (!_events.TryDequeue(out var @event))
-            return;
-        Emit(@event);
-    }
-
-    internal ComponentRef<T> GetRef(in Entity entity)
-    {
+        entity.AssertValid();
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return ComponentRef<T>.Null;
@@ -291,12 +290,9 @@ public sealed class Table<T> : Table
         return new ComponentRef<T>(ref Components.AsSpan()[denseIndex]);
     }
 
-    internal ComponentRef<T> Set(
-        in Entity entity,
-        scoped in T component,
-        OperationStrategy strategy = OperationStrategy.EnforceImmutability
-    )
+    public ComponentRef<T> Set(in Entity entity, scoped in T component, Flags flags = Flags.Default)
     {
+        entity.AssertValid();
         if (Scene.IsDeferred)
         {
             _operations.Enqueue(new Operation(OperationType.Set, entity, component));
@@ -319,23 +315,41 @@ public sealed class Table<T> : Table
             return new ComponentRef<T>(ref Components.AsSpan()[index - 1]);
         }
 
-        if (SetImmutable)
-            switch (strategy)
-            {
-                case OperationStrategy.EnforceImmutability:
-                    throw new InvalidOperationException(
-                        $"Cannot set {Type} because it implements {nameof(ISetImmutableComponent)}."
-                    );
-                case OperationStrategy.IgnoreImmutability:
-                    return ComponentRef<T>.Null;
-            }
-
+        if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
+            if ((flags & Flags.SilentOnImmutable) != 0)
+                return ComponentRef<T>.Null;
+            else
+                throw new InvalidOperationException(
+                    $"Cannot set {Type} because it implements {nameof(IRemoveImmutableComponent)}."
+                );
         var denseIndex = sparseValue - 1;
         ref var componentRef = ref Components.AsSpan()[denseIndex];
         var oldValue = componentRef;
         componentRef = component;
         Emit(Event<T>.Set(entity, oldValue, component));
         return new ComponentRef<T>(ref componentRef!);
+    }
+
+    internal override void DequeueOperation()
+    {
+        if (!_operations.TryDequeue(out var operation))
+            return;
+        switch (operation.Type)
+        {
+            case OperationType.Set:
+                Set(operation.Entity, operation.Value);
+                break;
+            case OperationType.Remove:
+                Remove(operation.Entity);
+                break;
+        }
+    }
+
+    internal override void DequeueEvent()
+    {
+        if (!_events.TryDequeue(out var @event))
+            return;
+        Emit(@event);
     }
 
     internal void OnAdd(Action<Entity, T> action)

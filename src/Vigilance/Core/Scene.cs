@@ -27,6 +27,7 @@ public sealed partial class Scene
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
     private Action<Entity>? _instantiateAction;
+    private bool _isEndingDefer;
     private Action? _onDispose;
     private Action? _postFixedUpdateAction;
     private Action? _postRenderAction;
@@ -87,7 +88,7 @@ public sealed partial class Scene
         {
             EnsureInitialized();
             if (!value.IsNull)
-                value.EnsureValid();
+                value.AssertValid();
             field = value;
         }
     }
@@ -370,8 +371,9 @@ public sealed partial class Scene
     {
         if (!IsDeferred)
             throw new InvalidOperationException("Scene is not in a deferred state.");
-        if (--DeferredCount != 0)
+        if (--DeferredCount != 0 || _isEndingDefer)
             return;
+        _isEndingDefer = true;
         while (_events.TryDequeue(out var @event))
             switch (@event.EventType)
             {
@@ -392,6 +394,7 @@ public sealed partial class Scene
                     break;
             }
 
+        _isEndingDefer = false;
         var action = _deferredAction;
         _deferredAction = null;
         action?.Invoke();
@@ -462,7 +465,7 @@ public sealed partial class Scene
         do
         {
             foreach (var table in tables)
-                table.Remove(entity, Core.Table.OperationStrategy.Force);
+                table.Remove(entity, Core.Table.Flags.ForceMutable);
         } while (tables.AsValueEnumerable().Any());
 
         _nameMap.Remove(name);
@@ -474,6 +477,14 @@ public sealed partial class Scene
     internal void Enqueue(in Event @event)
     {
         _events.Enqueue(@event);
+    }
+
+    internal bool IsValid(in Entity entity)
+    {
+        if (entity.Index == 0 || entity.Index >= _entities.Count)
+            return false;
+        var info = _entities[entity.Index];
+        return info.Index == entity.Index && info.Generation == entity.Generation;
     }
 
     private void Initialize()
@@ -794,6 +805,7 @@ public sealed partial class Scene
         if (parentId == 0)
             return;
         var parentEntity = new Entity(parentId, this);
+        parentEntity.AssertValid();
         var parentRef = ParentTable.GetRef(parentEntity);
         if (parentRef.IsNull)
             parentRef = ParentTable.Set(parentEntity, new Parent());
