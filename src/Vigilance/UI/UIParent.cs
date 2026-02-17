@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
-using Vigilance.Core;
 using ZLinq;
 using ZLinq.Internal;
 
@@ -17,7 +16,7 @@ public abstract class UIParent : UIElement
         Replace,
     }
 
-    internal List<UIElement> ChildrenList = [];
+    internal ValueList<UIElement> ChildrenList = [];
     public Queue<ChildrenOperation> ChildrenOperations { get; internal set; } = [];
     public bool IsDeferred => DeferredCount > 0;
     public int DeferredCount { get; internal set; }

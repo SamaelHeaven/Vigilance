@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Vigilance.Collections;
 
 // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Global
 
@@ -92,12 +93,12 @@ public sealed class Table<T> : Table
     private const int SparseChunkSize = 2048;
     private readonly Queue<Event<T>> _events = [];
     private readonly Queue<Operation> _operations = [];
-    private readonly List<int[]?> _sparseChunks = [];
-    internal readonly List<T> Components = [];
-    internal readonly List<ulong> DenseIds = [];
     private Action<Entity, T>? _addAction;
     private Action<Entity, T>? _removeAction;
     private Action<Entity, T, T>? _setAction;
+    private ValueList<int[]?> _sparseChunks = [];
+    internal ValueList<T> Components = [];
+    internal ValueList<ulong> DenseIds = [];
 
     internal Table(Scene scene)
     {
@@ -287,7 +288,7 @@ public sealed class Table<T> : Table
         if (sparseValue == 0)
             return ComponentRef<T>.Null;
         var denseIndex = sparseValue - 1;
-        return new ComponentRef<T>(ref Components.AsSpan()[denseIndex]);
+        return new ComponentRef<T>(ref Components[denseIndex]);
     }
 
     public ComponentRef<T> Set(in Entity entity, scoped in T component, Flags flags = Flags.Default)
@@ -312,7 +313,7 @@ public sealed class Table<T> : Table
             DenseIds.Add(entity.Id);
             chunk[withinChunk] = index;
             Emit(Event<T>.Add(entity, component));
-            return new ComponentRef<T>(ref Components.AsSpan()[index - 1]);
+            return new ComponentRef<T>(ref Components[index - 1]);
         }
 
         if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
@@ -323,7 +324,7 @@ public sealed class Table<T> : Table
                     $"Cannot set {Type} because it implements {nameof(IRemoveImmutableComponent)}."
                 );
         var denseIndex = sparseValue - 1;
-        ref var componentRef = ref Components.AsSpan()[denseIndex];
+        ref var componentRef = ref Components[denseIndex];
         var oldValue = componentRef;
         componentRef = component;
         Emit(Event<T>.Set(entity, oldValue, component));

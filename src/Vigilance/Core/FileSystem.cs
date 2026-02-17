@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using LinkDotNet.StringBuilder;
 using Raylib_cs.BleedingEdge;
+using Vigilance.Collections;
 using Vigilance.Logging;
 
 namespace Vigilance.Core;

@@ -1,4 +1,5 @@
 using Raylib_cs.BleedingEdge;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
 using ZLinq;
@@ -7,8 +8,8 @@ namespace Vigilance.Audio;
 
 public sealed class Sound : IDisposable
 {
-    private static readonly List<Sound> _sounds = [];
-    private readonly List<(Raylib_cs.BleedingEdge.Sound Sound, double LastUsed)> _aliases = [];
+    private static ValueList<Sound> _sounds = [];
+    private ValueList<(Raylib_cs.BleedingEdge.Sound Sound, double LastUsed)> _aliases = [];
     private float _pan = 0.5f;
     private float _pitch = 1;
     private Raylib_cs.BleedingEdge.Sound _sound;
@@ -114,7 +115,7 @@ public sealed class Sound : IDisposable
     {
         Raylib_cs.BleedingEdge.Sound alias;
         var now = Time.Elapsed.TotalSeconds;
-        var index = _aliases.FindIndex(a => !Raylib.IsSoundPlaying(a.Sound));
+        var index = _aliases.AsValueEnumerable().FindIndex(a => !Raylib.IsSoundPlaying(a.Sound));
         if (index != -1)
         {
             alias = _aliases[index].Sound;

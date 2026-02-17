@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Numerics;
 using FlexLayoutSharp;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Input;
@@ -808,7 +809,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
             return result;
         parent.ChildrenList = options.HasFlag(CloneOptions.SkipChildren)
             ? []
-            : new List<UIElement>(parent.ChildrenList.Count);
+            : new ValueList<UIElement>(parent.ChildrenList.Count);
         parent.ChildrenOperations = [];
         parent.DeferredCount = 0;
         return result;

@@ -13,17 +13,16 @@ namespace Vigilance.Core;
 public sealed partial class Scene
 {
     private readonly Dictionary<Type, (ICollection Queue, Action EmitAction)> _customEvents = [];
-    private readonly List<Table> _denseTables = [];
-    private readonly List<(int Index, int Generation)> _entities = [];
     private readonly Queue<Event> _events = [];
     private readonly Queue<int> _freeIndices = [];
     private readonly Dictionary<Type, Delegate> _listeners = [];
     private readonly Dictionary<string, ulong> _nameMap = [];
     private readonly List<RenderCommand> _renderCommands = [];
-    private readonly List<Table?> _sparseTables = [];
     private readonly GameSystemsFunc _systemsFunc;
     private Action? _deferredAction;
+    private ValueList<Table> _denseTables = [];
     private Action<Entity>? _destroyAction;
+    private ValueList<(int Index, int Generation)> _entities = [];
     private Action? _fixedUpdateAction;
     private Action? _initializeAction;
     private Action<Entity>? _instantiateAction;
@@ -36,6 +35,7 @@ public sealed partial class Scene
     private Action? _preRenderAction;
     private Action? _preUpdateAction;
     private Action<RenderCommands>? _renderAction;
+    private ValueList<Table?> _sparseTables = [];
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
@@ -139,7 +139,7 @@ public sealed partial class Scene
         if (recycle)
         {
             var index = _freeIndices.Peek();
-            info = ref _entities.AsSpan()[index];
+            info = ref _entities[index];
             id = Core.Entity.GetId(index, info.Generation + 1);
         }
         else
@@ -469,7 +469,7 @@ public sealed partial class Scene
         } while (tables.AsValueEnumerable().Any());
 
         _nameMap.Remove(name);
-        ref var info = ref _entities.AsSpan()[entity.Index];
+        ref var info = ref _entities[entity.Index];
         info.Index = 0;
         _freeIndices.Enqueue(entity.Index);
     }

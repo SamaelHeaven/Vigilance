@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Raylib_cs.BleedingEdge;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -7,7 +8,7 @@ namespace Vigilance.Audio;
 
 public sealed class Music : IDisposable
 {
-    private static readonly List<Music> _musics = [];
+    private static ValueList<Music> _musics = [];
     private nint _buffer;
     private Raylib_cs.BleedingEdge.Music _music;
     private float _pan = 0.5f;

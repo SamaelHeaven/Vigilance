@@ -1,3 +1,4 @@
+using Vigilance.Collections;
 using Vigilance.Core;
 
 namespace Vigilance.Drawing;

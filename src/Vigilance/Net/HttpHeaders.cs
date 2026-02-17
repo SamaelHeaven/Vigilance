@@ -1,4 +1,4 @@
-using Vigilance.Core;
+using Vigilance.Collections;
 
 namespace Vigilance.Net;
 

@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using Vigilance.Collections;
-using Vigilance.Core;
 using ZLinq;
 using ZLinq.Linq;
 

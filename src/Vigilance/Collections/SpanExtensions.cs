@@ -1,8 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Vigilance.Collections;
 
-namespace Vigilance.Core;
+namespace Vigilance.Collections;
 
 public static class SpanExtensions
 {

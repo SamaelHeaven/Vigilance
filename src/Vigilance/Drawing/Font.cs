@@ -152,7 +152,7 @@ public sealed unsafe class Font : IDisposable
             .Select(c => LoadGlyph(c, strokeWidth))
             .Where(g => g.HasValue)
             .Select(g => g!.Value)
-            .ToList();
+            .ToValueList();
         var glyphInfos = new Dictionary<char, GlyphInfo>();
         var atlas = DrawAtlas(glyphs, glyphInfos);
         var result = (atlas, glyphInfos);
@@ -160,7 +160,7 @@ public sealed unsafe class Font : IDisposable
         return result;
     }
 
-    private List<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
+    private ValueList<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
     {
         var span = bytes.AsSpan();
         _buffer = Marshal.AllocHGlobal(span.Length);
@@ -187,10 +187,10 @@ public sealed unsafe class Font : IDisposable
             .Select(c => LoadGlyph(c, null))
             .Where(g => g.HasValue)
             .Select(g => g!.Value)
-            .ToList();
+            .ToValueList();
     }
 
-    private Texture DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
+    private Texture DrawAtlas(ValueList<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
     {
         var colSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Width).Prepend(0).Max();
         var rowSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Height).Prepend(0).Max();
