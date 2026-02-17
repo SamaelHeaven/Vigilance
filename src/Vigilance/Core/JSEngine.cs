@@ -1,20 +1,20 @@
+using JetBrains.Annotations;
+
 namespace Vigilance.Core;
 
 public static class JSEngine
 {
-    public static JSResult Eval(string script)
+    public static JSResult Eval([LanguageInjection(InjectedLanguage.JAVASCRIPT)] string script)
     {
         if (!Platform.Web.IsCurrent)
             throw new PlatformNotSupportedException();
         var ptr = Emscripten.RunScriptString(script);
-        return new JSResult { Value = Utf8Buffer.GetString(ptr) };
+        return new JSResult(Utf8Buffer.GetString(ptr));
     }
 }
 
-public readonly record struct JSResult
+public readonly record struct JSResult(string Value)
 {
-    public string Value { get; init; }
-
     public static implicit operator string(JSResult result)
     {
         return result.Value;
