@@ -675,9 +675,10 @@ public sealed partial class Scene
         {
             do
             {
-                if (_index + 1 >= _scene._denseTables.Count)
+                var newIndex = _index + 1;
+                if (newIndex >= _scene._denseTables.Count)
                     return false;
-                Current = _scene._denseTables[++_index];
+                Current = _scene._denseTables[newIndex];
             } while (!_withHidden && Current.IsHidden);
 
             return true;

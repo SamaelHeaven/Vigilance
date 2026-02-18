@@ -609,9 +609,10 @@ public struct ArrayEnumerator<TValue> : IStructEnumerator<TValue>
 
     public bool MoveNext()
     {
-        if (_index + 1 >= _array.Length)
+        var newIndex = _index + 1;
+        if (newIndex >= _array.Length)
             return false;
-        _index++;
+        _index = newIndex;
         return true;
     }
 
@@ -638,9 +639,10 @@ public struct SpanViewEnumerator<TValue> : IStructEnumerator<TValue>, ISpanView<
 
     public bool MoveNext()
     {
-        if (_index + 1 >= _spanView.AsSpan().Length)
+        var newIndex = _index + 1;
+        if (newIndex >= _spanView.AsSpan().Length)
             return false;
-        _index++;
+        _index = newIndex;
         return true;
     }
 

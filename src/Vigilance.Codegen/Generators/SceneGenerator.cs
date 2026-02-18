@@ -172,9 +172,10 @@ public sealed class SceneGenerator : SourceGenerator
             {{string.Join("\n", tables.Select((_, i) => $$"""
                                 {{(tables.Count > 1 ? $"case {i}:\n                " : "")}}{
                                     TABLE{{i}}:
-                                    if (_index + 1 >= _table{{i}}.Count) 
+                                    var newIndex = _index + 1;
+                                    if (newIndex >= _table{{i}}.Count) 
                                         return false;
-                                    _index++;
+                                    _index = newIndex;
                                     _entity = new Entity(_table{{i}}.DenseIds[_index], _scene);
                                     if (!_withDisabled && _scene.DisabledTable.Has(_entity))
                                         goto TABLE{{i}};

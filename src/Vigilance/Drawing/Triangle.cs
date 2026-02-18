@@ -74,9 +74,10 @@ public sealed class Triangle : IFullCloneable
 
         public bool MoveNext()
         {
-            if (_index + 1 >= 3)
+            var newIndex = _index + 1;
+            if (newIndex >= 3)
                 return false;
-            _index++;
+            _index = newIndex;
             return true;
         }
 
