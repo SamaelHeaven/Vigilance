@@ -16,12 +16,12 @@ public sealed unsafe class Graphics
     private static BlendMode? _currentBlendMode = null;
     private static Shader? _currentShader = null;
     private readonly RenderTexture? _buffer;
-    private readonly Stack<Matrix3x2> _matrixStack = new();
     private BlendMode _blendMode = BlendMode.Alpha;
     private Box? _clip = null;
     private bool _culling = Drawing.DefaultCulling;
     private bool _drawing = false;
     private Matrix3x2 _matrix = Matrix3x2.Identity;
+    private ValueStack<Matrix3x2> _matrixStack = new();
     private Shader? _shader = null;
 
     internal Graphics(RenderTexture? buffer)
