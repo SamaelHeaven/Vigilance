@@ -324,13 +324,16 @@ public sealed partial class Scene
         ref var events = ref CollectionsMarshal.GetValueRefOrAddDefault(_customEvents, type, out var exists);
         if (!exists)
         {
+            if (!_listeners.TryGetValue(type, out var action))
+                return;
+            var listener = (Action<T>)action;
             var queue = new Queue<T>();
             events = (
                 queue,
                 () =>
                 {
                     if (queue.TryDequeue(out var @event))
-                        Emit(@event);
+                        listener.Invoke(@event);
                 }
             );
         }
