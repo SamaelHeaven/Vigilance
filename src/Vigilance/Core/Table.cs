@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Vigilance.Collections;
 
@@ -151,6 +150,14 @@ public sealed class Table<T> : Table
         Scene.ThrowIfNotInitialized();
         if (Scene.IsDeferred)
         {
+            switch (tableEvent.Type)
+            {
+                case EventType.Add when _addAction is null || SkipAddEvent:
+                case EventType.Set when _setAction is null || SkipSetEvent:
+                case EventType.Remove when _removeAction is null || SkipRemoveEvent:
+                    return;
+            }
+
             _events.Enqueue(tableEvent);
             Scene.Enqueue(Scene.Event.TableEvent(this));
             return;
@@ -199,12 +206,6 @@ public sealed class Table<T> : Table
                 }
 
                 break;
-            default:
-                throw new InvalidEnumArgumentException(
-                    nameof(tableEvent.Type),
-                    (int)tableEvent.Type,
-                    typeof(EventType)
-                );
         }
     }
 
