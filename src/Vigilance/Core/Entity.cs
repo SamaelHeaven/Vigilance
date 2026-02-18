@@ -15,19 +15,19 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     public Entity(ulong id, Scene scene)
     {
         Index = GetIndex(id);
-        Generation = GetGeneration(id);
+        Version = GetVersion(id);
         Scene = scene;
     }
 
-    public Entity(int index, int generation, Scene scene)
+    public Entity(int index, int version, Scene scene)
     {
         Index = index;
-        Generation = generation;
+        Version = version;
         Scene = scene;
     }
 
     public int Index { get; }
-    public int Generation { get; }
+    public int Version { get; }
     public Scene Scene { get; }
 
     public static Entity Null => default;
@@ -36,7 +36,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public bool IsValid => Scene.IsValid(this);
 
-    public ulong Id => GetId(Index, Generation);
+    public ulong Id => GetId(Index, Version);
 
     public string Path => this.AncestorsAndSelf().Select(e => e.Name).Reverse().JoinToString(".");
 
@@ -336,9 +336,9 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return Order.CompareTo(other.Order);
     }
 
-    public static ulong GetId(int index, int generation)
+    public static ulong GetId(int index, int version)
     {
-        return ((ulong)(uint)generation << 32) | (uint)index;
+        return ((ulong)(uint)version << 32) | (uint)index;
     }
 
     public static int GetIndex(ulong id)
@@ -346,7 +346,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         return (int)(id & 0xFFFFFFFF);
     }
 
-    public static int GetGeneration(ulong id)
+    public static int GetVersion(ulong id)
     {
         return (int)(id >> 32);
     }

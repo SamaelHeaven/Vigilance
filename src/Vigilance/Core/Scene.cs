@@ -20,7 +20,7 @@ public sealed partial class Scene
     private Action? _deferredAction;
     private ValueList<Table> _denseTables = [];
     private Action<Entity>? _destroyAction;
-    private ValueList<(int Index, int Generation)> _entities = [];
+    private ValueList<(int Index, int Version)> _entities = [];
     private ValueQueue<Event> _events = [];
     private Action? _fixedUpdateAction;
     private ValueQueue<int> _freeIndices = [];
@@ -135,12 +135,12 @@ public sealed partial class Scene
         EnsureInitialized();
         ulong id;
         var recycle = _freeIndices.Count > 0;
-        ref var info = ref Unsafe.NullRef<(int Index, int Generation)>();
+        ref var info = ref Unsafe.NullRef<(int Index, int Version)>();
         if (recycle)
         {
             var index = _freeIndices.Peek();
             info = ref _entities[index];
-            id = Core.Entity.GetId(index, info.Generation + 1);
+            id = Core.Entity.GetId(index, info.Version + 1);
         }
         else
         {
@@ -156,7 +156,7 @@ public sealed partial class Scene
         if (recycle)
         {
             info.Index = Core.Entity.GetIndex(id);
-            info.Generation++;
+            info.Version++;
             _freeIndices.Dequeue();
         }
         else
@@ -184,21 +184,21 @@ public sealed partial class Scene
         return entity;
     }
 
-    public Entity Lookup(int index, int generation)
+    public Entity Lookup(int index, int version)
     {
         EnsureInitialized();
         if (index == 0 || index >= _entities.Count)
             return Core.Entity.Null;
         var info = _entities[index];
-        if (info.Index != index || info.Generation != generation)
+        if (info.Index != index || info.Version != version)
             return Core.Entity.Null;
-        return new Entity(index, generation, this);
+        return new Entity(index, version, this);
     }
 
     public Entity Lookup(ulong id)
     {
         EnsureInitialized();
-        return Lookup(Core.Entity.GetIndex(id), Core.Entity.GetGeneration(id));
+        return Lookup(Core.Entity.GetIndex(id), Core.Entity.GetVersion(id));
     }
 
     public Entity Lookup(string name)
@@ -487,7 +487,7 @@ public sealed partial class Scene
         if (entity.Index == 0 || entity.Index >= _entities.Count)
             return false;
         var info = _entities[entity.Index];
-        return info.Index == entity.Index && info.Generation == entity.Generation;
+        return info.Index == entity.Index && info.Version == entity.Version;
     }
 
     private void Initialize()
