@@ -689,7 +689,10 @@ public static class ValueListExtensions
             var result = new ValueList<T>();
             if (enumerator.TryGetNonEnumeratedCount(out var count))
                 result.Capacity = count;
-            if (enumerator.TryCopyTo(result.AsSpan(), 0))
+            if (
+                enumerator.TryCopyTo(result.AsSpan(), 0)
+                || enumerator.TryGetSpan(out var span) && span.TryCopyTo(result.AsSpan())
+            )
                 return result;
             while (enumerator.TryGetNext(out var item))
                 result.Add(item);
