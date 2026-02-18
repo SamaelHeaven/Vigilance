@@ -84,6 +84,15 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
+    public bool IsParent
+    {
+        get
+        {
+            AssertValid();
+            return Scene.ParentTable.Has(this);
+        }
+    }
+
     public Transform WorldTransform
     {
         get
@@ -331,8 +340,6 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public int CompareTo(Entity other)
     {
-        AssertValid();
-        other.AssertValid();
         return Order.CompareTo(other.Order);
     }
 
@@ -513,84 +520,72 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public ref readonly Entity SetTransform(in Transform transform)
     {
-        AssertValid();
         Transform = transform;
         return ref this;
     }
 
     public ref readonly Entity SetPosition(float v1, float? v2 = null)
     {
-        AssertValid();
         Position = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
     public ref readonly Entity SetPosition(Vector2 position)
     {
-        AssertValid();
         Position = position;
         return ref this;
     }
 
     public ref readonly Entity SetScale(float v1, float? v2 = null)
     {
-        AssertValid();
         Scale = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
     public ref readonly Entity SetScale(Vector2 scale)
     {
-        AssertValid();
         Scale = scale;
         return ref this;
     }
 
     public ref readonly Entity SetRotation(float rotation)
     {
-        AssertValid();
         Rotation = rotation;
         return ref this;
     }
 
     public ref readonly Entity SetPivotPoint(float v1, float? v2 = null)
     {
-        AssertValid();
         PivotPoint = new Vector2(v1, v2 ?? v1);
         return ref this;
     }
 
     public ref readonly Entity SetPivotPoint(Vector2 pivotPoint)
     {
-        AssertValid();
         PivotPoint = pivotPoint;
         return ref this;
     }
 
     public ref readonly Entity SetZIndex(int zIndex)
     {
-        AssertValid();
         ZIndex = zIndex;
         return ref this;
     }
 
     public ref readonly Entity SetDisabled(bool disabled = true)
     {
-        AssertValid();
         IsDisabled = disabled;
         return ref this;
     }
 
     public ref readonly Entity SetParent(in Entity parent)
     {
-        AssertValid();
         Parent = parent;
         return ref this;
     }
 
     public ref readonly Entity Scope(Action action)
     {
-        AssertValid();
         var previousScope = Scene.SetScope(this);
         try
         {
@@ -606,7 +601,6 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
     public ref readonly Entity Scope(Action<Scene> action)
     {
-        AssertValid();
         var previousScope = Scene.SetScope(this);
         try
         {
@@ -926,8 +920,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
 
         public bool TryGetHasChild(out bool hasChild)
         {
-            var parentRef = Origin.Scene.ParentTable.GetRef(Origin);
-            hasChild = !parentRef.IsNull && parentRef.Read.FirstChildId != 0;
+            hasChild = Origin.Scene.ParentTable.Has(Origin);
             return true;
         }
 

@@ -75,6 +75,7 @@ public sealed partial class Scene
         OnAdd<Child>(OnAddChild);
         OnSet<Child>(OnSetChild);
         OnRemove<Child>(OnRemoveChild);
+        OnRemove<Parent>(OnRemoveParent);
     }
 
     public ListView<IGameSystem> Systems => _systems ?? throw new NullReferenceException();
@@ -410,6 +411,8 @@ public sealed partial class Scene
 
     public void ResumeDefer()
     {
+        if (SuspendedCount == 0)
+            throw new InvalidOperationException("Scene is not in a suspended state.");
         SuspendedCount--;
     }
 
@@ -811,7 +814,12 @@ public sealed partial class Scene
         parentEntity.AssertValid();
         var parentRef = ParentTable.GetRef(parentEntity);
         if (parentRef.IsNull)
+        {
+            SuspendDefer();
             parentRef = ParentTable.Set(parentEntity, new Parent());
+            ResumeDefer();
+        }
+
         ref var parent = ref parentRef.Value;
         ref var childRef = ref ChildTable.GetRef(entity).Value;
         var childId = entity.Id;
@@ -879,6 +887,18 @@ public sealed partial class Scene
 
         if (parent.FirstChildId == 0)
             ParentTable.Remove(parentEntity);
+    }
+
+    private void OnRemoveParent(Parent parent)
+    {
+        var childId = parent.FirstChildId;
+        while (childId != 0)
+        {
+            var child = new Entity(childId, this);
+            ref var childRef = ref ChildTable.GetRef(child).Value;
+            childId = childRef.NextSiblingId;
+            ChildTable.Remove(child);
+        }
     }
 
     #endregion

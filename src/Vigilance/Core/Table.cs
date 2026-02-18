@@ -146,7 +146,6 @@ public sealed class Table<T> : Table
 
     public void Enqueue(in Event<T> tableEvent)
     {
-        tableEvent.Entity.AssertValid();
         Scene.ThrowIfNotInitialized();
         if (Scene.IsDeferred)
         {
@@ -168,7 +167,6 @@ public sealed class Table<T> : Table
 
     public void Emit(in Event<T> tableEvent)
     {
-        tableEvent.Entity.AssertValid();
         Scene.ThrowIfNotInitialized();
         switch (tableEvent.Type)
         {
@@ -211,7 +209,6 @@ public sealed class Table<T> : Table
 
     public override bool Has(in Entity entity)
     {
-        entity.AssertValid();
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -225,20 +222,17 @@ public sealed class Table<T> : Table
 
     public override object? Get(in Entity entity)
     {
-        entity.AssertValid();
         var value = GetRef(in entity);
         return value.IsNull ? null : value.Read;
     }
 
     public override void Set(in Entity entity, object? component, Flags flags = Flags.Default)
     {
-        entity.AssertValid();
         Set(entity, (T)component!, flags);
     }
 
     public override void Remove(in Entity entity, Flags flags = Flags.Default)
     {
-        entity.AssertValid();
         if (Scene.IsDeferred)
         {
             _operations.Enqueue(new Operation(OperationType.Remove, entity, default!));
@@ -286,7 +280,6 @@ public sealed class Table<T> : Table
 
     public ComponentRef<T> GetRef(in Entity entity)
     {
-        entity.AssertValid();
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return ComponentRef<T>.Null;
@@ -303,7 +296,6 @@ public sealed class Table<T> : Table
 
     public ComponentRef<T> Set(in Entity entity, scoped in T component, Flags flags = Flags.Default)
     {
-        entity.AssertValid();
         if (Scene.IsDeferred)
         {
             _operations.Enqueue(new Operation(OperationType.Set, entity, component));
