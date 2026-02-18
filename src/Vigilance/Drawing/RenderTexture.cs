@@ -13,7 +13,7 @@ public sealed class RenderTexture : IDisposable
 
     public RenderTexture(float width, float height, float scale = 1)
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         Graphics.Reset();
         Scale = scale.Max(1);
         RenderTexture2D = Raylib.LoadRenderTexture((int)(width * Scale), (int)(height * Scale));

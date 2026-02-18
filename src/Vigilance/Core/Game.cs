@@ -20,12 +20,12 @@ public static unsafe class Game
     {
         get
         {
-            EnsureRunning();
+            ThrowIfNotRunning();
             return _scene;
         }
         set
         {
-            EnsureRunning();
+            ThrowIfNotRunning();
             if (_scene == value)
                 return;
             Defer(() =>
@@ -44,17 +44,17 @@ public static unsafe class Game
 
     public static void OpenUrl(string url)
     {
-        EnsureRunning();
+        ThrowIfNotRunning();
         Raylib.OpenURL(url);
     }
 
-    public static void EnsureRunning()
+    public static void ThrowIfNotRunning()
     {
         if (!Running)
             throw new InvalidOperationException("Game is not running.");
     }
 
-    public static void EnsureNotRunning()
+    public static void ThrowIfRunning()
     {
         if (Running)
             throw new InvalidOperationException("Game is already running.");
@@ -67,7 +67,7 @@ public static unsafe class Game
 
     public static void Launch(Config config, Scene scene)
     {
-        EnsureNotRunning();
+        ThrowIfRunning();
         Running = true;
         Config = config;
         _scene = scene;
@@ -84,7 +84,7 @@ public static unsafe class Game
 
     public static void Quit()
     {
-        EnsureRunning();
+        ThrowIfNotRunning();
         _quit = true;
     }
 

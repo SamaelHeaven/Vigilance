@@ -19,7 +19,7 @@ public static class Mouse
 
     static Mouse()
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
     }
 
     public static ListView<MouseButton> DownButtons => _downButtons;

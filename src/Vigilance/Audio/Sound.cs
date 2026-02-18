@@ -17,7 +17,7 @@ public sealed class Sound : IDisposable
 
     public unsafe Sound(string fileType, IEnumerable<byte> bytes, int? maxAliases = null)
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         MaxAliases = maxAliases ?? Audio.DefaultSoundMaxAliases;
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
         var span = bytes.AsSpan();

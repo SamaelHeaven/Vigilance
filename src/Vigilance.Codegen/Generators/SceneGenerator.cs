@@ -227,7 +227,7 @@ public sealed class SceneGenerator : SourceGenerator
                 }
                 
                 {{visibility}} {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
-                    EnsureInitialized();
+                    ThrowIfNotInitialized();
                     return new {{name}}Enumerable{{typeParams}}(this);
                 }
                 

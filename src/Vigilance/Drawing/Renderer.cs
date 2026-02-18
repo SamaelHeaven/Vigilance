@@ -13,7 +13,7 @@ public static class Renderer
 
     static Renderer()
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         var mode = Display.RenderingMode;
         if (mode.Type == RenderingModeType.Buffer)
             _buffer = new RenderTexture(Display.Size, mode.Scale);

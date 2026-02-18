@@ -17,7 +17,7 @@ public static unsafe class Display
 
     static Display()
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
     }
 
     public static string Title

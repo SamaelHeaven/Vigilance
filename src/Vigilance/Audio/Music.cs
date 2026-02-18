@@ -17,7 +17,7 @@ public sealed class Music : IDisposable
 
     public unsafe Music(string fileType, IEnumerable<byte> bytes)
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
         var span = bytes.AsSpan();
         _buffer = Marshal.AllocHGlobal(span.Length);

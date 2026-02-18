@@ -86,7 +86,7 @@ public sealed partial class Scene
         get;
         set
         {
-            EnsureInitialized();
+            ThrowIfNotInitialized();
             if (!value.IsNull)
                 value.AssertValid();
             field = value;
@@ -132,7 +132,7 @@ public sealed partial class Scene
 
     public Entity Entity(string name = "")
     {
-        EnsureInitialized();
+        ThrowIfNotInitialized();
         ulong id;
         var recycle = _freeIndices.Count > 0;
         ref var info = ref Unsafe.NullRef<(int Index, int Version)>();
@@ -186,7 +186,7 @@ public sealed partial class Scene
 
     public Entity Lookup(int index, int version)
     {
-        EnsureInitialized();
+        ThrowIfNotInitialized();
         if (index == 0 || index >= _entities.Count)
             return Core.Entity.Null;
         var info = _entities[index];
@@ -197,20 +197,20 @@ public sealed partial class Scene
 
     public Entity Lookup(ulong id)
     {
-        EnsureInitialized();
+        ThrowIfNotInitialized();
         return Lookup(Core.Entity.GetIndex(id), Core.Entity.GetVersion(id));
     }
 
     public Entity Lookup(string name)
     {
-        EnsureInitialized();
+        ThrowIfNotInitialized();
         ref var id = ref CollectionsMarshal.GetValueRefOrNullRef(_nameMap, name);
         return Unsafe.IsNullRef(ref id) ? Core.Entity.Null : new Entity(id, this);
     }
 
     public void On<T>(Action<T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         var type = typeof(T);
         ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_listeners, type, out var exists)!;
         if (!exists)
@@ -226,85 +226,85 @@ public sealed partial class Scene
 
     public void OnInitialize(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _initializeAction += action;
     }
 
     public void OnStart(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _startAction += action;
     }
 
     public void OnStop(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _stopAction += action;
     }
 
     public void OnDispose(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _onDispose += action;
     }
 
     public void OnPreUpdate(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _preUpdateAction += action;
     }
 
     public void OnUpdate(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _updateAction += action;
     }
 
     public void OnPostUpdate(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _postUpdateAction += action;
     }
 
     public void OnPreFixedUpdate(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _preFixedUpdateAction += action;
     }
 
     public void OnFixedUpdate(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _fixedUpdateAction += action;
     }
 
     public void OnPostFixedUpdate(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _postFixedUpdateAction += action;
     }
 
     public void OnPreRender(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _preRenderAction += action;
     }
 
     public void OnRender(Action<RenderCommands> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _renderAction += action;
     }
 
     public void OnPostRender(Action action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _postRenderAction += action;
     }
 
     public void Emit<T>(in T @event)
     {
-        EnsureInitialized();
+        ThrowIfNotInitialized();
         var type = typeof(T);
         if (!_listeners.TryGetValue(type, out var action))
             return;
@@ -313,7 +313,7 @@ public sealed partial class Scene
 
     public void Enqueue<T>(in T @event)
     {
-        EnsureInitialized();
+        ThrowIfNotInitialized();
         if (!IsDeferred)
         {
             Emit(@event);
@@ -353,13 +353,13 @@ public sealed partial class Scene
         action.Invoke();
     }
 
-    public void EnsureInitialized()
+    public void ThrowIfNotInitialized()
     {
         if (!IsInitialized)
             throw new InvalidOperationException("Scene has not been initialized.");
     }
 
-    public void EnsureNotInitialized()
+    public void ThrowIfInitialized()
     {
         if (IsInitialized)
             throw new InvalidOperationException("Scene has been initialized.");
@@ -415,7 +415,7 @@ public sealed partial class Scene
 
     public Entity SetScope(in Entity entity)
     {
-        EnsureInitialized();
+        ThrowIfNotInitialized();
         var oldScope = Scope;
         Scope = entity;
         return oldScope;
@@ -531,100 +531,100 @@ public sealed partial class Scene
 
     public void OnInstantiate(Action<Entity> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _instantiateAction += action;
     }
 
     public void OnDestroy(Action<Entity> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         _destroyAction += action;
     }
 
     public void OnAdd<T>(Action<Entity> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnAdd((entity, _) => action.Invoke(entity));
     }
 
     public void OnAdd<T>(Action<T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnAdd((_, value) => action.Invoke(value));
     }
 
     public void OnAdd<T>(Action<Entity, T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnAdd(action);
     }
 
     public void OnAddOrSet<T>(Action<Entity> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnAdd((entity, _) => action.Invoke(entity));
         Table<T>().OnSet((entity, _, _) => action.Invoke(entity));
     }
 
     public void OnAddOrSet<T>(Action<T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnAdd((_, value) => action.Invoke(value));
         Table<T>().OnSet((_, _, value) => action.Invoke(value));
     }
 
     public void OnAddOrSet<T>(Action<Entity, T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnAdd(action);
         Table<T>().OnSet((entity, _, value) => action.Invoke(entity, value));
     }
 
     public void OnSet<T>(Action<Entity> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnSet((entity, _, _) => action.Invoke(entity));
     }
 
     public void OnSet<T>(Action<T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnSet((_, _, value) => action.Invoke(value));
     }
 
     public void OnSet<T>(Action<T, T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnSet((_, oldValue, newValue) => action.Invoke(oldValue, newValue));
     }
 
     public void OnSet<T>(Action<Entity, T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnSet((entity, _, value) => action.Invoke(entity, value));
     }
 
     public void OnSet<T>(Action<Entity, T, T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnSet(action);
     }
 
     public void OnRemove<T>(Action<Entity> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnRemove((entity, _) => action.Invoke(entity));
     }
 
     public void OnRemove<T>(Action<T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnRemove((_, value) => action.Invoke(value));
     }
 
     public void OnRemove<T>(Action<Entity, T> action)
     {
-        EnsureNotInitialized();
+        ThrowIfInitialized();
         Table<T>().OnRemove(action);
     }
 

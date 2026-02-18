@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FreeTypeSharp;
 using Vigilance.Collections;
@@ -22,7 +23,7 @@ public sealed unsafe class Font : IDisposable
 
     public Font(IEnumerable<byte> bytes, int? quality = null, string? charset = null)
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         Quality = quality ?? DefaultQuality;
         Charset = string.Concat((charset ?? DefaultCharset).Distinct());
         var glyphs = LoadGlyphs(bytes);
@@ -171,15 +172,15 @@ public sealed unsafe class Font : IDisposable
 
         fixed (FT_FaceRec_** face = &_face)
         {
-            FtEnsureOk(FT.FT_New_Memory_Face(_ftLibrary.Native, (byte*)_buffer, span.Length, 0, face));
+            FtThrowIfError(FT.FT_New_Memory_Face(_ftLibrary.Native, (byte*)_buffer, span.Length, 0, face));
         }
 
-        FtEnsureOk(FT.FT_Set_Char_Size(_face, 0, Quality * 64, 0, 0));
-        FtEnsureOk(FT.FT_Load_Char(_face, ' ', FT_LOAD.FT_LOAD_DEFAULT));
+        FtThrowIfError(FT.FT_Set_Char_Size(_face, 0, Quality * 64, 0, 0));
+        FtThrowIfError(FT.FT_Load_Char(_face, ' ', FT_LOAD.FT_LOAD_DEFAULT));
         _spaceSize = _face->glyph->metrics.horiAdvance.ToInt32() / 64;
         fixed (FT_StrokerRec_** stroke = &_stroker)
         {
-            FtEnsureOk(FT.FT_Stroker_New(_ftLibrary.Native, stroke));
+            FtThrowIfError(FT.FT_Stroker_New(_ftLibrary.Native, stroke));
         }
 
         return Charset
@@ -254,9 +255,9 @@ public sealed unsafe class Font : IDisposable
             var index = FT.FT_Get_Char_Index(_face, c);
             FT.FT_Load_Glyph(_face, index, FT_LOAD.FT_LOAD_DEFAULT);
             FT_GlyphRec_* glyph;
-            FtEnsureOk(FT.FT_Get_Glyph(_face->glyph, &glyph));
-            FtEnsureOk(FT.FT_Glyph_Stroke(&glyph, _stroker, 1));
-            FtEnsureOk(FT.FT_Glyph_To_Bitmap(&glyph, FT_Render_Mode_.FT_RENDER_MODE_NORMAL, null, 1));
+            FtThrowIfError(FT.FT_Get_Glyph(_face->glyph, &glyph));
+            FtThrowIfError(FT.FT_Glyph_Stroke(&glyph, _stroker, 1));
+            FtThrowIfError(FT.FT_Glyph_To_Bitmap(&glyph, FT_Render_Mode_.FT_RENDER_MODE_NORMAL, null, 1));
             bitmap = (*(FtBitmapGlyphRec*)glyph).Bitmap;
             FT.FT_Done_Glyph(glyph);
         }
@@ -277,7 +278,8 @@ public sealed unsafe class Font : IDisposable
         );
     }
 
-    private static void FtEnsureOk(FT_Error error)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void FtThrowIfError(FT_Error error)
     {
         if (error != FT_Error.FT_Err_Ok)
             throw new Exception("An error occurred while loading font data.");

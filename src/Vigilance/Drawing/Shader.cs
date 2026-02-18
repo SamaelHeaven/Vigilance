@@ -30,7 +30,7 @@ public sealed unsafe partial class Shader : IDisposable
 
     public Shader(string? vertex = null, string? fragment = null)
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         RShader = Raylib.LoadShaderFromMemory(
             FormatShader(vertex, _vertexVersions),
             FormatShader(fragment, _fragmentVersions)

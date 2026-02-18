@@ -505,7 +505,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void EnsureValid()
+    public void ThrowIfInvalid()
     {
         if (!IsValid)
             throw new InvalidOperationException("Entity must be valid.");

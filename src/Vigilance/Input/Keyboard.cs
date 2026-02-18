@@ -18,7 +18,7 @@ public static class Keyboard
 
     static Keyboard()
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         _keyValues = Enum.GetValues<Key>().AsValueEnumerable().Where(key => key != Key.Null).ToArray();
     }
 

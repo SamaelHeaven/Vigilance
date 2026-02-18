@@ -16,7 +16,7 @@ public static class Time
 
     static Time()
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         _fpsHistory = new ValueQueue<float>(FpsHistorySize);
         _delta = TimeSpan.Zero;
         _last = TimeSpan.FromSeconds(Raylib.GetTime());

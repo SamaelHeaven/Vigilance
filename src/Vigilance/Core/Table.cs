@@ -148,7 +148,7 @@ public sealed class Table<T> : Table
     public void Enqueue(in Event<T> tableEvent)
     {
         tableEvent.Entity.AssertValid();
-        Scene.EnsureInitialized();
+        Scene.ThrowIfNotInitialized();
         if (Scene.IsDeferred)
         {
             _events.Enqueue(tableEvent);
@@ -162,7 +162,7 @@ public sealed class Table<T> : Table
     public void Emit(in Event<T> tableEvent)
     {
         tableEvent.Entity.AssertValid();
-        Scene.EnsureInitialized();
+        Scene.ThrowIfNotInitialized();
         switch (tableEvent.Type)
         {
             case EventType.Add:

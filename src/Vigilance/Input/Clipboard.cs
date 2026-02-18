@@ -9,7 +9,7 @@ public static class Clipboard
     {
         get
         {
-            Game.EnsureRunning();
+            Game.ThrowIfNotRunning();
             return Platform.Current switch
             {
                 Platform.Web => "",
@@ -18,7 +18,7 @@ public static class Clipboard
         }
         set
         {
-            Game.EnsureRunning();
+            Game.ThrowIfNotRunning();
             if (Platform.Web.IsCurrent)
                 JSEngine.Eval($"navigator.clipboard.writeText({value.ToJson()})");
             else

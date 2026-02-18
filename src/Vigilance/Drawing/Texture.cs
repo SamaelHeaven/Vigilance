@@ -14,14 +14,14 @@ public sealed unsafe class Texture : IDisposable
 
     internal Texture(in Texture2D texture2D, RenderTexture? renderTexture = null)
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         Texture2D = texture2D;
         RenderTexture = renderTexture;
     }
 
     public Texture(string fileType, IEnumerable<byte> bytes)
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         using var fileTypeBuffer = fileType.ToUtf8Buffer();
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)

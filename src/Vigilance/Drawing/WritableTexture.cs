@@ -30,7 +30,7 @@ public readonly unsafe struct WritableTexture : IDisposable
 
     public WritableTexture(int width, int height, PixelFormat format = PixelFormat.UncompressedR8G8B8A8)
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         var id = Rlgl.LoadTexture(null, width, height, (Raylib_cs.BleedingEdge.PixelFormat)format, 1);
         var texture2D = new Texture2D
         {
