@@ -8,16 +8,8 @@ namespace Vigilance.UI;
 
 public abstract class UIParent : UIElement
 {
-    public enum ChildrenOperationType
-    {
-        Add,
-        Remove,
-        Insert,
-        Replace,
-    }
-
     internal ValueList<UIElement> ChildrenList = [];
-    public Queue<ChildrenOperation> ChildrenOperations { get; internal set; } = [];
+    internal ValueQueue<ChildrenOperation> ChildrenOperations = [];
     public bool IsDeferred => DeferredCount > 0;
     public int DeferredCount { get; internal set; }
 
@@ -155,7 +147,15 @@ public abstract class UIParent : UIElement
         MarkDirty();
     }
 
-    public readonly record struct ChildrenOperation(
+    internal enum ChildrenOperationType
+    {
+        Add,
+        Remove,
+        Insert,
+        Replace,
+    }
+
+    internal readonly record struct ChildrenOperation(
         ChildrenOperationType Type,
         UIElement? Element = null,
         int Index = 0

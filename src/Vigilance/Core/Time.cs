@@ -1,4 +1,5 @@
 using Raylib_cs.BleedingEdge;
+using Vigilance.Collections;
 using Vigilance.Math;
 using ZLinq;
 
@@ -8,7 +9,7 @@ public static class Time
 {
     public const float FixedDeltaSeconds = 1 / 60f;
     private const int FpsHistorySize = 200;
-    private static readonly Queue<float> _fpsHistory;
+    private static ValueQueue<float> _fpsHistory;
     private static TimeSpan _delta;
     private static TimeSpan _last;
     private static float _scale;
@@ -16,7 +17,7 @@ public static class Time
     static Time()
     {
         Game.EnsureRunning();
-        _fpsHistory = new Queue<float>(FpsHistorySize);
+        _fpsHistory = new ValueQueue<float>(FpsHistorySize);
         _delta = TimeSpan.Zero;
         _last = TimeSpan.FromSeconds(Raylib.GetTime());
         _scale = 1;

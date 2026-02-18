@@ -13,8 +13,6 @@ namespace Vigilance.Core;
 public sealed partial class Scene
 {
     private readonly Dictionary<Type, (ICollection Queue, Action EmitAction)> _customEvents = [];
-    private readonly Queue<Event> _events = [];
-    private readonly Queue<int> _freeIndices = [];
     private readonly Dictionary<Type, Delegate> _listeners = [];
     private readonly Dictionary<string, ulong> _nameMap = [];
     private readonly List<RenderCommand> _renderCommands = [];
@@ -23,7 +21,9 @@ public sealed partial class Scene
     private ValueList<Table> _denseTables = [];
     private Action<Entity>? _destroyAction;
     private ValueList<(int Index, int Generation)> _entities = [];
+    private ValueQueue<Event> _events = [];
     private Action? _fixedUpdateAction;
+    private ValueQueue<int> _freeIndices = [];
     private Action? _initializeAction;
     private Action<Entity>? _instantiateAction;
     private bool _isEndingDefer;

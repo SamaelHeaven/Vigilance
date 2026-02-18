@@ -91,9 +91,9 @@ public static class TableExtensions
 public sealed class Table<T> : Table
 {
     private const int SparseChunkSize = 2048;
-    private readonly Queue<Event<T>> _events = [];
-    private readonly Queue<Operation> _operations = [];
     private Action<Entity, T>? _addAction;
+    private ValueQueue<Event<T>> _events = [];
+    private ValueQueue<Operation> _operations = [];
     private Action<Entity, T>? _removeAction;
     private Action<Entity, T, T>? _setAction;
     private ValueList<int[]?> _sparseChunks = [];

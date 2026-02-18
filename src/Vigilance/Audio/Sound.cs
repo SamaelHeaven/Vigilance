@@ -115,7 +115,7 @@ public sealed class Sound : IDisposable
     {
         Raylib_cs.BleedingEdge.Sound alias;
         var now = Time.Elapsed.TotalSeconds;
-        var index = _aliases.AsValueEnumerable().FindIndex(a => !Raylib.IsSoundPlaying(a.Sound));
+        var index = _aliases.FindIndex(a => !Raylib.IsSoundPlaying(a.Sound));
         if (index != -1)
         {
             alias = _aliases[index].Sound;
