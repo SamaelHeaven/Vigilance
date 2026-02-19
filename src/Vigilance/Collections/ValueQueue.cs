@@ -324,7 +324,24 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
 
         public bool TryCopyTo(scoped Span<T> destination, Index offset)
         {
-            return false;
+            var count = _queue.Count;
+            var start = offset.GetOffset(count);
+            if ((uint)start > (uint)count)
+                return false;
+            if ((uint)destination.Length > (uint)(count - start))
+                return false;
+            if (destination.IsEmpty)
+                return true;
+            var array = _queue._array;
+            var index = _queue._head + start;
+            if (index >= array.Length)
+                index -= array.Length;
+            var firstPart = System.Math.Min(array.Length - index, destination.Length);
+            array.AsSpan(index, firstPart).CopyTo(destination);
+            var remaining = destination.Length - firstPart;
+            if (remaining > 0)
+                array.AsSpan(0, remaining).CopyTo(destination[firstPart..]);
+            return true;
         }
     }
 }

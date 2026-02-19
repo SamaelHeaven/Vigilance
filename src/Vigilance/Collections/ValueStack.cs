@@ -271,7 +271,19 @@ public struct ValueStack<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueSta
 
         public bool TryCopyTo(scoped Span<T> destination, Index offset)
         {
-            return false;
+            var count = _stack.Count;
+            var start = offset.GetOffset(count);
+            if ((uint)start > (uint)count)
+                return false;
+            if ((uint)destination.Length > (uint)(count - start))
+                return false;
+            if (destination.IsEmpty)
+                return true;
+            var array = _stack._array;
+            var sourceIndex = count - start - 1;
+            for (var i = 0; i < destination.Length; i++)
+                destination[i] = array[sourceIndex - i];
+            return true;
         }
     }
 }
