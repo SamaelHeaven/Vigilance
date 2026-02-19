@@ -40,8 +40,6 @@ public static unsafe class Game
 
     public static Config Config { get; private set; } = Config.Empty;
 
-    public static event Action? OnQuit;
-
     public static void OpenUrl(string url)
     {
         ThrowIfNotRunning();
@@ -110,10 +108,21 @@ public static unsafe class Game
         Music.UpdateAll();
         Sound.UpdateAll();
         Display.Update();
-        UpdateActions();
         UpdateFullscreen();
         Renderer.BeginDrawing();
-        _scene.Update();
+        try
+        {
+            UpdateActions();
+            _scene.Update();
+        }
+        catch (Exception e)
+        {
+            var rethrow = true;
+            Hooks.OnException?.Invoke(e, out rethrow);
+            if (rethrow)
+                throw;
+        }
+
         Renderer.EndDrawing();
         Raylib.PollInputEvents();
     }
@@ -131,7 +140,7 @@ public static unsafe class Game
 
     private static void Dispose()
     {
-        OnQuit?.Invoke();
+        Hooks.OnQuit?.Invoke();
         Audio.Audio.Dispose();
         Display.Dispose();
     }

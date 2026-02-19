@@ -56,9 +56,15 @@ public readonly ref partial struct RenderCommands(List<RenderCommand> commands)
     public void Execute()
     {
         commands.Sort();
-        foreach (ref readonly var command in commands.AsSpan())
-            command.Invoke();
-        commands.Clear();
+        try
+        {
+            foreach (ref readonly var command in commands.AsSpan())
+                command.Invoke();
+        }
+        finally
+        {
+            commands.Clear();
+        }
     }
 }
 

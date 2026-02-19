@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Vigilance.Collections;
 using Vigilance.Drawing;
+using Vigilance.Logging;
 using Vigilance.Math;
 using ZLinq;
 
@@ -373,29 +374,36 @@ public sealed partial class Scene
 
     public void EndDefer()
     {
-        if (!IsDeferred)
+        if (DeferredCount == 0)
             throw new InvalidOperationException("Scene is not in a deferred state.");
         if (--DeferredCount != 0 || _isEndingDefer)
             return;
         _isEndingDefer = true;
         while (_events.TryDequeue(out var @event))
-            switch (@event.EventType)
+            try
             {
-                case EventType.Instantiate:
-                    _instantiateAction?.Invoke(new Entity(@event.EntityId, this));
-                    break;
-                case EventType.Destroy:
-                    Destroy(new Entity(@event.EntityId, this));
-                    break;
-                case EventType.Custom:
-                    _customEvents[(Type)@event.Data].EmitAction.Invoke();
-                    break;
-                case EventType.TableOperation:
-                    ((Table)@event.Data).DequeueOperation();
-                    break;
-                case EventType.TableEvent:
-                    ((Table)@event.Data).DequeueEvent();
-                    break;
+                switch (@event.EventType)
+                {
+                    case EventType.Instantiate:
+                        _instantiateAction?.Invoke(new Entity(@event.EntityId, this));
+                        break;
+                    case EventType.Destroy:
+                        Destroy(new Entity(@event.EntityId, this));
+                        break;
+                    case EventType.Custom:
+                        _customEvents[(Type)@event.Data].EmitAction.Invoke();
+                        break;
+                    case EventType.TableOperation:
+                        ((Table)@event.Data).DequeueOperation();
+                        break;
+                    case EventType.TableEvent:
+                        ((Table)@event.Data).DequeueEvent();
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
             }
 
         _isEndingDefer = false;
@@ -521,8 +529,15 @@ public sealed partial class Scene
     {
         var commands = new RenderCommands(_renderCommands);
         _preRenderAction?.Invoke();
-        _renderAction?.Invoke(commands);
-        commands.Execute();
+        try
+        {
+            _renderAction?.Invoke(commands);
+        }
+        finally
+        {
+            commands.Execute();
+        }
+
         _postRenderAction?.Invoke();
     }
 
@@ -678,6 +693,7 @@ public sealed partial class Scene
                 var newIndex = _index + 1;
                 if (newIndex >= _scene._denseTables.Count)
                     return false;
+                _index = newIndex;
                 Current = _scene._denseTables[newIndex];
             } while (!_withHidden && Current.IsHidden);
 

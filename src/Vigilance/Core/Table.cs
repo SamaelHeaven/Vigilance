@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Vigilance.Collections;
+using Vigilance.Logging;
 
 // ReSharper disable ParameterOnlyUsedForPreconditionCheck.Global
 
@@ -168,42 +169,39 @@ public sealed class Table<T> : Table
     public void Emit(in Event<T> tableEvent)
     {
         Scene.ThrowIfNotInitialized();
-        switch (tableEvent.Type)
+        Scene.BeginDefer();
+        try
         {
-            case EventType.Add:
-                if (_addAction is not null && !SkipAddEvent)
-                {
-                    Scene.BeginDefer();
-                    _addAction.Invoke(tableEvent.Entity, tableEvent.NewValue);
-                    Scene.EndDefer();
-                }
-
-                break;
-            case EventType.Set:
-                if (
-                    _setAction is not null
-                    && !SkipSetEvent
-                    && (
-                        !SkipSetEventIfEqual
-                        || !EqualityComparer<T>.Default.Equals(tableEvent.OldValue, tableEvent.NewValue)
+            switch (tableEvent.Type)
+            {
+                case EventType.Add:
+                    if (_addAction is not null && !SkipAddEvent)
+                        _addAction.Invoke(tableEvent.Entity, tableEvent.NewValue);
+                    break;
+                case EventType.Set:
+                    if (
+                        _setAction is not null
+                        && !SkipSetEvent
+                        && (
+                            !SkipSetEventIfEqual
+                            || !EqualityComparer<T>.Default.Equals(tableEvent.OldValue, tableEvent.NewValue)
+                        )
                     )
-                )
-                {
-                    Scene.BeginDefer();
-                    _setAction.Invoke(tableEvent.Entity, tableEvent.OldValue, tableEvent.NewValue);
-                    Scene.EndDefer();
-                }
-
-                break;
-            case EventType.Remove:
-                if (_removeAction is not null && !SkipRemoveEvent)
-                {
-                    Scene.BeginDefer();
-                    _removeAction.Invoke(tableEvent.Entity, tableEvent.NewValue);
-                    Scene.EndDefer();
-                }
-
-                break;
+                        _setAction.Invoke(tableEvent.Entity, tableEvent.OldValue, tableEvent.NewValue);
+                    break;
+                case EventType.Remove:
+                    if (_removeAction is not null && !SkipRemoveEvent)
+                        _removeAction.Invoke(tableEvent.Entity, tableEvent.NewValue);
+                    break;
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+        finally
+        {
+            Scene.EndDefer();
         }
     }
 

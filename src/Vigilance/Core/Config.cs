@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using ZLinq;
 
 namespace Vigilance.Core;
@@ -29,7 +30,7 @@ public sealed class Config
         return obj;
     }
 
-    internal readonly record struct Entry(object Object, Delegate Action);
+    internal record struct Entry(object Object, Delegate Action);
 }
 
 public sealed class ConfigBuilder
@@ -41,7 +42,14 @@ public sealed class ConfigBuilder
     public ConfigBuilder Add<T>(Action<T> config)
         where T : new()
     {
-        _configs.Add(typeof(T), new Config.Entry(new T(), config));
+        ref var entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_configs, typeof(T), out var exists);
+        if (!exists)
+        {
+            entry = new Config.Entry(new T(), config);
+            return this;
+        }
+
+        entry.Action = Delegate.Combine(entry.Action, config);
         return this;
     }
 

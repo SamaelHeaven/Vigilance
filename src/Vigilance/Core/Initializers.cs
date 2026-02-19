@@ -24,6 +24,7 @@ public static class Initializers
         InitializeRaylib();
         Game.Defer(() =>
         {
+            Hooks.Initialize();
             FileSystem.Initialize();
             Log.Initialize();
             Display.Initialize();
