@@ -249,6 +249,7 @@ public abstract class UIParent : UIElement
         {
             _parent = parent;
             _deferred = deferred;
+            _disposed = true;
             Reset();
         }
 

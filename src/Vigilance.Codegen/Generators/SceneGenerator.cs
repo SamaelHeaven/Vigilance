@@ -79,7 +79,9 @@ public sealed class SceneGenerator : SourceGenerator
                     ? "_field0"
                     : "(" + string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}")) + ")";
             var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
-            sb.AppendLine(QueryIterator("Component", type, "Components", current, tables, $"<{typeParams}>"));
+            sb.AppendLine(
+                QueryIterator("Component", type, "Components", current, tables, $"<{typeParams}>", noEntity: true)
+            );
         }
 
         sb.EndRegion();
@@ -109,7 +111,8 @@ public sealed class SceneGenerator : SourceGenerator
         List<string> tables,
         string typeParams = "",
         string visibility = "public",
-        bool noFields = false
+        bool noFields = false,
+        bool noEntity = false
     )
     {
         return $$"""
@@ -153,7 +156,7 @@ public sealed class SceneGenerator : SourceGenerator
                     private bool _disposed;
                     private int _index;
                     {{(tables.Count > 1 ? "private int _tableIndex; " : "")}}
-                    private Entity _entity;
+                    {{(noEntity ? "" : "private Entity _entity;")}}
             {{string.Join("\n", tables.Select((t, i) => $"        private Table<{t}> _table{i};"))}}
             {{(noFields ? "" : string.Join("\n", tables.Select((t, i) => $"        private {t} _field{i} = default!;")))}}
                     
@@ -162,6 +165,7 @@ public sealed class SceneGenerator : SourceGenerator
                         _scene = scene;
                         _withDisabled = withDisabled;
                         _deferred = deferred;
+                        _disposed = true;
             {{string.Join("\n", tables.Select((t, i) => $"            _table{i} = _scene.Table<{t}>();"))}}
                         Reset();
                     }
@@ -176,11 +180,11 @@ public sealed class SceneGenerator : SourceGenerator
                                     if (newIndex >= _table{{i}}.Count) 
                                         return false;
                                     _index = newIndex;
-                                    _entity = new Entity(_table{{i}}.Entities[_index], _scene);
-                                    if (!_withDisabled && _scene.DisabledTable.Has(_entity))
+                                    {{(noEntity && tables.Count <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.Entities[_index], _scene);")}}
+                                    if (!_withDisabled && _scene.DisabledTable.Has({{(noEntity && tables.Count <= 1 ? $"new Entity(_table{i}.Entities[_index], _scene)" : noEntity ? "entity" : "_entity")}}))
                                         goto TABLE{{i}};
                 {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
-                                        ref var field{j} = ref _table{j}.GetRef(_entity).Value;
+                                        ref var field{j} = ref _table{j}.GetRef({(noEntity ? "entity" : "_entity")}).Value;
                                         if (System.Runtime.CompilerServices.Unsafe.IsNullRef(ref field{j}))
                                             goto TABLE{i};
                                         _field{j} = field{j};
@@ -200,8 +204,8 @@ public sealed class SceneGenerator : SourceGenerator
                     {
                         Dispose();
                         _index = -1;
-                        _entity = Core.Entity.Null;
-            {{(noFields ? "" : string.Join("\n", tables.Select((_, i) => $"            _field{i} = default!;")))}}{{(tables.Count > 1 ? "            var smallestCount = int.MaxValue;\n" : "")}}
+                        {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
+            {{(noFields ? "" : string.Join("\n", tables.Select((_, i) => $"            _field{i} = default!;")))}}{{(tables.Count > 1 ? "\n            var smallestCount = int.MaxValue;\n" : "")}}
             {{(tables.Count > 1 ? string.Join("\n", tables.Select((_, i) => $$"""
                             if (_table{{i}}.Count < smallestCount)
                             {
