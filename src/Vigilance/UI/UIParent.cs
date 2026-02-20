@@ -38,7 +38,8 @@ public abstract class UIParent : UIElement
     {
         get
         {
-            AddRange(elements);
+            foreach (var element in elements)
+                Add(element);
             return this;
         }
     }
@@ -64,13 +65,6 @@ public abstract class UIParent : UIElement
     }
 
     public void Add(params ReadOnlySpan<UIElement?> elements)
-    {
-        foreach (var element in elements)
-            Add(element);
-    }
-
-    public void AddRange<T>(T elements)
-        where T : IEnumerable<UIElement?>
     {
         foreach (var element in elements)
             Add(element);
