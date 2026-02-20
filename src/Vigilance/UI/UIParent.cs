@@ -1,3 +1,5 @@
+#pragma warning disable CS9084
+
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
@@ -10,8 +12,9 @@ public abstract class UIParent : UIElement
 {
     internal ValueList<UIElement> ChildrenList = [];
     internal ValueQueue<ChildrenOperation> ChildrenOperations = [];
-    public bool IsDeferred => DeferredCount > 0;
+    public bool IsDeferred => DeferredCount != 0 && SuspendedCount == 0;
     public int DeferredCount { get; internal set; }
+    public int SuspendedCount { get; private set; }
 
     public UIParent this[UIElement? element]
     {
@@ -124,12 +127,24 @@ public abstract class UIParent : UIElement
 
     public void EndDefer()
     {
-        if (!IsDeferred)
+        if (DeferredCount == 0)
             throw new InvalidOperationException("Element is not in a deferred state.");
         if (--DeferredCount != 0)
             return;
         while (ChildrenOperations.TryDequeue(out var operation))
             operation.Execute(this);
+    }
+
+    public void SuspendDefer()
+    {
+        SuspendedCount++;
+    }
+
+    public void ResumeDefer()
+    {
+        if (SuspendedCount == 0)
+            throw new InvalidOperationException("Element is not in a suspended state.");
+        SuspendedCount--;
     }
 
     internal void Remove(UIElement element)
@@ -183,18 +198,20 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public readonly struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
+    public unsafe struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
     {
         private readonly UIParent _parent;
+        private bool _deferred;
 
         internal ChildEnumerable(UIParent parent)
         {
             _parent = parent;
+            _deferred = true;
         }
 
         public ChildEnumerator GetEnumerator()
         {
-            return new ChildEnumerator(_parent);
+            return new ChildEnumerator(_parent, _deferred);
         }
 
         public ValueEnumerable<ChildEnumerator, UIElement> AsValueEnumerable()
@@ -213,23 +230,30 @@ public abstract class UIParent : UIElement
         public int Count => _parent.ChildrenList.Count;
 
         public UIElement this[int index] => _parent.ChildrenList[index];
+
+        public ref ChildEnumerable Deferred(bool deferred = true)
+        {
+            _deferred = deferred;
+            return ref this;
+        }
     }
 
     public struct ChildEnumerator : IStructEnumerator<UIElement>, IValueEnumerator<UIElement>
     {
         private readonly UIParent _parent;
         private int _index;
+        private readonly bool _deferred;
+        private bool _disposed;
 
-        internal ChildEnumerator(UIParent parent)
+        internal ChildEnumerator(UIParent parent, bool deferred)
         {
             _parent = parent;
-            _index = -1;
+            _deferred = deferred;
+            Reset();
         }
 
         public bool MoveNext()
         {
-            if (_index < 0)
-                _parent.BeginDefer();
             var newIndex = _index + 1;
             if (newIndex >= _parent.ChildrenList.Count)
                 return false;
@@ -239,17 +263,21 @@ public abstract class UIParent : UIElement
 
         public void Reset()
         {
-            if (_index >= 0)
-                _parent.EndDefer();
+            Dispose();
+            _parent.BeginDefer();
             _index = -1;
+            _disposed = false;
         }
 
         public UIElement Current => _parent.ChildrenList[_index];
 
         public void Dispose()
         {
-            if (_index >= 0)
+            if (_disposed)
+                return;
+            if (_deferred)
                 _parent.EndDefer();
+            _disposed = true;
         }
 
         public bool TryGetNext(out UIElement current)

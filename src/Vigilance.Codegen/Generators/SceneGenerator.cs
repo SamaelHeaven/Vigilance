@@ -150,7 +150,7 @@ public sealed class SceneGenerator : SourceGenerator
                     private readonly Scene _scene;
                     private readonly bool _withDisabled;
                     private readonly bool _deferred;
-                    private bool _hasDeferBegun;
+                    private bool _disposed;
                     private int _index;
                     {{(tables.Count > 1 ? "private int _tableIndex; " : "")}}
                     private Entity _entity;
@@ -176,7 +176,7 @@ public sealed class SceneGenerator : SourceGenerator
                                     if (newIndex >= _table{{i}}.Count) 
                                         return false;
                                     _index = newIndex;
-                                    _entity = new Entity(_table{{i}}.DenseIds[_index], _scene);
+                                    _entity = new Entity(_table{{i}}.Entities[_index], _scene);
                                     if (!_withDisabled && _scene.DisabledTable.Has(_entity))
                                         goto TABLE{{i}};
                 {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
@@ -212,18 +212,18 @@ public sealed class SceneGenerator : SourceGenerator
                 """)) : "")}}
                         if (_deferred)
                             _scene.BeginDefer();
-                        _hasDeferBegun = true;
+                        _disposed = false;
                     }
 
                     public {{type}} Current => {{current}};
 
                     public void Dispose()
                     {
-                        if (!_hasDeferBegun)
+                        if (_disposed)
                             return;
                         if (_deferred)
                             _scene.EndDefer();
-                        _hasDeferBegun = false;
+                        _disposed = true;
                     }
                 }
                 

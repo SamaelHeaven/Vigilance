@@ -92,13 +92,13 @@ public sealed class Table<T> : Table
 {
     private const int SparseChunkSize = 2048;
     private Action<Entity, T>? _addAction;
+    private ValueList<T> _components = [];
+    private ValueList<ulong> _denseIds = [];
     private ValueQueue<Event<T>> _events = [];
     private ValueQueue<Operation> _operations = [];
     private Action<Entity, T>? _removeAction;
     private Action<Entity, T, T>? _setAction;
     private ValueList<int[]?> _sparseChunks = [];
-    internal ValueList<T> Components = [];
-    internal ValueList<ulong> DenseIds = [];
 
     internal Table(Scene scene)
     {
@@ -111,15 +111,15 @@ public sealed class Table<T> : Table
 
     public override Type Type { get; } = typeof(T);
 
-    public override int Count => Components.Count;
+    public override int Count => _components.Count;
 
     public override int Capacity
     {
-        get => Components.Capacity;
+        get => _components.Capacity;
         set
         {
-            Components.Capacity = value;
-            DenseIds.Capacity = value;
+            _components.Capacity = value;
+            _denseIds.Capacity = value;
         }
     }
 
@@ -140,10 +140,9 @@ public sealed class Table<T> : Table
 
     public override bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public ReadOnlySpan<T> AsSpan()
-    {
-        return Components.AsSpan();
-    }
+    public ReadOnlySpan<T> Components => _components.AsSpan();
+
+    public ReadOnlySpan<ulong> Entities => _denseIds.AsSpan();
 
     public void Enqueue(in Event<T> tableEvent)
     {
@@ -256,13 +255,13 @@ public sealed class Table<T> : Table
                 throw new InvalidOperationException(
                     $"Cannot remove {Type} because it implements {nameof(IRemoveImmutableComponent)}."
                 );
-        var component = Components[denseIndex];
-        var lastDenseIndex = Components.Count - 1;
+        var component = _components[denseIndex];
+        var lastDenseIndex = _components.Count - 1;
         if (denseIndex != lastDenseIndex)
         {
-            Components[denseIndex] = Components[lastDenseIndex];
-            var movedId = DenseIds[lastDenseIndex];
-            DenseIds[denseIndex] = movedId;
+            _components[denseIndex] = _components[lastDenseIndex];
+            var movedId = _denseIds[lastDenseIndex];
+            _denseIds[denseIndex] = movedId;
             var movedEntityIndex = Entity.GetIndex(movedId);
             var movedChunkIndex = movedEntityIndex / SparseChunkSize;
             var movedWithinChunk = movedEntityIndex % SparseChunkSize;
@@ -270,8 +269,8 @@ public sealed class Table<T> : Table
             movedChunk[movedWithinChunk] = denseIndex + 1;
         }
 
-        Components.RemoveAt(lastDenseIndex);
-        DenseIds.RemoveAt(lastDenseIndex);
+        _components.RemoveAt(lastDenseIndex);
+        _denseIds.RemoveAt(lastDenseIndex);
         chunk[withinChunk] = 0;
         Emit(Event<T>.Remove(entity, component));
     }
@@ -289,7 +288,7 @@ public sealed class Table<T> : Table
         if (sparseValue == 0)
             return ComponentRef<T>.Null;
         var denseIndex = sparseValue - 1;
-        return new ComponentRef<T>(ref Components[denseIndex]);
+        return new ComponentRef<T>(ref _components[denseIndex]);
     }
 
     public ComponentRef<T> Set(in Entity entity, scoped in T component, Flags flags = Flags.Default)
@@ -308,12 +307,12 @@ public sealed class Table<T> : Table
         var sparseValue = chunk[withinChunk];
         if (sparseValue == 0)
         {
-            var index = Components.Count + 1;
-            Components.Add(component);
-            DenseIds.Add(entity.Id);
+            var index = _components.Count + 1;
+            _components.Add(component);
+            _denseIds.Add(entity.Id);
             chunk[withinChunk] = index;
             Emit(Event<T>.Add(entity, component));
-            return new ComponentRef<T>(ref Components[index - 1]);
+            return new ComponentRef<T>(ref _components[index - 1]);
         }
 
         if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
@@ -324,7 +323,7 @@ public sealed class Table<T> : Table
                     $"Cannot set {Type} because it implements {nameof(IRemoveImmutableComponent)}."
                 );
         var denseIndex = sparseValue - 1;
-        ref var componentRef = ref Components[denseIndex];
+        ref var componentRef = ref _components[denseIndex];
         var oldValue = componentRef;
         componentRef = component;
         Emit(Event<T>.Set(entity, oldValue, component));
