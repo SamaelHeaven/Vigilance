@@ -49,7 +49,8 @@ public sealed unsafe partial class Scene
     internal Table<PivotPoint> PivotPointTable;
     internal Table<Position> PositionTable;
     internal ValueList<RenderCommand> RenderCommands = [];
-    internal ValueList<RenderTable?> RenderTables = [];
+    internal ValueList<RenderComponents?> RenderComponentsList = [];
+    internal ValueList<RenderData> RenderDataList = [];
     internal Table<Rotation> RotationTable;
     internal Table<Scale> ScaleTable;
     internal Table<Transform> TransformTable;
@@ -444,15 +445,15 @@ public sealed unsafe partial class Scene
         return table;
     }
 
-    internal RenderTable<T> RenderTable<T>()
+    internal RenderComponents<T> RenderComponents<T>()
     {
-        var index = Drawing.RenderTable<T>.Index;
-        while (RenderTables.Count <= index)
-            RenderTables.Add(null);
-        var table = (RenderTable<T>?)RenderTables[index];
+        var index = Drawing.RenderComponents<T>.Index;
+        while (RenderComponentsList.Count <= index)
+            RenderComponentsList.Add(null);
+        var table = (RenderComponents<T>?)RenderComponentsList[index];
         if (table is not null)
             return table;
-        RenderTables[index] = table = new RenderTable<T>();
+        RenderComponentsList[index] = table = new RenderComponents<T>();
         return table;
     }
 

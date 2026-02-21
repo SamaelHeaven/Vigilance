@@ -13,14 +13,14 @@ public readonly ref partial struct RenderCommands
         Scene = scene;
     }
 
-    public void Add(Action action, ulong? order = null)
+    public void Add(Action action, ulong order)
     {
-        Scene.RenderCommands.Add(RenderCommand.Make(action, order));
+        Scene.RenderCommands.Add(RenderCommand.Make(Scene, action, order));
     }
 
     public void Add(in Entity entity, Action<Entity> action)
     {
-        Scene.RenderCommands.Add(RenderCommand.Make(entity, action));
+        Scene.RenderCommands.Add(RenderCommand.Make(Scene, entity, action));
     }
 
     public void Add<TComponent>(in Entity entity, in TComponent component, Action<Entity, TComponent> action)
@@ -67,7 +67,8 @@ public readonly ref partial struct RenderCommands
         finally
         {
             commands.Clear();
-            foreach (var table in Scene.RenderTables)
+            scene.RenderDataList.Clear();
+            foreach (var table in Scene.RenderComponentsList)
                 table?.Clear();
         }
     }
@@ -75,31 +76,25 @@ public readonly ref partial struct RenderCommands
 
 internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
 {
-    private readonly delegate* <ref readonly RenderCommand, Scene, void> _invoker;
-    private readonly Delegate _action;
-    private readonly object? _table;
-    private readonly object? _system;
-    private readonly ulong _entityId;
     private readonly ulong _order;
-    private readonly int _index;
+    private readonly int _dataIndex;
 
     private RenderCommand(
-        delegate* <ref readonly RenderCommand, Scene, void> invoker,
+        Scene scene,
+        delegate* <ref readonly RenderCommand, ref readonly RenderData, Scene, void> invoker,
         Delegate action,
         in Entity entity = default,
         object? system = null,
-        int index = -1,
-        object? table = null,
-        ulong? order = null
+        int componentIndex = -1,
+        object? components = null,
+        ulong order = 0
     )
     {
-        _order = order ?? (entity.IsNull ? 0 : entity.Order);
-        _entityId = entity.Id;
-        _invoker = invoker;
-        _action = action;
-        _system = system;
-        _index = index;
-        _table = table;
+        _order = entity.IsNull ? order : entity.Order;
+        _dataIndex = scene.RenderDataList.Count;
+        scene.RenderDataList.Add(
+            new RenderData(invoker, action, components, system, entity.IsNull ? -1 : entity.Version, componentIndex)
+        );
     }
 
     public int CompareTo(RenderCommand other)
@@ -107,14 +102,14 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
         return _order.CompareTo(other._order);
     }
 
-    internal static RenderCommand Make(Action action, ulong? order)
+    internal static RenderCommand Make(Scene scene, Action action, ulong order)
     {
-        return new RenderCommand(&VoidInvoker, action, order: order);
+        return new RenderCommand(scene, &VoidInvoker, action, order: order);
     }
 
-    internal static RenderCommand Make(in Entity entity, Action<Entity> action)
+    internal static RenderCommand Make(Scene scene, in Entity entity, Action<Entity> action)
     {
-        return new RenderCommand(&EntityInvoker, action, entity);
+        return new RenderCommand(scene, &EntityInvoker, action, entity);
     }
 
     internal static RenderCommand Make<TComponent>(
@@ -125,11 +120,11 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
     )
     {
         if (!typeof(TComponent).IsValueType)
-            return new RenderCommand(&MonoInvoker<TComponent>, action, entity, table: component);
-        var table = scene.RenderTable<TComponent>();
-        var index = table.Components.Count;
-        table.Components.Add(component);
-        return new RenderCommand(&MonoInvoker<TComponent>, action, entity, null, index, table);
+            return new RenderCommand(scene, &MonoInvoker<TComponent>, action, entity, components: component);
+        var components = scene.RenderComponents<TComponent>();
+        var index = components.Components.Count;
+        components.Components.Add(component);
+        return new RenderCommand(scene, &MonoInvoker<TComponent>, action, entity, null, index, components);
     }
 
     internal static RenderCommand Make<TSystem, TComponent>(
@@ -141,49 +136,98 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
     )
     {
         if (!typeof(TComponent).IsValueType)
-            return new RenderCommand(&BiInvoker<TSystem, TComponent>, action, entity, system, table: component);
-        var table = scene.RenderTable<TComponent>();
-        var index = table.Components.Count;
-        table.Components.Add(component);
-        return new RenderCommand(&BiInvoker<TSystem, TComponent>, action, entity, system, index, table);
+            return new RenderCommand(
+                scene,
+                &BiInvoker<TSystem, TComponent>,
+                action,
+                entity,
+                system,
+                components: component
+            );
+        var components = scene.RenderComponents<TComponent>();
+        var index = components.Components.Count;
+        components.Components.Add(component);
+        return new RenderCommand(scene, &BiInvoker<TSystem, TComponent>, action, entity, system, index, components);
     }
 
     internal void Invoke(Scene scene)
     {
-        _invoker(in this, scene);
+        ref var data = ref scene.RenderDataList[_dataIndex];
+        data.Invoker(in this, in data, scene);
     }
 
-    private static void VoidInvoker(ref readonly RenderCommand command, Scene scene)
+    private static void VoidInvoker(ref readonly RenderCommand command, ref readonly RenderData data, Scene scene)
     {
-        ((Action)command._action).Invoke();
+        ((Action)data.Action).Invoke();
     }
 
-    private static void EntityInvoker(ref readonly RenderCommand command, Scene scene)
+    private static void EntityInvoker(ref readonly RenderCommand command, ref readonly RenderData data, Scene scene)
     {
-        ((Action<Entity>)command._action).Invoke(new Entity(command._entityId, scene));
+        var entity =
+            data.EntityVersion == -1 ? Entity.Null : new Entity((int)(uint)command._order, data.EntityVersion, scene);
+        ((Action<Entity>)data.Action).Invoke(entity);
     }
 
-    private static void MonoInvoker<TComponent>(ref readonly RenderCommand command, Scene scene)
+    private static void MonoInvoker<TComponent>(
+        ref readonly RenderCommand command,
+        ref readonly RenderData data,
+        Scene scene
+    )
     {
-        ((Action<Entity, TComponent>)command._action).Invoke(
-            new Entity(command._entityId, scene),
-            ((RenderTable<TComponent>)command._table!).Components[command._index]
+        var entity =
+            data.EntityVersion == -1 ? Entity.Null : new Entity((int)(uint)command._order, data.EntityVersion, scene);
+        ((Action<Entity, TComponent>)data.Action).Invoke(
+            entity,
+            ((RenderComponents<TComponent>)data.Components!).Components[data.ComponentIndex]
         );
     }
 
-    private static void BiInvoker<TSystem, TComponent>(ref readonly RenderCommand command, Scene scene)
+    private static void BiInvoker<TSystem, TComponent>(
+        ref readonly RenderCommand command,
+        ref readonly RenderData data,
+        Scene scene
+    )
     {
-        ((Action<TSystem, Entity, TComponent>)command._action).Invoke(
-            (TSystem)command._system!,
-            new Entity(command._entityId, scene),
-            command._index == -1
-                ? (TComponent)command._table!
-                : ((RenderTable<TComponent>)command._table!).Components[command._index]
+        var entity =
+            data.EntityVersion == -1 ? Entity.Null : new Entity((int)(uint)command._order, data.EntityVersion, scene);
+        ((Action<TSystem, Entity, TComponent>)data.Action).Invoke(
+            (TSystem)data.System!,
+            entity,
+            data.ComponentIndex == -1
+                ? (TComponent)data.Components!
+                : ((RenderComponents<TComponent>)data.Components!).Components[data.ComponentIndex]
         );
     }
 }
 
-internal abstract class RenderTable
+internal readonly unsafe struct RenderData
+{
+    internal readonly delegate* <ref readonly RenderCommand, ref readonly RenderData, Scene, void> Invoker;
+    internal readonly Delegate Action;
+    internal readonly object? Components;
+    internal readonly object? System;
+    internal readonly int EntityVersion;
+    internal readonly int ComponentIndex;
+
+    internal RenderData(
+        delegate* <ref readonly RenderCommand, ref readonly RenderData, Scene, void> invoker,
+        Delegate action,
+        object? components,
+        object? system,
+        int entityVersion,
+        int componentIndex
+    )
+    {
+        Invoker = invoker;
+        Action = action;
+        Components = components;
+        System = system;
+        EntityVersion = entityVersion;
+        ComponentIndex = componentIndex;
+    }
+}
+
+internal abstract class RenderComponents
 {
     internal static int CurrentIndex = -1;
 
@@ -191,7 +235,7 @@ internal abstract class RenderTable
 }
 
 [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
-internal sealed class RenderTable<T> : RenderTable
+internal sealed class RenderComponents<T> : RenderComponents
 {
     internal ValueList<T> Components = [];
 
