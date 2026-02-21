@@ -35,8 +35,6 @@ public abstract partial class GameSystem : IGameSystem
     public bool IsDisabled { get; set; }
     public bool QueryWithDisabled { get; set; }
     public bool QueryDeferred { get; set; }
-
-    public Scene.EntityEnumerable Entities => GetEntities();
     public int Order { get; set; }
 
     public void Configure(Scene scene)

@@ -29,7 +29,13 @@ public sealed class GameSystemGenerator : SourceGenerator
     private static void Entities(StringBuilder sb)
     {
         sb.BeginRegion("Entities");
-        sb.AppendLine(QueryIterator("Entity", "GetEntities", visibility: "private"));
+        sb.AppendLine(QueryIterator("Entity", "Entities"));
+        for (var i = 0; i < 16; i++)
+        {
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            sb.AppendLine(QueryIterator("Entity", "Entities", $"<{typeParams}>"));
+        }
+
         sb.EndRegion();
     }
 
@@ -57,15 +63,10 @@ public sealed class GameSystemGenerator : SourceGenerator
         sb.EndRegion();
     }
 
-    private static string QueryIterator(
-        string name,
-        string methodName,
-        string typeParams = "",
-        string visibility = "public"
-    )
+    private static string QueryIterator(string name, string methodName, string typeParams = "")
     {
         return $$"""
-                {{visibility}} Scene.{{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
+                public Scene.{{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
                     return Scene.{{methodName}}{{typeParams}}().WithDisabled(QueryWithDisabled).Deferred(QueryDeferred);
                 }
 

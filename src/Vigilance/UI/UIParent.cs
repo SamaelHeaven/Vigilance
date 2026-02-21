@@ -259,9 +259,10 @@ public abstract class UIParent : UIElement
         public void Reset()
         {
             Dispose();
-            _parent.BeginDefer();
             _index = -1;
             _disposed = false;
+            if (_deferred)
+                _parent.BeginDefer();
         }
 
         public UIElement Current => _parent.ChildrenList[_index];

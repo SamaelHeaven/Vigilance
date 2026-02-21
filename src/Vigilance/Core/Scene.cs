@@ -11,12 +11,11 @@ using ZLinq;
 
 namespace Vigilance.Core;
 
-public sealed partial class Scene
+public sealed unsafe partial class Scene
 {
     private readonly Dictionary<Type, (ICollection Queue, Action EmitAction)> _customEvents = [];
     private readonly Dictionary<Type, Delegate> _listeners = [];
     private readonly Dictionary<string, ulong> _nameMap = [];
-    private readonly List<RenderCommand> _renderCommands = [];
     private readonly GameSystemsFunc _systemsFunc;
     private Action? _deferredAction;
     private ValueList<Table> _denseTables = [];
@@ -49,6 +48,8 @@ public sealed partial class Scene
     internal Table<Parent> ParentTable;
     internal Table<PivotPoint> PivotPointTable;
     internal Table<Position> PositionTable;
+    internal ValueList<RenderCommand> RenderCommands = [];
+    internal ValueList<RenderTable?> RenderTables = [];
     internal Table<Rotation> RotationTable;
     internal Table<Scale> ScaleTable;
     internal Table<Transform> TransformTable;
@@ -103,8 +104,6 @@ public sealed partial class Scene
 
     public int SuspendedCount { get; private set; }
 
-    public EntityEnumerable Entities => GetEntities();
-
     public TableEnumerable Tables => new(this);
 
     public void Restart()
@@ -126,7 +125,7 @@ public sealed partial class Scene
             if (current && _started)
                 Stop();
             _time = 0;
-            foreach (var entity in Entities)
+            foreach (var entity in Entities())
                 entity.Destroy();
             _initializeAction?.Invoke();
         }
@@ -445,6 +444,18 @@ public sealed partial class Scene
         return table;
     }
 
+    internal RenderTable<T> RenderTable<T>()
+    {
+        var index = Drawing.RenderTable<T>.Index;
+        while (RenderTables.Count <= index)
+            RenderTables.Add(null);
+        var table = (RenderTable<T>?)RenderTables[index];
+        if (table is not null)
+            return table;
+        RenderTables[index] = table = new RenderTable<T>();
+        return table;
+    }
+
     internal void Stop()
     {
         _stopAction?.Invoke();
@@ -527,7 +538,7 @@ public sealed partial class Scene
 
     private void Render()
     {
-        var commands = new RenderCommands(_renderCommands);
+        var commands = new RenderCommands(this);
         _preRenderAction?.Invoke();
         try
         {
@@ -646,7 +657,7 @@ public sealed partial class Scene
         Table<T>().OnRemove(action);
     }
 
-    public unsafe struct TableEnumerable : IStructEnumerable<TableEnumerator, Table>
+    public struct TableEnumerable : IStructEnumerable<TableEnumerator, Table>
     {
         private readonly Scene _scene;
         private bool _withHidden;

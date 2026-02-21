@@ -50,10 +50,10 @@ public static class Drawing
 
     public static Texture DefaultTexture { get; set; } = null!;
 
-    public static bool DefaultCulling
+    public static bool DefaultFrustumCulling
     {
-        get => _config.DefaultCulling;
-        set => _config.DefaultCulling = value;
+        get => _config.DefaultFrustumCulling;
+        set => _config.DefaultFrustumCulling = value;
     }
 
     internal static void Initialize()
@@ -73,7 +73,7 @@ public sealed class DrawingConfig
     public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
     public CameraProvider DefaultCamera { get; set; } = Camera.Scene;
     public Func<Texture> DefaultTexture { get; set; } = () => Texture.Empty;
-    public bool DefaultCulling { get; set; } = false;
+    public bool DefaultFrustumCulling { get; set; } = false;
 }
 
 public static class DrawingConfigExtensions

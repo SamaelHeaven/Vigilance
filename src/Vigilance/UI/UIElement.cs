@@ -99,7 +99,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     public int ZIndex { get; set; }
 
-    public bool? Culling { get; set; } = null;
+    public bool? FrustumCulling { get; set; } = null;
 
     public bool WasRenderedOutside { get; private set; } = true;
 
@@ -738,10 +738,10 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         }
 
         element.RenderedClip = graphics.GetClip();
-        if (element.Culling.HasValue)
+        if (element.FrustumCulling.HasValue)
         {
-            data.OldCulling = graphics.Culling();
-            graphics.SetCulling(element.Culling!.Value);
+            data.OldFrustumCulling = graphics.FrustumCulling();
+            graphics.SetFrustumCulling(element.FrustumCulling!.Value);
         }
 
         data.Phase = RenderPhase.End;
@@ -779,8 +779,8 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         if (!data.ShouldRender)
             return;
         element.EndRender(graphics, camera);
-        if (data.OldCulling.HasValue)
-            graphics.SetCulling(data.OldCulling.Value);
+        if (data.OldFrustumCulling.HasValue)
+            graphics.SetFrustumCulling(data.OldFrustumCulling.Value);
         if (data.OverflowHidden)
             graphics.SetClip(data.OldClip);
         graphics.PopMatrix();
@@ -826,7 +826,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         public RenderPhase Phase;
         public Matrix3x2? OldMatrix;
         public Box? OldClip;
-        public bool? OldCulling;
+        public bool? OldFrustumCulling;
         public bool OverflowHidden;
         public readonly bool ShouldRender;
 
@@ -845,18 +845,20 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     public struct Traverser : ITraverser<Traverser, UIElement>
     {
         private UIParent.ChildEnumerator _enumerator;
+        private readonly bool _deferred;
         private bool _hasEnumerator;
 
         public UIElement Origin { get; }
 
-        internal Traverser(UIElement origin)
+        internal Traverser(UIElement origin, bool deferred = true)
         {
             Origin = origin;
+            _deferred = deferred;
         }
 
         public Traverser ConvertToTraverser(UIElement next)
         {
-            return new Traverser(next);
+            return new Traverser(next, _deferred);
         }
 
         public bool TryGetChildCount(out int count)
@@ -893,7 +895,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
                     return false;
                 }
 
-                _enumerator = parent.Children.GetEnumerator();
+                _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
                 _hasEnumerator = true;
             }
 
@@ -920,7 +922,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
             }
             else if (TryGetParent(out var parent))
             {
-                _enumerator = parent.Children.GetEnumerator();
+                _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
                 _hasEnumerator = true;
                 while (_enumerator.MoveNext())
                     if (_enumerator.Current == Origin)
@@ -945,7 +947,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
             }
             else if (TryGetParent(out var parent))
             {
-                _enumerator = parent.Children.GetEnumerator();
+                _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
                 _hasEnumerator = true;
                 goto BEGIN;
             }

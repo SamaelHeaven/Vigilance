@@ -1,40 +1,41 @@
+using System.Diagnostics.CodeAnalysis;
 using Vigilance.Collections;
 using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 
-public readonly ref partial struct RenderCommands(List<RenderCommand> commands)
+public readonly ref partial struct RenderCommands
 {
-    public void Add(in RenderCommand command)
+    public Scene Scene { get; }
+
+    internal RenderCommands(Scene scene)
     {
-        commands.Add(command);
+        Scene = scene;
     }
 
     public void Add(Action action, ulong? order = null)
     {
-        Add(RenderCommand.From(action, order));
+        Scene.RenderCommands.Add(RenderCommand.Make(action, order));
     }
 
-    public void Add(Entity entity, Action<Entity> action)
+    public void Add(in Entity entity, Action<Entity> action)
     {
-        Add(RenderCommand.From(entity, action));
+        Scene.RenderCommands.Add(RenderCommand.Make(entity, action));
     }
 
-    public void Add<T>(Entity entity, T t, Action<Entity, T> action)
+    public void Add<TComponent>(in Entity entity, in TComponent component, Action<Entity, TComponent> action)
     {
-        Add(RenderCommand.From(entity, t, action));
+        Scene.RenderCommands.Add(RenderCommand.Make(Scene, entity, component, action));
     }
 
-    public void Add<T0, T1>(Entity entity, T0 t0, T1 t1, Action<Entity, T0, T1> action)
+    public void Add<TSystem, TComponent>(
+        TSystem system,
+        in Entity entity,
+        in TComponent component,
+        Action<TSystem, Entity, TComponent> action
+    )
     {
-        Add(RenderCommand.From(entity, t0, t1, action));
-    }
-
-    public void AddRange<T>(T enumerable)
-        where T : IEnumerable<RenderCommand>
-    {
-        foreach (var command in enumerable)
-            Add(command);
+        Scene.RenderCommands.Add(RenderCommand.Make(Scene, entity, system, component, action));
     }
 
     public void AddRange<TComponent>(Scene.EntryEnumerable<TComponent> entries, Action<Entity, TComponent> action)
@@ -43,107 +44,155 @@ public readonly ref partial struct RenderCommands(List<RenderCommand> commands)
             Add(entity, component, action);
     }
 
-    public void AddRange<TContext, TComponent>(
-        TContext context,
+    public void AddRange<TSystem, TComponent>(
+        TSystem system,
         Scene.EntryEnumerable<TComponent> entries,
-        Action<Entity, TContext, TComponent> action
+        Action<TSystem, Entity, TComponent> action
     )
     {
         foreach (var (entity, component) in entries)
-            Add(entity, context, component, action);
+            Add(system, entity, component, action);
     }
 
-    public void Execute()
+    internal void Execute()
     {
+        var scene = Scene;
+        ref var commands = ref scene.RenderCommands;
         commands.Sort();
         try
         {
-            foreach (ref readonly var command in commands.AsSpan())
-                command.Invoke();
+            foreach (ref var command in commands.AsSpan())
+                command.Invoke(scene);
         }
         finally
         {
             commands.Clear();
+            foreach (var table in Scene.RenderTables)
+                table?.Clear();
         }
     }
 }
 
-public readonly struct RenderCommand : IComparable<RenderCommand>
+internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
 {
-    private readonly Invoker _invoker;
+    private readonly delegate* <ref readonly RenderCommand, Scene, void> _invoker;
     private readonly Delegate _action;
-    private readonly object? _t0;
-    private readonly object? _t1;
-
-    public Entity Entity { get; }
-    public ulong Order { get; }
+    private readonly RenderTable? _table;
+    private readonly object? _system;
+    private readonly ulong _entityId;
+    private readonly ulong _order;
+    private readonly int _index;
 
     private RenderCommand(
-        Invoker invoker,
+        delegate* <ref readonly RenderCommand, Scene, void> invoker,
         Delegate action,
-        Entity entity,
-        object? t0 = null,
-        object? t1 = null,
+        in Entity entity = default,
+        object? system = null,
+        int index = -1,
+        RenderTable? table = null,
         ulong? order = null
     )
     {
-        Order = order ?? (entity.IsNull ? 0 : entity.Order);
-        Entity = entity;
+        _order = order ?? (entity.IsNull ? 0 : entity.Order);
+        _entityId = entity.Id;
         _invoker = invoker;
-        _t0 = t0;
-        _t1 = t1;
         _action = action;
-    }
-
-    public static RenderCommand From(Action action, ulong? order = null)
-    {
-        return new RenderCommand(VoidInvoker, action, Entity.Null, order: order);
-    }
-
-    public static RenderCommand From(Entity entity, Action<Entity> action)
-    {
-        return new RenderCommand(EntityInvoker, action, entity);
-    }
-
-    public static RenderCommand From<T>(Entity entity, T t, Action<Entity, T> action)
-    {
-        return new RenderCommand(MonoInvoker<T>, action, entity, t);
-    }
-
-    public static RenderCommand From<T0, T1>(Entity entity, T0 t0, T1 t1, Action<Entity, T0, T1> action)
-    {
-        return new RenderCommand(BiInvoker<T0, T1>, action, entity, t0, t1);
-    }
-
-    public void Invoke()
-    {
-        _invoker.Invoke(this);
+        _system = system;
+        _index = index;
+        _table = table;
     }
 
     public int CompareTo(RenderCommand other)
     {
-        return Order.CompareTo(other.Order);
+        return _order.CompareTo(other._order);
     }
 
-    private static void VoidInvoker(in RenderCommand command)
+    internal static RenderCommand Make(Action action, ulong? order)
+    {
+        return new RenderCommand(&VoidInvoker, action, order: order);
+    }
+
+    internal static RenderCommand Make(in Entity entity, Action<Entity> action)
+    {
+        return new RenderCommand(&EntityInvoker, action, entity);
+    }
+
+    internal static RenderCommand Make<TComponent>(
+        Scene scene,
+        in Entity entity,
+        in TComponent component,
+        Action<Entity, TComponent> action
+    )
+    {
+        var table = scene.RenderTable<TComponent>();
+        var index = table.Components.Count;
+        table.Components.Add(component);
+        return new RenderCommand(&MonoInvoker<TComponent>, action, entity, null, index, table);
+    }
+
+    internal static RenderCommand Make<TSystem, TComponent>(
+        Scene scene,
+        in Entity entity,
+        TSystem system,
+        in TComponent component,
+        Action<TSystem, Entity, TComponent> action
+    )
+    {
+        var table = scene.RenderTable<TComponent>();
+        var index = table.Components.Count;
+        table.Components.Add(component);
+        return new RenderCommand(&BiInvoker<TSystem, TComponent>, action, entity, system, index, table);
+    }
+
+    internal void Invoke(Scene scene)
+    {
+        _invoker(in this, scene);
+    }
+
+    private static void VoidInvoker(ref readonly RenderCommand command, Scene scene)
     {
         ((Action)command._action).Invoke();
     }
 
-    private static void EntityInvoker(in RenderCommand command)
+    private static void EntityInvoker(ref readonly RenderCommand command, Scene scene)
     {
-        ((Action<Entity>)command._action).Invoke(command.Entity);
+        ((Action<Entity>)command._action).Invoke(new Entity(command._entityId, scene));
     }
 
-    private static void MonoInvoker<T>(in RenderCommand command)
+    private static void MonoInvoker<TComponent>(ref readonly RenderCommand command, Scene scene)
     {
-        ((Action<Entity, T>)command._action).Invoke(command.Entity, (T)command._t0!);
+        ((Action<Entity, TComponent>)command._action).Invoke(
+            new Entity(command._entityId, scene),
+            ((RenderTable<TComponent>)command._table!).Components[command._index]
+        );
     }
 
-    private static void BiInvoker<T0, T1>(in RenderCommand command)
+    private static void BiInvoker<TSystem, TComponent>(ref readonly RenderCommand command, Scene scene)
     {
-        ((Action<Entity, T0, T1>)command._action).Invoke(command.Entity, (T0)command._t0!, (T1)command._t1!);
+        ((Action<TSystem, Entity, TComponent>)command._action).Invoke(
+            (TSystem)command._system!,
+            new Entity(command._entityId, scene),
+            ((RenderTable<TComponent>)command._table!).Components[command._index]
+        );
     }
+}
 
-    private delegate void Invoker(in RenderCommand command);
+internal abstract class RenderTable
+{
+    internal static int CurrentIndex = -1;
+
+    internal abstract void Clear();
+}
+
+[SuppressMessage("ReSharper", "StaticMemberInGenericType")]
+internal sealed class RenderTable<T> : RenderTable
+{
+    internal ValueList<T> Components = [];
+
+    internal static int Index { get; } = Interlocked.Increment(ref CurrentIndex);
+
+    internal override void Clear()
+    {
+        Components.Clear();
+    }
 }

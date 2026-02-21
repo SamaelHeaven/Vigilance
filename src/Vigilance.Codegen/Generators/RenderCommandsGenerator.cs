@@ -26,7 +26,7 @@ public sealed class RenderCommandsGenerator : SourceGenerator
         sb.AppendLine("}");
     }
 
-    private static void AddRangeEnumerable(StringBuilder sb, bool context)
+    private static void AddRangeEnumerable(StringBuilder sb, bool system)
     {
         for (var i = 1; i < 15; i++)
         {
@@ -34,14 +34,14 @@ public sealed class RenderCommandsGenerator : SourceGenerator
             var items = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"entry.Item{n + 2}"));
             sb.AppendLine(
                 $$"""
-                    public void AddRange<{{(context ? "TContext, " : "")}}{{typeParams}}>({{(
-                        context ? "TContext context, " : ""
-                    )}}{{$"Scene.EntryEnumerable<{typeParams}>"}} entries, Action<Entity, {{(
-                    context ? "TContext, " : ""
-                )}}({{typeParams}})> action)
+                    public void AddRange<{{(system ? "TSystem, " : "")}}{{typeParams}}>({{(
+                        system ? "TSystem system, " : ""
+                    )}}{{$"Scene.EntryEnumerable<{typeParams}>"}} entries, Action<{{(
+                    system ? "TSystem, " : ""
+                )}}Entity, ({{typeParams}})> action)
                     {
                         foreach (var entry in entries)
-                            Add(entry.Item1, {{(context ? "context, " : "")}}({{items}}), action);
+                            Add({{(system ? "system, " : "")}}entry.Item1, ({{items}}), action);
                     }
                     
                 """
@@ -49,7 +49,7 @@ public sealed class RenderCommandsGenerator : SourceGenerator
         }
     }
 
-    private static void AddRangeGameSystem(StringBuilder sb, bool context)
+    private static void AddRangeGameSystem(StringBuilder sb, bool system)
     {
         for (var i = 0; i < 15; i++)
         {
@@ -57,11 +57,11 @@ public sealed class RenderCommandsGenerator : SourceGenerator
             var type = i == 0 ? typeParams : $"({typeParams})";
             sb.AppendLine(
                 $$"""
-                    public void AddRange<TSystem, {{typeParams}}>(TSystem system, Action<Entity, {{(
-                        context ? "TSystem, " : ""
-                    )}} {{type}}> action) where TSystem : GameSystem
+                    public void AddRange<TSystem, {{typeParams}}>(TSystem system, Action<{{(
+                        system ? "TSystem, " : ""
+                    )}}Entity, {{type}}> action) where TSystem : GameSystem
                     {
-                        AddRange({{(context ? "system, " : "")}}system.Entries<{{typeParams}}>(), action);
+                        AddRange({{(system ? "system, " : "")}}system.Entries<{{typeParams}}>(), action);
                     }
 
                 """

@@ -22,7 +22,7 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
     {
         commands.AddRange<UISystem, UIElement>(
             this,
-            static (entity, self, element) => element.Render(entity.WorldTransform, self.Graphics)
+            static (system, entity, element) => element.Render(entity.WorldTransform, system.Graphics)
         );
     }
 }

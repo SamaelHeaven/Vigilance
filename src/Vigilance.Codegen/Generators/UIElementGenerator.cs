@@ -18,7 +18,7 @@ public sealed class UIElementGenerator : SourceGenerator
 
             """
         );
-        sb.TraverserExtensions("UIElement", "UIElement.Traverser");
+        sb.TraverserExtensions("UIElement", "UIElement.Traverser", "bool deferred = true", "deferred");
         sb.AppendLine("}");
     }
 }

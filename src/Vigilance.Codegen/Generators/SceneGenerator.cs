@@ -53,17 +53,14 @@ public sealed class SceneGenerator : SourceGenerator
     private static void Entities(StringBuilder sb)
     {
         sb.BeginRegion("Entities");
-        sb.AppendLine(
-            QueryIterator(
-                "Entity",
-                "Entity",
-                "GetEntities",
-                "_entity",
-                ["ZIndex"],
-                visibility: "internal",
-                noFields: true
-            )
-        );
+        sb.AppendLine(QueryIterator("Entity", "Entity", "Entities", "_entity", ["ZIndex"], noFields: true));
+        for (var i = 0; i < 16; i++)
+        {
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
+            sb.AppendLine(QueryIterator("Entity", "Entity", "Entities", "_entity", tables, $"<{typeParams}>", true));
+        }
+
         sb.EndRegion();
     }
 
@@ -110,7 +107,6 @@ public sealed class SceneGenerator : SourceGenerator
         string current,
         List<string> tables,
         string typeParams = "",
-        string visibility = "public",
         bool noFields = false,
         bool noEntity = false
     )
@@ -187,7 +183,7 @@ public sealed class SceneGenerator : SourceGenerator
                                         ref var field{j} = ref _table{j}.GetRef({(noEntity ? "entity" : "_entity")}).Value;
                                         if (System.Runtime.CompilerServices.Unsafe.IsNullRef(ref field{j}))
                                             goto TABLE{i};
-                                        _field{j} = field{j};
+                                        {(noFields ? "" : $"_field{j} = field{j};")}
                     """).Where(str => str != ""))}}
                                     {{(noFields ? "" : $"_field{i} = _table{i}.Components[_index];")}}
                                     return true;
@@ -231,7 +227,7 @@ public sealed class SceneGenerator : SourceGenerator
                     }
                 }
                 
-                {{visibility}} {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
+                public {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
                     ThrowIfNotInitialized();
                     return new {{name}}Enumerable{{typeParams}}(this);
                 }
