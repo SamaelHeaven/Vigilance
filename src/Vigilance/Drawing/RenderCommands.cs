@@ -77,7 +77,7 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
 {
     private readonly delegate* <ref readonly RenderCommand, Scene, void> _invoker;
     private readonly Delegate _action;
-    private readonly RenderTable? _table;
+    private readonly object? _table;
     private readonly object? _system;
     private readonly ulong _entityId;
     private readonly ulong _order;
@@ -89,7 +89,7 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
         in Entity entity = default,
         object? system = null,
         int index = -1,
-        RenderTable? table = null,
+        object? table = null,
         ulong? order = null
     )
     {
@@ -124,6 +124,8 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
         Action<Entity, TComponent> action
     )
     {
+        if (!typeof(TComponent).IsValueType)
+            return new RenderCommand(&MonoInvoker<TComponent>, action, entity, table: component);
         var table = scene.RenderTable<TComponent>();
         var index = table.Components.Count;
         table.Components.Add(component);
@@ -138,6 +140,8 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
         Action<TSystem, Entity, TComponent> action
     )
     {
+        if (!typeof(TComponent).IsValueType)
+            return new RenderCommand(&BiInvoker<TSystem, TComponent>, action, entity, system, table: component);
         var table = scene.RenderTable<TComponent>();
         var index = table.Components.Count;
         table.Components.Add(component);
@@ -172,7 +176,9 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
         ((Action<TSystem, Entity, TComponent>)command._action).Invoke(
             (TSystem)command._system!,
             new Entity(command._entityId, scene),
-            ((RenderTable<TComponent>)command._table!).Components[command._index]
+            command._index == -1
+                ? (TComponent)command._table!
+                : ((RenderTable<TComponent>)command._table!).Components[command._index]
         );
     }
 }
