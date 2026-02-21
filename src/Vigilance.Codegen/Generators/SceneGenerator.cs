@@ -147,15 +147,15 @@ public sealed class SceneGenerator : SourceGenerator
                 
                 public unsafe struct {{name}}Enumerator{{typeParams}} : Collections.IStructEnumerator<{{type}}> {
                     private readonly Scene _scene;
+                    {{(noEntity ? "" : "private Entity _entity;")}}
+            {{string.Join("\n", tables.Select((t, i) => $"        private Table<{t}> _table{i};"))}}
+                    private int _index;
+                    {{(tables.Count > 1 ? "private int _tableIndex; " : "")}}
                     private readonly bool _withDisabled;
                     private readonly bool _deferred;
                     private bool _disposed;
-                    private int _index;
-                    {{(tables.Count > 1 ? "private int _tableIndex; " : "")}}
-                    {{(noEntity ? "" : "private Entity _entity;")}}
-            {{string.Join("\n", tables.Select((t, i) => $"        private Table<{t}> _table{i};"))}}
             {{(noFields ? "" : string.Join("\n", tables.Select((t, i) => $"        private {t} _field{i} = default!;")))}}
-                    
+
                     internal {{name}}Enumerator(Scene scene, bool withDisabled, bool deferred)
                     {
                         _scene = scene;
