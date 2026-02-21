@@ -13,6 +13,11 @@ public readonly ref partial struct RenderCommands
         Scene = scene;
     }
 
+    public void Add(Action action, int layer, int sequence)
+    {
+        Scene.RenderCommands.Add(RenderCommand.Make(Scene, action, layer, sequence));
+    }
+
     public void Add(Action action, ulong order)
     {
         Scene.RenderCommands.Add(RenderCommand.Make(Scene, action, order));
@@ -69,12 +74,12 @@ public readonly ref partial struct RenderCommands
             commands.Clear();
             scene.RenderDataList.Clear();
             foreach (var table in Scene.RenderComponentsList)
-                table?.Clear();
+                table.Clear();
         }
     }
 }
 
-internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
+public readonly unsafe struct RenderCommand : IComparable<RenderCommand>
 {
     private readonly ulong _order;
     private readonly int _dataIndex;
@@ -97,9 +102,29 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
         );
     }
 
+    public static ulong GetOrder(int layer, int sequence)
+    {
+        return ((ulong)(uint)(layer ^ int.MinValue) << 32) | (uint)(sequence ^ int.MinValue);
+    }
+
+    public static int GetLayer(ulong order)
+    {
+        return (int)((uint)(order >> 32) ^ int.MinValue);
+    }
+
+    public static int GetSequence(ulong order)
+    {
+        return (int)((uint)order ^ int.MinValue);
+    }
+
     public int CompareTo(RenderCommand other)
     {
         return _order.CompareTo(other._order);
+    }
+
+    internal static RenderCommand Make(Scene scene, Action action, int layer, int sequence)
+    {
+        return new RenderCommand(scene, &VoidInvoker, action, order: GetOrder(layer, sequence));
     }
 
     internal static RenderCommand Make(Scene scene, Action action, ulong order)
@@ -164,7 +189,7 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
     private static void EntityInvoker(ref readonly RenderCommand command, ref readonly RenderData data, Scene scene)
     {
         var entity =
-            data.EntityVersion == -1 ? Entity.Null : new Entity((int)(uint)command._order, data.EntityVersion, scene);
+            data.EntityVersion == -1 ? Entity.Null : new Entity(GetSequence(command._order), data.EntityVersion, scene);
         ((Action<Entity>)data.Action).Invoke(entity);
     }
 
@@ -175,7 +200,7 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
     )
     {
         var entity =
-            data.EntityVersion == -1 ? Entity.Null : new Entity((int)(uint)command._order, data.EntityVersion, scene);
+            data.EntityVersion == -1 ? Entity.Null : new Entity(GetSequence(command._order), data.EntityVersion, scene);
         ((Action<Entity, TComponent>)data.Action).Invoke(
             entity,
             ((RenderComponents<TComponent>)data.Components!).Components[data.ComponentIndex]
@@ -189,7 +214,7 @@ internal readonly unsafe struct RenderCommand : IComparable<RenderCommand>
     )
     {
         var entity =
-            data.EntityVersion == -1 ? Entity.Null : new Entity((int)(uint)command._order, data.EntityVersion, scene);
+            data.EntityVersion == -1 ? Entity.Null : new Entity(GetSequence(command._order), data.EntityVersion, scene);
         ((Action<TSystem, Entity, TComponent>)data.Action).Invoke(
             (TSystem)data.System!,
             entity,

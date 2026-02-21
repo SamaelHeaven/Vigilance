@@ -93,7 +93,7 @@ public sealed class Table<T> : Table
     private const int SparseChunkSize = 2048;
     private Action<Entity, T>? _addAction;
     private ValueList<T> _components = [];
-    private ValueList<ulong> _denseIds = [];
+    private ValueList<ulong> _entityIds = [];
     private ValueQueue<Event<T>> _events = [];
     private ValueQueue<Operation> _operations = [];
     private Action<Entity, T>? _removeAction;
@@ -119,7 +119,7 @@ public sealed class Table<T> : Table
         set
         {
             _components.Capacity = value;
-            _denseIds.Capacity = value;
+            _entityIds.Capacity = value;
         }
     }
 
@@ -142,7 +142,7 @@ public sealed class Table<T> : Table
 
     public ReadOnlySpan<T> Components => _components.AsSpan();
 
-    public ReadOnlySpan<ulong> Entities => _denseIds.AsSpan();
+    public ReadOnlySpan<ulong> EntityIds => _entityIds.AsSpan();
 
     public void Enqueue(in Event<T> tableEvent)
     {
@@ -260,8 +260,8 @@ public sealed class Table<T> : Table
         if (denseIndex != lastDenseIndex)
         {
             _components[denseIndex] = _components[lastDenseIndex];
-            var movedId = _denseIds[lastDenseIndex];
-            _denseIds[denseIndex] = movedId;
+            var movedId = _entityIds[lastDenseIndex];
+            _entityIds[denseIndex] = movedId;
             var movedEntityIndex = Entity.GetIndex(movedId);
             var movedChunkIndex = movedEntityIndex / SparseChunkSize;
             var movedWithinChunk = movedEntityIndex % SparseChunkSize;
@@ -270,7 +270,7 @@ public sealed class Table<T> : Table
         }
 
         _components.RemoveAt(lastDenseIndex);
-        _denseIds.RemoveAt(lastDenseIndex);
+        _entityIds.RemoveAt(lastDenseIndex);
         chunk[withinChunk] = 0;
         Emit(Event<T>.Remove(entity, component));
     }
@@ -309,7 +309,7 @@ public sealed class Table<T> : Table
         {
             var index = _components.Count + 1;
             _components.Add(component);
-            _denseIds.Add(entity.Id);
+            _entityIds.Add(entity.Id);
             chunk[withinChunk] = index;
             Emit(Event<T>.Add(entity, component));
             return new ComponentRef<T>(ref _components[index - 1]);

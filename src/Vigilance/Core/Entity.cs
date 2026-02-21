@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using LinkDotNet.StringBuilder;
 using Vigilance.Collections;
+using Vigilance.Drawing;
 using Vigilance.Math;
 using ZLinq;
 
@@ -328,7 +329,7 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         get
         {
             AssertValid();
-            return ((ulong)(uint)(WorldZIndex ^ int.MinValue) << 32) | (uint)Index;
+            return RenderCommand.GetOrder(WorldZIndex, Index);
         }
     }
 

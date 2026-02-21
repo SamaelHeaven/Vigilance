@@ -18,7 +18,7 @@ public sealed unsafe partial class Scene
     private readonly Dictionary<string, ulong> _nameMap = [];
     private readonly GameSystemsFunc _systemsFunc;
     private Action? _deferredAction;
-    private ValueList<Table> _denseTables = [];
+    private ValueList<Table> _tables = [];
     private Action<Entity>? _destroyAction;
     private ValueList<(int Index, int Version)> _entities = [];
     private ValueQueue<Event> _events = [];
@@ -35,6 +35,7 @@ public sealed unsafe partial class Scene
     private Action? _preRenderAction;
     private Action? _preUpdateAction;
     private Action<RenderCommands>? _renderAction;
+    private ValueList<RenderComponents?> _sparseRenderComponentsList = [];
     private ValueList<Table?> _sparseTables = [];
     private Action? _startAction;
     private bool _started;
@@ -43,13 +44,13 @@ public sealed unsafe partial class Scene
     private float _time;
     private Action? _updateAction;
     internal Table<Child> ChildTable;
+    internal ValueList<RenderComponents> RenderComponentsList = [];
     internal Table<Disabled> DisabledTable;
     internal Table<Name> NameTable;
     internal Table<Parent> ParentTable;
     internal Table<PivotPoint> PivotPointTable;
     internal Table<Position> PositionTable;
     internal ValueList<RenderCommand> RenderCommands = [];
-    internal ValueList<RenderComponents?> RenderComponentsList = [];
     internal ValueList<RenderData> RenderDataList = [];
     internal Table<Rotation> RotationTable;
     internal Table<Scale> ScaleTable;
@@ -441,19 +442,20 @@ public sealed unsafe partial class Scene
         if (table is not null)
             return table;
         _sparseTables[index] = table = new Table<T>(this);
-        _denseTables.Add(table);
+        _tables.Add(table);
         return table;
     }
 
     internal RenderComponents<T> RenderComponents<T>()
     {
         var index = Drawing.RenderComponents<T>.Index;
-        while (RenderComponentsList.Count <= index)
-            RenderComponentsList.Add(null);
-        var table = (RenderComponents<T>?)RenderComponentsList[index];
+        while (_sparseRenderComponentsList.Count <= index)
+            _sparseRenderComponentsList.Add(null);
+        var table = (RenderComponents<T>?)_sparseRenderComponentsList[index];
         if (table is not null)
             return table;
-        RenderComponentsList[index] = table = new RenderComponents<T>();
+        _sparseRenderComponentsList[index] = table = new RenderComponents<T>();
+        RenderComponentsList.Add(table);
         return table;
     }
 
@@ -703,10 +705,10 @@ public sealed unsafe partial class Scene
             do
             {
                 var newIndex = _index + 1;
-                if (newIndex >= _scene._denseTables.Count)
+                if (newIndex >= _scene._tables.Count)
                     return false;
                 _index = newIndex;
-                Current = _scene._denseTables[newIndex];
+                Current = _scene._tables[newIndex];
             } while (!_withHidden && Current.IsHidden);
 
             return true;

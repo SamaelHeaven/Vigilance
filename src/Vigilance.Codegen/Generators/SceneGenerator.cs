@@ -176,8 +176,8 @@ public sealed class SceneGenerator : SourceGenerator
                                     if (newIndex >= _table{{i}}.Count) 
                                         return false;
                                     _index = newIndex;
-                                    {{(noEntity && tables.Count <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.Entities[_index], _scene);")}}
-                                    if (!_withDisabled && _scene.DisabledTable.Has({{(noEntity && tables.Count <= 1 ? $"new Entity(_table{i}.Entities[_index], _scene)" : noEntity ? "entity" : "_entity")}}))
+                                    {{(noEntity && tables.Count <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds[_index], _scene);")}}
+                                    if (!_withDisabled && _scene.DisabledTable.Has({{(noEntity && tables.Count <= 1 ? $"new Entity(_table{i}.EntityIds[_index], _scene)" : noEntity ? "entity" : "_entity")}}))
                                         goto TABLE{{i}};
                 {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
                                         ref var field{j} = ref _table{j}.GetRef({(noEntity ? "entity" : "_entity")}).Value;
