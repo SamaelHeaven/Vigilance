@@ -5,13 +5,12 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using LinkDotNet.StringBuilder;
 using Vigilance.Collections;
-using Vigilance.Drawing;
 using Vigilance.Math;
 using ZLinq;
 
 namespace Vigilance.Core;
 
-public readonly unsafe partial record struct Entity : IComparable<Entity>
+public readonly unsafe partial record struct Entity
 {
     public Entity(ulong id, Scene scene)
     {
@@ -324,25 +323,11 @@ public readonly unsafe partial record struct Entity : IComparable<Entity>
         }
     }
 
-    public ulong Order
-    {
-        get
-        {
-            AssertValid();
-            return RenderCommand.GetOrder(WorldZIndex, Index);
-        }
-    }
-
     public TableEnumerable Tables => new(this);
 
     public ComponentEnumerable Components => new(this);
 
     public ChildEnumerable Children => new(this);
-
-    public int CompareTo(Entity other)
-    {
-        return Order.CompareTo(other.Order);
-    }
 
     public static ulong GetId(int index, int version)
     {

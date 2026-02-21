@@ -95,7 +95,7 @@ public readonly unsafe struct RenderCommand : IComparable<RenderCommand>
         ulong order = 0
     )
     {
-        _order = entity.IsNull ? order : entity.Order;
+        _order = entity.IsNull ? order : GetOrder(entity.WorldZIndex, entity.Index);
         _dataIndex = scene.RenderDataList.Count;
         scene.RenderDataList.Add(
             new RenderData(invoker, action, components, system, entity.IsNull ? -1 : entity.Version, componentIndex)
