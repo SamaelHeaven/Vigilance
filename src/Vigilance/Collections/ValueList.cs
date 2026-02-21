@@ -13,6 +13,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     private const int DefaultCapacity = 4;
 
     private T[] _items;
+    private int _size;
 
     public ValueList()
     {
@@ -38,7 +39,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
             {
                 _items = new T[count];
                 collection.CopyTo(_items, 0);
-                Count = count;
+                _size = count;
             }
         }
         else
@@ -50,7 +51,19 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         }
     }
 
-    public int Count { get; private set; }
+    public int Count
+    {
+        get => _size;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            if (value > Capacity)
+                Grow(value);
+            else if (value < _size && RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+                Array.Clear(_items, value, _size - value);
+            _size = value;
+        }
+    }
 
     public readonly bool IsReadOnly => false;
 
@@ -59,14 +72,14 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         readonly get => _items.Length;
         set
         {
-            ArgumentOutOfRangeException.ThrowIfLessThan(value, Count);
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, _size);
             if (value == _items.Length)
                 return;
             if (value > 0)
             {
                 var newItems = new T[value];
-                if (Count > 0)
-                    Array.Copy(_items, newItems, Count);
+                if (_size > 0)
+                    Array.Copy(_items, newItems, _size);
                 _items = newItems;
             }
             else
@@ -81,10 +94,10 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     T IList<T>.this[int index]
     {
         readonly get =>
-            (uint)index >= (uint)Count ? throw new ArgumentOutOfRangeException(nameof(index)) : _items[index];
+            (uint)index >= (uint)_size ? throw new ArgumentOutOfRangeException(nameof(index)) : _items[index];
         set
         {
-            if ((uint)index >= (uint)Count)
+            if ((uint)index >= (uint)_size)
                 throw new ArgumentOutOfRangeException(nameof(index));
             _items[index] = value;
         }
@@ -102,12 +115,12 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly Span<T> AsSpan()
     {
-        return MemoryMarshal.CreateSpan(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_items), 0), Count);
+        return MemoryMarshal.CreateSpan(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_items), 0), _size);
     }
 
     public readonly T[] AsArray(out int length)
     {
-        length = Count;
+        length = _size;
         return _items;
     }
 
@@ -145,10 +158,10 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     public void Add(T item)
     {
         var array = _items;
-        var size = Count;
+        var size = _size;
         if ((uint)size < (uint)array.Length)
         {
-            Count = size + 1;
+            _size = size + 1;
             array[size] = item;
         }
         else
@@ -160,10 +173,10 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void AddWithResize(T item)
     {
-        Debug.Assert(Count == _items.Length);
-        var size = Count;
+        Debug.Assert(_size == _items.Length);
+        var size = _size;
         Grow(size + 1);
-        Count = size + 1;
+        _size = size + 1;
         _items[size] = item;
     }
 
@@ -174,10 +187,10 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
             var count = c.Count;
             if (count <= 0)
                 return;
-            if (_items.Length - Count < count)
-                Grow(checked(Count + count));
-            c.CopyTo(_items, Count);
-            Count += count;
+            if (_items.Length - _size < count)
+                Grow(checked(_size + count));
+            c.CopyTo(_items, _size);
+            _size += count;
         }
         else
         {
@@ -191,19 +204,19 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        return Count - index < count
+        return _size - index < count
             ? throw new ArgumentException("Offset and length were out of bounds for the list.")
             : Array.BinarySearch(_items, index, count, item, comparer);
     }
 
     public readonly int BinarySearch(T item)
     {
-        return BinarySearch(0, Count, item, null);
+        return BinarySearch(0, _size, item, null);
     }
 
     public readonly int BinarySearch(T item, IComparer<T>? comparer)
     {
-        return BinarySearch(0, Count, item, comparer);
+        return BinarySearch(0, _size, item, comparer);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -211,41 +224,41 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     {
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
         {
-            var size = Count;
-            Count = 0;
+            var size = _size;
+            _size = 0;
             if (size > 0)
                 Array.Clear(_items, 0, size);
         }
         else
         {
-            Count = 0;
+            _size = 0;
         }
     }
 
     public readonly bool Contains(T item)
     {
-        return Count != 0 && IndexOf(item) >= 0;
+        return _size != 0 && IndexOf(item) >= 0;
     }
 
     public readonly ValueList<TOutput> ConvertAll<TOutput>(Converter<T, TOutput> converter)
     {
-        var list = new ValueList<TOutput>(Count);
-        for (var i = 0; i < Count; i++)
+        var list = new ValueList<TOutput>(_size);
+        for (var i = 0; i < _size; i++)
             list._items[i] = converter(_items[i]);
-        list.Count = Count;
+        list._size = _size;
         return list;
     }
 
     public readonly void CopyTo(int index, T[] array, int arrayIndex, int count)
     {
-        if (Count - index < count)
+        if (_size - index < count)
             throw new ArgumentException("Offset and length were out of bounds for the list.");
         Array.Copy(_items, index, array, arrayIndex, count);
     }
 
     public readonly void CopyTo(T[] array, int arrayIndex = 0)
     {
-        Array.Copy(_items, 0, array, arrayIndex, Count);
+        Array.Copy(_items, 0, array, arrayIndex, _size);
     }
 
     public int EnsureCapacity(int capacity)
@@ -264,13 +277,13 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     internal void GrowForInsertion(int indexToInsert, int insertionCount = 1)
     {
         Debug.Assert(insertionCount > 0);
-        var requiredCapacity = checked(Count + insertionCount);
+        var requiredCapacity = checked(_size + insertionCount);
         var newCapacity = GetNewCapacity(requiredCapacity);
         var newItems = new T[newCapacity];
         if (indexToInsert != 0)
             Array.Copy(_items, newItems, indexToInsert);
-        if (Count != indexToInsert)
-            Array.Copy(_items, indexToInsert, newItems, indexToInsert + insertionCount, Count - indexToInsert);
+        if (_size != indexToInsert)
+            Array.Copy(_items, indexToInsert, newItems, indexToInsert + insertionCount, _size - indexToInsert);
         _items = newItems;
     }
 
@@ -293,7 +306,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly T? Find(Predicate<T> match)
     {
-        for (var i = 0; i < Count; i++)
+        for (var i = 0; i < _size; i++)
             if (match(_items[i]))
                 return _items[i];
         return default;
@@ -302,7 +315,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     public readonly ValueList<T> FindAll(Predicate<T> match)
     {
         var list = new ValueList<T>();
-        for (var i = 0; i < Count; i++)
+        for (var i = 0; i < _size; i++)
             if (match(_items[i]))
                 list.Add(_items[i]);
         return list;
@@ -310,19 +323,19 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly int FindIndex(Predicate<T> match)
     {
-        return FindIndex(0, Count, match);
+        return FindIndex(0, _size, match);
     }
 
     public readonly int FindIndex(int startIndex, Predicate<T> match)
     {
-        return FindIndex(startIndex, Count - startIndex, match);
+        return FindIndex(startIndex, _size - startIndex, match);
     }
 
     public readonly int FindIndex(int startIndex, int count, Predicate<T> match)
     {
-        if ((uint)startIndex > (uint)Count)
+        if ((uint)startIndex > (uint)_size)
             throw new ArgumentOutOfRangeException(nameof(startIndex));
-        if (count < 0 || startIndex > Count - count)
+        if (count < 0 || startIndex > _size - count)
             throw new ArgumentOutOfRangeException(nameof(count));
         var endIndex = startIndex + count;
         for (var i = startIndex; i < endIndex; i++)
@@ -333,7 +346,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly T? FindLast(Predicate<T> match)
     {
-        for (var i = Count - 1; i >= 0; i--)
+        for (var i = _size - 1; i >= 0; i--)
             if (match(_items[i]))
                 return _items[i];
         return default;
@@ -341,7 +354,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly int FindLastIndex(Predicate<T> match)
     {
-        return FindLastIndex(Count - 1, Count, match);
+        return FindLastIndex(_size - 1, _size, match);
     }
 
     public readonly int FindLastIndex(int startIndex, Predicate<T> match)
@@ -351,13 +364,13 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly int FindLastIndex(int startIndex, int count, Predicate<T> match)
     {
-        if (Count == 0)
+        if (_size == 0)
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(startIndex, -1);
         }
         else
         {
-            if ((uint)startIndex >= (uint)Count)
+            if ((uint)startIndex >= (uint)_size)
                 throw new ArgumentOutOfRangeException(nameof(startIndex));
         }
 
@@ -373,7 +386,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly void ForEach(Action<T> action)
     {
-        for (var i = 0; i < Count; i++)
+        for (var i = 0; i < _size; i++)
             action(_items[i]);
     }
 
@@ -381,11 +394,11 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (Count - index < count)
+        if (_size - index < count)
             throw new ArgumentException("Offset and length were out of bounds for the list.");
         var list = new ValueList<T>(count);
         Array.Copy(_items, index, list._items, 0, count);
-        list.Count = count;
+        list._size = count;
         return list;
     }
 
@@ -396,50 +409,50 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly int IndexOf(T item)
     {
-        return Array.IndexOf(_items, item, 0, Count);
+        return Array.IndexOf(_items, item, 0, _size);
     }
 
     public readonly int IndexOf(T item, int index)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, Count);
-        return Array.IndexOf(_items, item, index, Count - index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, _size);
+        return Array.IndexOf(_items, item, index, _size - index);
     }
 
     public readonly int IndexOf(T item, int index, int count)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, Count);
-        if (count < 0 || index > Count - count)
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, _size);
+        if (count < 0 || index > _size - count)
             throw new ArgumentOutOfRangeException(nameof(count));
         return Array.IndexOf(_items, item, index, count);
     }
 
     public void Insert(int index, T item)
     {
-        if ((uint)index > (uint)Count)
+        if ((uint)index > (uint)_size)
             throw new ArgumentOutOfRangeException(nameof(index));
-        if (Count == _items.Length)
+        if (_size == _items.Length)
             GrowForInsertion(index);
-        else if (index < Count)
-            Array.Copy(_items, index, _items, index + 1, Count - index);
+        else if (index < _size)
+            Array.Copy(_items, index, _items, index + 1, _size - index);
         _items[index] = item;
-        Count++;
+        _size++;
     }
 
     public void InsertRange(int index, IEnumerable<T> collection)
     {
-        if ((uint)index > (uint)Count)
+        if ((uint)index > (uint)_size)
             throw new ArgumentOutOfRangeException(nameof(index));
         if (collection is ICollection<T> c)
         {
             var count = c.Count;
             if (count <= 0)
                 return;
-            if (_items.Length - Count < count)
+            if (_items.Length - _size < count)
                 GrowForInsertion(index, count);
-            else if (index < Count)
-                Array.Copy(_items, index, _items, index + count, Count - index);
+            else if (index < _size)
+                Array.Copy(_items, index, _items, index + count, _size - index);
             c.CopyTo(_items, index);
-            Count += count;
+            _size += count;
         }
         else
         {
@@ -451,27 +464,27 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly int LastIndexOf(T item)
     {
-        if (Count == 0)
+        if (_size == 0)
             return -1;
-        return LastIndexOf(item, Count - 1, Count);
+        return LastIndexOf(item, _size - 1, _size);
     }
 
     public readonly int LastIndexOf(T item, int index)
     {
-        return index >= Count
+        return index >= _size
             ? throw new ArgumentOutOfRangeException(nameof(index))
             : LastIndexOf(item, index, index + 1);
     }
 
     public readonly int LastIndexOf(T item, int index, int count)
     {
-        if (Count != 0 && index < 0)
+        if (_size != 0 && index < 0)
             throw new ArgumentOutOfRangeException(nameof(index));
-        if (Count != 0 && count < 0)
+        if (_size != 0 && count < 0)
             throw new ArgumentOutOfRangeException(nameof(count));
-        if (Count == 0)
+        if (_size == 0)
             return -1;
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _size);
         return count > index + 1
             ? throw new ArgumentOutOfRangeException(nameof(count))
             : Array.LastIndexOf(_items, item, index, count);
@@ -489,50 +502,50 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     public int RemoveAll(Predicate<T> match)
     {
         var freeIndex = 0;
-        while (freeIndex < Count && !match(_items[freeIndex]))
+        while (freeIndex < _size && !match(_items[freeIndex]))
             freeIndex++;
-        if (freeIndex >= Count)
+        if (freeIndex >= _size)
             return 0;
         var current = freeIndex + 1;
-        while (current < Count)
+        while (current < _size)
         {
-            while (current < Count && match(_items[current]))
+            while (current < _size && match(_items[current]))
                 current++;
-            if (current < Count)
+            if (current < _size)
                 _items[freeIndex++] = _items[current++];
         }
 
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-            Array.Clear(_items, freeIndex, Count - freeIndex);
-        var result = Count - freeIndex;
-        Count = freeIndex;
+            Array.Clear(_items, freeIndex, _size - freeIndex);
+        var result = _size - freeIndex;
+        _size = freeIndex;
         return result;
     }
 
     public void RemoveAt(int index)
     {
-        if ((uint)index >= (uint)Count)
+        if ((uint)index >= (uint)_size)
             throw new ArgumentOutOfRangeException(nameof(index));
-        Count--;
-        if (index < Count)
-            Array.Copy(_items, index + 1, _items, index, Count - index);
+        _size--;
+        if (index < _size)
+            Array.Copy(_items, index + 1, _items, index, _size - index);
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-            _items[Count] = default!;
+            _items[_size] = default!;
     }
 
     public void RemoveRange(int index, int count)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (Count - index >= count)
+        if (_size - index >= count)
         {
             if (count <= 0)
                 return;
-            Count -= count;
-            if (index < Count)
-                Array.Copy(_items, index + count, _items, index, Count - index);
+            _size -= count;
+            if (index < _size)
+                Array.Copy(_items, index + count, _items, index, _size - index);
             if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
-                Array.Clear(_items, Count, count);
+                Array.Clear(_items, _size, count);
         }
         else
         {
@@ -542,14 +555,14 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public void Reverse()
     {
-        Reverse(0, Count);
+        Reverse(0, _size);
     }
 
     public void Reverse(int index, int count)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (Count - index < count)
+        if (_size - index < count)
             throw new ArgumentException("Offset and length were out of bounds for the list.");
         if (count > 1)
             Array.Reverse(_items, index, count);
@@ -557,19 +570,19 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public void Sort()
     {
-        Sort(0, Count, null);
+        Sort(0, _size, null);
     }
 
     public void Sort(IComparer<T>? comparer)
     {
-        Sort(0, Count, comparer);
+        Sort(0, _size, comparer);
     }
 
     public void Sort(int index, int count, IComparer<T>? comparer)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        if (Count - index < count)
+        if (_size - index < count)
             throw new ArgumentException("Offset and length were out of bounds for the list.");
         if (count > 1)
             Array.Sort(_items, index, count, comparer);
@@ -577,29 +590,29 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public void Sort(Comparison<T> comparison)
     {
-        if (Count > 1)
-            new Span<T>(_items, 0, Count).Sort(comparison);
+        if (_size > 1)
+            new Span<T>(_items, 0, _size).Sort(comparison);
     }
 
     public readonly T[] ToArray()
     {
-        if (Count == 0)
+        if (_size == 0)
             return [];
-        var array = new T[Count];
-        Array.Copy(_items, array, Count);
+        var array = new T[_size];
+        Array.Copy(_items, array, _size);
         return array;
     }
 
     public void TrimExcess()
     {
         var threshold = (int)(_items.Length * 0.9);
-        if (Count < threshold)
-            Capacity = Count;
+        if (_size < threshold)
+            Capacity = _size;
     }
 
     public readonly bool TrueForAll(Predicate<T> match)
     {
-        for (var i = 0; i < Count; i++)
+        for (var i = 0; i < _size; i++)
             if (!match(_items[i]))
                 return false;
         return true;
@@ -617,7 +630,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
         public bool MoveNext()
         {
-            if ((uint)_index < (uint)_list.Count)
+            if ((uint)_index < (uint)_list._size)
             {
                 Current = _list._items[_index];
                 _index++;
@@ -650,7 +663,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
         public bool TryGetNonEnumeratedCount(out int count)
         {
-            count = _list.Count;
+            count = _list._size;
             return true;
         }
 
@@ -691,7 +704,7 @@ public static class ValueListExtensions
                 result.Capacity = count;
             if (
                 enumerator.TryCopyTo(result.AsSpan(), 0)
-                || enumerator.TryGetSpan(out var span) && span.TryCopyTo(result.AsSpan())
+                || (enumerator.TryGetSpan(out var span) && span.TryCopyTo(result.AsSpan()))
             )
                 return result;
             while (enumerator.TryGetNext(out var item))
