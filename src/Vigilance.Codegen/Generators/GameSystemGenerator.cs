@@ -23,6 +23,9 @@ public sealed class GameSystemGenerator : SourceGenerator
         Entities(sb);
         Components(sb);
         Entries(sb);
+        TableEntities(sb);
+        TableComponents(sb);
+        TableEntries(sb);
         sb.AppendLine("}");
     }
 
@@ -63,11 +66,56 @@ public sealed class GameSystemGenerator : SourceGenerator
         sb.EndRegion();
     }
 
-    private static string QueryIterator(string name, string methodName, string typeParams = "")
+    private static void TableEntities(StringBuilder sb)
+    {
+        sb.BeginRegion("TableEntities");
+        for (var i = 0; i < 16; i++)
+        {
+            var methodParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"Table table{n}"));
+            var methodArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"table{n}"));
+            sb.AppendLine(QueryIterator($"TableEntity{i + 1}", "Entities", "", methodParams, methodArgs));
+        }
+
+        sb.EndRegion();
+    }
+
+    private static void TableComponents(StringBuilder sb)
+    {
+        sb.BeginRegion("TableComponents");
+        for (var i = 0; i < 16; i++)
+        {
+            var methodParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"Table table{n}"));
+            var methodArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"table{n}"));
+            sb.AppendLine(QueryIterator($"TableComponent{i + 1}", "Components", "", methodParams, methodArgs));
+        }
+
+        sb.EndRegion();
+    }
+
+    private static void TableEntries(StringBuilder sb)
+    {
+        sb.BeginRegion("TableEntries");
+        for (var i = 0; i < 15; i++)
+        {
+            var methodParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"Table table{n}"));
+            var methodArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"table{n}"));
+            sb.AppendLine(QueryIterator($"TableEntry{i + 1}", "Entries", "", methodParams, methodArgs));
+        }
+
+        sb.EndRegion();
+    }
+
+    private static string QueryIterator(
+        string name,
+        string methodName,
+        string typeParams = "",
+        string methodParams = "",
+        string methodArgs = ""
+    )
     {
         return $$"""
-                public Scene.{{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
-                    return Scene.{{methodName}}{{typeParams}}().WithDisabled(QueryWithDisabled).Deferred(QueryDeferred);
+                public Scene.{{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}({{methodParams}}) {
+                    return Scene.{{methodName}}{{typeParams}}({{methodArgs}}).WithDisabled(QueryWithDisabled).Deferred(QueryDeferred);
                 }
 
             """;

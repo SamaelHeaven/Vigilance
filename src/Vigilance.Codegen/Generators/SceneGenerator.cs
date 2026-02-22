@@ -24,6 +24,9 @@ public sealed class SceneGenerator : SourceGenerator
         Entities(sb);
         Components(sb);
         Entries(sb);
+        TableEntities(sb);
+        TableComponents(sb);
+        TableEntries(sb);
         sb.AppendLine("}");
     }
 
@@ -95,6 +98,45 @@ public sealed class SceneGenerator : SourceGenerator
             var current = $"(_entity, {getFields})";
             var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
             sb.AppendLine(QueryIterator("Entry", type, "Entries", current, tables, $"<{typeParams}>"));
+        }
+
+        sb.EndRegion();
+    }
+
+    private static void TableEntities(StringBuilder sb)
+    {
+        sb.BeginRegion("TableEntities");
+        for (var i = 0; i < 16; i++)
+            sb.AppendLine(TableQueryIterator("TableEntity", "Entity", "Entities", "_entity", i + 1, true));
+        sb.EndRegion();
+    }
+
+    private static void TableComponents(StringBuilder sb)
+    {
+        sb.BeginRegion("TableComponents");
+        for (var i = 0; i < 16; i++)
+        {
+            var type = i == 0 ? "object?" : $"({string.Join(", ", Enumerable.Range(0, i + 1).Select(_ => "object?"))})";
+            var current =
+                i == 0 ? "_field0" : $"({string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"))})";
+            sb.AppendLine(TableQueryIterator("TableComponent", type, "Components", current, i + 1, noEntity: true));
+        }
+
+        sb.EndRegion();
+    }
+
+    private static void TableEntries(StringBuilder sb)
+    {
+        sb.BeginRegion("TableEntries");
+        for (var i = 0; i < 15; i++)
+        {
+            var type =
+                i == 0
+                    ? "(Entity, object?)"
+                    : $"(Entity, {string.Join(", ", Enumerable.Range(0, i + 1).Select(_ => "object?"))})";
+            var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"));
+            var current = $"(_entity, {getFields})";
+            sb.AppendLine(TableQueryIterator("TableEntry", type, "Entries", current, i + 1));
         }
 
         sb.EndRegion();
@@ -230,6 +272,141 @@ public sealed class SceneGenerator : SourceGenerator
                 public {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
                     ThrowIfNotInitialized();
                     return new {{name}}Enumerable{{typeParams}}(this);
+                }
+                
+            """;
+    }
+
+    private static string TableQueryIterator(
+        string namePrefix,
+        string type,
+        string methodName,
+        string current,
+        int tableCount,
+        bool noFields = false,
+        bool noEntity = false
+    )
+    {
+        return $$"""
+                public struct {{namePrefix}}{{tableCount}}Enumerable : Collections.IStructEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>
+                {
+                    private readonly Scene _scene;
+            {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private readonly Table _table{n};"))}}
+                    private bool _withDisabled;
+                    private bool _deferred;
+                
+                    internal {{namePrefix}}{{tableCount}}Enumerable(Scene scene, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}})
+                    {
+                        _scene = scene;
+            {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _table{n} = table{n};"))}}
+                        _deferred = true;
+                    }
+                    
+                    public {{namePrefix}}{{tableCount}}Enumerator GetEnumerator()
+                    {
+                        return new {{namePrefix}}{{tableCount}}Enumerator(_scene, _withDisabled, _deferred, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"_table{n}"))}});
+                    }
+                    
+                    public ZLinq.ValueEnumerable<Collections.StructEnumerator<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>, {{type}}> AsValueEnumerable()
+                    {
+                        return new Collections.StructEnumerator<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>(GetEnumerator());
+                    }
+                    
+                    public ref {{namePrefix}}{{tableCount}}Enumerable WithDisabled(bool value = true) {
+                        _withDisabled = value;
+                        return ref this;
+                    }
+                    
+                    public ref {{namePrefix}}{{tableCount}}Enumerable Deferred(bool deferred = true) {
+                        _deferred = deferred;
+                        return ref this;
+                    }
+                }
+                
+                public unsafe struct {{namePrefix}}{{tableCount}}Enumerator : Collections.IStructEnumerator<{{type}}> {
+                    private readonly Scene _scene;
+                    {{(noEntity ? "" : "private Entity _entity;")}}
+            {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private readonly Table _table{n};"))}}
+                    private int _index;
+                    {{(tableCount > 1 ? "private int _tableIndex; " : "")}}
+                    private readonly bool _withDisabled;
+                    private readonly bool _deferred;
+                    private bool _disposed;
+            {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private object? _field{n};")))}}
+
+                    internal {{namePrefix}}{{tableCount}}Enumerator(Scene scene, bool withDisabled, bool deferred, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}})
+                    {
+                        _scene = scene;
+                        _withDisabled = withDisabled;
+                        _deferred = deferred;
+                        _disposed = true;
+            {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _table{n} = table{n};"))}}
+                        Reset();
+                    }
+
+                    public bool MoveNext()
+                    {
+                        {{(tableCount > 1 ? "switch (_tableIndex)\n            " : "")}}{
+            {{string.Join("\n", Enumerable.Range(0, tableCount).Select(i => $$"""
+                                {{(tableCount > 1 ? $"case {i}:\n                " : "")}}{
+                                    TABLE{{i}}:
+                                    var newIndex = _index + 1;
+                                    if (newIndex >= _table{{i}}.Count)
+                                        return false;
+                                    _index = newIndex;
+                                    {{(noEntity && tableCount <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds[_index], _scene);")}}
+                                    if (!_withDisabled && _scene.DisabledTable.Has({{(noEntity && tableCount <= 1 ? $"new Entity(_table{i}.EntityIds[_index], _scene)" : noEntity ? "entity" : "_entity")}}))
+                                        goto TABLE{{i}};
+                {{string.Join("\n", Enumerable.Range(0, tableCount).Where(j => j != i).Select(j => $$"""
+                                        if (!_table{{j}}.TryGet({{(noEntity ? "entity" : "_entity")}}, out {{(noFields ? "_" : $"_field{j}")}}))
+                                            goto TABLE{{i}};
+                    """))}}
+                                    {{(noFields ? "" : $"_field{i} = _table{i}.Get(_index);")}}
+                                    return true;
+                                }
+                """))}}
+                        }
+                        
+            #pragma warning disable CS0162
+                        return false;
+            #pragma warning restore CS0162
+                    }
+
+                    public void Reset()
+                    {
+                        Dispose();
+                        _index = -1;
+                        {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
+            {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _field{n} = default;")))}}
+            {{(tableCount > 1 ? "            var smallestCount = int.MaxValue;\n" : "")}}
+            {{(tableCount > 1 ? string.Join("\n", Enumerable.Range(0, tableCount).Select(i => $$"""
+                            if (_table{{i}}.Count < smallestCount)
+                            {
+                                smallestCount = _table{{i}}.Count;
+                                _tableIndex = {{i}};
+                            }
+                            
+                """)) : "")}}
+                        if (_deferred)
+                            _scene.BeginDefer();
+                        _disposed = false;
+                    }
+
+                    public {{type}} Current => {{current}};
+
+                    public void Dispose()
+                    {
+                        if (_disposed)
+                            return;
+                        if (_deferred)
+                            _scene.EndDefer();
+                        _disposed = true;
+                    }
+                }
+                
+                public {{namePrefix}}{{tableCount}}Enumerable {{methodName}}({{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}}) {
+                    ThrowIfNotInitialized();
+                    return new {{namePrefix}}{{tableCount}}Enumerable(this, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"table{n}"))}});
                 }
                 
             """;

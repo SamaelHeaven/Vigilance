@@ -367,15 +367,10 @@ public readonly unsafe partial record struct Entity
         return true;
     }
 
-    public bool TryGet(Table table, out object value)
+    public bool TryGet(Table table, out object? value)
     {
         AssertValid();
-        value = null!;
-        var data = table.Get(this);
-        if (data is null)
-            return false;
-        value = data;
-        return true;
+        return table.TryGet(this, out value);
     }
 
     public T GetOrDefault<T>(in T defaultValue)
@@ -395,13 +390,13 @@ public readonly unsafe partial record struct Entity
     public object? GetOrDefault(Table table, object? defaultValue)
     {
         AssertValid();
-        return table.Get(this) ?? defaultValue;
+        return table.TryGet(this, out var value) ? value : defaultValue;
     }
 
     public object? GetOrDefault(Table table, Func<object?> defaultValue)
     {
         AssertValid();
-        return table.Get(this) ?? defaultValue.Invoke();
+        return table.TryGet(this, out var value) ? value : defaultValue.Invoke();
     }
 
     public ComponentRef<T> GetRef<T>()

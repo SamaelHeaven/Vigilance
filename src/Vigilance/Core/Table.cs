@@ -48,9 +48,15 @@ public abstract class Table
 
     public abstract bool WriteImmutable { get; }
 
+    public abstract ReadOnlySpan<ulong> EntityIds { get; }
+
     public abstract bool Has(in Entity entity);
 
+    public abstract object? Get(int index);
+
     public abstract object? Get(in Entity entity);
+
+    public abstract bool TryGet(in Entity entity, out object? component);
 
     public abstract void Set(in Entity entity, object? component, Flags flags = Flags.Default);
 
@@ -140,9 +146,9 @@ public sealed class Table<T> : Table
 
     public override bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public ReadOnlySpan<T> Components => _components.AsSpan();
+    public override ReadOnlySpan<ulong> EntityIds => _entityIds.AsSpan();
 
-    public ReadOnlySpan<ulong> EntityIds => _entityIds.AsSpan();
+    public ReadOnlySpan<T> Components => _components.AsSpan();
 
     public void Enqueue(in Event<T> tableEvent)
     {
@@ -217,10 +223,22 @@ public sealed class Table<T> : Table
         return sparseValue != 0;
     }
 
+    public override object? Get(int index)
+    {
+        return _components[index];
+    }
+
     public override object? Get(in Entity entity)
     {
         var value = GetRef(in entity);
         return value.IsNull ? null : value.Read;
+    }
+
+    public override bool TryGet(in Entity entity, out object? component)
+    {
+        var value = GetRef(in entity);
+        component = value.IsNull ? null : value.Read;
+        return value.IsNull;
     }
 
     public override void Set(in Entity entity, object? component, Flags flags = Flags.Default)
