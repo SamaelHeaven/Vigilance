@@ -30,6 +30,6 @@ public static class Http
         var statusText = response.StatusText;
         var logLevel = response.IsSuccess ? LogLevel.Info : LogLevel.Error;
         Log.Invoke(logLevel, $"FETCH: {method} \"{url}\"{(statusCode == 0 ? "" : $" {statusCode}")} ({statusText})");
-        Game.Defer(() => request.Complete(response));
+        Game.Defer(() => request.OnComplete?.Invoke(response));
     }
 }

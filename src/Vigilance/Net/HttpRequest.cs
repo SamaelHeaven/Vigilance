@@ -19,10 +19,5 @@ public sealed class HttpRequest(string url, string method, Action<HttpResponse>?
         set => Body = Encoding.UTF8.GetBytes(value);
     }
 
-    public event Action<HttpResponse>? OnComplete = onComplete;
-
-    internal void Complete(HttpResponse response)
-    {
-        OnComplete?.Invoke(response);
-    }
+    public Action<HttpResponse>? OnComplete { get; set; } = onComplete;
 }

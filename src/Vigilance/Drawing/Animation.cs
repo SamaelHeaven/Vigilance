@@ -70,6 +70,9 @@ public sealed class Animation : IListView<AnimationFrame>
 
     public int FrameCount => _frames.Count;
 
+    public Action? OnComplete { get; set; }
+    public Action? OnRepeat { get; set; }
+
     public List<AnimationFrame>.Enumerator GetEnumerator()
     {
         return _frames.GetEnumerator();
@@ -79,9 +82,6 @@ public sealed class Animation : IListView<AnimationFrame>
     {
         return _frames.AsValueEnumerable();
     }
-
-    public event Action? OnComplete;
-    public event Action? OnRepeat;
 
     public void Update()
     {

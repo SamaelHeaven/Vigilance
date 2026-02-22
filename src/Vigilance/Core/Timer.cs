@@ -30,8 +30,8 @@ public sealed class Timer
     public int RepeatCount { get; set; }
     public Func<TimeSpan> TimeStepFunc { get; set; }
 
-    public event Action? OnComplete;
-    public event Action? OnRepeat;
+    public Action? OnComplete { get; set; }
+    public Action? OnRepeat { get; set; }
 
     public void Update()
     {

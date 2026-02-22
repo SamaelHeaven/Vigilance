@@ -8,9 +8,17 @@ public static class Hooks
 
     private static HooksConfig _config = new();
 
-    public static Quit? OnQuit => _config.OnQuit;
+    public static Quit? OnQuit
+    {
+        get => _config.OnQuit;
+        set => _config.OnQuit = value;
+    }
 
-    public static Exception? OnException => _config.OnException;
+    public static Exception? OnException
+    {
+        get => _config.OnException;
+        set => _config.OnException = value;
+    }
 
     internal static void Initialize()
     {
