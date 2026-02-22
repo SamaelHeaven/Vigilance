@@ -99,7 +99,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     public int ZIndex { get; set; }
 
-    public bool? FrustumCulling { get; set; } = null;
+    public bool? Culling { get; set; } = null;
 
     public bool WasRenderedOutside { get; private set; } = true;
 
@@ -738,10 +738,10 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         }
 
         element.RenderedClip = graphics.GetClip();
-        if (element.FrustumCulling.HasValue)
+        if (element.Culling.HasValue)
         {
-            data.OldFrustumCulling = graphics.FrustumCulling();
-            graphics.SetFrustumCulling(element.FrustumCulling!.Value);
+            data.OldCulling = graphics.Culling();
+            graphics.SetCulling(element.Culling!.Value);
         }
 
         data.Phase = RenderPhase.End;
@@ -779,8 +779,8 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         if (!data.ShouldRender)
             return;
         element.EndRender(graphics, camera);
-        if (data.OldFrustumCulling.HasValue)
-            graphics.SetFrustumCulling(data.OldFrustumCulling.Value);
+        if (data.OldCulling.HasValue)
+            graphics.SetCulling(data.OldCulling.Value);
         if (data.OverflowHidden)
             graphics.SetClip(data.OldClip);
         graphics.PopMatrix();
@@ -826,7 +826,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         public RenderPhase Phase;
         public Matrix3x2? OldMatrix;
         public Box? OldClip;
-        public bool? OldFrustumCulling;
+        public bool? OldCulling;
         public bool OverflowHidden;
         public readonly bool ShouldRender;
 
