@@ -693,7 +693,7 @@ public readonly unsafe partial record struct Entity
         }
     }
 
-    public struct ComponentEnumerable : IStructEnumerable<ComponentEnumerator, object>
+    public struct ComponentEnumerable : IStructEnumerable<ComponentEnumerator, object?>
     {
         private readonly Entity _entity;
         private bool _withHidden;
@@ -708,9 +708,9 @@ public readonly unsafe partial record struct Entity
             return new ComponentEnumerator(_entity, _withHidden);
         }
 
-        public ValueEnumerable<StructEnumerator<ComponentEnumerator, object>, object> AsValueEnumerable()
+        public ValueEnumerable<StructEnumerator<ComponentEnumerator, object?>, object?> AsValueEnumerable()
         {
-            return new StructEnumerator<ComponentEnumerator, object>(GetEnumerator());
+            return new StructEnumerator<ComponentEnumerator, object?>(GetEnumerator());
         }
 
         public ref ComponentEnumerable WithHidden(bool withHidden = true)
@@ -724,10 +724,12 @@ public readonly unsafe partial record struct Entity
             using var sb = new ValueStringBuilder(stackalloc char[256]);
             sb.Append('[');
             var any = false;
-            foreach (var component in this)
+            foreach (var table in _entity.Tables.WithHidden(_withHidden))
             {
+                if (!table.TryGet(_entity, out var component))
+                    continue;
                 any = true;
-                sb.Append($"\n {component}, ");
+                sb.Append($"\n [ {table.Type}, {component} ], ");
             }
 
             if (any)
@@ -737,7 +739,7 @@ public readonly unsafe partial record struct Entity
         }
     }
 
-    public struct ComponentEnumerator : IStructEnumerator<object>
+    public struct ComponentEnumerator : IStructEnumerator<object?>
     {
         private readonly Entity _entity;
         private readonly bool _withHidden;
@@ -768,10 +770,10 @@ public readonly unsafe partial record struct Entity
         {
             _entity.AssertValid();
             _enumerator = _entity.Scene.Tables.WithHidden(_withHidden).GetEnumerator();
-            Current = null!;
+            Current = null;
         }
 
-        public object Current { get; private set; } = null!;
+        public object? Current { get; private set; } = null;
 
         public void Dispose()
         {

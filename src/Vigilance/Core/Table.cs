@@ -238,7 +238,7 @@ public sealed class Table<T> : Table
     {
         var value = GetRef(in entity);
         component = value.IsNull ? null : value.Read;
-        return value.IsNull;
+        return !value.IsNull;
     }
 
     public override void Set(in Entity entity, object? component, Flags flags = Flags.Default)
