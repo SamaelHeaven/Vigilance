@@ -162,7 +162,7 @@ public static unsafe partial class Log
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static void UnmanagedLog(TraceLogLevel level, sbyte* format, nint args)
+    private static void UnmanagedLog(TraceLogLevel level, byte* format, nint args)
     {
         var message = NativeStringFormatter.Format((nint)format, args);
         Invoke((LogLevel)level, message);
