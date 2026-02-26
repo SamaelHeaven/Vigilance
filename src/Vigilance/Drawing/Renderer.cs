@@ -7,7 +7,7 @@ namespace Vigilance.Drawing;
 
 public static class Renderer
 {
-    private static readonly RenderTexture? _buffer;
+    private static RenderTexture? _buffer;
     private static Vector2 _offset;
     private static Vector2 _scale;
 
@@ -28,8 +28,25 @@ public static class Renderer
 
     internal static void BeginDrawing()
     {
+        var mode = Display.RenderingMode;
+        if (
+            mode.Type == RenderingModeType.Buffer
+            && (_buffer is null || _buffer.ScaledSize != (Display.Size * mode.Scale).Floor())
+        )
+        {
+            _buffer?.Dispose();
+            _buffer = new RenderTexture(Display.Size, mode.Scale);
+            Graphics.Buffer = _buffer;
+        }
+        else if (mode.Type != RenderingModeType.Buffer)
+        {
+            _buffer?.Dispose();
+            _buffer = null;
+            Graphics.Buffer = null;
+        }
+
         Graphics.Reset();
-        Raylib.ClearBackground(Display.Background.RColor);
+        Graphics.ClearBackground(Display.Background);
         var screenWidth = (float)Display.ScreenWidth;
         var screenHeight = (float)Display.ScreenHeight;
         var width = Display.Width;
@@ -44,6 +61,7 @@ public static class Renderer
             Viewport.Fit => new Vector2(minScale),
             Viewport.Stretch => new Vector2(scaleX, scaleY),
             Viewport.Crop => new Vector2(maxScale),
+            Viewport.Native => Vector2.One,
             _ => throw new InvalidEnumArgumentException(
                 $"{nameof(Game)}.{nameof(Display.Viewport)}",
                 (int)viewport,
@@ -62,6 +80,7 @@ public static class Renderer
                     (screenWidth - width * maxScale) * 0.5f,
                     (screenHeight - height * maxScale) * 0.5f
                 ),
+                Viewport.Native => Vector2.Zero,
                 _ => throw new InvalidEnumArgumentException(
                     $"{nameof(Game)}.{nameof(Display.Viewport)}",
                     (int)viewport,

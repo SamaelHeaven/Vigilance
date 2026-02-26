@@ -15,18 +15,18 @@ public sealed unsafe class Graphics
     private static Box? _currentClip = null;
     private static BlendMode? _currentBlendMode = null;
     private static Shader? _currentShader = null;
-    private readonly RenderTexture? _buffer;
     private BlendMode _blendMode = BlendMode.Alpha;
     private Box? _clip = null;
-    private bool _drawing = false;
     private bool _culling = Drawing.DefaultCulling;
+    private bool _drawing = false;
     private Matrix3x2 _matrix = Matrix3x2.Identity;
     private ValueStack<Matrix3x2> _matrixStack = new();
     private Shader? _shader = null;
+    internal RenderTexture? Buffer;
 
     internal Graphics(RenderTexture? buffer)
     {
-        _buffer = buffer;
+        Buffer = buffer;
     }
 
     #region Bounds
@@ -48,7 +48,7 @@ public sealed unsafe class Graphics
         var clip = GetClip();
         return new Box(
             (clip?.Position ?? Vector2.Zero) - offset,
-            (clip?.Size ?? _buffer?.Size ?? Display.Size) + offset * 2
+            (clip?.Size ?? Buffer?.Size ?? Display.Size) + offset * 2
         );
     }
 
@@ -2012,17 +2012,17 @@ public sealed unsafe class Graphics
         if (_drawing)
             throw new InvalidOperationException("Cannot begin drawing while already drawing.");
         _drawing = true;
-        var offset = _buffer is null ? Renderer.Offset : 0;
-        var scale = _buffer?.Scale ?? Renderer.Scale;
-        if (_currentBuffer != _buffer)
+        var offset = Buffer is null ? Renderer.Offset : 0;
+        var scale = Buffer?.Scale ?? Renderer.Scale;
+        if (_currentBuffer != Buffer)
         {
             if (_currentBuffer is null)
                 DrawCurrentBuffer();
             else
                 Raylib.EndTextureMode();
-            _currentBuffer = _buffer;
-            if (_buffer is not null)
-                Raylib.BeginTextureMode(_buffer.RenderTexture2D);
+            _currentBuffer = Buffer;
+            if (Buffer is not null)
+                Raylib.BeginTextureMode(Buffer.RenderTexture2D);
         }
 
         var clip = _clip;

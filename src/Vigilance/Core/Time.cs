@@ -19,7 +19,7 @@ public static class Time
         Game.ThrowIfNotRunning();
         _fpsHistory = new ValueQueue<float>(FpsHistorySize);
         _delta = TimeSpan.Zero;
-        _last = TimeSpan.FromSeconds(Raylib.GetTime());
+        _last = Elapsed;
         _scale = 1;
     }
 
@@ -48,7 +48,7 @@ public static class Time
         }
     }
 
-    public static float AverageFps => _fpsHistory.Count == 0 ? 0 : _fpsHistory.AsValueEnumerable().Average();
+    public static float AverageFps { get; private set; }
 
     public static TimeSpan Elapsed => TimeSpan.FromSeconds(Raylib.GetTime());
 
@@ -76,6 +76,7 @@ public static class Time
         while (_fpsHistory.Count >= FpsHistorySize)
             _fpsHistory.Dequeue();
         _fpsHistory.Enqueue(CurrentFps);
+        AverageFps = _fpsHistory.AsValueEnumerable().Average();
     }
 
     internal static void Restart()

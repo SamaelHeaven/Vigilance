@@ -5,4 +5,5 @@ public enum Viewport
     Fit,
     Stretch,
     Crop,
+    Native,
 }

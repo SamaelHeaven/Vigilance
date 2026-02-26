@@ -12,6 +12,13 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
     {
         foreach (var (entity, element) in Entries<UIElement>())
         {
+            var ready = element.IsLayoutReady;
+            element.CalculateLayout();
+            if (entity.IsDisabled)
+                continue;
+            element.Update(entity);
+            if (ready)
+                continue;
             element.CalculateLayout();
             if (!entity.IsDisabled)
                 element.Update(entity);

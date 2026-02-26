@@ -79,6 +79,10 @@ public static class Coordinates
                 coordinates /= scale;
                 return coordinates;
             }
+            case Viewport.Native:
+            {
+                return coordinates;
+            }
             default:
                 throw new InvalidEnumArgumentException(nameof(viewport), (int)viewport!, typeof(Viewport));
         }
@@ -117,6 +121,10 @@ public static class Coordinates
                 var offset = (screenSize - size * scale) * 0.5f;
                 coordinates *= scale;
                 coordinates += offset;
+                return coordinates;
+            }
+            case Viewport.Native:
+            {
                 return coordinates;
             }
             default:

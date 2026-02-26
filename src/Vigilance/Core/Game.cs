@@ -109,10 +109,21 @@ public static unsafe class Game
         Sound.UpdateAll();
         Display.Update();
         UpdateFullscreen();
-        Renderer.BeginDrawing();
         try
         {
             UpdateActions();
+        }
+        catch (Exception e)
+        {
+            var rethrow = true;
+            Hooks.OnException?.Invoke(e, out rethrow);
+            if (rethrow)
+                throw;
+        }
+
+        Renderer.BeginDrawing();
+        try
+        {
             _scene.Update();
         }
         catch (Exception e)
