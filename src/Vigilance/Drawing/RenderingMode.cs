@@ -6,7 +6,10 @@ public readonly record struct RenderingMode
     public Interpolation Interpolation { get; private init; }
     public float Scale { get; private init; }
 
-    public static RenderingMode Screen => new() { Type = RenderingModeType.Screen };
+    public static RenderingMode Screen()
+    {
+        return new RenderingMode { Type = RenderingModeType.Screen };
+    }
 
     public static RenderingMode Buffer(float scale = 1, Interpolation interpolation = Interpolation.Nearest)
     {

@@ -128,10 +128,11 @@ public static class Mouse
     {
         var mousePosition = Raylib.GetMousePosition();
         _screenPosition = ((Vector2)mousePosition).Clamp(Vector2.Zero, Display.ScreenSize).Round();
-        OnScreen =
-            mousePosition is { X: >= 0, Y: >= 0 }
-            && mousePosition.X <= Display.ScreenWidth
-            && mousePosition.Y <= Display.ScreenHeight;
+        OnScreen = OperatingSystem.IsMacOS()
+            ? mousePosition is { X: >= 0, Y: >= 0 }
+                && mousePosition.X <= Display.ScreenWidth
+                && mousePosition.Y <= Display.ScreenHeight
+            : Raylib.IsCursorOnScreen();
         _scroll = Raylib.GetMouseWheelMoveV();
         if (Platform.Web.IsCurrent)
             _scroll.X = -_scroll.X;
