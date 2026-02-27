@@ -6,9 +6,9 @@ public readonly record struct RenderingMode
     public Interpolation Interpolation { get; private init; }
     public float Scale { get; private init; }
 
-    public static RenderingMode Screen()
+    public static RenderingMode Native()
     {
-        return new RenderingMode { Type = RenderingModeType.Screen };
+        return new RenderingMode { Type = RenderingModeType.Native };
     }
 
     public static RenderingMode Buffer(float scale = 1, Interpolation interpolation = Interpolation.Nearest)
@@ -24,6 +24,6 @@ public readonly record struct RenderingMode
 
 public enum RenderingModeType
 {
-    Screen,
+    Native,
     Buffer,
 }
