@@ -91,7 +91,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
             Array.Copy(_array, 0, array, arrayIndex + _array.Length - _head, numToCopy);
     }
 
-    public void Enqueue(T item)
+    public void Enqueue(in T item)
     {
         if (Count == _array.Length)
             Grow(Count + 1);
@@ -132,11 +132,11 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
         return true;
     }
 
-    public readonly T Peek()
+    public readonly ref T Peek()
     {
         if (Count == 0)
             ThrowForEmptyQueue();
-        return _array[_head];
+        return ref _array[_head];
     }
 
     public readonly bool TryPeek([MaybeNullWhen(false)] out T result)
@@ -151,7 +151,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
         return true;
     }
 
-    public readonly bool Contains(T item)
+    public readonly bool Contains(in T item)
     {
         if (Count == 0)
             return false;

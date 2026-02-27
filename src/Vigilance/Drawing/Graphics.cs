@@ -98,9 +98,9 @@ public sealed unsafe class Graphics
 
     #region Matrix
 
-    public Matrix3x2 GetMatrix()
+    public ref Matrix3x2 GetMatrix()
     {
-        return _matrixStack.Count == 0 ? _matrix : _matrixStack.Peek();
+        return ref _matrixStack.Count == 0 ? ref _matrix : ref _matrixStack.Peek();
     }
 
     public Matrix3x2 GetMatrix(Camera? camera)
@@ -131,14 +131,7 @@ public sealed unsafe class Graphics
 
     public void MultiplyMatrix(in Matrix3x2 matrix)
     {
-        if (_matrixStack.Count == 0)
-        {
-            _matrix *= matrix;
-            return;
-        }
-
-        var top = _matrixStack.Pop();
-        _matrixStack.Push(matrix * top);
+        GetMatrix() *= matrix;
     }
 
     public void Translate(float v1, float? v2 = null)
@@ -158,6 +151,8 @@ public sealed unsafe class Graphics
 
     public void Rotate(float angle, in Vector2? position = null)
     {
+        if (Precision.AreEqual(angle, 0))
+            return;
         if (position.HasValue)
             MultiplyMatrix(Matrix3x2.CreateTranslation(position.Value.X, position.Value.Y));
         MultiplyMatrix(Matrix3x2.CreateRotation(angle.DegToRad()));
@@ -2066,9 +2061,7 @@ public sealed unsafe class Graphics
                 Raylib.BeginShaderMode(_shader.RShader);
         }
 
-        var matrix = GetMatrix();
-        if (camera is not null)
-            matrix *= camera.Matrix;
+        var matrix = GetMatrix(camera);
         matrix *= Matrix3x2.CreateScale(scale) * Matrix3x2.CreateTranslation(offset);
         Rlgl.PushMatrix();
         Rlgl.MultMatrixf(

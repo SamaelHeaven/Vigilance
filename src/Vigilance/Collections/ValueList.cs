@@ -155,7 +155,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Add(T item)
+    public void Add(in T item)
     {
         var array = _items;
         var size = _size;
@@ -170,8 +170,13 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         }
     }
 
+    void ICollection<T>.Add(T item)
+    {
+        Add(item);
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void AddWithResize(T item)
+    private void AddWithResize(in T item)
     {
         Debug.Assert(_size == _items.Length);
         var size = _size;
@@ -200,7 +205,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         }
     }
 
-    public readonly int BinarySearch(int index, int count, T item, IComparer<T>? comparer)
+    public readonly int BinarySearch(int index, int count, in T item, IComparer<T>? comparer)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentOutOfRangeException.ThrowIfNegative(count);
@@ -209,12 +214,12 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
             : Array.BinarySearch(_items, index, count, item, comparer);
     }
 
-    public readonly int BinarySearch(T item)
+    public readonly int BinarySearch(in T item)
     {
         return BinarySearch(0, _size, item, null);
     }
 
-    public readonly int BinarySearch(T item, IComparer<T>? comparer)
+    public readonly int BinarySearch(in T item, IComparer<T>? comparer)
     {
         return BinarySearch(0, _size, item, comparer);
     }
@@ -235,9 +240,14 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         }
     }
 
-    public readonly bool Contains(T item)
+    public readonly bool Contains(in T item)
     {
         return _size != 0 && IndexOf(item) >= 0;
+    }
+
+    readonly bool ICollection<T>.Contains(T item)
+    {
+        return Contains(item);
     }
 
     public readonly ValueList<TOutput> ConvertAll<TOutput>(Converter<T, TOutput> converter)
@@ -407,18 +417,23 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         return GetRange(start, length);
     }
 
-    public readonly int IndexOf(T item)
+    public readonly int IndexOf(in T item)
     {
         return Array.IndexOf(_items, item, 0, _size);
     }
 
-    public readonly int IndexOf(T item, int index)
+    readonly int IList<T>.IndexOf(T item)
+    {
+        return IndexOf(item);
+    }
+
+    public readonly int IndexOf(in T item, int index)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(index, _size);
         return Array.IndexOf(_items, item, index, _size - index);
     }
 
-    public readonly int IndexOf(T item, int index, int count)
+    public readonly int IndexOf(in T item, int index, int count)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(index, _size);
         if (count < 0 || index > _size - count)
@@ -426,7 +441,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         return Array.IndexOf(_items, item, index, count);
     }
 
-    public void Insert(int index, T item)
+    public void Insert(int index, in T item)
     {
         if ((uint)index > (uint)_size)
             throw new ArgumentOutOfRangeException(nameof(index));
@@ -436,6 +451,11 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
             Array.Copy(_items, index, _items, index + 1, _size - index);
         _items[index] = item;
         _size++;
+    }
+
+    void IList<T>.Insert(int index, T item)
+    {
+        Insert(index, item);
     }
 
     public void InsertRange(int index, IEnumerable<T> collection)
@@ -462,21 +482,21 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         }
     }
 
-    public readonly int LastIndexOf(T item)
+    public readonly int LastIndexOf(in T item)
     {
         if (_size == 0)
             return -1;
         return LastIndexOf(item, _size - 1, _size);
     }
 
-    public readonly int LastIndexOf(T item, int index)
+    public readonly int LastIndexOf(in T item, int index)
     {
         return index >= _size
             ? throw new ArgumentOutOfRangeException(nameof(index))
             : LastIndexOf(item, index, index + 1);
     }
 
-    public readonly int LastIndexOf(T item, int index, int count)
+    public readonly int LastIndexOf(in T item, int index, int count)
     {
         if (_size != 0 && index < 0)
             throw new ArgumentOutOfRangeException(nameof(index));
@@ -490,13 +510,18 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
             : Array.LastIndexOf(_items, item, index, count);
     }
 
-    public bool Remove(T item)
+    public bool Remove(in T item)
     {
         var index = IndexOf(item);
         if (index < 0)
             return false;
         RemoveAt(index);
         return true;
+    }
+
+    bool ICollection<T>.Remove(T item)
+    {
+        return Remove(item);
     }
 
     public int RemoveAll(Predicate<T> match)

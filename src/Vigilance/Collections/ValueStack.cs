@@ -54,7 +54,7 @@ public struct ValueStack<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueSta
         Count = 0;
     }
 
-    public readonly bool Contains(T item)
+    public readonly bool Contains(in T item)
     {
         return Count != 0 && Array.LastIndexOf(_array, item, Count - 1) >= 0;
     }
@@ -88,13 +88,13 @@ public struct ValueStack<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueSta
         Array.Resize(ref _array, capacity);
     }
 
-    public readonly T Peek()
+    public readonly ref T Peek()
     {
         var size = Count - 1;
         var array = _array;
         if ((uint)size >= (uint)array.Length)
             ThrowForEmptyStack();
-        return array[size];
+        return ref array[size];
     }
 
     public readonly bool TryPeek([MaybeNullWhen(false)] out T result)
@@ -141,7 +141,7 @@ public struct ValueStack<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueSta
         return true;
     }
 
-    public void Push(T item)
+    public void Push(in T item)
     {
         var size = Count;
         var array = _array;
@@ -157,7 +157,7 @@ public struct ValueStack<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueSta
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void PushWithResize(T item)
+    private void PushWithResize(in T item)
     {
         Debug.Assert(Count == _array.Length);
         Grow(Count + 1);
