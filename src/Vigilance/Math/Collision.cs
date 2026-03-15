@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 
 namespace Vigilance.Math;
@@ -156,6 +157,7 @@ public static class Collision
             return false;
         return !HasSeparatingAxis(polygon1, polygon2) && !HasSeparatingAxis(polygon2, polygon1);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static bool HasSeparatingAxis(in ReadOnlySpan<Vector2> polygonA, in ReadOnlySpan<Vector2> polygonB)
         {
             for (var i = 0; i < polygonA.Length; i++)
@@ -172,6 +174,7 @@ public static class Collision
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void ProjectPolygon(in ReadOnlySpan<Vector2> polygon, Vector2 axis, out float min, out float max)
         {
             var dot = polygon[0].Dot(axis);

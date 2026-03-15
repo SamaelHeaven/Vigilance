@@ -22,6 +22,12 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     }
 
     private bool _click;
+    private Func<UIEvent, bool>? _onClickHandlers;
+    private Func<UIEvent, bool>? _onMouseEnterHandlers;
+    private Func<UIEvent, bool>? _onMouseLeaveHandlers;
+    private Func<UIEvent, bool>? _onPressHandlers;
+    private Func<UIEvent, bool>? _onReleaseHandlers;
+    private Func<UIEvent, bool>? _onUpdateHandlers;
     private RenderData _renderData;
     internal Node Node = Flex.CreateDefaultNode();
 
@@ -464,6 +470,18 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
+    public Signal<UIEvent> OnUpdateSignal => new(ref _onUpdateHandlers);
+
+    public Signal<UIEvent> OnMouseEnterSignal => new(ref _onMouseEnterHandlers);
+
+    public Signal<UIEvent> OnMouseLeaveSignal => new(ref _onMouseLeaveHandlers);
+
+    public Signal<UIEvent> OnClickSignal => new(ref _onClickHandlers);
+
+    public Signal<UIEvent> OnPressSignal => new(ref _onPressHandlers);
+
+    public Signal<UIEvent> OnReleaseSignal => new(ref _onReleaseHandlers);
+
     int IComparable<UIElement>.CompareTo(UIElement? other)
     {
         return other is null ? 1 : ZIndex.CompareTo(other.ZIndex);
@@ -514,18 +532,6 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         clone.CloneSelf();
         return clone;
     }
-
-    public event Action<UIEvent>? OnUpdateEvent;
-
-    public event Action<UIEvent>? OnMouseEnterEvent;
-
-    public event Action<UIEvent>? OnMouseLeaveEvent;
-
-    public event Action<UIEvent>? OnClickEvent;
-
-    public event Action<UIEvent>? OnPressEvent;
-
-    public event Action<UIEvent>? OnReleaseEvent;
 
     public void Remove()
     {
@@ -624,14 +630,14 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
             && Mouse.OnScreen
             && element.IsVisible
             && Collision.CheckPointQuad(Mouse.Position, element.RenderedBounds);
-        element.OnUpdateEvent?.Invoke(@event);
+        element.OnUpdateSignal.Invoke(@event);
         switch (oldMouseInside)
         {
             case false when element.IsMouseInside:
-                element.OnMouseEnterEvent?.Invoke(@event);
+                element.OnMouseEnterSignal.Invoke(@event);
                 break;
             case true when !element.IsMouseInside:
-                element.OnMouseLeaveEvent?.Invoke(@event);
+                element.OnMouseLeaveSignal.Invoke(@event);
                 break;
         }
 
@@ -639,16 +645,16 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         {
             element._click = element.IsMouseInside;
             if (element.IsMouseInside)
-                element.OnPressEvent?.Invoke(@event);
+                element.OnPressSignal.Invoke(@event);
         }
 
         if (Mouse.IsButtonReleased(MouseButton.Left))
         {
             element._click = element is { _click: true, IsMouseInside: true };
             if (element._click)
-                element.OnClickEvent?.Invoke(@event);
+                element.OnClickSignal.Invoke(@event);
             if (element.IsMouseInside)
-                element.OnReleaseEvent?.Invoke(@event);
+                element.OnReleaseSignal.Invoke(@event);
         }
 
         element.UpdateSelf(entity);
@@ -971,34 +977,39 @@ public static partial class UIElementExtensions
     extension<T>(T element)
         where T : UIElement
     {
+        public Action<T> With
+        {
+            set => value.Invoke(element);
+        }
+
         public Action<UIEvent<T>> OnUpdate
         {
-            set => element.OnUpdateEvent += e => value.Invoke(e);
+            set => element.OnUpdateSignal.Set(e => value.Invoke(e));
         }
 
         public Action<UIEvent<T>> OnClick
         {
-            set => element.OnClickEvent += e => value.Invoke(e);
+            set => element.OnClickSignal.Set(e => value.Invoke(e));
         }
 
         public Action<UIEvent<T>> OnPress
         {
-            set => element.OnPressEvent += e => value.Invoke(e);
+            set => element.OnPressSignal.Set(e => value.Invoke(e));
         }
 
         public Action<UIEvent<T>> OnRelease
         {
-            set => element.OnReleaseEvent += e => value.Invoke(e);
+            set => element.OnReleaseSignal.Set(e => value.Invoke(e));
         }
 
         public Action<UIEvent<T>> OnMouseEnter
         {
-            set => element.OnMouseEnterEvent += e => value.Invoke(e);
+            set => element.OnMouseEnterSignal.Set(e => value.Invoke(e));
         }
 
         public Action<UIEvent<T>> OnMouseLeave
         {
-            set => element.OnMouseLeaveEvent += e => value.Invoke(e);
+            set => element.OnMouseLeaveSignal.Set(e => value.Invoke(e));
         }
 
         public T Ref(out T el)

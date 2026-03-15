@@ -46,7 +46,9 @@ public static class Renderer
         }
 
         Graphics.Reset();
-        Graphics.ClearBackground(Display.Background);
+        Raylib.ClearBackground(Display.Background.RColor);
+        if (_buffer is not null)
+            Graphics.ClearBackground(Display.Background);
         var screenWidth = (float)Display.ScreenWidth;
         var screenHeight = (float)Display.ScreenHeight;
         var width = Display.Width;

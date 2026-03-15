@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -143,10 +144,17 @@ public static unsafe class Game
         var length = _actions.Count;
         if (length == 0)
             return;
-        var actions = new Action[length];
-        var amount = _actions.TryPopRange(actions, 0, length);
-        for (var i = amount - 1; i >= 0; i--)
-            actions[i].Invoke();
+        var actions = ArrayPool<Action>.Shared.Rent(length);
+        try
+        {
+            var amount = _actions.TryPopRange(actions, 0, length);
+            for (var i = amount - 1; i >= 0; i--)
+                actions[i].Invoke();
+        }
+        finally
+        {
+            ArrayPool<Action>.Shared.Return(actions);
+        }
     }
 
     private static void Dispose()

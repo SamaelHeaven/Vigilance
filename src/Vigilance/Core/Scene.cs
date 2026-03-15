@@ -18,7 +18,6 @@ public sealed unsafe partial class Scene
     private readonly Dictionary<string, ulong> _nameMap = [];
     private readonly GameSystemsFunc _systemsFunc;
     private Action? _deferredAction;
-    private ValueList<Table> _tables = [];
     private Action<Entity>? _destroyAction;
     private ValueList<(int Index, int Version)> _entities = [];
     private ValueQueue<Event> _events = [];
@@ -41,16 +40,17 @@ public sealed unsafe partial class Scene
     private bool _started;
     private Action? _stopAction;
     private List<IGameSystem> _systems = null!;
+    private ValueList<Table> _tables = [];
     private float _time;
     private Action? _updateAction;
     internal Table<Child> ChildTable;
-    internal ValueList<RenderComponents> RenderComponentsList = [];
     internal Table<Disabled> DisabledTable;
     internal Table<Name> NameTable;
     internal Table<Parent> ParentTable;
     internal Table<PivotPoint> PivotPointTable;
     internal Table<Position> PositionTable;
     internal ValueList<RenderCommand> RenderCommands = [];
+    internal ValueList<RenderComponents> RenderComponentsList = [];
     internal ValueList<RenderData> RenderDataList = [];
     internal Table<Rotation> RotationTable;
     internal Table<Scale> ScaleTable;
@@ -122,6 +122,7 @@ public sealed unsafe partial class Scene
         RestartAction();
         return;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void RestartAction()
         {
             if (current && _started)
@@ -215,16 +216,18 @@ public sealed unsafe partial class Scene
     {
         ThrowIfInitialized();
         var type = typeof(T);
-        ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(_listeners, type, out var exists)!;
-        if (!exists)
-        {
-            value = action;
-            return;
-        }
+        ref var handlers = ref CollectionsMarshal.GetValueRefOrAddDefault(_listeners, type, out _)!;
+        var signal = new Signal<T>(ref Unsafe.As<Delegate, Func<T, bool>>(ref handlers)!);
+        signal.Subscribe(action);
+    }
 
-        var existing = (Action<T>)value;
-        existing += action;
-        _listeners[type] = existing;
+    public void On<T>(Func<T, bool> handler)
+    {
+        ThrowIfInitialized();
+        var type = typeof(T);
+        ref var handlers = ref CollectionsMarshal.GetValueRefOrAddDefault(_listeners, type, out _)!;
+        var signal = new Signal<T>(ref Unsafe.As<Delegate, Func<T, bool>>(ref handlers)!);
+        signal.Subscribe(handler);
     }
 
     public void OnInitialize(Action action)
@@ -309,9 +312,9 @@ public sealed unsafe partial class Scene
     {
         ThrowIfNotInitialized();
         var type = typeof(T);
-        if (!_listeners.TryGetValue(type, out var action))
+        if (!_listeners.TryGetValue(type, out var handlers))
             return;
-        ((Action<T>)action).Invoke(@event);
+        Signal<T>.Invoke((Func<T, bool>)handlers, @event);
     }
 
     public void Enqueue<T>(in T @event)
@@ -327,16 +330,15 @@ public sealed unsafe partial class Scene
         ref var events = ref CollectionsMarshal.GetValueRefOrAddDefault(_customEvents, type, out var exists);
         if (!exists)
         {
-            if (!_listeners.TryGetValue(type, out var action))
+            if (!_listeners.TryGetValue(type, out var handlers))
                 return;
-            var listener = (Action<T>)action;
             var queue = new Queue<T>();
             events = (
                 queue,
                 () =>
                 {
                     if (queue.TryDequeue(out var @event))
-                        listener.Invoke(@event);
+                        Signal<T>.Invoke((Func<T, bool>)handlers, @event);
                 }
             );
         }
@@ -490,10 +492,12 @@ public sealed unsafe partial class Scene
         _destroyAction?.Invoke(entity);
         var name = entity.Name;
         var tables = entity.Tables.WithHidden();
+        var flag = Core.Table.Flags.SilentOnImmutable;
         do
         {
             foreach (var table in tables)
-                table.Remove(entity, Core.Table.Flags.ForceMutable);
+                table.Remove(entity, flag);
+            flag = Core.Table.Flags.ForceMutable;
         } while (tables.AsValueEnumerable().Any());
 
         _nameMap.Remove(name);

@@ -424,12 +424,22 @@ public static unsafe class Display
     internal static void Update()
     {
         if (Platform.Web.IsCurrent)
+        {
             _fullscreen = JSEngine.Eval("!!document.fullscreenElement");
-        var monitor = Raylib.GetCurrentMonitor();
-        RefreshRate = Raylib.GetMonitorRefreshRate(monitor);
-        MonitorWidth = Raylib.GetMonitorWidth(monitor);
-        MonitorHeight = Raylib.GetMonitorHeight(monitor);
-        Focused = Raylib.IsWindowFocused();
+            RefreshRate = 0;
+            MonitorWidth = Raylib.GetScreenWidth();
+            MonitorHeight = Raylib.GetScreenHeight();
+            Focused = JSEngine.Eval("document.activeElement === Module.canvas");
+        }
+        else
+        {
+            var monitor = Raylib.GetCurrentMonitor();
+            RefreshRate = Raylib.GetMonitorRefreshRate(monitor);
+            MonitorWidth = Raylib.GetMonitorWidth(monitor);
+            MonitorHeight = Raylib.GetMonitorHeight(monitor);
+            Focused = Raylib.IsWindowFocused();
+        }
+
         Hidden = Raylib.IsWindowHidden();
         Maximized = Raylib.IsWindowMaximized();
         Minimized = Raylib.IsWindowMinimized();

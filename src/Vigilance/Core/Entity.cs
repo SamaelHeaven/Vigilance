@@ -812,8 +812,8 @@ public readonly unsafe partial record struct Entity
     public struct ChildEnumerator : IStructEnumerator<Entity>
     {
         private readonly Entity _parent;
-        private readonly bool _deferred;
         private ulong _nextChildId;
+        private readonly bool _deferred;
         private bool _disposed;
 
         internal ChildEnumerator(in Entity parent, bool deferred)
