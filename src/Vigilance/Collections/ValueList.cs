@@ -115,7 +115,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly Span<T> AsSpan()
     {
-        return MemoryMarshal.CreateSpan(ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_items), 0), _size);
+        return MemoryMarshal.CreateSpan(ref MemoryMarshal.GetArrayDataReference(_items), _size);
     }
 
     public readonly T[] AsArray(out int length)
