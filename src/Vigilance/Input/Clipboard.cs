@@ -20,7 +20,7 @@ public static class Clipboard
         {
             Game.ThrowIfNotRunning();
             if (Platform.Web.IsCurrent)
-                JSEngine.Eval($"navigator.clipboard.writeText({value.ToJson()})");
+                JSEngine.Eval($"void navigator.clipboard.writeText({value.ToJson()})");
             else
                 Raylib.SetClipboardText(value);
         }

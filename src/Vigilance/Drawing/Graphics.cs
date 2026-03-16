@@ -260,9 +260,11 @@ public sealed unsafe class Graphics
 
     #region Culling
 
-    public void SetCulling(bool culling)
+    public bool SetCulling(bool culling)
     {
+        var previous = _culling;
         _culling = culling;
+        return previous;
     }
 
     public bool Culling()
