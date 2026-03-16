@@ -31,6 +31,26 @@ public record struct Unit(UnitType Type, float Value = 0)
         return new Unit(unit.Type, -unit.Value);
     }
 
+    public static Unit operator +(Unit unit, float value)
+    {
+        return new Unit(unit.Type == UnitType.Undefined ? UnitType.Fixed : unit.Type, value + unit.Value);
+    }
+
+    public static Unit operator -(Unit unit, float value)
+    {
+        return new Unit(unit.Type == UnitType.Undefined ? UnitType.Fixed : unit.Type, value - unit.Value);
+    }
+
+    public static Unit operator +(Unit unit, Unit value)
+    {
+        return new Unit(unit.Type == UnitType.Undefined ? value.Type : unit.Type, value.Value + unit.Value);
+    }
+
+    public static Unit operator -(Unit unit, Unit value)
+    {
+        return new Unit(unit.Type == UnitType.Undefined ? value.Type : unit.Type, value.Value - unit.Value);
+    }
+
     public readonly float Calculate(float size, float defaultValue = 0)
     {
         return Type switch

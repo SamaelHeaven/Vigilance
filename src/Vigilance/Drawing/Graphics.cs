@@ -131,7 +131,8 @@ public sealed unsafe class Graphics
 
     public void MultiplyMatrix(in Matrix3x2 matrix)
     {
-        GetMatrix() *= matrix;
+        ref var current = ref GetMatrix();
+        current = matrix * current;
     }
 
     public void Translate(float v1, float? v2 = null)

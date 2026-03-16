@@ -39,6 +39,41 @@ public record struct Dimensions
         return new Dimensions(value);
     }
 
+    public static Dimensions operator -(Dimensions dimensions)
+    {
+        return new Dimensions(-dimensions.X, -dimensions.Y);
+    }
+
+    public static Dimensions operator +(Dimensions dimensions, float value)
+    {
+        return new Dimensions(dimensions.X + value, dimensions.Y + value);
+    }
+
+    public static Dimensions operator -(Dimensions dimensions, float value)
+    {
+        return new Dimensions(dimensions.X - value, dimensions.Y - value);
+    }
+
+    public static Dimensions operator +(Dimensions dimensions, Unit value)
+    {
+        return new Dimensions(dimensions.X + value, dimensions.Y + value);
+    }
+
+    public static Dimensions operator -(Dimensions dimensions, Unit value)
+    {
+        return new Dimensions(dimensions.X - value, dimensions.Y - value);
+    }
+
+    public static Dimensions operator +(Dimensions dimensions, Dimensions value)
+    {
+        return new Dimensions(dimensions.X + value.X, dimensions.Y + value.Y);
+    }
+
+    public static Dimensions operator -(Dimensions dimensions, Dimensions value)
+    {
+        return new Dimensions(dimensions.X - value.X, dimensions.Y - value.Y);
+    }
+
     public readonly Vector2 Calculate(Vector2 layoutSize)
     {
         return new Vector2(X.Calculate(layoutSize.X), Y.Calculate(layoutSize.Y));
