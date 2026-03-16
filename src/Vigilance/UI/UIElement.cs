@@ -188,25 +188,53 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     public Unit PaddingTop
     {
         get => Unit.FromValue(Node.StyleGetPadding(Edge.Top));
-        set => Unit.SetUnit(value, Edge.Top, Node.StyleSetPadding, Node.StyleSetPaddingPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Top,
+                (node, edge, padding) => node.StyleSetPadding(edge, padding),
+                (node, edge, padding) => node.StyleSetPaddingPercent(edge, padding)
+            );
     }
 
     public Unit PaddingRight
     {
         get => Unit.FromValue(Node.StyleGetPadding(Edge.Right));
-        set => Unit.SetUnit(value, Edge.Right, Node.StyleSetPadding, Node.StyleSetPaddingPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Right,
+                (node, edge, padding) => node.StyleSetPadding(edge, padding),
+                (node, edge, padding) => node.StyleSetPaddingPercent(edge, padding)
+            );
     }
 
     public Unit PaddingBottom
     {
         get => Unit.FromValue(Node.StyleGetPadding(Edge.Bottom));
-        set => Unit.SetUnit(value, Edge.Bottom, Node.StyleSetPadding, Node.StyleSetPaddingPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Bottom,
+                (node, edge, padding) => node.StyleSetPadding(edge, padding),
+                (node, edge, padding) => node.StyleSetPaddingPercent(edge, padding)
+            );
     }
 
     public Unit PaddingLeft
     {
         get => Unit.FromValue(Node.StyleGetPadding(Edge.Left));
-        set => Unit.SetUnit(value, Edge.Left, Node.StyleSetPadding, Node.StyleSetPaddingPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Left,
+                (node, edge, padding) => node.StyleSetPadding(edge, padding),
+                (node, edge, padding) => node.StyleSetPaddingPercent(edge, padding)
+            );
     }
 
     public Insets Margin
@@ -249,39 +277,83 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     public Unit MarginTop
     {
         get => Unit.FromValue(Node.StyleGetMargin(Edge.Top));
-        set => Unit.SetUnit(value, Edge.Top, Node.StyleSetMarginAuto, Node.StyleSetMargin, Node.StyleSetMarginPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Top,
+                (node, edge) => node.StyleSetMarginAuto(edge),
+                (node, edge, margin) => node.StyleSetMargin(edge, margin),
+                (node, edge, margin) => node.StyleSetMarginPercent(edge, margin)
+            );
     }
 
     public Unit MarginRight
     {
         get => Unit.FromValue(Node.StyleGetMargin(Edge.Right));
         set =>
-            Unit.SetUnit(value, Edge.Right, Node.StyleSetMarginAuto, Node.StyleSetMargin, Node.StyleSetMarginPercent);
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Right,
+                (node, edge) => node.StyleSetMarginAuto(edge),
+                (node, edge, margin) => node.StyleSetMargin(edge, margin),
+                (node, edge, margin) => node.StyleSetMarginPercent(edge, margin)
+            );
     }
 
     public Unit MarginBottom
     {
         get => Unit.FromValue(Node.StyleGetMargin(Edge.Bottom));
         set =>
-            Unit.SetUnit(value, Edge.Bottom, Node.StyleSetMarginAuto, Node.StyleSetMargin, Node.StyleSetMarginPercent);
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Bottom,
+                (node, edge) => node.StyleSetMarginAuto(edge),
+                (node, edge, margin) => node.StyleSetMargin(edge, margin),
+                (node, edge, margin) => node.StyleSetMarginPercent(edge, margin)
+            );
     }
 
     public Unit MarginLeft
     {
         get => Unit.FromValue(Node.StyleGetMargin(Edge.Left));
-        set => Unit.SetUnit(value, Edge.Left, Node.StyleSetMarginAuto, Node.StyleSetMargin, Node.StyleSetMarginPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Left,
+                (node, edge) => node.StyleSetMarginAuto(edge),
+                (node, edge, margin) => node.StyleSetMargin(edge, margin),
+                (node, edge, margin) => node.StyleSetMarginPercent(edge, margin)
+            );
     }
 
     public Unit Width
     {
         get => Unit.FromValue(Node.StyleGetWidth());
-        set => Unit.SetUnit(value, Node.StyleSetWidthAuto, Node.StyleSetWidth, Node.StyleSetWidthPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                node => node.StyleSetWidthAuto(),
+                (node, width) => node.StyleSetWidth(width),
+                (node, width) => node.StyleSetWidthPercent(width)
+            );
     }
 
     public Unit Height
     {
         get => Unit.FromValue(Node.StyleGetHeight());
-        set => Unit.SetUnit(value, Node.StyleSetHeightAuto, Node.StyleSetHeight, Node.StyleSetHeightPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                node => node.StyleSetHeightAuto(),
+                (node, height) => node.StyleSetHeight(height),
+                (node, height) => node.StyleSetHeightPercent(height)
+            );
     }
 
     public Dimensions Size
@@ -297,13 +369,25 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     public Unit MinWidth
     {
         get => Unit.FromValue(Node.StyleGetMinWidth());
-        set => Unit.SetUnit(value, Node.StyleSetMinWidth, Node.StyleSetMinWidthPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                (node, width) => node.StyleSetMinWidth(width),
+                (node, width) => node.StyleSetMinWidthPercent(width)
+            );
     }
 
     public Unit MinHeight
     {
         get => Unit.FromValue(Node.StyleGetMinHeight());
-        set => Unit.SetUnit(value, Node.StyleSetMinHeight, Node.StyleSetMinHeightPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                (node, height) => node.StyleSetMinHeight(height),
+                (node, height) => node.StyleSetMinHeightPercent(height)
+            );
     }
 
     public Dimensions MinSize
@@ -319,13 +403,25 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     public Unit MaxWidth
     {
         get => Unit.FromValue(Node.StyleGetMaxWidth());
-        set => Unit.SetUnit(value, Node.StyleSetMaxWidth, Node.StyleSetMaxWidthPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                (node, width) => node.StyleSetMaxWidth(width),
+                (node, width) => node.StyleSetMaxWidthPercent(width)
+            );
     }
 
     public Unit MaxHeight
     {
         get => Unit.FromValue(Node.StyleGetMaxHeight());
-        set => Unit.SetUnit(value, Node.StyleSetMaxHeight, Node.StyleSetMaxHeightPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                (node, height) => node.StyleSetMaxHeight(height),
+                (node, height) => node.StyleSetMaxHeightPercent(height)
+            );
     }
 
     public Dimensions MaxSize
@@ -348,7 +444,13 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     {
         get => Unit.FromValue(Node.NodeStyleGetFlexBasis());
         set =>
-            Unit.SetUnit(value, Node.NodeStyleSetFlexBasisAuto, Node.StyleSetFlexBasis, Node.StyleSetFlexBasisPercent);
+            Unit.SetUnit(
+                Node,
+                value,
+                node => node.NodeStyleSetFlexBasisAuto(),
+                (node, basis) => node.StyleSetFlexBasis(basis),
+                (node, basis) => node.StyleSetFlexBasisPercent(basis)
+            );
     }
 
     public float Grow
@@ -391,25 +493,53 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     public Unit Top
     {
         get => Unit.FromValue(Node.StyleGetPosition(Edge.Top));
-        set => Unit.SetUnit(value, Edge.Top, Node.StyleSetPosition, Node.StyleSetPositionPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Top,
+                (node, edge, top) => node.StyleSetPosition(edge, top),
+                (node, edge, top) => node.StyleSetPositionPercent(edge, top)
+            );
     }
 
     public Unit Right
     {
         get => Unit.FromValue(Node.StyleGetPosition(Edge.Right));
-        set => Unit.SetUnit(value, Edge.Right, Node.StyleSetPosition, Node.StyleSetPositionPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Right,
+                (node, edge, right) => node.StyleSetPosition(edge, right),
+                (node, edge, right) => node.StyleSetPositionPercent(edge, right)
+            );
     }
 
     public Unit Bottom
     {
         get => Unit.FromValue(Node.StyleGetPosition(Edge.Bottom));
-        set => Unit.SetUnit(value, Edge.Bottom, Node.StyleSetPosition, Node.StyleSetPositionPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Bottom,
+                (node, edge, bottom) => node.StyleSetPosition(edge, bottom),
+                (node, edge, bottom) => node.StyleSetPositionPercent(edge, bottom)
+            );
     }
 
     public Unit Left
     {
         get => Unit.FromValue(Node.StyleGetPosition(Edge.Left));
-        set => Unit.SetUnit(value, Edge.Left, Node.StyleSetPosition, Node.StyleSetPositionPercent);
+        set =>
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Left,
+                (node, edge, left) => node.StyleSetPosition(edge, left),
+                (node, edge, left) => node.StyleSetPositionPercent(edge, left)
+            );
     }
 
     public Dimensions Translate { get; set; } = new();

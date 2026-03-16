@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using FlexLayoutSharp;
 
 namespace Vigilance.UI;
@@ -73,78 +74,95 @@ public record struct Unit(UnitType Type, float Value = 0)
         return new Unit(type, value.value);
     }
 
-    internal static void SetUnit(Unit value, Action setAuto, Action<float> setFixed, Action<float> setPercent)
-    {
-        switch (value.Type)
-        {
-            case UnitType.Undefined:
-            case UnitType.Auto:
-                setAuto.Invoke();
-                break;
-            case UnitType.Fixed:
-                setFixed.Invoke(value.Value);
-                break;
-            case UnitType.Percent:
-                setPercent.Invoke(value.Value);
-                break;
-        }
-    }
-
-    internal static void SetUnit(Unit value, Action<float> setFixed, Action<float> setPercent)
-    {
-        switch (value.Type)
-        {
-            case UnitType.Undefined:
-            case UnitType.Auto:
-                setFixed.Invoke(float.NaN);
-                break;
-            case UnitType.Fixed:
-                setFixed.Invoke(value.Value);
-                break;
-            case UnitType.Percent:
-                setPercent.Invoke(value.Value);
-                break;
-        }
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
+        Node node,
         Unit value,
-        Edge edge,
-        Action<Edge> setAuto,
-        Action<Edge, float> setFixed,
-        Action<Edge, float> setPercent
+        Action<Node> setAuto,
+        Action<Node, float> setFixed,
+        Action<Node, float> setPercent
     )
     {
         switch (value.Type)
         {
             case UnitType.Undefined:
-                setFixed.Invoke(edge, float.NaN);
-                break;
             case UnitType.Auto:
-                setAuto.Invoke(edge);
+                setAuto.Invoke(node);
                 break;
             case UnitType.Fixed:
-                setFixed.Invoke(edge, value.Value);
+                setFixed.Invoke(node, value.Value);
                 break;
             case UnitType.Percent:
-                setPercent.Invoke(edge, value.Value);
+                setPercent.Invoke(node, value.Value);
                 break;
         }
     }
 
-    internal static void SetUnit(Unit value, Edge edge, Action<Edge, float> setFixed, Action<Edge, float> setPercent)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SetUnit(Node node, Unit value, Action<Node, float> setFixed, Action<Node, float> setPercent)
     {
         switch (value.Type)
         {
             case UnitType.Undefined:
             case UnitType.Auto:
-                setFixed.Invoke(edge, float.NaN);
+                setFixed.Invoke(node, float.NaN);
                 break;
             case UnitType.Fixed:
-                setFixed.Invoke(edge, value.Value);
+                setFixed.Invoke(node, value.Value);
                 break;
             case UnitType.Percent:
-                setPercent.Invoke(edge, value.Value);
+                setPercent.Invoke(node, value.Value);
+                break;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SetUnit(
+        Node node,
+        Unit value,
+        Edge edge,
+        Action<Node, Edge> setAuto,
+        Action<Node, Edge, float> setFixed,
+        Action<Node, Edge, float> setPercent
+    )
+    {
+        switch (value.Type)
+        {
+            case UnitType.Undefined:
+                setFixed.Invoke(node, edge, float.NaN);
+                break;
+            case UnitType.Auto:
+                setAuto.Invoke(node, edge);
+                break;
+            case UnitType.Fixed:
+                setFixed.Invoke(node, edge, value.Value);
+                break;
+            case UnitType.Percent:
+                setPercent.Invoke(node, edge, value.Value);
+                break;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SetUnit(
+        Node node,
+        Unit value,
+        Edge edge,
+        Action<Node, Edge, float> setFixed,
+        Action<Node, Edge, float> setPercent
+    )
+    {
+        switch (value.Type)
+        {
+            case UnitType.Undefined:
+            case UnitType.Auto:
+                setFixed.Invoke(node, edge, float.NaN);
+                break;
+            case UnitType.Fixed:
+                setFixed.Invoke(node, edge, value.Value);
+                break;
+            case UnitType.Percent:
+                setPercent.Invoke(node, edge, value.Value);
                 break;
         }
     }
