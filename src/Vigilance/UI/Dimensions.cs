@@ -39,37 +39,37 @@ public record struct Dimensions
         return new Dimensions(value);
     }
 
-    public static Dimensions operator -(Dimensions dimensions)
+    public static Dimensions operator -(in Dimensions dimensions)
     {
         return new Dimensions(-dimensions.X, -dimensions.Y);
     }
 
-    public static Dimensions operator +(Dimensions dimensions, float value)
+    public static Dimensions operator +(in Dimensions dimensions, float value)
     {
         return new Dimensions(dimensions.X + value, dimensions.Y + value);
     }
 
-    public static Dimensions operator -(Dimensions dimensions, float value)
+    public static Dimensions operator -(in Dimensions dimensions, float value)
     {
         return new Dimensions(dimensions.X - value, dimensions.Y - value);
     }
 
-    public static Dimensions operator +(Dimensions dimensions, Unit value)
+    public static Dimensions operator +(in Dimensions dimensions, Unit value)
     {
         return new Dimensions(dimensions.X + value, dimensions.Y + value);
     }
 
-    public static Dimensions operator -(Dimensions dimensions, Unit value)
+    public static Dimensions operator -(in Dimensions dimensions, Unit value)
     {
         return new Dimensions(dimensions.X - value, dimensions.Y - value);
     }
 
-    public static Dimensions operator +(Dimensions dimensions, Dimensions value)
+    public static Dimensions operator +(in Dimensions dimensions, in Dimensions value)
     {
         return new Dimensions(dimensions.X + value.X, dimensions.Y + value.Y);
     }
 
-    public static Dimensions operator -(Dimensions dimensions, Dimensions value)
+    public static Dimensions operator -(in Dimensions dimensions, in Dimensions value)
     {
         return new Dimensions(dimensions.X - value.X, dimensions.Y - value.Y);
     }
