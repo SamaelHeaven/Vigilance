@@ -18,7 +18,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     public enum CloneOptions
     {
         None = 0,
-        SkipChildren = 1,
+        SkipChildren = 1 << 0,
     }
 
     private bool _click;
