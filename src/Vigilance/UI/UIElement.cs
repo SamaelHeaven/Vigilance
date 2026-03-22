@@ -12,7 +12,7 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>, IFullCloneable
+public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 {
     [Flags]
     public enum CloneOptions
@@ -631,11 +631,6 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     public Signal<UIElement, Graphics, CameraProvider> OnEndRenderSignal => new(ref _onEndRenderHandlers);
 
-    int IComparable<UIElement>.CompareTo(UIElement? other)
-    {
-        return other is null ? 1 : ZIndex.CompareTo(other.ZIndex);
-    }
-
     UIElement IComposable<UIElement>.ToComponent()
     {
         return this;
@@ -934,7 +929,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         }
 
         if (shouldSort)
-            stack.AsSpan(i, count - i).Sort();
+            stack.AsSpan(i, count - i).Sort((a, b) => b.ZIndex.CompareTo(a.ZIndex));
         element.BeginRender(graphics, camera);
         element.OnBeginRenderSignal.Invoke(element, graphics, camera);
         element.RenderSelf(graphics, camera);
@@ -1204,6 +1199,12 @@ public static partial class UIElementExtensions
         {
             el = element;
             return el;
+        }
+
+        public T Then(Action<T> action)
+        {
+            action.Invoke(element);
+            return element;
         }
 
         public T DeepClone(UIElement.CloneOptions options)
