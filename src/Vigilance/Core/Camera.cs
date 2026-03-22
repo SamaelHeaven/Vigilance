@@ -8,7 +8,7 @@ namespace Vigilance.Core;
 public sealed class Camera
 {
     private Matrix3x2? _matrixCache = null;
-    public static CameraProvider Null { get; } = new(() => null);
+    public static CameraProvider Null => default;
     public static CameraProvider Scene { get; } = new(() => Game.Scene.Camera);
 
     public Vector2 Target
@@ -82,11 +82,11 @@ public sealed class Camera
     }
 }
 
-public readonly record struct CameraProvider(Func<Camera?> Func)
+public readonly record struct CameraProvider(Func<Camera?>? Func)
 {
     public Camera? Get()
     {
-        return Func.Invoke();
+        return Func?.Invoke();
     }
 
     public override string? ToString()
