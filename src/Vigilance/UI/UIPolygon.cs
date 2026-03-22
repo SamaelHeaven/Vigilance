@@ -61,6 +61,6 @@ public class UIPolygon : UIContainer
 
     protected override void CloneSelf()
     {
-        _polygon = _polygon.DeepClone();
+        _polygon = _polygon.ShallowClone();
     }
 }

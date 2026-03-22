@@ -199,7 +199,7 @@ public class UIScrollContainer : UIContainer
 
     public bool IsMouseInsideNestedScrollContainer { get; set; }
 
-    protected override void UpdateSelf(Entity entity)
+    protected override void UpdateSelf()
     {
         var offset = Vector2.Zero;
         var size = Vector2.Zero;
@@ -345,8 +345,8 @@ public class UIScrollContainer : UIContainer
 
     protected override void CloneSelf()
     {
-        _scrollBarTrackRectangle = _scrollBarTrackRectangle.DeepClone();
-        _scrollBarThumbRectangle = _scrollBarThumbRectangle.DeepClone();
+        _scrollBarTrackRectangle = _scrollBarTrackRectangle.ShallowClone();
+        _scrollBarThumbRectangle = _scrollBarThumbRectangle.ShallowClone();
     }
 
     protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraProvider camera)

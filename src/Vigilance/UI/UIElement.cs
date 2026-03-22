@@ -22,12 +22,17 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     }
 
     private bool _click;
-    private Func<UIEvent, bool>? _onClickHandlers;
-    private Func<UIEvent, bool>? _onMouseEnterHandlers;
-    private Func<UIEvent, bool>? _onMouseLeaveHandlers;
-    private Func<UIEvent, bool>? _onPressHandlers;
-    private Func<UIEvent, bool>? _onReleaseHandlers;
-    private Func<UIEvent, bool>? _onUpdateHandlers;
+    private Func<UIElement, Graphics, CameraProvider, bool>? _onBeginRenderHandlers;
+    private Func<UIElement, bool>? _onClickHandlers;
+    private Func<UIElement, bool>? _onCloneHandlers;
+    private Func<UIElement, bool>? _onDisabledUpdateHandlers;
+    private Func<UIElement, Graphics, CameraProvider, bool>? _onEndRenderHandlers;
+    private Func<UIElement, bool>? _onMouseEnterHandlers;
+    private Func<UIElement, bool>? _onMouseLeaveHandlers;
+    private Func<UIElement, bool>? _onPressHandlers;
+    private Func<UIElement, bool>? _onReleaseHandlers;
+    private Func<UIElement, Graphics, CameraProvider, bool>? _onRenderHandlers;
+    private Func<UIElement, bool>? _onUpdateHandlers;
     private RenderData _renderData;
     internal Node Node = Flex.CreateDefaultNode();
 
@@ -128,6 +133,8 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
     public UIParent? Parent { get; internal set; }
 
     public UIParent? Root => (UIParent?)this.Ancestors().LastOrDefault();
+
+    public bool IsDisabled { get; set; }
 
     public bool IsVisible
     {
@@ -588,6 +595,8 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     public Dimensions PivotPoint { get; set; } = new();
 
+    public Entity Entity { get; private set; }
+
     public Unit PivotPointX
     {
         get => PivotPoint.X;
@@ -600,17 +609,27 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
-    public Signal<UIEvent> OnUpdateSignal => new(ref _onUpdateHandlers);
+    public Signal<UIElement> OnUpdateSignal => new(ref _onUpdateHandlers);
 
-    public Signal<UIEvent> OnMouseEnterSignal => new(ref _onMouseEnterHandlers);
+    public Signal<UIElement> OnDisabledUpdateSignal => new(ref _onDisabledUpdateHandlers);
 
-    public Signal<UIEvent> OnMouseLeaveSignal => new(ref _onMouseLeaveHandlers);
+    public Signal<UIElement> OnMouseEnterSignal => new(ref _onMouseEnterHandlers);
 
-    public Signal<UIEvent> OnClickSignal => new(ref _onClickHandlers);
+    public Signal<UIElement> OnMouseLeaveSignal => new(ref _onMouseLeaveHandlers);
 
-    public Signal<UIEvent> OnPressSignal => new(ref _onPressHandlers);
+    public Signal<UIElement> OnClickSignal => new(ref _onClickHandlers);
 
-    public Signal<UIEvent> OnReleaseSignal => new(ref _onReleaseHandlers);
+    public Signal<UIElement> OnPressSignal => new(ref _onPressHandlers);
+
+    public Signal<UIElement> OnReleaseSignal => new(ref _onReleaseHandlers);
+
+    public Signal<UIElement> OnCloneSignal => new(ref _onCloneHandlers);
+
+    public Signal<UIElement, Graphics, CameraProvider> OnBeginRenderSignal => new(ref _onBeginRenderHandlers);
+
+    public Signal<UIElement, Graphics, CameraProvider> OnRenderSignal => new(ref _onRenderHandlers);
+
+    public Signal<UIElement, Graphics, CameraProvider> OnEndRenderSignal => new(ref _onEndRenderHandlers);
 
     int IComparable<UIElement>.CompareTo(UIElement? other)
     {
@@ -645,6 +664,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
                         (cloneMap ??= new Dictionary<UIElement, UIElement>(this.DescendantsAndSelf().Count()))[child]
                     );
             clone.CloneSelf();
+            OnCloneSignal.Invoke(clone);
             if ((options & CloneOptions.SkipChildren) == 0)
                 break;
             cloneMap?[node] = clone;
@@ -660,6 +680,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
             foreach (var child in this.Children())
                 parent.Add(child);
         clone.CloneSelf();
+        OnCloneSignal.Invoke(clone);
         return clone;
     }
 
@@ -686,6 +707,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     public void Update(Entity entity)
     {
+        Entity = entity;
         if (!IsLayoutReady)
             return;
         foreach (var element in this.DescendantsPostOrderAndSelf())
@@ -731,7 +753,9 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     protected virtual void CloneSelf() { }
 
-    protected virtual void UpdateSelf(Entity entity) { }
+    protected virtual void UpdateSelf() { }
+
+    protected virtual void DisabledUpdateSelf() { }
 
     protected virtual void BeginRender(Graphics graphics, CameraProvider camera) { }
 
@@ -751,23 +775,32 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
 
     private static void Update(UIElement element, in Entity entity)
     {
+        element.Entity = entity;
         if (!element.IsLayoutReady)
             return;
-        var @event = new UIEvent { Entity = entity, Element = element };
-        var oldMouseInside = element.IsMouseInside;
         element.IsMouseInside =
             element.RenderedGraphics == Renderer.Graphics
             && Mouse.OnScreen
             && element.IsVisible
             && Collision.CheckPointQuad(Mouse.Position, element.RenderedBounds);
-        element.OnUpdateSignal.Invoke(@event);
+        if (element.IsDisabled || entity is { IsNull: false, IsDisabled: true })
+        {
+            element._click = false;
+            element.DisabledUpdateSelf();
+            element.OnDisabledUpdateSignal.Invoke(element);
+            return;
+        }
+
+        var oldMouseInside = element.IsMouseInside;
+        element.UpdateSelf();
+        element.OnUpdateSignal.Invoke(element);
         switch (oldMouseInside)
         {
             case false when element.IsMouseInside:
-                element.OnMouseEnterSignal.Invoke(@event);
+                element.OnMouseEnterSignal.Invoke(element);
                 break;
             case true when !element.IsMouseInside:
-                element.OnMouseLeaveSignal.Invoke(@event);
+                element.OnMouseLeaveSignal.Invoke(element);
                 break;
         }
 
@@ -775,19 +808,16 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         {
             element._click = element.IsMouseInside;
             if (element.IsMouseInside)
-                element.OnPressSignal.Invoke(@event);
+                element.OnPressSignal.Invoke(element);
         }
 
-        if (Mouse.IsButtonReleased(MouseButton.Left))
-        {
-            element._click = element is { _click: true, IsMouseInside: true };
-            if (element._click)
-                element.OnClickSignal.Invoke(@event);
-            if (element.IsMouseInside)
-                element.OnReleaseSignal.Invoke(@event);
-        }
-
-        element.UpdateSelf(entity);
+        if (!Mouse.IsButtonReleased(MouseButton.Left))
+            return;
+        element._click = element is { _click: true, IsMouseInside: true };
+        if (element._click)
+            element.OnClickSignal.Invoke(element);
+        if (element.IsMouseInside)
+            element.OnReleaseSignal.Invoke(element);
     }
 
     private void Render(Graphics graphics, CameraProvider camera)
@@ -906,7 +936,9 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         if (shouldSort)
             stack.AsSpan(i, count - i).Sort();
         element.BeginRender(graphics, camera);
+        element.OnBeginRenderSignal.Invoke(element, graphics, camera);
         element.RenderSelf(graphics, camera);
+        element.OnRenderSignal.Invoke(element, graphics, camera);
     }
 
     private static void EndRender(UIElement element, Graphics graphics, CameraProvider camera)
@@ -914,6 +946,7 @@ public abstract class UIElement : IComposable<UIElement>, IComparable<UIElement>
         ref var data = ref element._renderData;
         if (!data.ShouldRender)
             return;
+        element.OnEndRenderSignal.Invoke(element, graphics, camera);
         element.EndRender(graphics, camera);
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
@@ -1112,34 +1145,59 @@ public static partial class UIElementExtensions
             set => value.Invoke(element);
         }
 
-        public Action<UIEvent<T>> OnUpdate
+        public Action<T> OnUpdate
         {
-            set => element.OnUpdateSignal.Set(e => value.Invoke(e));
+            set => element.OnUpdateSignal.Set(e => value.Invoke((T)e));
         }
 
-        public Action<UIEvent<T>> OnClick
+        public Action<T> OnDisabledUpdate
         {
-            set => element.OnClickSignal.Set(e => value.Invoke(e));
+            set => element.OnDisabledUpdateSignal.Set(e => value.Invoke((T)e));
         }
 
-        public Action<UIEvent<T>> OnPress
+        public Action<T> OnClick
         {
-            set => element.OnPressSignal.Set(e => value.Invoke(e));
+            set => element.OnClickSignal.Set(e => value.Invoke((T)e));
         }
 
-        public Action<UIEvent<T>> OnRelease
+        public Action<T> OnPress
         {
-            set => element.OnReleaseSignal.Set(e => value.Invoke(e));
+            set => element.OnPressSignal.Set(e => value.Invoke((T)e));
         }
 
-        public Action<UIEvent<T>> OnMouseEnter
+        public Action<T> OnRelease
         {
-            set => element.OnMouseEnterSignal.Set(e => value.Invoke(e));
+            set => element.OnReleaseSignal.Set(e => value.Invoke((T)e));
         }
 
-        public Action<UIEvent<T>> OnMouseLeave
+        public Action<T> OnMouseEnter
         {
-            set => element.OnMouseLeaveSignal.Set(e => value.Invoke(e));
+            set => element.OnMouseEnterSignal.Set(e => value.Invoke((T)e));
+        }
+
+        public Action<T> OnMouseLeave
+        {
+            set => element.OnMouseLeaveSignal.Set(e => value.Invoke((T)e));
+        }
+
+        public Action<T> OnClone
+        {
+            set => element.OnCloneSignal.Set(e => value.Invoke((T)e));
+        }
+
+        public Action<UIElement, Graphics, CameraProvider> OnBeginRender
+        {
+            set => element.OnBeginRenderSignal.Set((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
+        }
+
+        public Action<UIElement, Graphics, CameraProvider> OnRender
+        {
+            set => element.OnRenderSignal.Set((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
+        }
+
+        public Action<UIElement, Graphics, CameraProvider> OnEndRender
+        {
+            set => element.OnEndRenderSignal.Set((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
         }
 
         public T Ref(out T el)

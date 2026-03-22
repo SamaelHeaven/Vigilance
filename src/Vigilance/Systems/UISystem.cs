@@ -14,8 +14,7 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
         {
             if (!element.IsLayoutReady)
                 element.CalculateLayout();
-            if (!entity.IsDisabled)
-                element.Update(entity);
+            element.Update(entity);
         }
     }
 

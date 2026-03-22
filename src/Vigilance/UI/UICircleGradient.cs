@@ -54,6 +54,6 @@ public class UICircleGradient : UIContainer
 
     protected override void CloneSelf()
     {
-        _circle = _circle.DeepClone();
+        _circle = _circle.ShallowClone();
     }
 }

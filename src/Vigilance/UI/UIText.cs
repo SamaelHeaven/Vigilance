@@ -128,7 +128,7 @@ public class UIText : UIElement
 
     protected override void CloneSelf()
     {
-        _text = _text.DeepClone();
+        _text = _text.ShallowClone();
     }
 
     protected override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)

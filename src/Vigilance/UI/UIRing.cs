@@ -59,6 +59,6 @@ public class UIRing : UIContainer
 
     protected override void CloneSelf()
     {
-        _ring = _ring.DeepClone();
+        _ring = _ring.ShallowClone();
     }
 }

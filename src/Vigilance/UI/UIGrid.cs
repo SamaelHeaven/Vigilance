@@ -46,6 +46,6 @@ public class UIGrid : UIContainer
 
     protected override void CloneSelf()
     {
-        _grid = _grid.DeepClone();
+        _grid = _grid.ShallowClone();
     }
 }
