@@ -1,22 +1,27 @@
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Color = Vigilance.Drawing.Color;
-using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public class UIDropShadow : UIElement
+public class UIDropShadow : IUIBindable
 {
+    private readonly Func<UIElement, Graphics, CameraProvider, bool> _onBeginRenderHandler;
+    private readonly Func<UIElement, bool> _onDirtyHandler;
     private int _blur;
 
-    public UIDropShadow(UIElement target, int blur = 1, Color? color = null)
+    public UIDropShadow(int blur = 1, Color? color = null)
     {
-        Target = target;
         Color = color ?? Color.Black;
         Blur = blur;
+        _onBeginRenderHandler = BeginRender;
+        _onDirtyHandler = _ =>
+        {
+            MarkTextureDirty();
+            return false;
+        };
     }
 
-    public UIElement Target { get; }
     public Color Color { get; set; }
     public bool IsTextureDirty { get; private set; } = true;
     public Texture Texture { get; private set; } = Texture.Empty;
@@ -33,18 +38,32 @@ public class UIDropShadow : UIElement
         }
     }
 
+    public void Bind(UIElement element)
+    {
+        element.OnDirtySignal.Subscribe(_onDirtyHandler);
+        element.OnBeginRenderSignal.Subscribe(_onBeginRenderHandler);
+    }
+
+    public void Unbind(UIElement element)
+    {
+        element.OnDirtySignal.Unsubscribe(_onDirtyHandler);
+        element.OnBeginRenderSignal.Unsubscribe(_onBeginRenderHandler);
+    }
+
     public void MarkTextureDirty()
     {
         IsTextureDirty = true;
     }
 
-    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
+    private bool BeginRender(UIElement element, Graphics graphics, CameraProvider camera)
     {
         var offset = 1 + _blur * _blur;
         if (IsTextureDirty)
         {
             IsTextureDirty = false;
-            using var targetTexture = Target.ShallowClone().ToTexture(Target.LayoutSize);
+            using var targetTexture = element
+                .ShallowClone()
+                .ToTexture(element.Parent?.LayoutSize ?? element.LayoutSize);
             var image = targetTexture.ToImage();
             var result = new WritableImage<PixelGrayAlpha>(image.Width + offset * 2, image.Height + offset * 2);
             for (var y = 0; y < image.Height; y++)
@@ -58,36 +77,7 @@ public class UIDropShadow : UIElement
             Texture = result.ToTexture();
         }
 
-        if (IsDirty || Target.IsDirty)
-            MarkTextureDirty();
-        graphics.DrawTexture(Texture, LayoutPosition - offset, null, Color, camera: camera);
-    }
-
-    protected override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
-    {
-        return Target.LayoutSize;
-    }
-}
-
-public static class UIDropShadowExtensions
-{
-    public static UIElement DropShadow(
-        this UIElement element,
-        int blur = 1,
-        Color? color = null,
-        Dimensions? translate = null
-    )
-    {
-        var result = new UIContainer();
-        result.Add(element);
-        result.Add(
-            new UIDropShadow(element, blur, color)
-            {
-                ZIndex = -1,
-                Position = PositionType.Absolute,
-                Translate = translate ?? default,
-            }
-        );
-        return result;
+        graphics.DrawTexture(Texture, element.LayoutPosition - offset, null, Color, camera: camera);
+        return false;
     }
 }

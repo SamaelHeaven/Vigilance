@@ -25,6 +25,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     private Func<UIElement, Graphics, CameraProvider, bool>? _onBeginRenderHandlers;
     private Func<UIElement, bool>? _onClickHandlers;
     private Func<UIElement, bool>? _onCloneHandlers;
+    private Func<UIElement, bool>? _onDirtyHandlers;
     private Func<UIElement, bool>? _onDisabledUpdateHandlers;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onEndRenderHandlers;
     private Func<UIElement, bool>? _onMouseEnterHandlers;
@@ -49,6 +50,15 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
                     return new Size(size.X, size.Y);
                 }
             );
+    }
+
+    public ReadOnlySpan<IUIBindable> Bindings
+    {
+        set
+        {
+            foreach (var bindable in value)
+                Bind(bindable);
+        }
     }
 
     public string Id { get; set; } = "";
@@ -613,6 +623,8 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
     public Signal<UIElement> OnDisabledUpdateSignal => new(ref _onDisabledUpdateHandlers);
 
+    public Signal<UIElement> OnDirtySignal => new(ref _onDirtyHandlers);
+
     public Signal<UIElement> OnMouseEnterSignal => new(ref _onMouseEnterHandlers);
 
     public Signal<UIElement> OnMouseLeaveSignal => new(ref _onMouseLeaveHandlers);
@@ -693,6 +705,28 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     {
         MarkReady();
         Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
+    }
+
+    public void Bind(IUIBindable bindable)
+    {
+        bindable.Bind(this);
+    }
+
+    public void Unbind(IUIBindable bindable)
+    {
+        bindable.Unbind(this);
+    }
+
+    public void Bind<T>(IUIBindable<T> bindable)
+        where T : UIElement
+    {
+        bindable.Bind((T)this);
+    }
+
+    public void Unbind<T>(IUIBindable<T> bindable)
+        where T : UIElement
+    {
+        bindable.Unbind((T)this);
     }
 
     public void Update()
@@ -783,6 +817,8 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
             element._click = false;
             element.DisabledUpdateSelf();
             element.OnDisabledUpdateSignal.Invoke(element);
+            if (element.IsDirty)
+                element.OnDirtySignal.Invoke(element);
             return;
         }
 
@@ -806,13 +842,17 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
                 element.OnPressSignal.Invoke(element);
         }
 
-        if (!Mouse.IsButtonReleased(MouseButton.Left))
-            return;
-        element._click = element is { _click: true, IsMouseInside: true };
-        if (element._click)
-            element.OnClickSignal.Invoke(element);
-        if (element.IsMouseInside)
-            element.OnReleaseSignal.Invoke(element);
+        if (Mouse.IsButtonReleased(MouseButton.Left))
+        {
+            element._click = element is { _click: true, IsMouseInside: true };
+            if (element._click)
+                element.OnClickSignal.Invoke(element);
+            if (element.IsMouseInside)
+                element.OnReleaseSignal.Invoke(element);
+        }
+
+        if (element.IsDirty)
+            element.OnDirtySignal.Invoke(element);
     }
 
     private void Render(Graphics graphics, CameraProvider camera)
@@ -1142,57 +1182,62 @@ public static partial class UIElementExtensions
 
         public Action<T> OnUpdate
         {
-            set => element.OnUpdateSignal.Set(e => value.Invoke((T)e));
+            set => element.OnUpdateSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnDisabledUpdate
         {
-            set => element.OnDisabledUpdateSignal.Set(e => value.Invoke((T)e));
+            set => element.OnDisabledUpdateSignal.Subscribe(e => value.Invoke((T)e));
+        }
+
+        public Action<T> OnDirty
+        {
+            set => element.OnDirtySignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnClick
         {
-            set => element.OnClickSignal.Set(e => value.Invoke((T)e));
+            set => element.OnClickSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnPress
         {
-            set => element.OnPressSignal.Set(e => value.Invoke((T)e));
+            set => element.OnPressSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnRelease
         {
-            set => element.OnReleaseSignal.Set(e => value.Invoke((T)e));
+            set => element.OnReleaseSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnMouseEnter
         {
-            set => element.OnMouseEnterSignal.Set(e => value.Invoke((T)e));
+            set => element.OnMouseEnterSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnMouseLeave
         {
-            set => element.OnMouseLeaveSignal.Set(e => value.Invoke((T)e));
+            set => element.OnMouseLeaveSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnClone
         {
-            set => element.OnCloneSignal.Set(e => value.Invoke((T)e));
+            set => element.OnCloneSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<UIElement, Graphics, CameraProvider> OnBeginRender
         {
-            set => element.OnBeginRenderSignal.Set((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
+            set => element.OnBeginRenderSignal.Subscribe((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
         }
 
         public Action<UIElement, Graphics, CameraProvider> OnRender
         {
-            set => element.OnRenderSignal.Set((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
+            set => element.OnRenderSignal.Subscribe((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
         }
 
         public Action<UIElement, Graphics, CameraProvider> OnEndRender
         {
-            set => element.OnEndRenderSignal.Set((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
+            set => element.OnEndRenderSignal.Subscribe((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
         }
 
         public T Ref(out T el)

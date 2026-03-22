@@ -62,25 +62,6 @@ public sealed class SignalGenerator : SourceGenerator
                     _handlers -= handler;
                 }
                 
-                public void Clear() 
-                {
-                    _handlers = null;
-                }
-                
-                public void Set(Func<{{funcTypeParams}}bool> handler)
-                {
-                    Clear();
-                    Subscribe(handler);
-                }
-                
-                public void Set(Action{{(
-                    typeParams == "" ? "" : $"<{typeParams}>"
-                )}} action)
-                {
-                    Clear();
-                    Subscribe(action);
-                }
-                
                 public bool Invoke({{invokeParams}})
                 {
                     return Invoke(_handlers{{(invokeArgs == "" ? "" : $", {invokeArgs}")}});
