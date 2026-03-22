@@ -293,7 +293,12 @@ public sealed class Table<T> : Table
         Emit(Event<T>.Remove(entity, component));
     }
 
-    public ComponentRef<T> GetRef(in Entity entity)
+    public ComponentRef<T> GetRef(int index)
+    {
+        return new ComponentRef<T>(ref _components[index]);
+    }
+
+    public ComponentRef<T> GetRef(scoped in Entity entity)
     {
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
@@ -309,7 +314,7 @@ public sealed class Table<T> : Table
         return new ComponentRef<T>(ref _components[denseIndex]);
     }
 
-    public ComponentRef<T> Set(in Entity entity, scoped in T component, Flags flags = Flags.Default)
+    public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.Default)
     {
         if (Scene.IsDeferred)
         {

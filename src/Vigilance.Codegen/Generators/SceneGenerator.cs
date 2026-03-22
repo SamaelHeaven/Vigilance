@@ -24,6 +24,8 @@ public sealed class SceneGenerator : SourceGenerator
         Entities(sb);
         Components(sb);
         Entries(sb);
+        RefComponents(sb);
+        RefEntries(sb);
         TableEntities(sb);
         TableComponents(sb);
         TableEntries(sb);
@@ -80,7 +82,16 @@ public sealed class SceneGenerator : SourceGenerator
                     : "(" + string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}")) + ")";
             var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
             sb.AppendLine(
-                QueryIterator("Component", type, "Components", current, tables, $"<{typeParams}>", noEntity: true)
+                QueryIterator(
+                    "Component",
+                    type,
+                    "Components",
+                    current,
+                    tables,
+                    $"<{typeParams}>",
+                    noEntity: true,
+                    refName: "RefComponent"
+                )
             );
         }
 
@@ -97,7 +108,44 @@ public sealed class SceneGenerator : SourceGenerator
             var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"));
             var current = $"(_entity, {getFields})";
             var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
-            sb.AppendLine(QueryIterator("Entry", type, "Entries", current, tables, $"<{typeParams}>"));
+            sb.AppendLine(
+                QueryIterator("Entry", type, "Entries", current, tables, $"<{typeParams}>", refName: "RefEntry")
+            );
+        }
+
+        sb.EndRegion();
+    }
+
+    private static void RefComponents(StringBuilder sb)
+    {
+        sb.BeginRegion("RefComponents");
+        for (var i = 0; i < 16; i++)
+        {
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            var componentRefs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"ComponentRef<T{n}>"));
+            var type = i == 0 ? "ComponentRef<T0>" : $"RefTuple<{componentRefs}>";
+            var fields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"));
+            var current = i == 0 ? "_field0" : $"new RefTuple<{componentRefs}>({fields})";
+            var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
+            sb.AppendLine(RefQueryIterator("RefComponent", type, current, tables, $"<{typeParams}>", true));
+        }
+
+        sb.EndRegion();
+    }
+
+    private static void RefEntries(StringBuilder sb)
+    {
+        sb.BeginRegion("RefEntries");
+        for (var i = 0; i < 15; i++)
+        {
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            var componentRefs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"ComponentRef<T{n}>"));
+            var tupleTypes = $"Entity, {componentRefs}";
+            var fields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"));
+            var type = $"RefTuple<{tupleTypes}>";
+            var current = $"new RefTuple<{tupleTypes}>(_entity, {fields})";
+            var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
+            sb.AppendLine(RefQueryIterator("RefEntry", type, current, tables, $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -150,7 +198,8 @@ public sealed class SceneGenerator : SourceGenerator
         List<string> tables,
         string typeParams = "",
         bool noFields = false,
-        bool noEntity = false
+        bool noEntity = false,
+        string refName = ""
     )
     {
         return $$"""
@@ -176,8 +225,8 @@ public sealed class SceneGenerator : SourceGenerator
                         return new Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
                     }
                     
-                    public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool value = true) {
-                        _withDisabled = value;
+                    public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool withDisabled = true) {
+                        _withDisabled = withDisabled;
                         return ref this;
                     }
                     
@@ -185,6 +234,14 @@ public sealed class SceneGenerator : SourceGenerator
                         _deferred = deferred;
                         return ref this;
                     }
+                    {{(refName == "" ? "" : $$"""
+                            
+                                    public {{refName}}Enumerable{{typeParams}} AsRef()
+                                    {
+                                        return new {{refName}}Enumerable{{typeParams}}(_scene).WithDisabled(_withDisabled).Deferred(_deferred);
+                                    }
+                            """
+                        )}}
                 }
                 
                 public unsafe struct {{name}}Enumerator{{typeParams}} : Collections.IStructEnumerator<{{type}}> {
@@ -312,8 +369,8 @@ public sealed class SceneGenerator : SourceGenerator
                         return new Collections.StructEnumerator<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>(GetEnumerator());
                     }
                     
-                    public ref {{namePrefix}}{{tableCount}}Enumerable WithDisabled(bool value = true) {
-                        _withDisabled = value;
+                    public ref {{namePrefix}}{{tableCount}}Enumerable WithDisabled(bool withDisabled = true) {
+                        _withDisabled = withDisabled;
                         return ref this;
                     }
                     
@@ -407,6 +464,134 @@ public sealed class SceneGenerator : SourceGenerator
                 public {{namePrefix}}{{tableCount}}Enumerable {{methodName}}({{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}}) {
                     ThrowIfNotInitialized();
                     return new {{namePrefix}}{{tableCount}}Enumerable(this, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"table{n}"))}});
+                }
+                
+            """;
+    }
+
+    private static string RefQueryIterator(
+        string name,
+        string type,
+        string current,
+        List<string> tables,
+        string typeParams = "",
+        bool noEntity = false
+    )
+    {
+        return $$"""
+                public struct {{name}}Enumerable{{typeParams}}
+                {
+                    private readonly Scene _scene;
+                    private bool _withDisabled;
+                    private bool _deferred;
+                
+                    internal {{name}}Enumerable(Scene scene)
+                    {
+                        _scene = scene;
+                        _deferred = true;
+                    }
+                    
+                    public {{name}}Enumerator{{typeParams}} GetEnumerator()
+                    {
+                        return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled, _deferred);
+                    }
+                    
+                    public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool withDisabled = true)
+                    {
+                        _withDisabled = withDisabled;
+                        return ref this;
+                    }
+                    
+                    public ref {{name}}Enumerable{{typeParams}} Deferred(bool deferred = true)
+                    {
+                        _deferred = deferred;
+                        return ref this;
+                    }
+                }
+                
+                public unsafe ref struct {{name}}Enumerator{{typeParams}}
+                {
+                    private readonly Scene _scene;
+                    {{(noEntity ? "" : "private Entity _entity;")}}
+            {{string.Join("\n", tables.Select((t, i) => $"        private Table<{t}> _table{i};"))}}
+                    private int _index;
+                    {{(tables.Count > 1 ? "private int _tableIndex;" : "")}}
+                    private readonly bool _withDisabled;
+                    private readonly bool _deferred;
+                    private bool _disposed;
+            {{string.Join("\n", tables.Select((t, i) => $"        private ComponentRef<{t}> _field{i};"))}}
+
+                    internal {{name}}Enumerator(Scene scene, bool withDisabled, bool deferred)
+                    {
+                        _scene = scene;
+                        _withDisabled = withDisabled;
+                        _deferred = deferred;
+                        _disposed = true;
+            {{string.Join("\n", tables.Select((t, i) => $"            _field{i} = ComponentRef<{t}>.Null;"))}}
+            {{string.Join("\n", tables.Select((t, i) => $"            _table{i} = _scene.Table<{t}>();"))}}
+                        Reset();
+                    }
+
+                    public bool MoveNext()
+                    {
+                        {{(tables.Count > 1 ? "switch (_tableIndex)\n            " : "")}}{
+            {{string.Join("\n", tables.Select((_, i) => $$"""
+                                {{(tables.Count > 1 ? $"case {i}:\n                " : "")}}{
+                                    TABLE{{i}}:
+                                    var newIndex = _index + 1;
+                                    if (newIndex >= _table{{i}}.Count)
+                                        return false;
+                                    _index = newIndex;
+                                    var entity = new Entity(_table{{i}}.EntityIds[_index], _scene);
+                                    {{(noEntity ? "" : "_entity = entity;")}}
+                                    if (!_withDisabled && _scene.DisabledTable.Has(entity))
+                                        goto TABLE{{i}};
+                {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
+                                        _field{j} = _table{j}.GetRef(entity);
+                                        if (_field{j}.IsNull)
+                                            goto TABLE{i};
+                    """).Where(str => str != ""))}}
+                                    _field{{i}} = _table{{i}}.GetRef(_index);
+                                    return true;
+                                }
+                """))}}
+                        }
+                        
+            #pragma warning disable CS0162
+                        return false;
+            #pragma warning restore CS0162
+                    }
+
+                    public void Reset()
+                    {
+                        Dispose();
+                        _index = -1;
+                        {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
+            {{string.Join("\n", tables.Select((t, i) => $"            _field{i} = ComponentRef<{t}>.Null;"))}}
+            {{(tables.Count > 1 ? "\n            var smallestCount = int.MaxValue;\n" : "")}}
+            {{(tables.Count > 1 ? string.Join("\n", tables.Select((_, i) => $$"""
+                            if (_table{{i}}.Count < smallestCount)
+                            {
+                                smallestCount = _table{{i}}.Count;
+                                _tableIndex = {{i}};
+                            }
+                            
+                """)) : "")}}
+                        if (_deferred)
+                            _scene.BeginDefer();
+                        _disposed = false;
+                    }
+
+                    public {{type}} Current => {{current}};
+
+                    public void Dispose()
+                    {
+                        if (_disposed)
+                            return;
+                        if (_deferred)
+                            _scene.EndDefer();
+                        _disposed = true;
+                    }
                 }
                 
             """;

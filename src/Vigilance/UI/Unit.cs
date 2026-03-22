@@ -29,7 +29,7 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     public static Unit operator -(Unit unit)
     {
-        return new Unit(unit.Type, -unit.Value);
+        return unit with { Value = -unit.Value };
     }
 
     public static Unit operator +(Unit unit, float value)
