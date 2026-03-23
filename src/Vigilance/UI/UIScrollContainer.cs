@@ -295,7 +295,7 @@ public class UIScrollContainer : UIContainer
         ScrollOffset = -offset;
     }
 
-    protected override void BeginRender(Graphics graphics, CameraProvider camera)
+    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
     {
         graphics.PushMatrix();
         graphics.Translate(ScrollOffset);

@@ -22,6 +22,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     }
 
     private bool _click;
+    private ValueList<IUIComponent> _components = [];
     private Func<UIElement, Graphics, CameraProvider, bool>? _onBeginRenderHandlers;
     private Func<UIElement, bool>? _onClickHandlers;
     private Func<UIElement, bool>? _onCloneHandlers;
@@ -54,10 +55,11 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
     public ReadOnlySpan<IUIComponent> Components
     {
+        get => _components.AsSpan();
         set
         {
-            foreach (var bindable in value)
-                Attach(bindable);
+            foreach (var component in value)
+                Attach(component);
         }
     }
 
@@ -709,12 +711,14 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
     public void Attach(IUIComponent component)
     {
+        _components.Add(component);
         component.Attach(this);
     }
 
     public void Detach(IUIComponent component)
     {
         component.Detach(this);
+        _components.Remove(component);
     }
 
     public void Update()

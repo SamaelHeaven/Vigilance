@@ -209,19 +209,25 @@ public sealed unsafe class Graphics
 
     #region Clip
 
-    public void SetClip(float x, float y, float width, float height)
+    public Box? SetClip(float x, float y, float width, float height)
     {
+        var previous = _clip;
         _clip = new Box(x, y, width, height);
+        return previous;
     }
 
-    public void SetClip(Vector2 position, Vector2 size)
+    public Box? SetClip(Vector2 position, Vector2 size)
     {
+        var previous = _clip;
         _clip = new Box(position, size);
+        return previous;
     }
 
-    public void SetClip(in Box? clip)
+    public Box? SetClip(in Box? clip)
     {
+        var previous = _clip;
         _clip = clip;
+        return previous;
     }
 
     public Box? GetClip()
@@ -233,9 +239,11 @@ public sealed unsafe class Graphics
 
     #region BlendMode
 
-    public void SetBlendMode(BlendMode blendMode)
+    public BlendMode SetBlendMode(BlendMode blendMode)
     {
+        var previous = _blendMode;
         _blendMode = blendMode;
+        return previous;
     }
 
     public BlendMode GetBlendMode()
@@ -247,9 +255,11 @@ public sealed unsafe class Graphics
 
     #region Shader
 
-    public void SetShader(Shader? shader)
+    public Shader? SetShader(Shader? shader)
     {
+        var previous = _shader;
         _shader = shader;
+        return previous;
     }
 
     public Shader? GetShader()

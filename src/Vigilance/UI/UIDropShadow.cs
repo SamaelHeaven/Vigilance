@@ -77,7 +77,9 @@ public class UIDropShadow : IUIComponent
             Texture = result.ToTexture();
         }
 
+        var previousClip = graphics.SetClip(null);
         graphics.DrawTexture(Texture, element.LayoutPosition - offset, null, Color, camera: camera);
+        graphics.SetClip(previousClip);
         return false;
     }
 }
