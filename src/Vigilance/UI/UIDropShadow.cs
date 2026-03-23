@@ -4,7 +4,7 @@ using Color = Vigilance.Drawing.Color;
 
 namespace Vigilance.UI;
 
-public class UIDropShadow : IUIBindable
+public class UIDropShadow : IUIComponent
 {
     private readonly Func<UIElement, Graphics, CameraProvider, bool> _onBeginRenderHandler;
     private readonly Func<UIElement, bool> _onDirtyHandler;
@@ -38,13 +38,13 @@ public class UIDropShadow : IUIBindable
         }
     }
 
-    public void Bind(UIElement element)
+    public void Attach(UIElement element)
     {
         element.OnDirtySignal.Subscribe(_onDirtyHandler);
         element.OnBeginRenderSignal.Subscribe(_onBeginRenderHandler);
     }
 
-    public void Unbind(UIElement element)
+    public void Detach(UIElement element)
     {
         element.OnDirtySignal.Unsubscribe(_onDirtyHandler);
         element.OnBeginRenderSignal.Unsubscribe(_onBeginRenderHandler);

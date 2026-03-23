@@ -52,12 +52,12 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
             );
     }
 
-    public ReadOnlySpan<IUIBindable> Bindings
+    public ReadOnlySpan<IUIComponent> Components
     {
         set
         {
             foreach (var bindable in value)
-                Bind(bindable);
+                Attach(bindable);
         }
     }
 
@@ -707,26 +707,14 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
     }
 
-    public void Bind(IUIBindable bindable)
+    public void Attach(IUIComponent component)
     {
-        bindable.Bind(this);
+        component.Attach(this);
     }
 
-    public void Unbind(IUIBindable bindable)
+    public void Detach(IUIComponent component)
     {
-        bindable.Unbind(this);
-    }
-
-    public void Bind<T>(IUIBindable<T> bindable)
-        where T : UIElement
-    {
-        bindable.Bind((T)this);
-    }
-
-    public void Unbind<T>(IUIBindable<T> bindable)
-        where T : UIElement
-    {
-        bindable.Unbind((T)this);
+        component.Detach(this);
     }
 
     public void Update()
