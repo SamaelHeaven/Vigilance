@@ -1,4 +1,4 @@
-﻿using Raylib_cs.BleedingEdge;
+﻿using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
 
@@ -144,7 +144,7 @@ public sealed class Gamepad
         return Platform.Current switch
         {
             Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{Id}]?.id ?? {DefaultName.ToJson()}"),
-            _ => Utf8Buffer.GetString(Raylib.GetGamepadName(Id), DefaultName),
+            _ => Utf8Ptr.GetString(Raylib.GetGamepadName(Id), DefaultName),
         };
     }
 
@@ -155,7 +155,7 @@ public sealed class Gamepad
             Platform.Web => JSEngine.Eval(
                 $"navigator.getGamepads()[{id}]?.buttons[{button.JSValue}]?.pressed ?? false"
             ),
-            _ => Raylib.IsGamepadButtonDown(id, (Raylib_cs.BleedingEdge.GamepadButton)button),
+            _ => Raylib.IsGamepadButtonDown(id, (Raylib_cs.GamepadButton)button),
         };
     }
 
@@ -164,7 +164,7 @@ public sealed class Gamepad
         return Platform.Current switch
         {
             Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{id}]?.axes[{axis.JSValue}] ?? 0"),
-            _ => Raylib.GetGamepadAxisMovement(id, (Raylib_cs.BleedingEdge.GamepadAxis)axis),
+            _ => Raylib.GetGamepadAxisMovement(id, (Raylib_cs.GamepadAxis)axis),
         };
     }
 }

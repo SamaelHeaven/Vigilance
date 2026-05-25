@@ -1,5 +1,5 @@
 using System.Numerics;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
@@ -303,7 +303,7 @@ public sealed unsafe class Graphics
         if (colorValue == Color.Transparent || (_culling && !IsBoxInBounds(position, size, camera)))
             return;
         BeginDrawing(camera);
-        Raylib.DrawRectangleRec(new Raylib_cs.BleedingEdge.Rectangle(position, size), colorValue.RColor);
+        Raylib.DrawRectangleRec(new Raylib_cs.Rectangle(position, size), colorValue.RColor);
         EndDrawing();
     }
 
@@ -375,7 +375,7 @@ public sealed unsafe class Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleGradientEx(
-            new Raylib_cs.BleedingEdge.Rectangle(position, size),
+            new Raylib_cs.Rectangle(position, size),
             topLeftColorValue.RColor,
             bottomLeftColorValue.RColor,
             bottomRightColorValue.RColor,
@@ -419,11 +419,7 @@ public sealed unsafe class Graphics
         )
             return;
         BeginDrawing(camera);
-        Raylib.DrawRectangleLinesEx(
-            new Raylib_cs.BleedingEdge.Rectangle(position, size),
-            strokeWidthValue,
-            colorValue.RColor
-        );
+        Raylib.DrawRectangleLinesEx(new Raylib_cs.Rectangle(position, size), strokeWidthValue, colorValue.RColor);
         EndDrawing();
     }
 
@@ -459,7 +455,7 @@ public sealed unsafe class Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRounded(
-            new Raylib_cs.BleedingEdge.Rectangle(position, size),
+            new Raylib_cs.Rectangle(position, size),
             radiusValue == 0 ? 0 : radiusValue / size.X.Abs().Min(size.Y.Abs()),
             0,
             colorValue.RColor
@@ -513,7 +509,7 @@ public sealed unsafe class Graphics
             return;
         BeginDrawing(camera);
         Raylib.DrawRectangleRoundedLinesEx(
-            new Raylib_cs.BleedingEdge.Rectangle(position, size),
+            new Raylib_cs.Rectangle(position, size),
             radiusValue == 0 ? 0 : radiusValue / size.X.Abs().Min(size.Y.Abs()),
             0,
             strokeWidthValue,
@@ -678,7 +674,7 @@ public sealed unsafe class Graphics
         )
             return;
         BeginDrawing(camera);
-        Rlgl.Begin(RlglEnum.Triangles);
+        Rlgl.Begin(0x0004); // GL_TRIANGLES
         for (var i = 0; i < 360; i += 10)
         {
             Rlgl.Color4ub(innerColorValue.R, innerColorValue.G, innerColorValue.B, innerColorValue.A);
@@ -1268,13 +1264,8 @@ public sealed unsafe class Graphics
                 continue;
             Raylib.DrawTexturePro(
                 font.Atlas.Texture2D,
-                new Raylib_cs.BleedingEdge.Rectangle(source.X, source.Y, source.Width, source.Height),
-                new Raylib_cs.BleedingEdge.Rectangle(
-                    finalDest.Position.X,
-                    finalDest.Position.Y,
-                    finalDest.Size.X,
-                    finalDest.Size.Y
-                ),
+                new Raylib_cs.Rectangle(source.X, source.Y, source.Width, source.Height),
+                new Raylib_cs.Rectangle(finalDest.Position.X, finalDest.Position.Y, finalDest.Size.X, finalDest.Size.Y),
                 Vector2.Zero,
                 0,
                 colorValue.RColor
@@ -1332,13 +1323,8 @@ public sealed unsafe class Graphics
                 continue;
             Raylib.DrawTexturePro(
                 atlas.Texture2D,
-                new Raylib_cs.BleedingEdge.Rectangle(source.X, source.Y, source.Width, source.Height),
-                new Raylib_cs.BleedingEdge.Rectangle(
-                    finalDest.Position.X,
-                    finalDest.Position.Y,
-                    finalDest.Size.X,
-                    finalDest.Size.Y
-                ),
+                new Raylib_cs.Rectangle(source.X, source.Y, source.Width, source.Height),
+                new Raylib_cs.Rectangle(finalDest.Position.X, finalDest.Position.Y, finalDest.Size.X, finalDest.Size.Y),
                 Vector2.Zero,
                 0,
                 colorValue.RColor
@@ -1466,13 +1452,13 @@ public sealed unsafe class Graphics
         var tintValue = tint ?? Color.White;
         if (tintValue == Color.Transparent || texture == Texture.Empty || (_culling && !IsBoxInBounds(dest, camera)))
             return;
-        var rSource = new Raylib_cs.BleedingEdge.Rectangle(
+        var rSource = new Raylib_cs.Rectangle(
             source.X,
             source.Y,
             source.Width,
             texture.RenderTexture is null ? source.Height : -source.Height
         );
-        var rDest = new Raylib_cs.BleedingEdge.Rectangle(dest.Position, dest.Size);
+        var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
         Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
         BeginDrawing(camera);
         Raylib.DrawTexturePro(texture.Texture2D, rSource, rDest, Vector2.Zero, 0, tintValue.RColor);
@@ -1561,21 +1547,21 @@ public sealed unsafe class Graphics
         var tintValue = tint ?? Color.White;
         if (tintValue == Color.Transparent || texture == Texture.Empty || (_culling && !IsBoxInBounds(dest, camera)))
             return;
-        var rSource = new Raylib_cs.BleedingEdge.Rectangle(
+        var rSource = new Raylib_cs.Rectangle(
             source.X,
             source.Y,
             source.Width,
             texture.RenderTexture is null ? source.Height : -source.Height
         );
-        var rDest = new Raylib_cs.BleedingEdge.Rectangle(dest.Position, dest.Size);
-        var rNPatchInfo = new Raylib_cs.BleedingEdge.NPatchInfo
+        var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
+        var rNPatchInfo = new Raylib_cs.NPatchInfo
         {
             Source = rSource,
             Left = nPatchInfo.Left,
             Top = nPatchInfo.Top,
             Right = nPatchInfo.Right,
             Bottom = nPatchInfo.Bottom,
-            Layout = (Raylib_cs.BleedingEdge.NPatchLayout)nPatchInfo.Layout,
+            Layout = (Raylib_cs.NPatchLayout)nPatchInfo.Layout,
         };
         Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
         BeginDrawing(camera);
@@ -2054,15 +2040,15 @@ public sealed unsafe class Graphics
         {
             DrawCurrentBuffer();
             Rlgl.SetBlendFactorsSeparate(
-                (RlglEnum)_blendMode.SrcRgb,
-                (RlglEnum)_blendMode.DstRgb,
-                (RlglEnum)_blendMode.SrcAlpha,
-                (RlglEnum)_blendMode.DstAlpha,
-                (RlglEnum)_blendMode.EqRgb,
-                (RlglEnum)_blendMode.EqAlpha
+                (int)_blendMode.SrcRgb,
+                (int)_blendMode.DstRgb,
+                (int)_blendMode.SrcAlpha,
+                (int)_blendMode.DstAlpha,
+                (int)_blendMode.EqRgb,
+                (int)_blendMode.EqAlpha
             );
             _currentBlendMode = _blendMode;
-            Raylib.BeginBlendMode(Raylib_cs.BleedingEdge.BlendMode.CustomSeparate);
+            Raylib.BeginBlendMode(Raylib_cs.BlendMode.CustomSeparate);
         }
 
         if (_currentShader != _shader)
@@ -2077,8 +2063,8 @@ public sealed unsafe class Graphics
         var matrix = GetMatrix(camera);
         matrix *= Matrix3x2.CreateScale(scale) * Matrix3x2.CreateTranslation(offset);
         Rlgl.PushMatrix();
-        Rlgl.MultMatrixf(
-            new Matrix4x4(
+        var float16 =
+            stackalloc float[16] {
                 matrix.M11,
                 matrix.M12,
                 0,
@@ -2094,9 +2080,9 @@ public sealed unsafe class Graphics
                 matrix.M31,
                 matrix.M32,
                 0,
-                1
-            )
-        );
+                1,
+            };
+        Rlgl.MultMatrixf(float16);
     }
 
     public void EndDrawing()

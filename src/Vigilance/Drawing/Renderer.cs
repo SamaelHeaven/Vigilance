@@ -1,5 +1,5 @@
 using System.ComponentModel;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -115,10 +115,10 @@ public static class Renderer
         else
         {
             var texture = _buffer.Texture.Texture2D;
-            var source = new Raylib_cs.BleedingEdge.Rectangle(0, 0, texture.Width, -texture.Height);
-            var dest = new Raylib_cs.BleedingEdge.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
+            var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
+            var dest = new Raylib_cs.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
             Raylib.SetTextureFilter(texture, (TextureFilter)mode.Interpolation);
-            Raylib.DrawTexturePro(texture, source, dest, Vector2.Zero, 0, Raylib_cs.BleedingEdge.Color.White);
+            Raylib.DrawTexturePro(texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
         }
 
         Graphics.DrawCurrentBuffer();

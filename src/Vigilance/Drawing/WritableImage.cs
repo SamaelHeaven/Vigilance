@@ -1,4 +1,5 @@
-using Raylib_cs.BleedingEdge;
+using System.Runtime.InteropServices;
+using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Math;
 using ZLinq;
@@ -6,7 +7,7 @@ using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public readonly struct WritableImage : IDisposable
+public readonly unsafe struct WritableImage : IDisposable
 {
     internal readonly Image Image;
 
@@ -115,7 +116,7 @@ public readonly struct WritableImage : IDisposable
 
     public void Crop(Vector2 position, Vector2 size)
     {
-        Raylib.ImageCrop(ref Image.RImage, new Raylib_cs.BleedingEdge.Rectangle(position, size));
+        Raylib.ImageCrop(ref Image.RImage, new Raylib_cs.Rectangle(position, size));
     }
 
     public void Resize(int width, int height, Interpolation? interpolation = null)
@@ -155,7 +156,16 @@ public readonly struct WritableImage : IDisposable
 
     public void KernelConvolutionSpan(in ReadOnlySpan<float> kernel)
     {
-        Raylib.ImageKernelConvolution(ref Image.RImage, kernel, kernel.Length);
+        if (kernel.IsEmpty)
+            return;
+        fixed (Raylib_cs.Image* imagePtr = &Image.RImage)
+        {
+            ref var kernelRef = ref MemoryMarshal.GetReference(kernel);
+            fixed (float* kernelPtr = &kernelRef)
+            {
+                Raylib.ImageKernelConvolution(imagePtr, kernelPtr, kernel.Length);
+            }
+        }
     }
 
     public void Blur(int blur)
@@ -208,7 +218,7 @@ public readonly unsafe struct WritableImage<T> : ISpanView<T>, IReadOnlyList<T>,
     internal WritableImage(WritableImage image)
     {
         if (image.Format != T.Format)
-            Raylib.ImageFormat(ref image.Image.RImage, (Raylib_cs.BleedingEdge.PixelFormat)T.Format);
+            Raylib.ImageFormat(ref image.Image.RImage, (Raylib_cs.PixelFormat)T.Format);
         _image = image;
     }
 
@@ -224,12 +234,12 @@ public readonly unsafe struct WritableImage<T> : ISpanView<T>, IReadOnlyList<T>,
         var data = Raylib.MemAlloc(size);
         _image = new WritableImage(
             new Image(
-                new Raylib_cs.BleedingEdge.Image
+                new Raylib_cs.Image
                 {
                     Data = data,
                     Width = width,
                     Height = height,
-                    Format = (Raylib_cs.BleedingEdge.PixelFormat)T.Format,
+                    Format = (Raylib_cs.PixelFormat)T.Format,
                     Mipmaps = 1,
                 }
             )

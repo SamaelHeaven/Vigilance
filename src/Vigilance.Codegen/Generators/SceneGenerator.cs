@@ -235,7 +235,7 @@ public sealed class SceneGenerator : SourceGenerator
                         return ref this;
                     }
                     {{(refName == "" ? "" : $$"""
-                            
+
                                     public {{refName}}Enumerable{{typeParams}} AsRef()
                                     {
                                         return new {{refName}}Enumerable{{typeParams}}(_scene).WithDisabled(_withDisabled).Deferred(_deferred);

@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Raylib_cs.BleedingEdge;
-using Raylib_cs.BleedingEdge.Interop;
+using Raylib_cs;
 using Vigilance.Core;
 
 namespace Vigilance.Logging;
@@ -27,6 +26,13 @@ public static unsafe partial class Log
             if (Game.Running && value != LogLevel)
                 Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
         }
+    }
+
+    public static LogLevel SetLogLevel(LogLevel level)
+    {
+        var previous = LogLevel;
+        LogLevel = level;
+        return previous;
     }
 
     internal static void Initialize()
@@ -162,9 +168,9 @@ public static unsafe partial class Log
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static void UnmanagedLog(TraceLogLevel level, byte* format, nint args)
+    private static void UnmanagedLog(int level, sbyte* format, sbyte* args)
     {
-        var message = NativeStringFormatter.Format((nint)format, args);
+        var message = Raylib_cs.Logging.GetLogMessage((nint)format, (nint)args);
         Invoke((LogLevel)level, message);
     }
 

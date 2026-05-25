@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Logging;

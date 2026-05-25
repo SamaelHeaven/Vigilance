@@ -9,7 +9,7 @@ public static class JSEngine
         if (!Platform.Web.IsCurrent)
             throw new PlatformNotSupportedException();
         var ptr = Emscripten.RunScriptString(script);
-        return new JSResult(Utf8Buffer.GetString(ptr));
+        return new JSResult(Utf8Ptr.GetString(ptr));
     }
 }
 

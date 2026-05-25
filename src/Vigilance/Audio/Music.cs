@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
@@ -10,7 +10,7 @@ public sealed class Music : IDisposable
 {
     private static ValueList<Music> _musics = [];
     private nint _buffer;
-    private Raylib_cs.BleedingEdge.Music _music;
+    private Raylib_cs.Music _music;
     private float _pan = 0.5f;
     private float _pitch = 1;
     private float _volume = 1;
@@ -18,7 +18,7 @@ public sealed class Music : IDisposable
     public unsafe Music(string fileType, IEnumerable<byte> bytes)
     {
         Game.ThrowIfNotRunning();
-        using var fileTypeBuffer = fileType.ToUtf8Buffer();
+        using var fileTypeBuffer = fileType.ToUtf8Ptr();
         var span = bytes.AsSpan();
         _buffer = Marshal.AllocHGlobal(span.Length);
         fixed (byte* bytesBuffer = span)

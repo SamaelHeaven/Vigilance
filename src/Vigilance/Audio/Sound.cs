@@ -1,4 +1,4 @@
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
@@ -9,17 +9,17 @@ namespace Vigilance.Audio;
 public sealed class Sound : IDisposable
 {
     private static ValueList<Sound> _sounds = [];
-    private ValueList<(Raylib_cs.BleedingEdge.Sound Sound, double LastUsed)> _aliases = [];
+    private ValueList<(Raylib_cs.Sound Sound, double LastUsed)> _aliases = [];
     private float _pan = 0.5f;
     private float _pitch = 1;
-    private Raylib_cs.BleedingEdge.Sound _sound;
+    private Raylib_cs.Sound _sound;
     private float _volume = 1;
 
     public unsafe Sound(string fileType, IEnumerable<byte> bytes, int? maxAliases = null)
     {
         Game.ThrowIfNotRunning();
         MaxAliases = maxAliases ?? Audio.DefaultSoundMaxAliases;
-        using var fileTypeBuffer = fileType.ToUtf8Buffer();
+        using var fileTypeBuffer = fileType.ToUtf8Ptr();
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)
         {
@@ -79,7 +79,7 @@ public sealed class Sound : IDisposable
 
     public bool IsStopped => !IsPlaying;
 
-    public unsafe bool IsValid => _sound.Stream.Buffer is not null;
+    public bool IsValid => _sound.Stream.Buffer != 0;
 
     public void Dispose()
     {
@@ -113,7 +113,7 @@ public sealed class Sound : IDisposable
 
     public Sound Play()
     {
-        Raylib_cs.BleedingEdge.Sound alias;
+        Raylib_cs.Sound alias;
         var now = Time.Elapsed.TotalSeconds;
         var index = _aliases.FindIndex(a => !Raylib.IsSoundPlaying(a.Sound));
         if (index != -1)

@@ -1,4 +1,4 @@
-﻿using Raylib_cs.BleedingEdge;
+﻿using Raylib_cs;
 using Vigilance.Core;
 
 namespace Vigilance.Input;
@@ -100,12 +100,12 @@ public static class KeyExtensions
 {
     extension(Key key)
     {
-        public string Name
+        public unsafe string Name
         {
             get
             {
                 Game.ThrowIfNotRunning();
-                var name = Raylib.GetKeyName_((KeyboardKey)key).ToUpper();
+                var name = Utf8Ptr.GetString(Raylib.GetKeyName((KeyboardKey)key)).ToUpper();
                 return name.IsEmpty ? key.ToString() : name;
             }
         }
