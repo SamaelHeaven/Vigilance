@@ -1,5 +1,6 @@
 using Raylib_cs;
 using Vigilance.Core;
+using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
@@ -16,7 +17,9 @@ public sealed class RenderTexture : IDisposable
         Game.ThrowIfNotRunning();
         Graphics.Reset();
         Scale = scale.Max(1);
+        var logLevel = Log.SetLogLevel(LogLevel.Info);
         RenderTexture2D = Raylib.LoadRenderTexture((int)(width * Scale), (int)(height * Scale));
+        Log.LogLevel = logLevel;
         Texture = new Texture(RenderTexture2D.Texture, this);
         Graphics = new Graphics(this);
     }

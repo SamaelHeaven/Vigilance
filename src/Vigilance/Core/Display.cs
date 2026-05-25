@@ -354,7 +354,6 @@ public static unsafe class Display
         }
         else if (Platform.Desktop.IsCurrent)
         {
-            var monitorSize = MonitorSize;
             var fullscreen = _fullscreen;
             if (fullscreen)
             {
@@ -362,21 +361,27 @@ public static unsafe class Display
             }
             else
             {
-                _previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
-                if (OperatingSystem.IsMacOS() && !Raylib.IsWindowMaximized())
-                    Raylib.MaximizeWindow();
+                var monitorSize = MonitorSize;
+                var maximized = (bool)Raylib.IsWindowMaximized();
+                _previousScreen = new Box(maximized ? Vector2.Zero : Raylib.GetWindowPosition(), ScreenSize);
+                if (OperatingSystem.IsMacOS())
+                {
+                    switch (maximized)
+                    {
+                        case false when ScreenSize == monitorSize:
+                            return;
+                        case true:
+                            Raylib.ClearWindowState(ConfigFlags.MaximizedWindow);
+                            break;
+                        default:
+                            Raylib.MaximizeWindow();
+                            break;
+                    }
+                }
             }
-
-            var screenSize = ScreenSize;
-            if (
-                OperatingSystem.IsMacOS()
-                && !fullscreen
-                && screenSize == monitorSize
-                && (Vector2)Raylib.GetWindowPosition() == Vector2.Zero
-            )
-                return;
+            
             _fullscreen = !fullscreen;
-            if (borderlessValue && OperatingSystem.IsWindows())
+            if (borderlessValue)
             {
                 Raylib.ToggleBorderlessWindowed();
                 if (_fullscreen && !Decorated)
@@ -445,6 +450,7 @@ public static unsafe class Display
         if (OperatingSystem.IsMacOS())
             Raylib.SetWindowPosition(1, 1);
         Raylib.SetWindowPosition((int)_previousScreen.Position.X, (int)_previousScreen.Position.Y);
+        ScreenSize = Vector2.One;
         ScreenSize = _previousScreen.Size;
     }
 
@@ -476,17 +482,7 @@ public static unsafe class Display
             _config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent ? _config.Size.Y : _config.ScreenSize.Y
         );
         var logLevel = Log.SetLogLevel(LogLevel.Info);
-        if (OperatingSystem.IsMacOS())
-        {
-            Raylib.InitWindow(0, 0, _config.Title);
-            Raylib.SetWindowPosition((Raylib.GetScreenWidth() - width) / 2, (Raylib.GetScreenHeight() - height) / 2);
-            Raylib.SetWindowSize(width, height);
-        }
-        else
-        {
-            Raylib.InitWindow(width, height, _config.Title);
-        }
-
+        Raylib.InitWindow(width, height, _config.Title);
         Log.LogLevel = logLevel;
         if (Platform.Desktop.IsCurrent && _config.MinScreenSize.HasValue)
             Raylib.SetWindowMinSize((int)_config.MinScreenSize.Value.X, (int)_config.MinScreenSize.Value.Y);
