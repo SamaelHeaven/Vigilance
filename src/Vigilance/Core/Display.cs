@@ -1,9 +1,10 @@
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Drawing;
+using Vigilance.Logging;
 using Vigilance.Math;
 using Color = Vigilance.Drawing.Color;
 using Image = Vigilance.Drawing.Image;
-using PixelFormat = Raylib_cs.BleedingEdge.PixelFormat;
+using PixelFormat = Raylib_cs.PixelFormat;
 
 namespace Vigilance.Core;
 
@@ -44,7 +45,7 @@ public static unsafe class Display
                 return;
             if (_icon is null)
             {
-                Raylib.SetWindowIcons(ReadOnlySpan<Raylib_cs.BleedingEdge.Image>.Empty);
+                Raylib.SetWindowIcons([]);
                 return;
             }
 
@@ -218,12 +219,6 @@ public static unsafe class Display
         }
     }
 
-    public static bool DefaultFullscreenResize
-    {
-        get => _config.DefaultFullscreenResize;
-        set => _config.DefaultFullscreenResize = value;
-    }
-
     public static bool DefaultFullscreenBorderless
     {
         get => _config.DefaultFullscreenBorderless;
@@ -244,7 +239,7 @@ public static unsafe class Display
             if (value == _config.Decorated)
                 return;
             _config.Decorated = value;
-            ToggleWindowState(ConfigFlags.WindowUndecorated, !value);
+            ToggleWindowState(ConfigFlags.UndecoratedWindow, !value);
         }
     }
 
@@ -268,7 +263,7 @@ public static unsafe class Display
             if (value == _config.Resizable)
                 return;
             _config.Resizable = value;
-            ToggleWindowState(ConfigFlags.WindowResizable, value);
+            ToggleWindowState(ConfigFlags.ResizableWindow, value);
         }
     }
 
@@ -280,7 +275,7 @@ public static unsafe class Display
             if (value == _config.TopMost)
                 return;
             _config.TopMost = value;
-            ToggleWindowState(ConfigFlags.WindowTopMost, value);
+            ToggleWindowState(ConfigFlags.TopmostWindow, value);
         }
     }
 
@@ -292,7 +287,7 @@ public static unsafe class Display
             if (value == _config.Transparent)
                 return;
             _config.Transparent = value;
-            ToggleWindowState(ConfigFlags.WindowTransparent, value);
+            ToggleWindowState(ConfigFlags.TransparentWindow, value);
         }
     }
 
@@ -304,7 +299,7 @@ public static unsafe class Display
             if (value == _config.Passthrough)
                 return;
             _config.Passthrough = value;
-            ToggleWindowState(ConfigFlags.WindowMousePassthrough, value);
+            ToggleWindowState(ConfigFlags.MousePassthroughWindow, value);
         }
     }
 
@@ -349,9 +344,8 @@ public static unsafe class Display
         Focused = Raylib.IsWindowFocused();
     }
 
-    public static void ToggleFullscreen(bool? resize = null, bool? borderless = null)
+    public static void ToggleFullscreen(bool? borderless = null)
     {
-        var resizeValue = resize ?? DefaultFullscreenResize;
         var borderlessValue = borderless ?? DefaultFullscreenBorderless;
         if (Platform.Web.IsCurrent)
         {
@@ -364,15 +358,13 @@ public static unsafe class Display
             var fullscreen = _fullscreen;
             if (fullscreen)
             {
-                _resetScreen = resizeValue;
+                _resetScreen = true;
             }
             else
             {
                 _previousScreen = new Box(Raylib.GetWindowPosition(), ScreenSize);
                 if (OperatingSystem.IsMacOS() && !Raylib.IsWindowMaximized())
                     Raylib.MaximizeWindow();
-                if (resizeValue && !(borderlessValue && OperatingSystem.IsWindows()))
-                    ScreenSize = monitorSize;
             }
 
             var screenSize = ScreenSize;
@@ -388,7 +380,7 @@ public static unsafe class Display
             {
                 Raylib.ToggleBorderlessWindowed();
                 if (_fullscreen && !Decorated)
-                    Raylib.SetWindowState(ConfigFlags.WindowUndecorated);
+                    Raylib.SetWindowState(ConfigFlags.UndecoratedWindow);
             }
             else
             {
@@ -404,7 +396,7 @@ public static unsafe class Display
         Graphics.Reset();
         Graphics.DrawCurrentBuffer();
         var data = Rlgl.ReadScreenPixels(width, height);
-        var image = new Raylib_cs.BleedingEdge.Image
+        var image = new Raylib_cs.Image
         {
             Data = data,
             Width = width,
@@ -483,6 +475,7 @@ public static unsafe class Display
         var height = (int)(
             _config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent ? _config.Size.Y : _config.ScreenSize.Y
         );
+        var logLevel = Log.SetLogLevel(LogLevel.Info);
         if (OperatingSystem.IsMacOS())
         {
             Raylib.InitWindow(0, 0, _config.Title);
@@ -494,6 +487,7 @@ public static unsafe class Display
             Raylib.InitWindow(width, height, _config.Title);
         }
 
+        Log.LogLevel = logLevel;
         if (Platform.Desktop.IsCurrent && _config.MinScreenSize.HasValue)
             Raylib.SetWindowMinSize((int)_config.MinScreenSize.Value.X, (int)_config.MinScreenSize.Value.Y);
         if (Platform.Desktop.IsCurrent && _config.MaxScreenSize.HasValue)
@@ -514,25 +508,25 @@ public static unsafe class Display
     {
         ConfigFlags flags = 0;
         if (_config.Resizable)
-            flags |= ConfigFlags.WindowResizable;
+            flags |= ConfigFlags.ResizableWindow;
         if (!_config.Decorated)
-            flags |= ConfigFlags.WindowUndecorated;
+            flags |= ConfigFlags.UndecoratedWindow;
         if (!_config.Focused)
-            flags |= ConfigFlags.WindowUnfocused;
+            flags |= ConfigFlags.UnfocusedWindow;
         if (_config.Vsync)
             flags |= ConfigFlags.VSyncHint;
         if (_config.RunMinimized)
-            flags |= ConfigFlags.WindowAlwaysRun;
+            flags |= ConfigFlags.AlwaysRunWindow;
         if (_config.Msaa4X)
-            flags |= ConfigFlags.Msaa4XHint;
+            flags |= ConfigFlags.Msaa4xHint;
         if (_config.Hidden)
-            flags |= ConfigFlags.WindowHidden;
+            flags |= ConfigFlags.HiddenWindow;
         if (_config.TopMost)
-            flags |= ConfigFlags.WindowTopMost;
+            flags |= ConfigFlags.TopmostWindow;
         if (_config.Transparent)
-            flags |= ConfigFlags.WindowTransparent;
+            flags |= ConfigFlags.TransparentWindow;
         if (_config.Passthrough)
-            flags |= ConfigFlags.WindowMousePassthrough;
+            flags |= ConfigFlags.MousePassthroughWindow;
         return flags;
     }
 }

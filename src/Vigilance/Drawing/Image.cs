@@ -1,23 +1,24 @@
 using System.Runtime.InteropServices;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
+using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
 public sealed unsafe class Image : IDisposable
 {
-    internal Raylib_cs.BleedingEdge.Image RImage;
+    internal Raylib_cs.Image RImage;
 
-    internal Image(in Raylib_cs.BleedingEdge.Image image)
+    internal Image(in Raylib_cs.Image image)
     {
         RImage = image;
     }
 
     public Image(string fileType, IEnumerable<byte> bytes)
     {
-        using var fileTypeBuffer = fileType.ToUtf8Buffer();
+        using var fileTypeBuffer = fileType.ToUtf8Ptr();
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)
         {
@@ -48,7 +49,10 @@ public sealed unsafe class Image : IDisposable
 
     public WritableTexture ToTexture()
     {
-        return new WritableTexture(new Texture(Raylib.LoadTextureFromImage(RImage)));
+        var logLevel = Log.SetLogLevel(LogLevel.Info);
+        var image = Raylib.LoadTextureFromImage(RImage);
+        Log.LogLevel = logLevel;
+        return new WritableTexture(new Texture(image));
     }
 
     public WritableImage Copy()
@@ -99,7 +103,9 @@ public sealed unsafe class Image : IDisposable
 
     public bool TryExportToMemory(string fileType, out byte[] bytes)
     {
-        var bytesBuffer = Raylib.ExportImageToMemory(RImage, fileType, out var size);
+        var size = 0;
+        using var fileTypeBuffer = fileType.ToUtf8Ptr();
+        var bytesBuffer = Raylib.ExportImageToMemory(RImage, fileTypeBuffer, &size);
         if (bytesBuffer is null)
         {
             bytes = [];

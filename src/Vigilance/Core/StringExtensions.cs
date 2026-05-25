@@ -13,9 +13,9 @@ public static class StringExtensions
             return $"\"{JsonEncodedText.Encode(str)}\"";
         }
 
-        public Utf8Buffer ToUtf8Buffer()
+        public Utf8Ptr ToUtf8Ptr()
         {
-            return new Utf8Buffer(str);
+            return new Utf8Ptr(str);
         }
     }
 }

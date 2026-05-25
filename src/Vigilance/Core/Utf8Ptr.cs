@@ -2,11 +2,11 @@ using System.Runtime.InteropServices;
 
 namespace Vigilance.Core;
 
-public readonly unsafe ref struct Utf8Buffer : IDisposable
+public readonly unsafe ref struct Utf8Ptr : IDisposable
 {
     private readonly nint _data;
 
-    public Utf8Buffer(string str)
+    public Utf8Ptr(string str)
     {
         _data = Marshal.StringToCoTaskMemUTF8(str);
     }
@@ -16,19 +16,19 @@ public readonly unsafe ref struct Utf8Buffer : IDisposable
         Marshal.ZeroFreeCoTaskMemUTF8(_data);
     }
 
-    public static implicit operator nint(Utf8Buffer buffer)
+    public static implicit operator nint(Utf8Ptr ptr)
     {
-        return buffer._data;
+        return ptr._data;
     }
 
-    public static implicit operator byte*(Utf8Buffer buffer)
+    public static implicit operator byte*(Utf8Ptr ptr)
     {
-        return (byte*)buffer._data;
+        return (byte*)ptr._data;
     }
 
-    public static implicit operator sbyte*(Utf8Buffer buffer)
+    public static implicit operator sbyte*(Utf8Ptr ptr)
     {
-        return (sbyte*)buffer._data;
+        return (sbyte*)ptr._data;
     }
 
     public static string GetString(nint ptr, string defaultValue = "")

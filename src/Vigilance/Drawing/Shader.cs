@@ -1,6 +1,6 @@
 using System.Numerics;
 using System.Text.RegularExpressions;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Core;
 using Vector2 = Vigilance.Math.Vector2;
 
@@ -21,9 +21,9 @@ public sealed unsafe partial class Shader : IDisposable
     };
 
     private readonly Dictionary<string, int> _locations = new();
-    internal Raylib_cs.BleedingEdge.Shader RShader;
+    internal Raylib_cs.Shader RShader;
 
-    internal Shader(in Raylib_cs.BleedingEdge.Shader shader)
+    internal Shader(in Raylib_cs.Shader shader)
     {
         RShader = shader;
     }
@@ -55,7 +55,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetFloatSpan(string uniform, in ReadOnlySpan<float> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.Float);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.Float, values.Length);
+        }
     }
 
     public void SetVec2(string uniform, Vector2 value)
@@ -65,7 +68,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetVec2Span(string uniform, in ReadOnlySpan<Vector2> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.Vec2);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.Vec2, values.Length);
+        }
     }
 
     public void SetVec3(string uniform, (float X, float Y, float Z) value)
@@ -80,12 +86,18 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetVec3Span(string uniform, in ReadOnlySpan<(float X, float Y, float Z)> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.Vec3);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.Vec3, values.Length);
+        }
     }
 
     public void SetVec3Span(string uniform, in ReadOnlySpan<Vector3> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.Vec3);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.Vec3, values.Length);
+        }
     }
 
     public void SetVec4(string uniform, (float X, float Y, float Z, float W) value)
@@ -100,12 +112,18 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetVec4Span(string uniform, in ReadOnlySpan<(float X, float Y, float Z, float W)> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.Vec4);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.Vec4, values.Length);
+        }
     }
 
     public void SetVec4Span(string uniform, in ReadOnlySpan<Vector4> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.Vec4);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.Vec4, values.Length);
+        }
     }
 
     public void SetColor(string uniform, Color value)
@@ -115,7 +133,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetColorSpan(string uniform, in ReadOnlySpan<Color> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.Vec4);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.Vec4, values.Length);
+        }
     }
 
     public void SetInt(string uniform, int value)
@@ -125,7 +146,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetIntSpan(string uniform, in ReadOnlySpan<int> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.Int);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.Int, values.Length);
+        }
     }
 
     public void SetIVec2(string uniform, (int X, int Y) value)
@@ -135,7 +159,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetIVec2Span(string uniform, in ReadOnlySpan<(int X, int Y)> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.IVec2);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.IVec2, values.Length);
+        }
     }
 
     public void SetIVec3(string uniform, (int X, int Y, int Z) value)
@@ -145,7 +172,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetIVec3Span(string uniform, in ReadOnlySpan<(int X, int Y, int Z)> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.IVec3);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.IVec3, values.Length);
+        }
     }
 
     public void SetIVec4(string uniform, (int X, int Y, int Z, int W) value)
@@ -155,7 +185,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetIVec4Span(string uniform, in ReadOnlySpan<(int X, int Y, int Z, int W)> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.IVec4);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.IVec4, values.Length);
+        }
     }
 
     public void SetUInt(string uniform, uint value)
@@ -165,7 +198,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetUIntSpan(string uniform, in ReadOnlySpan<uint> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.UInt);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.UInt, values.Length);
+        }
     }
 
     public void SetUIVec2(string uniform, (uint X, uint Y) value)
@@ -175,7 +211,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetUIVec2Span(string uniform, in ReadOnlySpan<(uint X, uint Y)> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.UIVec2);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.UIVec2, values.Length);
+        }
     }
 
     public void SetUIVec3(string uniform, (uint X, uint Y, uint Z) value)
@@ -185,7 +224,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetUIVec3Span(string uniform, in ReadOnlySpan<(uint X, uint Y, uint Z)> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.UIVec3);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.UIVec3, values.Length);
+        }
     }
 
     public void SetUIVec4(string uniform, (uint X, uint Y, uint Z, uint W) value)
@@ -195,7 +237,10 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetUIVec4Span(string uniform, in ReadOnlySpan<(uint X, uint Y, uint Z, uint W)> values)
     {
-        Raylib.SetShaderValue(RShader, GetLocation(uniform), values, ShaderUniformDataType.UIVec4);
+        fixed (void* ptr = values)
+        {
+            Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.UIVec4, values.Length);
+        }
     }
 
     public void SetMatrix(string uniform, in Matrix4x4 value)

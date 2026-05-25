@@ -1,6 +1,7 @@
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
+using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
@@ -22,12 +23,14 @@ public sealed unsafe class Texture : IDisposable
     public Texture(string fileType, IEnumerable<byte> bytes)
     {
         Game.ThrowIfNotRunning();
-        using var fileTypeBuffer = fileType.ToUtf8Buffer();
+        using var fileTypeBuffer = fileType.ToUtf8Ptr();
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)
         {
             var image = Raylib.LoadImageFromMemory(fileTypeBuffer, bytesBuffer, span.Length);
+            var logLevel = Log.SetLogLevel(LogLevel.Info);
             Texture2D = Raylib.LoadTextureFromImage(image);
+            Log.LogLevel = logLevel;
             Raylib.UnloadImage(image);
         }
     }
@@ -41,7 +44,7 @@ public sealed unsafe class Texture : IDisposable
                 Id = 1,
                 Width = 1,
                 Height = 1,
-                Format = Raylib_cs.BleedingEdge.PixelFormat.UncompressedR8G8B8A8,
+                Format = Raylib_cs.PixelFormat.UncompressedR8G8B8A8,
                 Mipmaps = 1,
             }
         );

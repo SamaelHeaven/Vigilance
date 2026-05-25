@@ -1,4 +1,4 @@
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -29,7 +29,6 @@ public static class Audio
 
     internal static void Initialize()
     {
-        Raylib.SetAudioStreamBufferSizeDefault(8192);
         if (OperatingSystem.IsWindows())
         {
             var thread = new Thread(Raylib.InitAudioDevice);

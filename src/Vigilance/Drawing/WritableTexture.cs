@@ -1,5 +1,6 @@
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Core;
+using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
@@ -31,13 +32,15 @@ public readonly unsafe struct WritableTexture : IDisposable
     public WritableTexture(int width, int height, PixelFormat format = PixelFormat.UncompressedR8G8B8A8)
     {
         Game.ThrowIfNotRunning();
-        var id = Rlgl.LoadTexture(null, width, height, (Raylib_cs.BleedingEdge.PixelFormat)format, 1);
+        var logLevel = Log.SetLogLevel(LogLevel.Info);
+        var id = Rlgl.LoadTexture(null, width, height, (Raylib_cs.PixelFormat)format, 1);
+        Log.LogLevel = logLevel;
         var texture2D = new Texture2D
         {
             Id = id,
             Width = width,
             Height = height,
-            Format = (Raylib_cs.BleedingEdge.PixelFormat)format,
+            Format = (Raylib_cs.PixelFormat)format,
             Mipmaps = 1,
         };
         _texture = new Texture(texture2D);
@@ -84,11 +87,7 @@ public readonly unsafe struct WritableTexture : IDisposable
         where T : unmanaged, IPixel
     {
         var source = box ?? new Box(Vector2.Zero, Size);
-        Raylib.UpdateTextureRec(
-            _texture.Texture2D,
-            new Raylib_cs.BleedingEdge.Rectangle(source.Position, source.Size),
-            pixels
-        );
+        Raylib.UpdateTextureRec(_texture.Texture2D, new Raylib_cs.Rectangle(source.Position, source.Size), pixels);
     }
 
     public void Dispose()
