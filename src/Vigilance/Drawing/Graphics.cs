@@ -674,24 +674,7 @@ public sealed unsafe class Graphics
         )
             return;
         BeginDrawing(camera);
-        Rlgl.Begin(0x0004); // GL_TRIANGLES
-        for (var i = 0; i < 360; i += 10)
-        {
-            Rlgl.Color4ub(innerColorValue.R, innerColorValue.G, innerColorValue.B, innerColorValue.A);
-            Rlgl.Vertex2f(center.X, center.Y);
-            Rlgl.Color4ub(outerColorValue.R, outerColorValue.G, outerColorValue.B, outerColorValue.A);
-            Rlgl.Vertex2f(
-                center.X + MathF.Cos((i + 10f).DegToRad()) * radius,
-                center.Y + MathF.Sin((i + 10f).DegToRad()) * radius
-            );
-            Rlgl.Color4ub(outerColorValue.R, outerColorValue.G, outerColorValue.B, outerColorValue.A);
-            Rlgl.Vertex2f(
-                center.X + MathF.Cos(((float)i).DegToRad()) * radius,
-                center.Y + MathF.Sin(((float)i).DegToRad()) * radius
-            );
-        }
-
-        Rlgl.End();
+        Raylib.DrawCircleGradient(center, radius, innerColorValue.RColor, outerColorValue.RColor);
         EndDrawing();
     }
 
