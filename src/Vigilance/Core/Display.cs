@@ -365,7 +365,6 @@ public static unsafe class Display
                 var maximized = (bool)Raylib.IsWindowMaximized();
                 _previousScreen = new Box(maximized ? Vector2.Zero : Raylib.GetWindowPosition(), ScreenSize);
                 if (OperatingSystem.IsMacOS())
-                {
                     switch (maximized)
                     {
                         case false when ScreenSize == monitorSize:
@@ -377,9 +376,8 @@ public static unsafe class Display
                             Raylib.MaximizeWindow();
                             break;
                     }
-                }
             }
-            
+
             _fullscreen = !fullscreen;
             if (borderlessValue)
             {
@@ -450,7 +448,8 @@ public static unsafe class Display
         if (OperatingSystem.IsMacOS())
             Raylib.SetWindowPosition(1, 1);
         Raylib.SetWindowPosition((int)_previousScreen.Position.X, (int)_previousScreen.Position.Y);
-        ScreenSize = Vector2.One;
+        if (OperatingSystem.IsMacOS())
+            ScreenSize = Vector2.One;
         ScreenSize = _previousScreen.Size;
     }
 
