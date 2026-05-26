@@ -1238,12 +1238,6 @@ public static partial class UIElementExtensions
             return el;
         }
 
-        public T Then(Action<T> action)
-        {
-            action.Invoke(element);
-            return element;
-        }
-
         public T DeepClone(UIElement.CloneOptions options)
         {
             return (T)element.DeepClone(options);
