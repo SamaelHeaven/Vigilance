@@ -1211,11 +1211,12 @@ public sealed unsafe class Graphics
         Font? font = null,
         float? fontSize = null,
         in Vector2? spacing = null,
+        int visibleCharacters = -1,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
-        FillText(text, new Vector2(x, y), color, font, fontSize, spacing, interpolation, camera);
+        FillText(text, new Vector2(x, y), color, font, fontSize, spacing, visibleCharacters, interpolation, camera);
     }
 
     public void FillText(
@@ -1225,6 +1226,7 @@ public sealed unsafe class Graphics
         Font? font = null,
         float? fontSize = null,
         in Vector2? spacing = null,
+        int visibleCharacters = -1,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -1235,8 +1237,11 @@ public sealed unsafe class Graphics
         font ??= Font.Default;
         Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
         BeginDrawing(camera);
+        var i = 0;
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing))
         {
+            if (visibleCharacters >= 0 && i >= visibleCharacters)
+                break;
             var finalDest = new Box(
                 dest.Position.X + position.X,
                 dest.Position.Y + position.Y,
@@ -1253,6 +1258,7 @@ public sealed unsafe class Graphics
                 0,
                 colorValue.RColor
             );
+            i++;
         }
 
         EndDrawing();
@@ -1267,11 +1273,23 @@ public sealed unsafe class Graphics
         float? fontSize = null,
         float? strokeWidth = null,
         in Vector2? spacing = null,
+        int visibleCharacters = -1,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
     {
-        StrokeText(text, new Vector2(x, y), color, font, fontSize, strokeWidth, spacing, interpolation, camera);
+        StrokeText(
+            text,
+            new Vector2(x, y),
+            color,
+            font,
+            fontSize,
+            strokeWidth,
+            spacing,
+            visibleCharacters,
+            interpolation,
+            camera
+        );
     }
 
     public void StrokeText(
@@ -1282,6 +1300,7 @@ public sealed unsafe class Graphics
         float? fontSize = null,
         float? strokeWidth = null,
         in Vector2? spacing = null,
+        int visibleCharacters = -1,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -1294,8 +1313,11 @@ public sealed unsafe class Graphics
         var (atlas, glyphInfos) = font.GetStroke((int)strokeWidthValue.Ceil());
         Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
         BeginDrawing(camera);
+        var i = 0;
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, glyphInfos))
         {
+            if (visibleCharacters >= 0 && i >= visibleCharacters)
+                break;
             var finalDest = new Box(
                 dest.Position.X + position.X,
                 dest.Position.Y + position.Y,
@@ -1312,6 +1334,7 @@ public sealed unsafe class Graphics
                 0,
                 colorValue.RColor
             );
+            i++;
         }
 
         EndDrawing();
@@ -1337,6 +1360,7 @@ public sealed unsafe class Graphics
         var fontSize = text.FontSize;
         var strokeWidth = text.StrokeWidth;
         var spacing = text.Spacing;
+        var visibleCharacters = text.VisibleCharacters;
         var interpolation = text.Interpolation;
         var order = text.DrawOrder;
         var position = transform.Position;
@@ -1350,13 +1374,35 @@ public sealed unsafe class Graphics
         {
             if (order == DrawOrder.StrokeThenFill)
             {
-                StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
-                FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
+                StrokeText(
+                    value,
+                    position,
+                    stroke,
+                    font,
+                    fontSize,
+                    strokeWidth,
+                    spacing,
+                    visibleCharacters,
+                    interpolation,
+                    camera
+                );
+                FillText(value, position, fill, font, fontSize, spacing, visibleCharacters, interpolation, camera);
             }
             else
             {
-                FillText(value, position, fill, font, fontSize, spacing, interpolation, camera);
-                StrokeText(value, position, stroke, font, fontSize, strokeWidth, spacing, interpolation, camera);
+                FillText(value, position, fill, font, fontSize, spacing, visibleCharacters, interpolation, camera);
+                StrokeText(
+                    value,
+                    position,
+                    stroke,
+                    font,
+                    fontSize,
+                    strokeWidth,
+                    spacing,
+                    visibleCharacters,
+                    interpolation,
+                    camera
+                );
             }
         }
 

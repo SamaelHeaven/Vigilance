@@ -13,7 +13,6 @@ public sealed class Animation : IListView<AnimationFrame>
     private TimeSpan _elapsed;
     private int _index;
     private int? _nextIndex;
-    private int _repeatCounter;
     private int _startIndex;
 
     public Animation(
@@ -41,10 +40,17 @@ public sealed class Animation : IListView<AnimationFrame>
 
     public TimeSpan Delay { get; set; }
     public bool IsPaused { get; set; }
+    public bool DidRepeat { get; set; }
     public int RepeatCount { get; set; }
+    public int CurrentRepeat { get; private set; }
     public Func<TimeSpan> TimeStepFunc { get; set; }
 
+    public Action? OnComplete { get; set; }
+    public Action? OnRepeat { get; set; }
+
     public AnimationFrame Frame => _frames[_index];
+    public bool IsCompleted => RepeatCount > InfiniteRepeatCount && CurrentRepeat >= RepeatCount;
+    public int FrameCount => _frames.Count;
 
     public int Index
     {
@@ -68,11 +74,6 @@ public sealed class Animation : IListView<AnimationFrame>
         set => _nextIndex = value?.Clamp(0, _frames.Count - 1);
     }
 
-    public int FrameCount => _frames.Count;
-
-    public Action? OnComplete { get; set; }
-    public Action? OnRepeat { get; set; }
-
     public List<AnimationFrame>.Enumerator GetEnumerator()
     {
         return _frames.GetEnumerator();
@@ -90,7 +91,8 @@ public sealed class Animation : IListView<AnimationFrame>
 
     public void Update(TimeSpan step)
     {
-        if (IsPaused || _frames.Count <= 1 || (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount))
+        DidRepeat = false;
+        if (IsPaused || _frames.Count <= 1 || IsCompleted)
             return;
         _elapsed += step;
         var frameDelay = Delay + _frames[_index].Delay;
@@ -102,9 +104,10 @@ public sealed class Animation : IListView<AnimationFrame>
             _nextIndex = null;
         if (_index != _startIndex)
             return;
-        _repeatCounter++;
+        DidRepeat = true;
+        CurrentRepeat++;
         OnRepeat?.Invoke();
-        if (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount)
+        if (IsCompleted)
             OnComplete?.Invoke();
     }
 
@@ -131,6 +134,6 @@ public sealed class Animation : IListView<AnimationFrame>
     {
         _index = 0;
         _elapsed = TimeSpan.Zero;
-        _repeatCounter = 0;
+        CurrentRepeat = 0;
     }
 }

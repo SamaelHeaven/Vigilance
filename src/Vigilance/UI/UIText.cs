@@ -90,6 +90,12 @@ public class UIText : UIElement
         }
     }
 
+    public int VisibleCharacters
+    {
+        get => _text.VisibleCharacters;
+        set => _text.VisibleCharacters = value;
+    }
+
     public TextHeightMode HeightMode
     {
         get => _text.HeightMode;
@@ -142,11 +148,9 @@ public class UIText : UIElement
             case TextOverflow.Ellipsis:
             {
                 const string ellipsis = "...";
-                var visibleText = Value;
-                _text.Value = visibleText;
-                var size = _text.Size;
-                if (size.X <= maxWidth)
-                    return size;
+                _text.Value = Value;
+                if (_text.Size.X <= maxWidth)
+                    return _text.Size;
                 var left = 0;
                 var right = Value.Length;
                 var result = "";
@@ -172,7 +176,7 @@ public class UIText : UIElement
             case TextOverflow.Wrap:
             default:
             {
-                var initialCapacity = (int)(Value.Length * 1.25);
+                var initialCapacity = (int)(Value.Length * 1.25f);
                 using var lines =
                     initialCapacity <= 256
                         ? new ValueStringBuilder(stackalloc char[initialCapacity])
@@ -181,42 +185,33 @@ public class UIText : UIElement
                     Value.Length <= 256
                         ? new ValueStringBuilder(stackalloc char[Value.Length])
                         : new ValueStringBuilder(Value.Length);
-                var any = false;
+                var hasLines = false;
                 foreach (var range in Value.AsSpan().Split(' '))
                 {
                     var word = Value.AsSpan(range);
-                    string line;
-                    if (currentLine.IsEmpty)
-                    {
-                        line = word.ToString();
-                    }
-                    else
-                    {
-                        currentLine.Append(' ');
-                        currentLine.Append(word);
-                        line = currentLine.ToString();
-                    }
-
-                    _text.Value = line;
+                    var candidate = currentLine.IsEmpty
+                        ? word.ToString()
+                        : string.Concat(currentLine.AsSpan(), " ", word);
+                    _text.Value = candidate;
                     if (_text.Size.X > maxWidth && !currentLine.IsEmpty)
                     {
-                        if (any)
+                        if (hasLines)
                             lines.Append('\n');
                         lines.Append(currentLine.AsSpan());
                         currentLine.Clear();
                         currentLine.Append(word);
-                        any = true;
+                        hasLines = true;
                     }
                     else
                     {
                         currentLine.Clear();
-                        currentLine.Append(line);
+                        currentLine.Append(candidate);
                     }
                 }
 
                 if (!currentLine.IsEmpty)
                 {
-                    if (any)
+                    if (hasLines)
                         lines.Append('\n');
                     lines.Append(currentLine.AsSpan());
                 }

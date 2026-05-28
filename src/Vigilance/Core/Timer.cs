@@ -3,7 +3,6 @@ namespace Vigilance.Core;
 public sealed class Timer
 {
     public const int InfiniteRepeatCount = -1;
-    private int _repeatCounter;
 
     public Timer(
         TimeSpan delay,
@@ -22,39 +21,43 @@ public sealed class Timer
         TimeStepFunc = timeStepFunc ?? (() => Time.Delta);
     }
 
-    public bool IsFinished => TimeLeft <= TimeSpan.Zero;
+    public bool IsCompleted => RepeatCount > InfiniteRepeatCount && CurrentRepeat >= RepeatCount;
 
     public TimeSpan TimeLeft { get; set; }
     public TimeSpan Delay { get; set; }
     public bool IsPaused { get; set; }
+    public bool DidRepeat { get; set; }
     public int RepeatCount { get; set; }
+    public int CurrentRepeat { get; private set; }
     public Func<TimeSpan> TimeStepFunc { get; set; }
-
     public Action? OnComplete { get; set; }
     public Action? OnRepeat { get; set; }
 
-    public void Update()
+    public bool Update()
     {
-        Update(TimeStepFunc.Invoke());
+        return Update(TimeStepFunc.Invoke());
     }
 
-    public void Update(TimeSpan step)
+    public bool Update(TimeSpan step)
     {
-        if (IsPaused || (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount))
-            return;
+        DidRepeat = false;
+        if (IsPaused || IsCompleted)
+            return false;
         TimeLeft -= step;
-        if (!IsFinished)
-            return;
+        if (TimeLeft > TimeSpan.Zero)
+            return false;
+        DidRepeat = true;
         TimeLeft += Delay;
-        _repeatCounter++;
+        CurrentRepeat++;
         OnRepeat?.Invoke();
-        if (RepeatCount > InfiniteRepeatCount && _repeatCounter >= RepeatCount)
+        if (IsCompleted)
             OnComplete?.Invoke();
+        return true;
     }
 
     public void Reset()
     {
         TimeLeft = Delay;
-        _repeatCounter = 0;
+        CurrentRepeat = 0;
     }
 }
