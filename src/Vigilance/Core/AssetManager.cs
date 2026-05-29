@@ -40,7 +40,7 @@ public static class TextureAssetManager
         {
             return !Texture.Resource(resource, out var texture, @namespace, assembly, cacheType)
                 ? throw new AssetException(
-                    $"Failed to load texture from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
+                    $"Failed to load texture from resource: {Core.Resource.Format(resource, @namespace, assembly)}"
                 )
                 : texture;
         }
@@ -107,7 +107,7 @@ public static class ImageAssetManager
         {
             return !Image.Resource(resource, out var image, @namespace, assembly, cacheType)
                 ? throw new AssetException(
-                    $"Failed to load image from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
+                    $"Failed to load image from resource: {Core.Resource.Format(resource, @namespace, assembly)}"
                 )
                 : image;
         }
@@ -182,7 +182,7 @@ public static class FontAssetManager
         {
             return !Font.Resource(resource, out var font, quality, charset, @namespace, assembly, cacheType)
                 ? throw new AssetException(
-                    $"Failed to load font from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
+                    $"Failed to load font from resource: {Core.Resource.Format(resource, @namespace, assembly)}"
                 )
                 : font;
         }
@@ -251,7 +251,7 @@ public static class MusicAssetManager
         {
             return !Music.Resource(resource, out var music, @namespace, assembly, cacheType)
                 ? throw new AssetException(
-                    $"Failed to load music from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
+                    $"Failed to load music from resource: {Core.Resource.Format(resource, @namespace, assembly)}"
                 )
                 : music;
         }
@@ -324,7 +324,7 @@ public static class SoundAssetManager
         {
             return !Sound.Resource(resource, out var sound, maxAliases, @namespace, assembly, cacheType)
                 ? throw new AssetException(
-                    $"Failed to load sound from resource: {FileSystem.FormatResource(resource, @namespace, assembly)}"
+                    $"Failed to load sound from resource: {Core.Resource.Format(resource, @namespace, assembly)}"
                 )
                 : sound;
         }
@@ -466,7 +466,7 @@ public static class ShaderAssetManager
                 cacheType
             )
                 ? throw new AssetException(
-                    $"Failed to load shader from resource{(vertexResource is not null && fragmentResource is not null ? "s" : "")}: {(vertexResource is null ? "" : FileSystem.FormatResource(vertexResource, vertexNamespace))}{(vertexResource is null ? "" : ", ")}{(fragmentResource is null ? "" : FileSystem.FormatResource(fragmentResource, fragmentNamespace))}"
+                    $"Failed to load shader from resource{(vertexResource is not null && fragmentResource is not null ? "s" : "")}: {(vertexResource is null ? "" : Core.Resource.Format(vertexResource, vertexNamespace))}{(vertexResource is null ? "" : ", ")}{(fragmentResource is null ? "" : Core.Resource.Format(fragmentResource, fragmentNamespace))}"
                 )
                 : shader;
         }
@@ -482,30 +482,28 @@ public static class ShaderAssetManager
             CacheType? cacheType = null
         )
         {
-            var vertexPath = vertexResource is null ? null : FileSystem.FormatResource(vertexResource, vertexNamespace);
+            var vertexPath = vertexResource is null ? null : Core.Resource.Format(vertexResource, vertexNamespace);
             var fragmentPath = fragmentResource is null
                 ? null
-                : FileSystem.FormatResource(fragmentResource, fragmentNamespace);
+                : Core.Resource.Format(fragmentResource, fragmentNamespace);
             return _container.Resource(
                 () =>
                     (
-                        vertexPath is null
-                            ? null
-                            : FileSystem.FormatResource(vertexPath, vertexAssembly?.FullName ?? ""),
+                        vertexPath is null ? null : Core.Resource.Format(vertexPath, vertexAssembly?.FullName ?? ""),
                         fragmentPath is null
                             ? null
-                            : FileSystem.FormatResource(fragmentPath, fragmentAssembly?.FullName ?? "")
+                            : Core.Resource.Format(fragmentPath, fragmentAssembly?.FullName ?? "")
                     ),
                 () =>
                 {
                     string? vertex = null;
                     if (vertexPath is not null)
-                        if (!FileSystem.TryReadResourceText(vertexPath, out vertex, "", vertexAssembly))
+                        if (!Core.Resource.TryReadText(vertexPath, out vertex, "", vertexAssembly))
                             return null;
                     string? fragment = null;
                     if (fragmentPath is null)
                         return new Shader(vertex, fragment);
-                    return !FileSystem.TryReadResourceText(fragmentPath, out fragment, "", fragmentAssembly)
+                    return !Core.Resource.TryReadText(fragmentPath, out fragment, "", fragmentAssembly)
                         ? null
                         : new Shader(vertex, fragment);
                 },

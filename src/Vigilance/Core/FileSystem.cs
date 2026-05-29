@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using LinkDotNet.StringBuilder;
@@ -10,17 +9,8 @@ namespace Vigilance.Core;
 
 public static unsafe partial class FileSystem
 {
-    private static readonly Dictionary<Assembly, string[]> _resourceNames = new();
-
-    static FileSystem()
-    {
-        WorkingNamespace = new FileSystemConfig().WorkingNamespace;
-    }
-
     public static string ApplicationDirectory { get; } =
         FormatPath(Utf8Ptr.GetString(Raylib.GetApplicationDirectory()));
-
-    public static string WorkingNamespace { get; set; }
 
     public static string WorkingDirectory => FormatPath(Utf8Ptr.GetString(Raylib.GetWorkingDirectory()));
 
@@ -29,7 +19,6 @@ public static unsafe partial class FileSystem
     internal static void Initialize()
     {
         var config = Game.Config.Take<FileSystemConfig>() ?? new FileSystemConfig();
-        WorkingNamespace = config.WorkingNamespace;
         ChangeDirectory(config.WorkingDirectory);
     }
 
@@ -61,19 +50,6 @@ public static unsafe partial class FileSystem
         return FormatPath(Path.Combine(WorkingDirectory, path));
     }
 
-    public static string FormatResource(string resource, string? @namespace = null)
-    {
-        @namespace ??= WorkingNamespace;
-        return @namespace.IsEmpty ? resource : $"{@namespace}.{resource}";
-    }
-
-    public static string FormatResource(string resource, string? @namespace, Assembly? assembly)
-    {
-        @namespace ??= WorkingNamespace;
-        assembly ??= Assemblies.Game;
-        return $"{assembly.GetName().Name}.{@namespace}{(@namespace.IsEmpty ? "" : ".")}{resource}";
-    }
-
     public static bool ChangeDirectory(string path)
     {
         path = FormatPath(path);
@@ -99,17 +75,6 @@ public static unsafe partial class FileSystem
             return false;
         using var buffer = path.ToUtf8Ptr();
         return Raylib.DirectoryExists(buffer);
-    }
-
-    public static bool ResourceExists(string resource, string? @namespace = null, Assembly? assembly = null)
-    {
-        assembly ??= Assemblies.Game;
-        resource = FormatResource(resource, @namespace, assembly);
-        if (_resourceNames.TryGetValue(assembly, out var names))
-            return names.Contains(resource);
-        names = assembly.GetManifestResourceNames();
-        _resourceNames[assembly] = names;
-        return names.Contains(resource);
     }
 
     public static DateTime FileModTime(string path)
@@ -139,25 +104,6 @@ public static unsafe partial class FileSystem
     {
         if (!TryReadText(path, out var text))
             Log.Warning($"FILEIO: [{FormatPath(path)}] Failed to read text file");
-        return text;
-    }
-
-    public static bool TryReadResourceText(
-        string resource,
-        out string text,
-        string? @namespace = null,
-        Assembly? assembly = null
-    )
-    {
-        var result = TryReadResourceBytes(resource, out var bytes, @namespace, assembly);
-        text = Encoding.UTF8.GetString(bytes);
-        return result;
-    }
-
-    public static string ReadResourceText(string resource, string? @namespace = null, Assembly? assembly = null)
-    {
-        if (!TryReadResourceText(resource, out var text, @namespace, assembly))
-            Log.Warning($"FILEIO: [{FormatResource(resource, @namespace)}] Failed to read resource text");
         return text;
     }
 
@@ -197,43 +143,6 @@ public static unsafe partial class FileSystem
     {
         if (!TryReadBytes(path, out var bytes))
             Log.Warning($"FILEIO: [{FormatPath(path)}] Failed to read file");
-        return bytes;
-    }
-
-    public static bool TryReadResourceBytes(
-        string resource,
-        out byte[] bytes,
-        string? @namespace = null,
-        Assembly? assembly = null
-    )
-    {
-        assembly ??= Assemblies.Game;
-        resource = FormatResource(resource, @namespace, assembly);
-        using var stream = assembly.GetManifestResourceStream(resource);
-        if (stream is null)
-        {
-            bytes = [];
-            return false;
-        }
-
-        if (stream.CanSeek)
-        {
-            var length = (int)stream.Length;
-            bytes = new byte[length];
-            stream.ReadExactly(bytes);
-            return true;
-        }
-
-        using var ms = new MemoryStream();
-        stream.CopyTo(ms);
-        bytes = ms.ToArray();
-        return true;
-    }
-
-    public static byte[] ReadResourceBytes(string resource, string? @namespace = null, Assembly? assembly = null)
-    {
-        if (!TryReadResourceBytes(resource, out var bytes, @namespace, assembly))
-            Log.Warning($"FILEIO: [{FormatResource(resource, @namespace)}] Failed to read resource");
         return bytes;
     }
 

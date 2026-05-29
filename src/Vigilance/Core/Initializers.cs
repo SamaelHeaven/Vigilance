@@ -26,6 +26,7 @@ public static class Initializers
         {
             Hooks.Initialize();
             FileSystem.Initialize();
+            Resource.Initialize();
             Log.Initialize();
             Display.Initialize();
             Asset.Initialize();

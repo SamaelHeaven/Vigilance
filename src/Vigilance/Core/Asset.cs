@@ -69,13 +69,13 @@ public static class Asset
             [MaybeNullWhen(false)] out TValue value
         )
         {
-            resource = FileSystem.FormatResource(resource, @namespace);
+            resource = Core.Resource.Format(resource, @namespace);
             var resourceValue = resource;
-            resource = FileSystem.FormatResource(resource, assembly?.FullName ?? "");
+            resource = Core.Resource.Format(resource, assembly?.FullName ?? "");
             return Resource(
                 keyFunc,
                 () =>
-                    FileSystem.TryReadResourceBytes(resourceValue, out var bytes, "", assembly)
+                    Core.Resource.TryReadBytes(resourceValue, out var bytes, "", assembly)
                         ? valueFunc.Invoke(bytes)
                         : null,
                 cacheType,

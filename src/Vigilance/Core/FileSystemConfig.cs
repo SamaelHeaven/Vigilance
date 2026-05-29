@@ -3,8 +3,6 @@ namespace Vigilance.Core;
 public sealed class FileSystemConfig
 {
     public string WorkingDirectory { get; set; } = "";
-
-    public string WorkingNamespace { get; set; } = "Resources";
 }
 
 public static class FileSystemConfigExtensions
