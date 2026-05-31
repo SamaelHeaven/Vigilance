@@ -98,9 +98,10 @@ public sealed class Animation : IListView<AnimationFrame>
             return;
         DidRepeat = true;
         CurrentRepeat++;
-        OnRepeat?.Invoke();
         if (IsCompleted)
             OnComplete?.Invoke();
+        else
+            OnRepeat?.Invoke();
     }
 
     public void UpdateSprite(Sprite sprite)

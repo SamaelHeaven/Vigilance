@@ -29,7 +29,7 @@ public sealed class Tween
     public bool IsPaused { get; set; }
     public int RepeatCount { get; set; }
     public bool AlternateDirection { get; }
-    public bool Reversed { get; set; }
+    public bool IsReversed { get; set; }
     public Action? OnComplete { get; set; }
     public Action? OnRepeat { get; set; }
     public bool DidTick { get; private set; }
@@ -42,7 +42,7 @@ public sealed class Tween
 
     public float Value(Func<float, float> ease)
     {
-        var progress = Reversed ? 1f - Progress : Progress;
+        var progress = IsReversed ? 1f - Progress : Progress;
         return ease.Invoke(progress);
     }
 
@@ -75,13 +75,17 @@ public sealed class Tween
         if (TimeLeft > TimeSpan.Zero)
             return;
         DidTick = true;
-        TimeLeft += Duration;
         CurrentRepeat++;
-        if (AlternateDirection)
-            Reversed = !Reversed;
-        OnRepeat?.Invoke();
         if (IsCompleted)
+        {
             OnComplete?.Invoke();
+            return;
+        }
+
+        TimeLeft += Duration;
+        if (AlternateDirection)
+            IsReversed = !IsReversed;
+        OnRepeat?.Invoke();
     }
 
     public void Reset()

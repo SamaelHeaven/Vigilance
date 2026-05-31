@@ -44,11 +44,15 @@ public sealed class Timer
         if (TimeLeft > TimeSpan.Zero)
             return false;
         DidTick = true;
-        TimeLeft += Duration;
         CurrentRepeat++;
-        OnRepeat?.Invoke();
         if (IsCompleted)
+        {
             OnComplete?.Invoke();
+            return true;
+        }
+
+        TimeLeft += Duration;
+        OnRepeat?.Invoke();
         return true;
     }
 
