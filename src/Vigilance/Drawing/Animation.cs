@@ -21,8 +21,7 @@ public sealed class Animation : IListView<AnimationFrame>
         int repeatCount = InfiniteRepeatCount,
         int startIndex = 0,
         Action? repeatAction = null,
-        Action? completeAction = null,
-        Func<TimeSpan>? timeStepFunc = null
+        Action? completeAction = null
     )
     {
         _frames = frames.AsValueEnumerable().ToList();
@@ -35,7 +34,6 @@ public sealed class Animation : IListView<AnimationFrame>
         RepeatCount = repeatCount;
         Index = startIndex;
         StartIndex = startIndex;
-        TimeStepFunc = timeStepFunc ?? (() => Time.Delta);
     }
 
     public TimeSpan Delay { get; set; }
@@ -43,7 +41,6 @@ public sealed class Animation : IListView<AnimationFrame>
     public bool DidRepeat { get; set; }
     public int RepeatCount { get; set; }
     public int CurrentRepeat { get; private set; }
-    public Func<TimeSpan> TimeStepFunc { get; set; }
 
     public Action? OnComplete { get; set; }
     public Action? OnRepeat { get; set; }
@@ -84,17 +81,12 @@ public sealed class Animation : IListView<AnimationFrame>
         return _frames.AsValueEnumerable();
     }
 
-    public void Update()
-    {
-        Update(TimeStepFunc.Invoke());
-    }
-
-    public void Update(TimeSpan step)
+    public void Update(TimeSpan? step = null)
     {
         DidRepeat = false;
         if (IsPaused || _frames.Count <= 1 || IsCompleted)
             return;
-        _elapsed += step;
+        _elapsed += step ?? Time.Delta;
         var frameDelay = Delay + _frames[_index].Delay;
         if (_elapsed < frameDelay)
             return;

@@ -144,6 +144,19 @@ public record struct Vector2
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector2 Lerp(Vector2 start, Vector2 end, float t)
+    {
+        return new Vector2(float.Lerp(start.X, end.X, t), float.Lerp(start.Y, end.Y, t));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector2 Slerp(Vector2 start, Vector2 end, float t)
+    {
+        var angle = start.AngleBetween(end);
+        return start * MathF.Cos(angle * t) + end * MathF.Sin(angle * t);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector2 Transform(in Matrix3x2 matrix)
     {
         return System.Numerics.Vector2.Transform(this, matrix);
@@ -267,20 +280,6 @@ public record struct Vector2
         var sin = MathF.Sin(rad);
         var translated = this - origin;
         return new Vector2(translated.X * cos - translated.Y * sin, translated.X * sin + translated.Y * cos) + origin;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector2 Lerp(Vector2 end, float t)
-    {
-        t = t.Clamp(0f, 1f);
-        return new Vector2(X + (end.X - X) * t, Y + (end.Y - Y) * t);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly Vector2 Slerp(Vector2 end, float t)
-    {
-        var angle = AngleBetween(end);
-        return this * MathF.Cos(angle * t) + end * MathF.Sin(angle * t);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

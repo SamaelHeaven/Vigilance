@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
@@ -176,6 +177,17 @@ public record struct Color
                 _ => -1,
             };
         }
+    }
+
+    public static Color Lerp(Color start, Color end, float t)
+    {
+        Color result = default;
+        t = t.Clamp(0, 1);
+        result.R = (byte)((1.0f - t) * start.R + t * end.R);
+        result.G = (byte)((1.0f - t) * start.G + t * end.G);
+        result.B = (byte)((1.0f - t) * start.B + t * end.B);
+        result.A = (byte)((1.0f - t) * start.A + t * end.A);
+        return result;
     }
 
     public readonly void Deconstruct(out byte r, out byte g, out byte b)
@@ -420,22 +432,6 @@ public record struct Color
             }
         }
 
-        return result;
-    }
-
-    public readonly Color Lerp(Color color, float factor)
-    {
-        var result = Transparent;
-        factor = factor switch
-        {
-            < 0.0f => 0.0f,
-            > 1.0f => 1.0f,
-            _ => factor,
-        };
-        result.R = (byte)((1.0f - factor) * R + factor * color.R);
-        result.G = (byte)((1.0f - factor) * G + factor * color.G);
-        result.B = (byte)((1.0f - factor) * B + factor * color.B);
-        result.A = (byte)((1.0f - factor) * A + factor * color.A);
         return result;
     }
 
