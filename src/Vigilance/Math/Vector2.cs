@@ -83,6 +83,24 @@ public record struct Vector2
         return $"<{X}, {Y}>";
     }
 
+    public readonly string ToString(int digits)
+    {
+        digits = digits.Clamp(0, 8);
+        var format = digits switch
+        {
+            0 => "F0",
+            1 => "F1",
+            2 => "F2",
+            3 => "F3",
+            4 => "F4",
+            5 => "F5",
+            6 => "F6",
+            7 => "F7",
+            _ => "F8",
+        };
+        return $"<{X.ToString(format)}, {Y.ToString(format)}>";
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2 operator -(Vector2 v)
     {
@@ -286,6 +304,12 @@ public record struct Vector2
     public readonly Vector2 Round()
     {
         return new Vector2(X.Round(), Y.Round());
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector2 Round(int digits)
+    {
+        return new Vector2(X.Round(digits), Y.Round(digits));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
