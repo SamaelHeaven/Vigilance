@@ -92,9 +92,13 @@ public class UIText : UIElement
 
     public int VisibleCharacters
     {
-        get => _text.VisibleCharacters;
-        set => _text.VisibleCharacters = value;
-    }
+        get;
+        set
+        {
+            field = value;
+            MarkDirty();
+        }
+    } = Text.UnlimitedCharacters;
 
     public TextHeightMode HeightMode
     {
@@ -140,6 +144,7 @@ public class UIText : UIElement
     protected override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         var maxWidth = widthMode == MeasureMode.Undefined ? float.PositiveInfinity : width;
+        _text.VisibleCharacters = VisibleCharacters;
         switch (TextOverflow)
         {
             case TextOverflow.Clip:
@@ -196,7 +201,12 @@ public class UIText : UIElement
                     if (_text.Size.X > maxWidth && !currentLine.IsEmpty)
                     {
                         if (hasLines)
+                        {
+                            if (VisibleCharacters == lines.Length)
+                                _text.VisibleCharacters++;
                             lines.Append('\n');
+                        }
+
                         lines.Append(currentLine.AsSpan());
                         currentLine.Clear();
                         currentLine.Append(word);
@@ -212,7 +222,12 @@ public class UIText : UIElement
                 if (!currentLine.IsEmpty)
                 {
                     if (hasLines)
+                    {
+                        if (VisibleCharacters == lines.Length)
+                            _text.VisibleCharacters++;
                         lines.Append('\n');
+                    }
+
                     lines.Append(currentLine.AsSpan());
                 }
 

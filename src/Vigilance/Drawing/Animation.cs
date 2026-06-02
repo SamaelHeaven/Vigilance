@@ -8,7 +8,7 @@ namespace Vigilance.Drawing;
 
 public sealed class Animation : IListView<AnimationFrame>
 {
-    public const int InfiniteRepeatCount = -1;
+    public const int InfiniteCycleCount = -1;
     private readonly List<AnimationFrame> _frames;
     private TimeSpan _elapsed;
     private int _index;
@@ -18,7 +18,7 @@ public sealed class Animation : IListView<AnimationFrame>
     public Animation(
         IEnumerable<AnimationFrame> frames,
         TimeSpan delay,
-        int repeatCount = InfiniteRepeatCount,
+        int cycleCount = InfiniteCycleCount,
         int startIndex = 0,
         Action? repeatAction = null,
         Action? completeAction = null
@@ -31,7 +31,7 @@ public sealed class Animation : IListView<AnimationFrame>
         OnComplete = completeAction;
         OnRepeat = repeatAction;
         Delay = delay;
-        RepeatCount = repeatCount;
+        CycleCount = cycleCount;
         Index = startIndex;
         StartIndex = startIndex;
     }
@@ -39,14 +39,14 @@ public sealed class Animation : IListView<AnimationFrame>
     public TimeSpan Delay { get; set; }
     public bool IsPaused { get; set; }
     public bool DidRepeat { get; set; }
-    public int RepeatCount { get; set; }
-    public int CurrentRepeat { get; private set; }
+    public int CycleCount { get; set; }
+    public int CurrentCycle { get; private set; }
 
     public Action? OnComplete { get; set; }
     public Action? OnRepeat { get; set; }
 
     public AnimationFrame Frame => _frames[_index];
-    public bool IsCompleted => RepeatCount > InfiniteRepeatCount && CurrentRepeat >= RepeatCount;
+    public bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
     public int FrameCount => _frames.Count;
 
     public int Index
@@ -97,7 +97,7 @@ public sealed class Animation : IListView<AnimationFrame>
         if (_index != _startIndex)
             return;
         DidRepeat = true;
-        CurrentRepeat++;
+        CurrentCycle++;
         if (IsCompleted)
             OnComplete?.Invoke();
         else
@@ -127,6 +127,6 @@ public sealed class Animation : IListView<AnimationFrame>
     {
         _index = 0;
         _elapsed = TimeSpan.Zero;
-        CurrentRepeat = 0;
+        CurrentCycle = 0;
     }
 }

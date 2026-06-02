@@ -5,12 +5,12 @@ namespace Vigilance.Core;
 
 public sealed class Tween
 {
-    public const int InfiniteRepeatCount = -1;
+    public const int InfiniteCycleCount = -1;
 
     public Tween(
         TimeSpan duration,
         TimeSpan? initialTime = null,
-        int repeatCount = InfiniteRepeatCount,
+        int cycleCount = InfiniteCycleCount,
         bool alternateDirection = false,
         Action? repeatAction = null,
         Action? completeAction = null
@@ -20,22 +20,22 @@ public sealed class Tween
         OnRepeat = repeatAction;
         TimeLeft = initialTime ?? duration;
         Duration = duration;
-        RepeatCount = repeatCount;
+        CycleCount = cycleCount;
         AlternateDirection = alternateDirection;
     }
 
     public TimeSpan TimeLeft { get; set; }
     public TimeSpan Duration { get; set; }
     public bool IsPaused { get; set; }
-    public int RepeatCount { get; set; }
+    public int CycleCount { get; set; }
     public bool AlternateDirection { get; }
     public bool IsReversed { get; set; }
     public Action? OnComplete { get; set; }
     public Action? OnRepeat { get; set; }
     public bool DidTick { get; private set; }
-    public int CurrentRepeat { get; private set; }
+    public int CurrentCycle { get; private set; }
 
-    public bool IsCompleted => RepeatCount > InfiniteRepeatCount && CurrentRepeat >= RepeatCount;
+    public bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
 
     public float Progress =>
         Duration == TimeSpan.Zero ? 1f : (1f - (float)(TimeLeft.TotalSeconds / Duration.TotalSeconds)).Clamp(0f, 1f);
@@ -75,7 +75,7 @@ public sealed class Tween
         if (TimeLeft > TimeSpan.Zero)
             return;
         DidTick = true;
-        CurrentRepeat++;
+        CurrentCycle++;
         if (IsCompleted)
         {
             OnComplete?.Invoke();
@@ -91,7 +91,7 @@ public sealed class Tween
     public void Reset()
     {
         TimeLeft = Duration;
-        CurrentRepeat = 0;
+        CurrentCycle = 0;
         DidTick = false;
     }
 }

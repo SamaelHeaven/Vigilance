@@ -6,6 +6,8 @@ namespace Vigilance.Drawing;
 
 public sealed class Text : IFullCloneable
 {
+    public const int UnlimitedCharacters = -1;
+
     private Vector2? _sizeCache = null;
 
     public Text() { }
@@ -24,7 +26,7 @@ public sealed class Text : IFullCloneable
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
-    public int VisibleCharacters { get; set; } = -1;
+    public int VisibleCharacters { get; set; } = UnlimitedCharacters;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
     public Interpolation Interpolation { get; set; } = Drawing.DefaultInterpolation;
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;

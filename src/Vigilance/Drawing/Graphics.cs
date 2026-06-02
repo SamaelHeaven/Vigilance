@@ -1211,7 +1211,7 @@ public sealed unsafe class Graphics
         Font? font = null,
         float? fontSize = null,
         in Vector2? spacing = null,
-        int visibleCharacters = -1,
+        int visibleCharacters = Text.UnlimitedCharacters,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -1226,7 +1226,7 @@ public sealed unsafe class Graphics
         Font? font = null,
         float? fontSize = null,
         in Vector2? spacing = null,
-        int visibleCharacters = -1,
+        int visibleCharacters = Text.UnlimitedCharacters,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -1237,11 +1237,8 @@ public sealed unsafe class Graphics
         font ??= Font.Default;
         Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
         BeginDrawing(camera);
-        var i = 0;
-        foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing))
+        foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, visibleCharacters))
         {
-            if (visibleCharacters >= 0 && i >= visibleCharacters)
-                break;
             var finalDest = new Box(
                 dest.Position.X + position.X,
                 dest.Position.Y + position.Y,
@@ -1258,7 +1255,6 @@ public sealed unsafe class Graphics
                 0,
                 colorValue.RColor
             );
-            i++;
         }
 
         EndDrawing();
@@ -1273,7 +1269,7 @@ public sealed unsafe class Graphics
         float? fontSize = null,
         float? strokeWidth = null,
         in Vector2? spacing = null,
-        int visibleCharacters = -1,
+        int visibleCharacters = Text.UnlimitedCharacters,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -1300,7 +1296,7 @@ public sealed unsafe class Graphics
         float? fontSize = null,
         float? strokeWidth = null,
         in Vector2? spacing = null,
-        int visibleCharacters = -1,
+        int visibleCharacters = Text.UnlimitedCharacters,
         Interpolation? interpolation = null,
         Camera? camera = null
     )
@@ -1313,11 +1309,8 @@ public sealed unsafe class Graphics
         var (atlas, glyphInfos) = font.GetStroke((int)strokeWidthValue.Ceil());
         Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
         BeginDrawing(camera);
-        var i = 0;
-        foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, glyphInfos))
+        foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, visibleCharacters, glyphInfos))
         {
-            if (visibleCharacters >= 0 && i >= visibleCharacters)
-                break;
             var finalDest = new Box(
                 dest.Position.X + position.X,
                 dest.Position.Y + position.Y,
@@ -1334,7 +1327,6 @@ public sealed unsafe class Graphics
                 0,
                 colorValue.RColor
             );
-            i++;
         }
 
         EndDrawing();

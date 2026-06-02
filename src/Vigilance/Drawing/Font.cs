@@ -93,13 +93,14 @@ public sealed unsafe class Font : IDisposable
         string text,
         float? fontSize = null,
         in Vector2? spacing = null,
-        TextHeightMode? textHeightMode = null
+        TextHeightMode? textHeightMode = null,
+        int visibleCharacters = Text.UnlimitedCharacters
     )
     {
         var fontSizeValue = fontSize ?? DefaultSize;
         var spacingValue = spacing ?? DefaultTextSpacing;
         var size = Vector2.Zero;
-        foreach (var (_, dest) in GetTextBounds(text, fontSizeValue, spacingValue))
+        foreach (var (_, dest) in GetTextBounds(text, fontSizeValue, spacingValue, visibleCharacters))
             size = size.Max(dest.Position + dest.Size);
         if ((textHeightMode ?? DefaultTextHeightMode) == TextHeightMode.FontSize)
             size.Y = fontSizeValue + text.AsValueEnumerable().Count(c => c == '\n') * (fontSizeValue + spacingValue.Y);
@@ -130,10 +131,18 @@ public sealed unsafe class Font : IDisposable
         string text,
         float? fontSize = null,
         in Vector2? spacing = null,
+        int visibleCharacters = Text.UnlimitedCharacters,
         DictionaryView<char, GlyphInfo>? glyphInfos = null
     )
     {
-        return new TextBoundEnumerable(this, text, fontSize ?? DefaultSize, spacing ?? DefaultTextSpacing, glyphInfos);
+        return new TextBoundEnumerable(
+            this,
+            text,
+            fontSize ?? DefaultSize,
+            spacing ?? DefaultTextSpacing,
+            glyphInfos,
+            visibleCharacters
+        );
     }
 
     public (Texture Atlas, DictionaryView<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
@@ -320,13 +329,15 @@ public sealed unsafe class Font : IDisposable
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
         private readonly DictionaryView<char, GlyphInfo> _glyphInfos;
+        private readonly int _visibleCharacters;
 
         internal TextBoundEnumerable(
             Font font,
             string text,
             float fontSize,
             Vector2 spacing,
-            DictionaryView<char, GlyphInfo>? glyphInfos
+            DictionaryView<char, GlyphInfo>? glyphInfos,
+            int visibleCharacters
         )
         {
             _font = font;
@@ -334,11 +345,12 @@ public sealed unsafe class Font : IDisposable
             _fontSize = fontSize;
             _spacing = spacing;
             _glyphInfos = glyphInfos ?? font.GlyphInfos;
+            _visibleCharacters = visibleCharacters;
         }
 
         public TextBoundEnumerator GetEnumerator()
         {
-            return new TextBoundEnumerator(_font, _text, _fontSize, _spacing, _glyphInfos);
+            return new TextBoundEnumerator(_font, _text, _fontSize, _spacing, _glyphInfos, _visibleCharacters);
         }
 
         public ValueEnumerable<
@@ -357,6 +369,7 @@ public sealed unsafe class Font : IDisposable
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
         private readonly DictionaryView<char, GlyphInfo> _glyphInfos;
+        private readonly int _visibleCharacters;
         private readonly float _aspectRatio;
         private int _index;
         private Vector2 _position;
@@ -366,7 +379,8 @@ public sealed unsafe class Font : IDisposable
             string text,
             float fontSize,
             Vector2 spacing,
-            in DictionaryView<char, GlyphInfo>? glyphInfos
+            in DictionaryView<char, GlyphInfo>? glyphInfos,
+            int visibleCharacters
         )
         {
             _font = font;
@@ -374,13 +388,14 @@ public sealed unsafe class Font : IDisposable
             _fontSize = fontSize;
             _spacing = spacing;
             _glyphInfos = glyphInfos ?? font.GlyphInfos;
+            _visibleCharacters = visibleCharacters;
             _aspectRatio = _font.Quality / fontSize;
             Reset();
         }
 
         public bool MoveNext()
         {
-            while (_index < _text.Length)
+            while (_index < _text.Length && (_visibleCharacters < 0 || _index < _visibleCharacters))
             {
                 var c = _text[_index++];
                 switch (c)
