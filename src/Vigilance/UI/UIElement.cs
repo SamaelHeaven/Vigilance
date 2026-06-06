@@ -1059,13 +1059,13 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
         public bool TryGetChildCount(out int count)
         {
-            count = Origin is UIParent parent ? parent.Children.Count : 0;
+            count = Origin is UIParent parent ? parent.Children().Count : 0;
             return true;
         }
 
         public bool TryGetHasChild(out bool hasChild)
         {
-            hasChild = Origin is UIParent { Children.Count: > 0 };
+            hasChild = Origin is UIParent parent && parent.Children().Count > 0;
             return true;
         }
 
@@ -1091,7 +1091,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
                     return false;
                 }
 
-                _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
+                _enumerator = parent.Children().Deferred(_deferred).GetEnumerator();
                 _hasEnumerator = true;
             }
 
@@ -1118,7 +1118,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
             }
             else if (TryGetParent(out var parent))
             {
-                _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
+                _enumerator = parent.Children().Deferred(_deferred).GetEnumerator();
                 _hasEnumerator = true;
                 while (_enumerator.MoveNext())
                     if (_enumerator.Current == Origin)
@@ -1143,7 +1143,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
             }
             else if (TryGetParent(out var parent))
             {
-                _enumerator = parent.Children.Deferred(_deferred).GetEnumerator();
+                _enumerator = parent.Children().Deferred(_deferred).GetEnumerator();
                 _hasEnumerator = true;
                 goto BEGIN;
             }

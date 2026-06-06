@@ -323,11 +323,25 @@ public readonly unsafe partial record struct Entity
         }
     }
 
-    public TableEnumerable Tables => new(this);
+    public TableEnumerable Tables()
+    {
+        return new TableEnumerable(this);
+    }
 
-    public ComponentEnumerable Components => new(this);
+    public TableEnumerable<T> Tables<T>()
+    {
+        return new TableEnumerable<T>(this);
+    }
 
-    public ChildEnumerable Children => new(this);
+    public ComponentEnumerable Components()
+    {
+        return new ComponentEnumerable(this);
+    }
+
+    public ChildEnumerable Children()
+    {
+        return new ChildEnumerable(this);
+    }
 
     public static ulong GetId(int index, int version)
     {
@@ -475,7 +489,7 @@ public readonly unsafe partial record struct Entity
     public void Clear()
     {
         AssertValid();
-        foreach (var table in Tables.WithHidden())
+        foreach (var table in Tables().WithHidden())
             table.Remove(this, Table.Flags.SilentOnImmutable);
     }
 
@@ -620,7 +634,7 @@ public readonly unsafe partial record struct Entity
         }
 
         sb.Append(", Components = ");
-        sb.Append(Components.ToString());
+        sb.Append(Components().ToString());
         return true;
     }
 
@@ -681,7 +695,76 @@ public readonly unsafe partial record struct Entity
         public void Reset()
         {
             _entity.AssertValid();
-            _enumerator = _entity.Scene.Tables.WithHidden(_withHidden).GetEnumerator();
+            _enumerator = _entity.Scene.Tables().WithHidden(_withHidden).GetEnumerator();
+            Current = null!;
+        }
+
+        public Table Current { get; private set; } = null!;
+
+        public void Dispose()
+        {
+            _enumerator.Dispose();
+        }
+    }
+
+    public struct TableEnumerable<T> : IStructEnumerable<TableEnumerator<T>, Table>
+    {
+        private readonly Entity _entity;
+        private bool _withHidden;
+
+        internal TableEnumerable(in Entity entity)
+        {
+            _entity = entity;
+        }
+
+        public TableEnumerator<T> GetEnumerator()
+        {
+            return new TableEnumerator<T>(_entity, _withHidden);
+        }
+
+        public ValueEnumerable<StructEnumerator<TableEnumerator<T>, Table>, Table> AsValueEnumerable()
+        {
+            return new StructEnumerator<TableEnumerator<T>, Table>(GetEnumerator());
+        }
+
+        public ref TableEnumerable<T> WithHidden(bool withHidden = true)
+        {
+            _withHidden = withHidden;
+            return ref this;
+        }
+    }
+
+    public struct TableEnumerator<T> : IStructEnumerator<Table>
+    {
+        private readonly Entity _entity;
+        private readonly bool _withHidden;
+        private Scene.TableEnumerator<T> _enumerator;
+
+        internal TableEnumerator(in Entity entity, bool withHidden)
+        {
+            _entity = entity;
+            _withHidden = withHidden;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            while (_enumerator.MoveNext())
+            {
+                var table = _enumerator.Current;
+                if (!_entity.Has(table))
+                    continue;
+                Current = table;
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            _entity.AssertValid();
+            _enumerator = _entity.Scene.Tables<T>().WithHidden(_withHidden).GetEnumerator();
             Current = null!;
         }
 
@@ -724,7 +807,7 @@ public readonly unsafe partial record struct Entity
             using var sb = new ValueStringBuilder(stackalloc char[256]);
             sb.Append('[');
             var any = false;
-            foreach (var table in _entity.Tables.WithHidden(_withHidden))
+            foreach (var table in _entity.Tables().WithHidden(_withHidden))
             {
                 if (!table.TryGet(_entity, out var component))
                     continue;
@@ -769,7 +852,7 @@ public readonly unsafe partial record struct Entity
         public void Reset()
         {
             _entity.AssertValid();
-            _enumerator = _entity.Scene.Tables.WithHidden(_withHidden).GetEnumerator();
+            _enumerator = _entity.Scene.Tables().WithHidden(_withHidden).GetEnumerator();
             Current = null;
         }
 

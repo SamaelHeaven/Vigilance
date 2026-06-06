@@ -312,7 +312,7 @@ public readonly unsafe struct WritableImage<T> : ISpanView<T>, IReadOnlyList<T>,
         return new Span<T>((T*)_image.Image.RImage.Data, PixelCount);
     }
 
-    ReadOnlySpan<T> ISpanView<T>.AsSpan()
+    ReadOnlySpan<T> IReadOnlySpan<T>.AsSpan()
     {
         return AsSpan();
     }

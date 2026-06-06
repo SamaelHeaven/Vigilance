@@ -149,7 +149,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         return GetEnumerator();
     }
 
-    readonly ReadOnlySpan<T> ISpanView<T>.AsSpan()
+    readonly ReadOnlySpan<T> IReadOnlySpan<T>.AsSpan()
     {
         return AsSpan();
     }

@@ -5,7 +5,15 @@ using ZLinq.Linq;
 
 namespace Vigilance.Collections;
 
-public interface ISpanView<TValue> : IStructEnumerable<SpanViewEnumerator<TValue>, TValue>, IReadOnlyCollection<TValue>
+public interface IReadOnlySpan<TValue>
+{
+    ReadOnlySpan<TValue> AsSpan();
+}
+
+public interface ISpanView<TValue>
+    : IStructEnumerable<SpanViewEnumerator<TValue>, TValue>,
+        IReadOnlyCollection<TValue>,
+        IReadOnlySpan<TValue>
 {
     int IReadOnlyCollection<TValue>.Count => AsSpan().Length;
 
@@ -22,16 +30,24 @@ public interface ISpanView<TValue> : IStructEnumerable<SpanViewEnumerator<TValue
         return new SpanViewEnumerator<TValue>(this);
     }
 
-    ReadOnlySpan<TValue> AsSpan();
-
     new ValueEnumerable<FromSpan<TValue>, TValue> AsValueEnumerable();
 
     new ValueEnumerator<FromSpan<TValue>, TValue> GetEnumerator();
 }
 
-public interface IListView<TValue> : IStructEnumerable<List<TValue>.Enumerator, TValue>, IReadOnlyCollection<TValue>
+public interface IListView<TValue>
+    : IStructEnumerable<List<TValue>.Enumerator, TValue>,
+        IReadOnlyCollection<TValue>,
+        IReadOnlySpan<TValue>
 {
     int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
+    ReadOnlySpan<TValue> IReadOnlySpan<TValue>.AsSpan()
+    {
+        using var enumerator = AsValueEnumerable().Enumerator;
+        enumerator.TryGetSpan(out var span);
+        return span;
+    }
 
     ValueEnumerable<StructEnumerator<List<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         List<TValue>.Enumerator,
@@ -42,6 +58,31 @@ public interface IListView<TValue> : IStructEnumerable<List<TValue>.Enumerator, 
     }
 
     new ValueEnumerable<FromList<TValue>, TValue> AsValueEnumerable();
+}
+
+public interface IValueListView<TValue>
+    : IStructEnumerable<ValueList<TValue>.Enumerator, TValue>,
+        IReadOnlyCollection<TValue>,
+        IReadOnlySpan<TValue>
+{
+    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
+    ReadOnlySpan<TValue> IReadOnlySpan<TValue>.AsSpan()
+    {
+        using var enumerator = GetEnumerator();
+        enumerator.TryGetSpan(out var span);
+        return span;
+    }
+
+    ValueEnumerable<StructEnumerator<ValueList<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
+        ValueList<TValue>.Enumerator,
+        TValue
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueList<TValue>.Enumerator, TValue>(GetEnumerator());
+    }
+
+    new ValueEnumerable<ValueList<TValue>.Enumerator, TValue> AsValueEnumerable();
 }
 
 public interface IDictionaryView<TKey, TValue>
@@ -148,6 +189,23 @@ public interface IQueueView<TValue> : IStructEnumerable<Queue<TValue>.Enumerator
     new ValueEnumerable<FromQueue<TValue>, TValue> AsValueEnumerable();
 }
 
+public interface IValueQueueView<TValue>
+    : IStructEnumerable<ValueQueue<TValue>.Enumerator, TValue>,
+        IReadOnlyCollection<TValue>
+{
+    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
+    ValueEnumerable<StructEnumerator<ValueQueue<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
+        ValueQueue<TValue>.Enumerator,
+        TValue
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueQueue<TValue>.Enumerator, TValue>(GetEnumerator());
+    }
+
+    new ValueEnumerable<ValueQueue<TValue>.Enumerator, TValue> AsValueEnumerable();
+}
+
 public interface IStackView<TValue> : IStructEnumerable<Stack<TValue>.Enumerator, TValue>, IReadOnlyCollection<TValue>
 {
     int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
@@ -163,9 +221,36 @@ public interface IStackView<TValue> : IStructEnumerable<Stack<TValue>.Enumerator
     new ValueEnumerable<FromStack<TValue>, TValue> AsValueEnumerable();
 }
 
-public interface IArrayView<TValue> : IStructEnumerable<ArrayEnumerator<TValue>, TValue>, IReadOnlyCollection<TValue>
+public interface IValueStackView<TValue>
+    : IStructEnumerable<ValueStack<TValue>.Enumerator, TValue>,
+        IReadOnlyCollection<TValue>
 {
     int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
+    ValueEnumerable<StructEnumerator<ValueStack<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
+        ValueStack<TValue>.Enumerator,
+        TValue
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueStack<TValue>.Enumerator, TValue>(GetEnumerator());
+    }
+
+    new ValueEnumerable<ValueStack<TValue>.Enumerator, TValue> AsValueEnumerable();
+}
+
+public interface IArrayView<TValue>
+    : IStructEnumerable<ArrayEnumerator<TValue>, TValue>,
+        IReadOnlyCollection<TValue>,
+        IReadOnlySpan<TValue>
+{
+    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
+    ReadOnlySpan<TValue> IReadOnlySpan<TValue>.AsSpan()
+    {
+        using var enumerator = AsValueEnumerable().Enumerator;
+        enumerator.TryGetSpan(out var span);
+        return span;
+    }
 
     ValueEnumerable<StructEnumerator<ArrayEnumerator<TValue>, TValue>, TValue> IStructEnumerable<
         ArrayEnumerator<TValue>,
@@ -209,6 +294,11 @@ public readonly record struct ListView<TValue> : IListView<TValue>, IReadOnlyLis
         return GetEnumerator();
     }
 
+    public ReadOnlySpan<TValue> AsSpan()
+    {
+        return _list.AsSpan();
+    }
+
     public TValue this[int index] => _list[index];
 
     ValueEnumerator<FromSpan<TValue>, TValue> ISpanView<TValue>.GetEnumerator()
@@ -219,11 +309,6 @@ public readonly record struct ListView<TValue> : IListView<TValue>, IReadOnlyLis
     ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
     {
         return _list.AsSpan().AsValueEnumerable();
-    }
-
-    public ReadOnlySpan<TValue> AsSpan()
-    {
-        return _list.AsSpan();
     }
 
     public static implicit operator ListView<TValue>(List<TValue> list)
@@ -568,6 +653,11 @@ public readonly record struct ArrayView<TValue> : IArrayView<TValue>, IReadOnlyL
         return GetEnumerator();
     }
 
+    public ReadOnlySpan<TValue> AsSpan()
+    {
+        return _array;
+    }
+
     public TValue this[int index] => _array[index];
 
     ValueEnumerator<FromSpan<TValue>, TValue> ISpanView<TValue>.GetEnumerator()
@@ -578,11 +668,6 @@ public readonly record struct ArrayView<TValue> : IArrayView<TValue>, IReadOnlyL
     ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
     {
         return AsSpan().AsValueEnumerable();
-    }
-
-    public ReadOnlySpan<TValue> AsSpan()
-    {
-        return _array;
     }
 
     public static implicit operator ArrayView<TValue>(TValue[] array)
@@ -624,6 +709,11 @@ public struct ArrayEnumerator<TValue> : IStructEnumerator<TValue>
     public readonly TValue Current => _array[_index];
 
     public void Dispose() { }
+
+    public static implicit operator ArrayEnumerator<TValue>(TValue[] array)
+    {
+        return new ArrayEnumerator<TValue>(array);
+    }
 }
 
 public struct SpanViewEnumerator<TValue> : IStructEnumerator<TValue>, ISpanView<TValue>

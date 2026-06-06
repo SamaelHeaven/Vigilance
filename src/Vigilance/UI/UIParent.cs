@@ -44,7 +44,7 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public ChildEnumerable Children => new(this);
+    public ChildEnumerable Children() => new(this);
 
     public void Add(UIElement? element)
     {
@@ -110,7 +110,7 @@ public abstract class UIParent : UIElement
 
     public void Clear()
     {
-        foreach (var element in Children)
+        foreach (var element in Children())
             element.Remove();
     }
 

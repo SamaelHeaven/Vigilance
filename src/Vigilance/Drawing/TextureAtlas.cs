@@ -5,9 +5,9 @@ using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class TextureAtlas : IListView<Box>, IReadOnlyList<Box>
+public sealed class TextureAtlas : IArrayView<Box>, IReadOnlyList<Box>
 {
-    private readonly List<Box> _boxes;
+    private readonly Box[] _boxes;
 
     public TextureAtlas(Texture texture, Vector2 count, float spacing = 0)
         : this(texture, (int)count.X, (int)count.Y, spacing) { }
@@ -20,7 +20,7 @@ public sealed class TextureAtlas : IListView<Box>, IReadOnlyList<Box>
 
     public TextureAtlas(Texture texture, float regionWidth, float regionHeight, int count, float spacing = 0)
     {
-        var boxes = new List<Box>(count);
+        var boxes = new Box[count];
         Texture = texture;
         RegionSize = new Vector2(regionWidth, regionHeight);
         Spacing = spacing;
@@ -28,7 +28,7 @@ public sealed class TextureAtlas : IListView<Box>, IReadOnlyList<Box>
         var offsetY = 0.0f;
         for (var i = 0; i < count; i++)
         {
-            boxes.Add(new Box(offsetX, offsetY, regionWidth, regionHeight));
+            boxes[i] = new Box(offsetX, offsetY, regionWidth, regionHeight);
             offsetX += regionWidth + spacing;
             if (!(offsetX + regionWidth > texture.Width))
                 continue;
@@ -61,17 +61,17 @@ public sealed class TextureAtlas : IListView<Box>, IReadOnlyList<Box>
 
     public Box this[Vector2 position] => GetRegion(position);
 
-    public List<Box>.Enumerator GetEnumerator()
+    public ArrayEnumerator<Box> GetEnumerator()
     {
-        return _boxes.GetEnumerator();
+        return _boxes;
     }
 
-    public ValueEnumerable<FromList<Box>, Box> AsValueEnumerable()
+    public ValueEnumerable<FromArray<Box>, Box> AsValueEnumerable()
     {
         return _boxes.AsValueEnumerable();
     }
 
-    public int Count => _boxes.Count;
+    public int Count => _boxes.Length;
 
     public Box this[int index] => GetRegion(index);
 

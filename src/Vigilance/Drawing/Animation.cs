@@ -6,10 +6,10 @@ using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class Animation : IListView<AnimationFrame>
+public sealed class Animation : IArrayView<AnimationFrame>
 {
     public const int InfiniteCycleCount = -1;
-    private readonly List<AnimationFrame> _frames;
+    private readonly AnimationFrame[] _frames;
     private TimeSpan _elapsed;
     private int _index;
     private int? _nextIndex;
@@ -24,8 +24,8 @@ public sealed class Animation : IListView<AnimationFrame>
         Action? completeAction = null
     )
     {
-        _frames = frames.AsValueEnumerable().ToList();
-        if (_frames.Count == 0)
+        _frames = frames.AsValueEnumerable().ToArray();
+        if (_frames.Length == 0)
             throw new ArgumentException("Animation must have at least one frame.");
         _nextIndex = null;
         OnComplete = completeAction;
@@ -47,14 +47,14 @@ public sealed class Animation : IListView<AnimationFrame>
 
     public AnimationFrame Frame => _frames[_index];
     public bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
-    public int FrameCount => _frames.Count;
+    public int FrameCount => _frames.Length;
 
     public int Index
     {
         get => _index;
         set
         {
-            _index = value.Clamp(0, _frames.Count - 1);
+            _index = value.Clamp(0, _frames.Length - 1);
             _elapsed = TimeSpan.Zero;
         }
     }
@@ -62,21 +62,21 @@ public sealed class Animation : IListView<AnimationFrame>
     public int StartIndex
     {
         get => _startIndex;
-        set => _startIndex = value.Clamp(0, _frames.Count - 1);
+        set => _startIndex = value.Clamp(0, _frames.Length - 1);
     }
 
     public int? NextIndex
     {
         get => _nextIndex;
-        set => _nextIndex = value?.Clamp(0, _frames.Count - 1);
+        set => _nextIndex = value?.Clamp(0, _frames.Length - 1);
     }
 
-    public List<AnimationFrame>.Enumerator GetEnumerator()
+    public ArrayEnumerator<AnimationFrame> GetEnumerator()
     {
-        return _frames.GetEnumerator();
+        return _frames;
     }
 
-    public ValueEnumerable<FromList<AnimationFrame>, AnimationFrame> AsValueEnumerable()
+    public ValueEnumerable<FromArray<AnimationFrame>, AnimationFrame> AsValueEnumerable()
     {
         return _frames.AsValueEnumerable();
     }
@@ -84,14 +84,14 @@ public sealed class Animation : IListView<AnimationFrame>
     public void Update(TimeSpan? step = null)
     {
         DidRepeat = false;
-        if (IsPaused || _frames.Count <= 1 || IsCompleted)
+        if (IsPaused || _frames.Length <= 1 || IsCompleted)
             return;
         _elapsed += step ?? Time.Delta;
         var frameDelay = Delay + _frames[_index].Delay;
         if (_elapsed < frameDelay)
             return;
         _elapsed -= frameDelay;
-        _index = _nextIndex ?? (_index + 1) % _frames.Count;
+        _index = _nextIndex ?? (_index + 1) % _frames.Length;
         if (_nextIndex.HasValue)
             _nextIndex = null;
         if (_index != _startIndex)

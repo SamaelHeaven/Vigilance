@@ -17,7 +17,7 @@ public static class SpanExtensions
                 str.Length
             ),
             ArraySegment<T> segment => MemoryExtensions.AsSpan(segment),
-            ISpanView<T> span => span.AsSpan(),
+            IReadOnlySpan<T> span => span.AsSpan(),
             _ => enumerable.ToArray(),
         };
     }
@@ -25,5 +25,10 @@ public static class SpanExtensions
     public static Span<T> AsSpan<T>(this List<T> list)
     {
         return CollectionsMarshal.AsSpan(list);
+    }
+
+    public static ReadOnlySpan<T> AsSpan<T>(this IReadOnlySpan<T> view)
+    {
+        return view.AsSpan();
     }
 }

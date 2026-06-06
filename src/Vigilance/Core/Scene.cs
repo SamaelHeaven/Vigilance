@@ -106,7 +106,9 @@ public sealed unsafe partial class Scene
 
     public int SuspendedCount { get; private set; }
 
-    public TableEnumerable Tables => new(this);
+    public TableEnumerable Tables() => new(this);
+
+    public TableEnumerable<T> Tables<T>() => new(this);
 
     public void Restart()
     {
@@ -491,7 +493,7 @@ public sealed unsafe partial class Scene
 
         _destroyAction?.Invoke(entity);
         var name = entity.Name;
-        var tables = entity.Tables.WithHidden();
+        var tables = entity.Tables().WithHidden();
         var flag = Core.Table.Flags.SilentOnImmutable;
         do
         {
@@ -727,6 +729,74 @@ public sealed unsafe partial class Scene
         public Table Current { get; private set; } = null!;
 
         public void Dispose() { }
+    }
+
+    public struct TableEnumerable<T> : IStructEnumerable<TableEnumerator<T>, Table>
+    {
+        private readonly Scene _scene;
+        private bool _withHidden;
+
+        internal TableEnumerable(Scene scene)
+        {
+            _scene = scene;
+        }
+
+        public TableEnumerator<T> GetEnumerator()
+        {
+            return new TableEnumerator<T>(_scene, _withHidden);
+        }
+
+        public ValueEnumerable<StructEnumerator<TableEnumerator<T>, Table>, Table> AsValueEnumerable()
+        {
+            return new StructEnumerator<TableEnumerator<T>, Table>(GetEnumerator());
+        }
+
+        public ref TableEnumerable<T> WithHidden(bool withHidden = true)
+        {
+            _withHidden = withHidden;
+            return ref this;
+        }
+    }
+
+    public struct TableEnumerator<T> : IStructEnumerator<Table>
+    {
+        private readonly Scene _scene;
+        private readonly bool _withHidden;
+        private TableEnumerator _enumerator;
+
+        internal TableEnumerator(Scene scene, bool withHidden)
+        {
+            _scene = scene;
+            _withHidden = withHidden;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            while (_enumerator.MoveNext())
+            {
+                var table = _enumerator.Current;
+                if (!typeof(T).IsAssignableFrom(table.Type))
+                    continue;
+                Current = table;
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            _enumerator = _scene.Tables().WithHidden(_withHidden).GetEnumerator();
+            Current = null!;
+        }
+
+        public Table Current { get; private set; } = null!;
+
+        public void Dispose()
+        {
+            _enumerator.Dispose();
+        }
     }
 
     internal readonly record struct Event(EventType EventType, ulong EntityId, object Data)
