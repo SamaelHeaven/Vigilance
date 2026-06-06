@@ -23,6 +23,14 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
     private bool _click;
     private ValueList<IUIComponent> _components = [];
+    private Unit _marginTop = Unit.Undefined;
+    private Unit _marginRight = Unit.Undefined;
+    private Unit _marginBottom = Unit.Undefined;
+    private Unit _marginLeft = Unit.Undefined;
+    private Unit _appliedMarginTop = Unit.Undefined;
+    private Unit _appliedMarginRight = Unit.Undefined;
+    private Unit _appliedMarginBottom = Unit.Undefined;
+    private Unit _appliedMarginLeft = Unit.Undefined;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onBeginRenderHandlers;
     private Func<UIElement, bool>? _onClickHandlers;
     private Func<UIElement, bool>? _onCloneHandlers;
@@ -295,58 +303,90 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
     public Unit MarginTop
     {
-        get => Unit.FromValue(Node.StyleGetMargin(Edge.Top));
-        set =>
-            Unit.SetUnit(
-                Node,
-                value,
-                Edge.Top,
-                (node, edge) => node.StyleSetMarginAuto(edge),
-                (node, edge, margin) => node.StyleSetMargin(edge, margin),
-                (node, edge, margin) => node.StyleSetMarginPercent(edge, margin)
-            );
+        get => _marginTop;
+        set
+        {
+            _marginTop = value;
+            if (!IsMarginManagedByGap())
+                ApplyDeclaredMargin();
+            else
+                MarkDirty();
+        }
     }
 
     public Unit MarginRight
     {
-        get => Unit.FromValue(Node.StyleGetMargin(Edge.Right));
-        set =>
-            Unit.SetUnit(
-                Node,
-                value,
-                Edge.Right,
-                (node, edge) => node.StyleSetMarginAuto(edge),
-                (node, edge, margin) => node.StyleSetMargin(edge, margin),
-                (node, edge, margin) => node.StyleSetMarginPercent(edge, margin)
-            );
+        get => _marginRight;
+        set
+        {
+            _marginRight = value;
+            if (!IsMarginManagedByGap())
+                ApplyDeclaredMargin();
+            else
+                MarkDirty();
+        }
     }
 
     public Unit MarginBottom
     {
-        get => Unit.FromValue(Node.StyleGetMargin(Edge.Bottom));
-        set =>
-            Unit.SetUnit(
-                Node,
-                value,
-                Edge.Bottom,
-                (node, edge) => node.StyleSetMarginAuto(edge),
-                (node, edge, margin) => node.StyleSetMargin(edge, margin),
-                (node, edge, margin) => node.StyleSetMarginPercent(edge, margin)
-            );
+        get => _marginBottom;
+        set
+        {
+            _marginBottom = value;
+            if (!IsMarginManagedByGap())
+                ApplyDeclaredMargin();
+            else
+                MarkDirty();
+        }
     }
 
     public Unit MarginLeft
     {
-        get => Unit.FromValue(Node.StyleGetMargin(Edge.Left));
-        set =>
-            Unit.SetUnit(
-                Node,
-                value,
-                Edge.Left,
-                (node, edge) => node.StyleSetMarginAuto(edge),
-                (node, edge, margin) => node.StyleSetMargin(edge, margin),
-                (node, edge, margin) => node.StyleSetMarginPercent(edge, margin)
-            );
+        get => _marginLeft;
+        set
+        {
+            _marginLeft = value;
+            if (!IsMarginManagedByGap())
+                ApplyDeclaredMargin();
+            else
+                MarkDirty();
+        }
+    }
+
+    internal Insets DeclaredMargin =>
+        new()
+        {
+            Top = _marginTop,
+            Right = _marginRight,
+            Bottom = _marginBottom,
+            Left = _marginLeft,
+        };
+
+    internal bool ApplyDeclaredMargin()
+    {
+        return ApplyComputedMargin(DeclaredMargin);
+    }
+
+    internal bool ApplyComputedMargin(Insets margin)
+    {
+        if (
+            _appliedMarginTop == margin.Top
+            && _appliedMarginRight == margin.Right
+            && _appliedMarginBottom == margin.Bottom
+            && _appliedMarginLeft == margin.Left
+        )
+            return false;
+
+        SetNodeMargin(Edge.Top, margin.Top);
+        SetNodeMargin(Edge.Right, margin.Right);
+        SetNodeMargin(Edge.Bottom, margin.Bottom);
+        SetNodeMargin(Edge.Left, margin.Left);
+        _appliedMarginTop = margin.Top;
+        _appliedMarginRight = margin.Right;
+        _appliedMarginBottom = margin.Bottom;
+        _appliedMarginLeft = margin.Left;
+        MarkDirty();
+        return true;
     }
 
     public Unit Width
@@ -706,7 +746,29 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     public void CalculateLayout(float width = float.NaN, float height = float.NaN)
     {
         MarkReady();
-        Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
+        foreach (var element in this.DescendantsAndSelf())
+            element.ApplyDeclaredMargin();
+        if (!HasGapContainers())
+        {
+            Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
+            return;
+        }
+
+        const int maxGapPasses = 6;
+        var changed = false;
+        for (var pass = 0; pass < maxGapPasses; pass++)
+        {
+            Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
+            changed = false;
+            foreach (var element in this.DescendantsAndSelf())
+                if (element is UIContainer container)
+                    changed |= container.ApplyGapMargins();
+            if (!changed)
+                return;
+        }
+
+        if (changed)
+            Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
     }
 
     public void Attach(IUIComponent component)
@@ -792,6 +854,31 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     protected void MarkDirty()
     {
         Node.MarkAsDirty();
+    }
+
+    private bool IsMarginManagedByGap()
+    {
+        return Parent is UIContainer { HasGap: true };
+    }
+
+    private bool HasGapContainers()
+    {
+        foreach (var element in this.DescendantsAndSelf())
+            if (element is UIContainer { HasGap: true })
+                return true;
+        return false;
+    }
+
+    private void SetNodeMargin(Edge edge, Unit value)
+    {
+        Unit.SetUnit(
+            Node,
+            value,
+            edge,
+            static (node, e) => node.StyleSetMarginAuto(e),
+            static (node, e, margin) => node.StyleSetMargin(e, margin),
+            static (node, e, margin) => node.StyleSetMarginPercent(e, margin)
+        );
     }
 
     private static void Update(UIElement element, in Entity entity)
@@ -992,6 +1079,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         result.Parent = null;
         result.Node = Flex.CreateDefaultNode();
         Flex.NodeCopyStyle(result.Node, element.Node);
+        result.ApplyDeclaredMargin();
         result.Attributes = element.Attributes.ShallowClone();
         if (element.IsLayoutCustom)
             result.Node.SetMeasureFunc(

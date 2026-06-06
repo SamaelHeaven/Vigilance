@@ -59,6 +59,7 @@ public abstract class UIParent : UIElement
         element.Remove();
         ChildrenList.Add(element);
         element.Parent = this;
+        element.ApplyDeclaredMargin();
         if (!IsLayoutCustom)
             Node.AddChild(element.Node);
         MarkDirty();
@@ -81,6 +82,7 @@ public abstract class UIParent : UIElement
         ChildrenList.Insert(index, element);
         element.Remove();
         element.Parent = this;
+        element.ApplyDeclaredMargin();
         if (!IsLayoutCustom)
             Node.InsertChild(element.Node, index);
         MarkDirty();
@@ -102,6 +104,7 @@ public abstract class UIParent : UIElement
         ChildrenList[index].Remove();
         element.Remove();
         element.Parent = this;
+        element.ApplyDeclaredMargin();
         ChildrenList[index] = element;
         if (!IsLayoutCustom)
             Node.ReplaceChild(index, element.Node);
