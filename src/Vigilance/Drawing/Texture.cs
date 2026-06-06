@@ -63,6 +63,8 @@ public sealed unsafe class Texture : IDisposable
 
     public void Dispose()
     {
+        if (this == _empty || this == _white)
+            return;
         ReleaseUnmanagedResources();
         GC.SuppressFinalize(this);
         RenderTexture = null;

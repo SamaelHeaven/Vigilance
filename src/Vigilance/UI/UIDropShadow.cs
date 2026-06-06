@@ -9,6 +9,8 @@ public class UIDropShadow : IUIComponent
     private readonly Func<UIElement, Graphics, CameraProvider, bool> _onBeginRenderHandler;
     private readonly Func<UIElement, bool> _onDirtyHandler;
     private int _blur;
+    private bool _isTextureUsed;
+    private Texture _texture = Texture.Empty;
 
     public UIDropShadow(int blur = 1, Color? color = null)
     {
@@ -24,7 +26,15 @@ public class UIDropShadow : IUIComponent
 
     public Color Color { get; set; }
     public bool IsTextureDirty { get; private set; } = true;
-    public Texture Texture { get; private set; } = Texture.Empty;
+
+    public Texture Texture
+    {
+        get
+        {
+            _isTextureUsed = true;
+            return _texture;
+        }
+    }
 
     public int Blur
     {
@@ -74,11 +84,13 @@ public class UIDropShadow : IUIComponent
             }
 
             result.Blur(_blur);
-            Texture = result.ToTexture();
+            if (!_isTextureUsed)
+                _texture.Dispose();
+            _texture = result.ToTexture();
         }
 
         var previousClip = graphics.SetClip(null);
-        graphics.DrawTexture(Texture, element.LayoutPosition - offset, null, Color, camera: camera);
+        graphics.DrawTexture(_texture, element.LayoutPosition - offset, null, Color, camera: camera);
         graphics.SetClip(previousClip);
         return false;
     }
