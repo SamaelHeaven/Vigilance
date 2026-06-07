@@ -210,16 +210,10 @@ public class UIScrollContainer : UIContainer
         foreach (
             var element in Children().AsValueEnumerable().Where(element => element.Position != PositionType.Absolute)
         )
-            if (direction.IsVertical)
-            {
-                size.X = size.X.Max(element.LayoutLeft + element.LayoutWidth);
-                size.Y += element.LayoutHeight;
-            }
-            else
-            {
-                size.X += element.LayoutWidth;
-                size.Y = size.Y.Max(element.LayoutTop + element.LayoutHeight);
-            }
+        {
+            size.X = size.X.Max(element.LayoutLeft + element.LayoutWidth);
+            size.Y = size.Y.Max(element.LayoutTop + element.LayoutHeight);
+        }
 
         ChildrenLayoutSize = size;
         IsMouseInsideNestedScrollContainer = this.Descendants()
