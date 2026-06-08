@@ -39,7 +39,7 @@ public sealed unsafe partial class Scene
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
-    private List<IGameSystem> _systems = null!;
+    private ValueList<IGameSystem> _systems = [];
     private ValueList<Table> _tables = [];
     private float _time;
     private Action? _updateAction;
@@ -82,8 +82,6 @@ public sealed unsafe partial class Scene
         OnRemove<Parent>(OnRemoveParent);
     }
 
-    public ListView<IGameSystem> Systems => _systems ?? throw new NullReferenceException();
-
     public Camera Camera { get; } = new();
 
     public Entity Scope
@@ -114,6 +112,23 @@ public sealed unsafe partial class Scene
     public TableEnumerable<T> Tables<T>()
     {
         return new TableEnumerable<T>(this);
+    }
+
+    public SystemEnumerable Systems()
+    {
+        return new SystemEnumerable(this);
+    }
+
+    public SystemEnumerable<T> Systems<T>()
+        where T : IGameSystem
+    {
+        return new SystemEnumerable<T>(this);
+    }
+
+    public T System<T>()
+        where T : IGameSystem
+    {
+        return _systems.AsValueEnumerable().OfType<T>().FirstOrDefault()!;
     }
 
     public void Restart()
@@ -529,7 +544,7 @@ public sealed unsafe partial class Scene
 
     private void Initialize()
     {
-        _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(_systemsFunc.Invoke()).ToList();
+        _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(_systemsFunc.Invoke()).ToValueList();
         _systems.Sort();
         foreach (var system in _systems)
             system.Configure(this);
@@ -798,6 +813,152 @@ public sealed unsafe partial class Scene
         }
 
         public Table Current { get; private set; } = null!;
+
+        public void Dispose()
+        {
+            _enumerator.Dispose();
+        }
+    }
+
+    public readonly struct SystemEnumerable : IStructEnumerable<SystemEnumerator, IGameSystem>
+    {
+        private readonly Scene _scene;
+
+        internal SystemEnumerable(Scene scene)
+        {
+            _scene = scene;
+        }
+
+        public SystemEnumerator GetEnumerator()
+        {
+            return new SystemEnumerator(_scene);
+        }
+
+        public ValueEnumerable<SystemEnumerator, IGameSystem> AsValueEnumerable()
+        {
+            return new ValueEnumerable<SystemEnumerator, IGameSystem>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<SystemEnumerator, IGameSystem>, IGameSystem> IStructEnumerable<
+            SystemEnumerator,
+            IGameSystem
+        >.AsValueEnumerable()
+        {
+            return new StructEnumerator<SystemEnumerator, IGameSystem>(GetEnumerator());
+        }
+    }
+
+    public struct SystemEnumerator : IStructEnumerator<IGameSystem>, IValueEnumerator<IGameSystem>
+    {
+        private readonly Scene _scene;
+        private int _index;
+
+        internal SystemEnumerator(Scene scene)
+        {
+            _scene = scene;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            var newIndex = _index + 1;
+            if (newIndex >= _scene._systems.Count)
+                return false;
+            _index = newIndex;
+            Current = _scene._systems[_index];
+            return true;
+        }
+
+        public void Reset()
+        {
+            _index = -1;
+            Current = null!;
+        }
+
+        public IGameSystem Current { get; private set; } = null!;
+
+        public void Dispose() { }
+
+        public bool TryGetNext(out IGameSystem current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _scene._systems.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<IGameSystem> span)
+        {
+            span = _scene._systems.AsSpan();
+            return true;
+        }
+
+        public bool TryCopyTo(scoped Span<IGameSystem> destination, Index offset)
+        {
+            return _scene._systems.AsSpan().TryCopyTo(destination, offset);
+        }
+    }
+
+    public readonly struct SystemEnumerable<T> : IStructEnumerable<SystemEnumerator<T>, T>
+        where T : IGameSystem
+    {
+        private readonly Scene _scene;
+
+        internal SystemEnumerable(Scene scene)
+        {
+            _scene = scene;
+        }
+
+        public SystemEnumerator<T> GetEnumerator()
+        {
+            return new SystemEnumerator<T>(_scene);
+        }
+
+        public ValueEnumerable<StructEnumerator<SystemEnumerator<T>, T>, T> AsValueEnumerable()
+        {
+            return new StructEnumerator<SystemEnumerator<T>, T>(GetEnumerator());
+        }
+    }
+
+    public struct SystemEnumerator<T> : IStructEnumerator<T>
+        where T : IGameSystem
+    {
+        private readonly Scene _scene;
+        private SystemEnumerator _enumerator;
+
+        internal SystemEnumerator(Scene scene)
+        {
+            _scene = scene;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            while (_enumerator.MoveNext())
+            {
+                if (_enumerator.Current is not T system)
+                    continue;
+                Current = system;
+                return true;
+            }
+
+            return false;
+        }
+
+        public void Reset()
+        {
+            _enumerator = _scene.Systems().GetEnumerator();
+            Current = default!;
+        }
+
+        public T Current { get; private set; } = default!;
 
         public void Dispose()
         {

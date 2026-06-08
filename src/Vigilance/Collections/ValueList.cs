@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Vigilance.Core;
 using ZLinq;
-using ZLinq.Internal;
 using ZLinq.Linq;
 
 namespace Vigilance.Collections;
@@ -700,10 +699,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
         public bool TryCopyTo(scoped Span<T> destination, Index offset)
         {
-            if (!EnumeratorHelper.TryGetSlice(_list.AsSpan(), offset, destination.Length, out var slice))
-                return false;
-            slice.CopyTo(destination);
-            return true;
+            return _list.AsSpan().TryCopyTo(destination, offset);
         }
     }
 }

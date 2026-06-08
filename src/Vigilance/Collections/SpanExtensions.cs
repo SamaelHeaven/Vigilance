@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using ZLinq.Internal;
 
 namespace Vigilance.Collections;
 
@@ -30,5 +31,13 @@ public static class SpanExtensions
     public static ReadOnlySpan<T> AsSpan<T>(this IReadOnlySpan<T> view)
     {
         return view.AsSpan();
+    }
+
+    public static bool TryCopyTo<T>(this ReadOnlySpan<T> span, scoped Span<T> destination, Index offset)
+    {
+        if (!EnumeratorHelper.TryGetSlice(span, offset, destination.Length, out var slice))
+            return false;
+        slice.CopyTo(destination);
+        return true;
     }
 }

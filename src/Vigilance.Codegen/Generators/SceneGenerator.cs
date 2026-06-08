@@ -280,7 +280,7 @@ public sealed class SceneGenerator : SourceGenerator
                                         goto TABLE{{i}};
                 {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
                                         ref var field{j} = ref _table{j}.GetRef({(noEntity ? "entity" : "_entity")}).Value;
-                                        if (System.Runtime.CompilerServices.Unsafe.IsNullRef(ref field{j}))
+                                        if (global::System.Runtime.CompilerServices.Unsafe.IsNullRef(ref field{j}))
                                             goto TABLE{i};
                                         {(noFields ? "" : $"_field{j} = field{j};")}
                     """).Where(str => str != ""))}}

@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using ZLinq;
-using ZLinq.Internal;
 
 namespace Vigilance.UI;
 
@@ -44,7 +43,10 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public ChildEnumerable Children() => new(this);
+    public ChildEnumerable Children()
+    {
+        return new ChildEnumerable(this);
+    }
 
     public void Add(UIElement? element)
     {
@@ -305,10 +307,7 @@ public abstract class UIParent : UIElement
 
         public bool TryCopyTo(scoped Span<UIElement> destination, Index offset)
         {
-            if (!EnumeratorHelper.TryGetSlice(_parent.ChildrenList.AsSpan(), offset, destination.Length, out var slice))
-                return false;
-            slice.CopyTo(destination);
-            return true;
+            return _parent.ChildrenList.AsSpan().TryCopyTo(destination, offset);
         }
     }
 }
