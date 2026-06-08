@@ -11,6 +11,7 @@ public sealed class DisplayConfig
     public Vector2 ScreenSize { get; set; } = Vector2.Zero;
     public Vector2? MinScreenSize { get; set; } = null;
     public Vector2? MaxScreenSize { get; set; } = null;
+    public Vector2? Position { get; set; } = null;
     public Viewport Viewport { get; set; } = Viewport.Fit;
     public RenderingMode RenderingMode { get; set; } = RenderingMode.Native();
     public Color Background { get; set; } = Color.Black;

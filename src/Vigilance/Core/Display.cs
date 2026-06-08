@@ -113,7 +113,7 @@ public static unsafe class Display
         {
             if (!Platform.Desktop.IsCurrent)
                 return;
-            var size = value.Round();
+            var size = value.Floor();
             if (ScreenSize == size)
                 return;
             _config.ScreenSize = size;
@@ -154,7 +154,7 @@ public static unsafe class Display
         get => _config.MinScreenSize;
         set
         {
-            value = value?.Round();
+            value = value?.Floor();
             if (value == _config.MinScreenSize)
                 return;
             _config.MinScreenSize = value;
@@ -168,12 +168,39 @@ public static unsafe class Display
         get => _config.MaxScreenSize;
         set
         {
-            value = value?.Round();
+            value = value?.Floor();
             if (value == _config.MaxScreenSize)
                 return;
             _config.MaxScreenSize = value;
             if (Platform.Desktop.IsCurrent)
                 Raylib.SetWindowMaxSize((int)(value?.X ?? 0), (int)(value?.Y ?? 0));
+        }
+    }
+
+    public static Vector2 Position
+    {
+        get => _config.Position ?? Vector2.Zero;
+        set
+        {
+            if (!Platform.Desktop.IsCurrent)
+                return;
+            value = value.Floor();
+            if (value == _config.Position)
+                return;
+            if (Fullscreen)
+            {
+                _previousScreen.Position = value;
+            }
+            else
+            {
+                if (Maximized)
+                    Raylib.ClearWindowState(ConfigFlags.MaximizedWindow);
+                else if (OperatingSystem.IsMacOS() && ScreenSize == MonitorSize)
+                    return;
+                Raylib.SetWindowPosition((int)value.X, (int)value.Y);
+            }
+
+            _config.Position = Raylib.GetWindowPosition();
         }
     }
 
@@ -422,8 +449,8 @@ public static unsafe class Display
         {
             _fullscreen = JSEngine.Eval("!!document.fullscreenElement");
             RefreshRate = 0;
-            MonitorWidth = Raylib.GetScreenWidth();
-            MonitorHeight = Raylib.GetScreenHeight();
+            MonitorWidth = JSEngine.Eval("screen.width");
+            MonitorHeight = JSEngine.Eval("screen.height");
             Focused = JSEngine.Eval("document.activeElement === Module.canvas");
         }
         else
@@ -435,6 +462,7 @@ public static unsafe class Display
             Focused = Raylib.IsWindowFocused();
         }
 
+        _config.Position = Raylib.GetWindowPosition();
         Hidden = Raylib.IsWindowHidden();
         Maximized = Raylib.IsWindowMaximized();
         Minimized = Raylib.IsWindowMinimized();
@@ -445,6 +473,8 @@ public static unsafe class Display
         if (!_resetScreen)
             return;
         _resetScreen = false;
+        if (Maximized && _previousScreen.Position != Vector2.Zero)
+            Raylib.ClearWindowState(ConfigFlags.MaximizedWindow);
         if (OperatingSystem.IsMacOS())
             Raylib.SetWindowPosition(1, 1);
         Raylib.SetWindowPosition((int)_previousScreen.Position.X, (int)_previousScreen.Position.Y);
@@ -483,6 +513,8 @@ public static unsafe class Display
         var logLevel = Log.SetLogLevel(LogLevel.Info);
         Raylib.InitWindow(width, height, _config.Title);
         Log.LogLevel = logLevel;
+        if (Platform.Desktop.IsCurrent && _config.Position.HasValue)
+            Raylib.SetWindowPosition((int)_config.Position.Value.X, (int)_config.Position.Value.Y);
         if (Platform.Desktop.IsCurrent && _config.MinScreenSize.HasValue)
             Raylib.SetWindowMinSize((int)_config.MinScreenSize.Value.X, (int)_config.MinScreenSize.Value.Y);
         if (Platform.Desktop.IsCurrent && _config.MaxScreenSize.HasValue)

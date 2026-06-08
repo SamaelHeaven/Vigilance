@@ -22,57 +22,57 @@ public readonly record struct JSResult(string Value)
 
     public static implicit operator char(JSResult result)
     {
-        return char.TryParse(result, out var value) ? value : '\0';
+        return result.Value.IsEmpty ? '\0' : result.Value[0];
     }
 
     public static implicit operator bool(JSResult result)
     {
-        return bool.TryParse(result, out var value) && value;
+        return bool.TryParse(result, out var value) ? value : !result.Value.IsEmpty;
     }
 
     public static implicit operator sbyte(JSResult result)
     {
-        return sbyte.TryParse(result.Value, out var value) ? value : (sbyte)0;
+        return (sbyte)(double)result;
     }
 
     public static implicit operator short(JSResult result)
     {
-        return short.TryParse(result.Value, out var value) ? value : (short)0;
+        return (short)(double)result;
     }
 
     public static implicit operator int(JSResult result)
     {
-        return int.TryParse(result.Value, out var value) ? value : 0;
+        return (int)(double)result;
     }
 
     public static implicit operator long(JSResult result)
     {
-        return long.TryParse(result.Value, out var value) ? value : 0;
+        return (long)(double)result;
     }
 
     public static implicit operator byte(JSResult result)
     {
-        return byte.TryParse(result.Value, out var value) ? value : (byte)0;
+        return (byte)(double)result;
     }
 
     public static implicit operator ushort(JSResult result)
     {
-        return ushort.TryParse(result.Value, out var value) ? value : (ushort)0;
+        return (ushort)(double)result;
     }
 
     public static implicit operator uint(JSResult result)
     {
-        return uint.TryParse(result.Value, out var value) ? value : 0;
+        return (uint)(double)result;
     }
 
     public static implicit operator ulong(JSResult result)
     {
-        return ulong.TryParse(result.Value, out var value) ? value : 0;
+        return (ulong)(double)result;
     }
 
     public static implicit operator float(JSResult result)
     {
-        return float.TryParse(result.Value, out var value) ? value : 0;
+        return (float)(double)result;
     }
 
     public static implicit operator double(JSResult result)
@@ -82,7 +82,7 @@ public readonly record struct JSResult(string Value)
 
     public static implicit operator decimal(JSResult result)
     {
-        return decimal.TryParse(result.Value, out var value) ? value : 0;
+        return (decimal)(double)result;
     }
 
     public override string ToString()
