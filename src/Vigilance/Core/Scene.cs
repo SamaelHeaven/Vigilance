@@ -106,9 +106,15 @@ public sealed unsafe partial class Scene
 
     public int SuspendedCount { get; private set; }
 
-    public TableEnumerable Tables() => new(this);
+    public TableEnumerable Tables()
+    {
+        return new TableEnumerable(this);
+    }
 
-    public TableEnumerable<T> Tables<T>() => new(this);
+    public TableEnumerable<T> Tables<T>()
+    {
+        return new TableEnumerable<T>(this);
+    }
 
     public void Restart()
     {
@@ -883,21 +889,23 @@ public sealed unsafe partial class Scene
         ref var position = ref PositionTable.GetRef(entity).Value;
         var oldPosition = position;
         var positionChanged = !Precision.AreEqual(transform.Position, oldPosition);
-        if (positionChanged)
-            position.Value = transform.Position;
         ref var scale = ref ScaleTable.GetRef(entity).Value;
         var oldScale = scale;
         var scaleChanged = !Precision.AreEqual(transform.Scale, oldScale);
-        if (scaleChanged)
-            scale.Value = transform.Scale;
         ref var rotation = ref RotationTable.GetRef(entity).Value;
         var oldRotation = rotation;
         var rotationChanged = !Precision.AreEqual(transform.Rotation, oldRotation);
-        if (rotationChanged)
-            rotation.Value = transform.Rotation;
         ref var pivotPoint = ref PivotPointTable.GetRef(entity).Value;
         var oldPivotPoint = pivotPoint;
         var pivotPointChanged = !Precision.AreEqual(transform.PivotPoint, oldPivotPoint);
+        if (!positionChanged && !scaleChanged && !rotationChanged && !pivotPointChanged)
+            return;
+        if (positionChanged)
+            position.Value = transform.Position;
+        if (scaleChanged)
+            scale.Value = transform.Scale;
+        if (rotationChanged)
+            rotation.Value = transform.Rotation;
         if (pivotPointChanged)
             pivotPoint.Value = transform.PivotPoint;
         if (positionChanged)

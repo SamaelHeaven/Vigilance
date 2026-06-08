@@ -60,17 +60,17 @@ public abstract partial class GameSystem : IGameSystem
         if (stop.Method.DeclaringType != baseType)
             scene.OnStop(stop);
         if (preUpdate.Method.DeclaringType != baseType)
-            scene.OnUpdate(InternalPreUpdate);
+            scene.OnPreUpdate(InternalPreUpdate);
         if (update.Method.DeclaringType != baseType)
             scene.OnUpdate(InternalUpdate);
         if (postUpdate.Method.DeclaringType != baseType)
-            scene.OnUpdate(InternalPostUpdate);
+            scene.OnPostUpdate(InternalPostUpdate);
         if (preFixedUpdate.Method.DeclaringType != baseType)
-            scene.OnUpdate(InternalPreFixedUpdate);
+            scene.OnPreFixedUpdate(InternalPreFixedUpdate);
         if (fixedUpdate.Method.DeclaringType != baseType)
             scene.OnFixedUpdate(InternalFixedUpdate);
         if (postFixedUpdate.Method.DeclaringType != baseType)
-            scene.OnUpdate(InternalPostFixedUpdate);
+            scene.OnPostFixedUpdate(InternalPostFixedUpdate);
         if (preRender.Method.DeclaringType != baseType)
             scene.OnPreRender(InternalPreRender);
         if (render.Method.DeclaringType != baseType)

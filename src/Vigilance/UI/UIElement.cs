@@ -1434,12 +1434,6 @@ public static partial class UIElementExtensions
             set => element.OnEndRenderSignal.Subscribe((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
         }
 
-        public T Ref(out T el)
-        {
-            el = element;
-            return el;
-        }
-
         public T DeepClone(UIElement.CloneOptions options)
         {
             return (T)element.DeepClone(options);

@@ -10,6 +10,8 @@ public static class Precision
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool AreEqual(float a, float b, float epsilon = DefaultFloatEpsilon)
     {
+        if (float.IsNaN(a) && float.IsNaN(b))
+            return true;
         return (a - b).Abs() <= epsilon;
     }
 

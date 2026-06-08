@@ -15,6 +15,7 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
             if (!element.IsLayoutReady)
                 element.CalculateLayout();
             element.Update(entity);
+            element.CalculateLayout();
         }
     }
 
@@ -22,11 +23,7 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
     {
         commands.AddRange<UISystem, UIElement>(
             this,
-            static (system, entity, element) =>
-            {
-                element.CalculateLayout();
-                element.Render(entity.WorldTransform, system.Graphics);
-            }
+            static (system, entity, element) => element.Render(entity.WorldTransform, system.Graphics)
         );
     }
 }

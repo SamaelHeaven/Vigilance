@@ -4,6 +4,12 @@ public static class GenericExtensions
 {
     extension<T>(T t)
     {
+        public T Out(out T value)
+        {
+            value = t;
+            return t;
+        }
+
         public T Tap(Action<T> action)
         {
             action.Invoke(t);
