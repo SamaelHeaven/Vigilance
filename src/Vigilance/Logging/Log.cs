@@ -22,9 +22,10 @@ public static unsafe partial class Log
         get => _config.LogLevel;
         set
         {
+            if (value == LogLevel)
+                return;
             _config.LogLevel = value;
-            if (Game.Running && value != LogLevel)
-                Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
+            Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
         }
     }
 
