@@ -759,17 +759,15 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
             var wrapMinSizeCount = PrepareWrapMinSizes(wrapMinSizes);
             if (HasGapContainers())
             {
-                const int maxGapPasses = 6;
-                for (var pass = 0; pass < maxGapPasses; pass++)
+                bool changed;
+                do
                 {
                     Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
-                    var changed = false;
+                    changed = false;
                     foreach (var element in this.DescendantsAndSelf())
                         if (element is UIContainer container)
                             changed |= container.ApplyGapMargins();
-                    if (!changed)
-                        break;
-                }
+                } while (changed);
             }
             else
             {
