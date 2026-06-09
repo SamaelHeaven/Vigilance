@@ -4,7 +4,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Input;
 
-public sealed class Gamepad
+public sealed unsafe class Gamepad
 {
     private const int MaxGamepads = 4;
     private const string DefaultName = "Unknown gamepad";
@@ -83,8 +83,8 @@ public sealed class Gamepad
 
     private void Update()
     {
-        IsConnected = GetIsConnected();
-        Name = GetName();
+        IsConnected = Raylib.IsGamepadAvailable(Id);
+        Name = !IsConnected ? DefaultName : Utf8Ptr.GetString(Raylib.GetGamepadName(Id), DefaultName);
         if (!Display.Focused || !IsConnected)
         {
             Reset();
@@ -109,7 +109,7 @@ public sealed class Gamepad
     {
         _currentButtons.Clear();
         foreach (var button in _buttonValues)
-            if (IsButtonDown(Id, button))
+            if (Raylib.IsGamepadButtonDown(Id, (Raylib_cs.GamepadButton)button))
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
         _pressedButtons.AddRange(_currentButtons);
@@ -123,46 +123,6 @@ public sealed class Gamepad
         _upButtons.AddRange(_buttonValues);
         _upButtons.RemoveAll(_currentButtons.Contains);
         foreach (var axis in _axisValues)
-            _axes[axis] = GetGamepadAxis(Id, axis);
-    }
-
-    private bool GetIsConnected()
-    {
-        return Platform.Current switch
-        {
-            Platform.Web => JSEngine.Eval($"!!navigator.getGamepads()[{Id}]"),
-            _ => Raylib.IsGamepadAvailable(Id),
-        };
-    }
-
-    private unsafe string GetName()
-    {
-        if (!IsConnected)
-            return DefaultName;
-        return Platform.Current switch
-        {
-            Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{Id}]?.id ?? {DefaultName.ToJson()}"),
-            _ => Utf8Ptr.GetString(Raylib.GetGamepadName(Id), DefaultName),
-        };
-    }
-
-    private static bool IsButtonDown(int id, GamepadButton button)
-    {
-        return Platform.Current switch
-        {
-            Platform.Web => JSEngine.Eval(
-                $"navigator.getGamepads()[{id}]?.buttons[{button.JSValue}]?.pressed ?? false"
-            ),
-            _ => Raylib.IsGamepadButtonDown(id, (Raylib_cs.GamepadButton)button),
-        };
-    }
-
-    private static float GetGamepadAxis(int id, GamepadAxis axis)
-    {
-        return Platform.Current switch
-        {
-            Platform.Web => JSEngine.Eval($"navigator.getGamepads()[{id}]?.axes[{axis.JSValue}] ?? 0"),
-            _ => Raylib.GetGamepadAxisMovement(id, (Raylib_cs.GamepadAxis)axis),
-        };
+            _axes[axis] = Raylib.GetGamepadAxisMovement(Id, (Raylib_cs.GamepadAxis)axis);
     }
 }
