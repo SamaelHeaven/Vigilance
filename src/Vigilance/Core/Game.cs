@@ -14,7 +14,7 @@ namespace Vigilance.Core;
 public static unsafe class Game
 {
     private static readonly ConcurrentStack<Action> _actions = [];
-    private static bool _quit;
+    private static bool _exit;
     private static Scene _scene = null!;
 
     public static Scene Scene
@@ -83,10 +83,10 @@ public static unsafe class Game
         }
     }
 
-    public static void Quit()
+    public static void Exit()
     {
         ThrowIfNotRunning();
-        _quit = true;
+        _exit = true;
     }
 
     private static void Loop()
@@ -97,7 +97,7 @@ public static unsafe class Game
             return;
         }
 
-        while (!Raylib.WindowShouldClose() && !_quit)
+        while (!Raylib.WindowShouldClose() && !_exit)
             Frame();
         Dispose();
     }
@@ -112,18 +112,7 @@ public static unsafe class Game
         Sound.UpdateAll();
         Display.Update();
         UpdateFullscreen();
-        try
-        {
-            UpdateActions();
-        }
-        catch (Exception e)
-        {
-            var rethrow = true;
-            Hooks.OnException?.Invoke(e, out rethrow);
-            if (rethrow)
-                throw;
-        }
-
+        UpdateActions();
         Renderer.BeginDrawing();
         try
         {
@@ -168,7 +157,7 @@ public static unsafe class Game
 
     private static void Dispose()
     {
-        Hooks.OnQuit?.Invoke();
+        Hooks.OnExit?.Invoke();
         Audio.Audio.Dispose();
         Display.Dispose();
     }

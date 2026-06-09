@@ -4,15 +4,16 @@ public static class Hooks
 {
     public delegate void Exception(System.Exception exception, out bool rethrow);
 
-    public delegate void Quit();
+    public delegate void Exit();
+
     public delegate void SetScene(Scene oldScene, Scene newScene);
 
     private static HooksConfig _config = new();
 
-    public static Quit? OnQuit
+    public static Exit? OnExit
     {
-        get => _config.OnQuit;
-        set => _config.OnQuit = value;
+        get => _config.OnExit;
+        set => _config.OnExit = value;
     }
 
     public static Exception? OnException
@@ -35,7 +36,7 @@ public static class Hooks
 
 public class HooksConfig
 {
-    public Hooks.Quit? OnQuit { get; set; }
+    public Hooks.Exit? OnExit { get; set; }
     public Hooks.Exception? OnException { get; set; }
     public Hooks.SetScene? OnSetScene { get; set; }
 }
