@@ -5,6 +5,7 @@ public static class Hooks
     public delegate void Exception(System.Exception exception, out bool rethrow);
 
     public delegate void Quit();
+    public delegate void SetScene(Scene oldScene, Scene newScene);
 
     private static HooksConfig _config = new();
 
@@ -20,6 +21,12 @@ public static class Hooks
         set => _config.OnException = value;
     }
 
+    public static SetScene? OnSetScene
+    {
+        get => _config.OnSetScene;
+        set => _config.OnSetScene = value;
+    }
+
     internal static void Initialize()
     {
         _config = Game.Config.Take<HooksConfig>() ?? _config;
@@ -30,6 +37,7 @@ public class HooksConfig
 {
     public Hooks.Quit? OnQuit { get; set; }
     public Hooks.Exception? OnException { get; set; }
+    public Hooks.SetScene? OnSetScene { get; set; }
 }
 
 public static class HooksConfigExtension

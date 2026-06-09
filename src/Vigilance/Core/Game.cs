@@ -31,8 +31,10 @@ public static unsafe class Game
                 return;
             Defer(() =>
             {
+                var oldScene = _scene;
                 _scene.Stop();
                 _scene = value;
+                Hooks.OnSetScene?.Invoke(oldScene, _scene);
             });
         }
     }
@@ -149,7 +151,14 @@ public static unsafe class Game
         {
             var amount = _actions.TryPopRange(actions, 0, length);
             for (var i = amount - 1; i >= 0; i--)
-                actions[i].Invoke();
+                try
+                {
+                    actions[i].Invoke();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
         }
         finally
         {
