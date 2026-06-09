@@ -318,6 +318,11 @@ public readonly ref struct ValueListView<TValue>
         return _list.GetEnumerator();
     }
 
+    public IEnumerable<TValue> AsEnumerable()
+    {
+        return new Enumerable(_list);
+    }
+
     public ValueEnumerable<ValueList<TValue>.Enumerator, TValue> AsValueEnumerable()
     {
         return _list.AsValueEnumerable();
@@ -335,6 +340,35 @@ public readonly ref struct ValueListView<TValue>
     public static implicit operator ValueListView<TValue>(in ValueList<TValue> list)
     {
         return new ValueListView<TValue>(ref Unsafe.AsRef(in list));
+    }
+
+    public readonly struct Enumerable : IValueListView<TValue>
+    {
+        private readonly ValueList<TValue> _list;
+
+        public Enumerable(ValueList<TValue> list)
+        {
+            _list = list;
+        }
+
+        public ValueList<TValue>.Enumerator GetEnumerator()
+        {
+            return _list.GetEnumerator();
+        }
+
+        public ValueEnumerable<ValueList<TValue>.Enumerator, TValue> AsValueEnumerable()
+        {
+            return _list.AsValueEnumerable();
+        }
+
+        public int Count => _list.Count;
+
+        public ReadOnlySpan<TValue> AsSpan()
+        {
+            return _list.AsSpan();
+        }
+
+        public TValue this[int index] => _list[index];
     }
 }
 
@@ -630,6 +664,11 @@ public readonly ref struct ValueQueueView<TValue>
         return _queue.GetEnumerator();
     }
 
+    public IEnumerable<TValue> AsEnumerable()
+    {
+        return new Enumerable(_queue);
+    }
+
     public ValueEnumerable<ValueQueue<TValue>.Enumerator, TValue> AsValueEnumerable()
     {
         return _queue.AsValueEnumerable();
@@ -640,6 +679,28 @@ public readonly ref struct ValueQueueView<TValue>
     public static implicit operator ValueQueueView<TValue>(in ValueQueue<TValue> queue)
     {
         return new ValueQueueView<TValue>(ref Unsafe.AsRef(in queue));
+    }
+
+    public readonly struct Enumerable : IValueQueueView<TValue>
+    {
+        private readonly ValueQueue<TValue> _queue;
+
+        public Enumerable(ValueQueue<TValue> queue)
+        {
+            _queue = queue;
+        }
+
+        public ValueQueue<TValue>.Enumerator GetEnumerator()
+        {
+            return _queue.GetEnumerator();
+        }
+
+        public ValueEnumerable<ValueQueue<TValue>.Enumerator, TValue> AsValueEnumerable()
+        {
+            return _queue.AsValueEnumerable();
+        }
+
+        public int Count => _queue.Count;
     }
 }
 
@@ -684,6 +745,11 @@ public readonly ref struct ValueStackView<TValue>
         return _stack.GetEnumerator();
     }
 
+    public IEnumerable<TValue> AsEnumerable()
+    {
+        return new Enumerable(_stack);
+    }
+
     public ValueEnumerable<ValueStack<TValue>.Enumerator, TValue> AsValueEnumerable()
     {
         return _stack.AsValueEnumerable();
@@ -694,6 +760,28 @@ public readonly ref struct ValueStackView<TValue>
     public static implicit operator ValueStackView<TValue>(in ValueStack<TValue> stack)
     {
         return new ValueStackView<TValue>(ref Unsafe.AsRef(in stack));
+    }
+
+    public readonly struct Enumerable : IValueStackView<TValue>
+    {
+        private readonly ValueStack<TValue> _stack;
+
+        public Enumerable(ValueStack<TValue> stack)
+        {
+            _stack = stack;
+        }
+
+        public ValueStack<TValue>.Enumerator GetEnumerator()
+        {
+            return _stack.GetEnumerator();
+        }
+
+        public ValueEnumerable<ValueStack<TValue>.Enumerator, TValue> AsValueEnumerable()
+        {
+            return _stack.AsValueEnumerable();
+        }
+
+        public int Count => _stack.Count;
     }
 }
 
@@ -833,6 +921,11 @@ public static class ViewExtensions
         return list;
     }
 
+    public static ValueListView<T> AsView<T>(in this ValueList<T> list)
+    {
+        return list;
+    }
+
     public static DictionaryView<TKey, TValue> AsView<TKey, TValue>(this Dictionary<TKey, TValue> dictionary)
         where TKey : notnull
     {
@@ -867,7 +960,17 @@ public static class ViewExtensions
         return queue;
     }
 
+    public static ValueQueue<TValue> AsView<TValue>(in this ValueQueue<TValue> queue)
+    {
+        return queue;
+    }
+
     public static StackView<TValue> AsView<TValue>(this Stack<TValue> stack)
+    {
+        return stack;
+    }
+
+    public static ValueStack<TValue> AsView<TValue>(in this ValueStack<TValue> stack)
     {
         return stack;
     }
