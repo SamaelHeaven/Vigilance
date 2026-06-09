@@ -9,11 +9,11 @@ namespace Vigilance.Input;
 public static class Mouse
 {
     private static readonly MouseButton[] _buttonValues = Enum.GetValues<MouseButton>();
-    private static readonly List<MouseButton> _currentButtons = [];
-    private static readonly List<MouseButton> _downButtons = [];
-    private static readonly List<MouseButton> _pressedButtons = [];
-    private static readonly List<MouseButton> _releasedButtons = [];
-    private static readonly List<MouseButton> _upButtons = [];
+    private static ValueList<MouseButton> _currentButtons = [];
+    private static ValueList<MouseButton> _downButtons = [];
+    private static ValueList<MouseButton> _pressedButtons = [];
+    private static ValueList<MouseButton> _releasedButtons = [];
+    private static ValueList<MouseButton> _upButtons = [];
     private static Vector2 _screenPosition = Vector2.Zero;
     private static Vector2 _scroll = Vector2.Zero;
 
@@ -22,10 +22,10 @@ public static class Mouse
         Game.ThrowIfNotRunning();
     }
 
-    public static ListView<MouseButton> DownButtons => _downButtons;
-    public static ListView<MouseButton> UpButtons => _upButtons;
-    public static ListView<MouseButton> PressedButtons => _pressedButtons;
-    public static ListView<MouseButton> ReleasedButtons => _releasedButtons;
+    public static ValueListView<MouseButton> DownButtons => _downButtons;
+    public static ValueListView<MouseButton> UpButtons => _upButtons;
+    public static ValueListView<MouseButton> PressedButtons => _pressedButtons;
+    public static ValueListView<MouseButton> ReleasedButtons => _releasedButtons;
 
     public static bool OnScreen { get; private set; }
 

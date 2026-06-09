@@ -9,12 +9,12 @@ namespace Vigilance.Input;
 public static class Keyboard
 {
     private static readonly Key[] _keyValues;
-    private static readonly List<Key> _currentKeys = [];
-    private static readonly List<Key> _downKeys = [];
-    private static readonly List<Key> _pressedKeys = [];
-    private static readonly List<Key> _releasedKeys = [];
+    private static ValueList<Key> _currentKeys = [];
+    private static ValueList<Key> _downKeys = [];
+    private static ValueList<Key> _pressedKeys = [];
+    private static ValueList<Key> _releasedKeys = [];
     private static readonly StringBuilder _typedString = new();
-    private static readonly List<Key> _upKeys = [];
+    private static ValueList<Key> _upKeys = [];
 
     static Keyboard()
     {
@@ -22,11 +22,11 @@ public static class Keyboard
         _keyValues = Enum.GetValues<Key>().AsValueEnumerable().Where(key => key != Key.Null).ToArray();
     }
 
-    public static string TypedString => _typedString.ToString();
-    public static ListView<Key> DownKeys => _downKeys;
-    public static ListView<Key> UpKeys => _upKeys;
-    public static ListView<Key> PressedKeys => _pressedKeys;
-    public static ListView<Key> ReleasedKeys => _releasedKeys;
+    public static string TypedString { get; private set; } = "";
+    public static ValueListView<Key> DownKeys => _downKeys;
+    public static ValueListView<Key> UpKeys => _upKeys;
+    public static ValueListView<Key> PressedKeys => _pressedKeys;
+    public static ValueListView<Key> ReleasedKeys => _releasedKeys;
 
     public static bool IsKeyDown(Key key)
     {
@@ -74,6 +74,7 @@ public static class Keyboard
         _typedString.Clear();
         for (var c = (char)Raylib.GetCharPressed(); c != 0; c = (char)Raylib.GetCharPressed())
             _typedString.Append(c);
+        TypedString = _typedString.ToString();
         _currentKeys.Clear();
         foreach (var key in _keyValues)
             if (Raylib.IsKeyDown((KeyboardKey)key))

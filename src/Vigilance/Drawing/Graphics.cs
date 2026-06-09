@@ -19,8 +19,8 @@ public sealed unsafe class Graphics
     private Box? _clip = null;
     private bool _culling = Drawing.DefaultCulling;
     private bool _drawing = false;
+    private ValueStack<Matrix3x2> _matrices = new();
     private Matrix3x2 _matrix = Matrix3x2.Identity;
-    private ValueStack<Matrix3x2> _matrixStack = new();
     private Shader? _shader = null;
     internal RenderTexture? Buffer;
 
@@ -98,9 +98,14 @@ public sealed unsafe class Graphics
 
     #region Matrix
 
+    public ValueStackView<Matrix3x2> GetMatrices()
+    {
+        return _matrices;
+    }
+
     public ref Matrix3x2 GetMatrix()
     {
-        return ref _matrixStack.Count == 0 ? ref _matrix : ref _matrixStack.Peek();
+        return ref _matrices.Count == 0 ? ref _matrix : ref _matrices.Peek();
     }
 
     public Matrix3x2 GetMatrix(Camera? camera)
@@ -110,23 +115,23 @@ public sealed unsafe class Graphics
 
     public void LoadIdentity()
     {
-        _matrixStack.Clear();
+        _matrices.Clear();
         _matrix = Matrix3x2.Identity;
     }
 
     public void PushMatrix()
     {
-        _matrixStack.Push(GetMatrix());
+        _matrices.Push(GetMatrix());
     }
 
     public void PushMatrix(in Matrix3x2 matrix)
     {
-        _matrixStack.Push(matrix);
+        _matrices.Push(matrix);
     }
 
     public Matrix3x2 PopMatrix()
     {
-        return _matrixStack.Count != 0 ? _matrixStack.Pop() : _matrix;
+        return _matrices.Count != 0 ? _matrices.Pop() : _matrix;
     }
 
     public void MultiplyMatrix(in Matrix3x2 matrix)

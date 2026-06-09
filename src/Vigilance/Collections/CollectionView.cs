@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using ZLinq;
 using ZLinq.Linq;
 
@@ -37,10 +38,12 @@ public interface ISpanView<TValue>
 
 public interface IListView<TValue>
     : IStructEnumerable<List<TValue>.Enumerator, TValue>,
-        IReadOnlyCollection<TValue>,
+        IReadOnlyList<TValue>,
         IReadOnlySpan<TValue>
 {
     int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
+    TValue IReadOnlyList<TValue>.this[int index] => AsSpan()[index];
 
     ReadOnlySpan<TValue> IReadOnlySpan<TValue>.AsSpan()
     {
@@ -62,10 +65,12 @@ public interface IListView<TValue>
 
 public interface IValueListView<TValue>
     : IStructEnumerable<ValueList<TValue>.Enumerator, TValue>,
-        IReadOnlyCollection<TValue>,
+        IReadOnlyList<TValue>,
         IReadOnlySpan<TValue>
 {
     int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
+    TValue IReadOnlyList<TValue>.this[int index] => AsSpan()[index];
 
     ReadOnlySpan<TValue> IReadOnlySpan<TValue>.AsSpan()
     {
@@ -240,10 +245,12 @@ public interface IValueStackView<TValue>
 
 public interface IArrayView<TValue>
     : IStructEnumerable<ArrayEnumerator<TValue>, TValue>,
-        IReadOnlyCollection<TValue>,
+        IReadOnlyList<TValue>,
         IReadOnlySpan<TValue>
 {
     int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+
+    TValue IReadOnlyList<TValue>.this[int index] => AsSpan()[index];
 
     ReadOnlySpan<TValue> IReadOnlySpan<TValue>.AsSpan()
     {
@@ -263,18 +270,13 @@ public interface IArrayView<TValue>
     new ValueEnumerable<FromArray<TValue>, TValue> AsValueEnumerable();
 }
 
-public readonly record struct ListView<TValue> : IListView<TValue>, IReadOnlyList<TValue>, ISpanView<TValue>
+public readonly record struct ListView<TValue> : IListView<TValue>
 {
     private readonly List<TValue> _list;
 
-    internal ListView(List<TValue> list)
+    public ListView(List<TValue> list)
     {
         _list = list;
-    }
-
-    IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
-    {
-        return GetEnumerator();
     }
 
     public List<TValue>.Enumerator GetEnumerator()
@@ -289,10 +291,39 @@ public readonly record struct ListView<TValue> : IListView<TValue>, IReadOnlyLis
 
     public int Count => _list.Count;
 
-    IEnumerator IEnumerable.GetEnumerator()
+    public ReadOnlySpan<TValue> AsSpan()
     {
-        return GetEnumerator();
+        return _list.AsSpan();
     }
+
+    public TValue this[int index] => _list[index];
+
+    public static implicit operator ListView<TValue>(List<TValue> list)
+    {
+        return new ListView<TValue>(list);
+    }
+}
+
+public readonly ref struct ValueListView<TValue>
+{
+    private readonly ref ValueList<TValue> _list;
+
+    public ValueListView(ref ValueList<TValue> list)
+    {
+        _list = ref list;
+    }
+
+    public ValueList<TValue>.Enumerator GetEnumerator()
+    {
+        return _list.GetEnumerator();
+    }
+
+    public ValueEnumerable<ValueList<TValue>.Enumerator, TValue> AsValueEnumerable()
+    {
+        return _list.AsValueEnumerable();
+    }
+
+    public int Count => _list.Count;
 
     public ReadOnlySpan<TValue> AsSpan()
     {
@@ -301,19 +332,9 @@ public readonly record struct ListView<TValue> : IListView<TValue>, IReadOnlyLis
 
     public TValue this[int index] => _list[index];
 
-    ValueEnumerator<FromSpan<TValue>, TValue> ISpanView<TValue>.GetEnumerator()
+    public static implicit operator ValueListView<TValue>(in ValueList<TValue> list)
     {
-        return new ValueEnumerator<FromSpan<TValue>, TValue>(AsSpan().AsValueEnumerable().Enumerator);
-    }
-
-    ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
-    {
-        return _list.AsSpan().AsValueEnumerable();
-    }
-
-    public static implicit operator ListView<TValue>(List<TValue> list)
-    {
-        return new ListView<TValue>(list);
+        return new ValueListView<TValue>(ref Unsafe.AsRef(in list));
     }
 }
 
@@ -324,7 +345,7 @@ public readonly record struct DictionaryView<TKey, TValue>
 {
     private readonly Dictionary<TKey, TValue> _dictionary;
 
-    internal DictionaryView(Dictionary<TKey, TValue> dictionary)
+    public DictionaryView(Dictionary<TKey, TValue> dictionary)
     {
         _dictionary = dictionary;
     }
@@ -374,7 +395,7 @@ public readonly record struct SortedDictionaryView<TKey, TValue>
 {
     private readonly SortedDictionary<TKey, TValue> _sortedDictionary;
 
-    internal SortedDictionaryView(SortedDictionary<TKey, TValue> sortedDictionary)
+    public SortedDictionaryView(SortedDictionary<TKey, TValue> sortedDictionary)
     {
         _sortedDictionary = sortedDictionary;
     }
@@ -421,7 +442,7 @@ public readonly record struct HashSetView<TValue> : IHashSetView<TValue>, IReadO
 {
     private readonly HashSet<TValue> _hashSet;
 
-    internal HashSetView(HashSet<TValue> hashSet)
+    public HashSetView(HashSet<TValue> hashSet)
     {
         _hashSet = hashSet;
     }
@@ -483,7 +504,7 @@ public readonly record struct SortedSetView<TValue> : ISortedSetView<TValue>, IR
 {
     private readonly SortedSet<TValue> _sortedSet;
 
-    internal SortedSetView(SortedSet<TValue> sortedSet)
+    public SortedSetView(SortedSet<TValue> sortedSet)
     {
         _sortedSet = sortedSet;
     }
@@ -545,7 +566,7 @@ public readonly record struct LinkedListView<TValue> : ILinkedListView<TValue>
 {
     private readonly LinkedList<TValue> _linkedList;
 
-    internal LinkedListView(LinkedList<TValue> linkedList)
+    public LinkedListView(LinkedList<TValue> linkedList)
     {
         _linkedList = linkedList;
     }
@@ -572,7 +593,7 @@ public readonly record struct QueueView<TValue> : IQueueView<TValue>
 {
     private readonly Queue<TValue> _queue;
 
-    internal QueueView(Queue<TValue> queue)
+    public QueueView(Queue<TValue> queue)
     {
         _queue = queue;
     }
@@ -595,11 +616,38 @@ public readonly record struct QueueView<TValue> : IQueueView<TValue>
     }
 }
 
+public readonly ref struct ValueQueueView<TValue>
+{
+    private readonly ref ValueQueue<TValue> _queue;
+
+    public ValueQueueView(ref ValueQueue<TValue> queue)
+    {
+        _queue = ref queue;
+    }
+
+    public ValueQueue<TValue>.Enumerator GetEnumerator()
+    {
+        return _queue.GetEnumerator();
+    }
+
+    public ValueEnumerable<ValueQueue<TValue>.Enumerator, TValue> AsValueEnumerable()
+    {
+        return _queue.AsValueEnumerable();
+    }
+
+    public int Count => _queue.Count;
+
+    public static implicit operator ValueQueueView<TValue>(in ValueQueue<TValue> queue)
+    {
+        return new ValueQueueView<TValue>(ref Unsafe.AsRef(in queue));
+    }
+}
+
 public readonly record struct StackView<TValue> : IStackView<TValue>
 {
     private readonly Stack<TValue> _stack;
 
-    internal StackView(Stack<TValue> stack)
+    public StackView(Stack<TValue> stack)
     {
         _stack = stack;
     }
@@ -622,11 +670,38 @@ public readonly record struct StackView<TValue> : IStackView<TValue>
     }
 }
 
-public readonly record struct ArrayView<TValue> : IArrayView<TValue>, IReadOnlyList<TValue>, ISpanView<TValue>
+public readonly ref struct ValueStackView<TValue>
+{
+    private readonly ref ValueStack<TValue> _stack;
+
+    public ValueStackView(ref ValueStack<TValue> stack)
+    {
+        _stack = ref stack;
+    }
+
+    public ValueStack<TValue>.Enumerator GetEnumerator()
+    {
+        return _stack.GetEnumerator();
+    }
+
+    public ValueEnumerable<ValueStack<TValue>.Enumerator, TValue> AsValueEnumerable()
+    {
+        return _stack.AsValueEnumerable();
+    }
+
+    public int Count => _stack.Count;
+
+    public static implicit operator ValueStackView<TValue>(in ValueStack<TValue> stack)
+    {
+        return new ValueStackView<TValue>(ref Unsafe.AsRef(in stack));
+    }
+}
+
+public readonly record struct ArrayView<TValue> : IArrayView<TValue>
 {
     private readonly TValue[] _array;
 
-    internal ArrayView(TValue[] array)
+    public ArrayView(TValue[] array)
     {
         _array = array;
     }
@@ -660,16 +735,6 @@ public readonly record struct ArrayView<TValue> : IArrayView<TValue>, IReadOnlyL
 
     public TValue this[int index] => _array[index];
 
-    ValueEnumerator<FromSpan<TValue>, TValue> ISpanView<TValue>.GetEnumerator()
-    {
-        return new ValueEnumerator<FromSpan<TValue>, TValue>(AsSpan().AsValueEnumerable().Enumerator);
-    }
-
-    ValueEnumerable<FromSpan<TValue>, TValue> ISpanView<TValue>.AsValueEnumerable()
-    {
-        return AsSpan().AsValueEnumerable();
-    }
-
     public static implicit operator ArrayView<TValue>(TValue[] array)
     {
         return new ArrayView<TValue>(array);
@@ -686,7 +751,7 @@ public struct ArrayEnumerator<TValue> : IStructEnumerator<TValue>
     private readonly TValue[] _array;
     private int _index;
 
-    internal ArrayEnumerator(TValue[] array)
+    public ArrayEnumerator(TValue[] array)
     {
         _array = array;
         Reset();
@@ -721,7 +786,7 @@ public struct SpanViewEnumerator<TValue> : IStructEnumerator<TValue>, ISpanView<
     private readonly ISpanView<TValue> _spanView;
     private int _index;
 
-    internal SpanViewEnumerator(ISpanView<TValue> spanView)
+    public SpanViewEnumerator(ISpanView<TValue> spanView)
     {
         _spanView = spanView;
         Reset();
