@@ -2088,8 +2088,6 @@ public sealed unsafe class Graphics
 
         var matrix = GetMatrix(camera);
         matrix *= Matrix3x2.CreateScale(scale) * Matrix3x2.CreateTranslation(offset);
-        matrix.M31 = matrix.M31.Round(MidpointRounding.AwayFromZero);
-        matrix.M32 = matrix.M32.Round(MidpointRounding.AwayFromZero);
         Rlgl.PushMatrix();
         var float16 =
             stackalloc float[16] {
