@@ -302,13 +302,9 @@ public class UIScrollContainer : UIContainer
         var matrix = graphics.GetMatrix(camera);
         var horizontalVisible = IsHorizontalScrollBarVisible;
         var verticalVisible = IsVerticalScrollBarVisible;
-        const float trackOffset = 1;
         if (horizontalVisible)
         {
             box = GetScrollBarTrackBox(ScrollBarDirection.Horizontal);
-            box.X -= trackOffset;
-            box.Width += trackOffset * 2;
-            box.Height += trackOffset;
             RenderScrollBarTrack(graphics, box, camera);
             RenderedHorizontalScrollBarTrackBounds = box.Transform(matrix);
         }
@@ -316,9 +312,6 @@ public class UIScrollContainer : UIContainer
         if (verticalVisible)
         {
             box = GetScrollBarTrackBox(ScrollBarDirection.Vertical);
-            box.Y -= trackOffset;
-            box.Height += trackOffset * 2;
-            box.Width += trackOffset;
             RenderScrollBarTrack(graphics, box, camera);
             RenderedVerticalScrollBarTrackBounds = box.Transform(matrix);
         }

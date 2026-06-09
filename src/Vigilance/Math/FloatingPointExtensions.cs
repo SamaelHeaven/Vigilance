@@ -21,6 +21,18 @@ public static class FloatingPointExtensions
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T Round(MidpointRounding mode)
+        {
+            return T.Round(value, mode);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T Round(int digits, MidpointRounding mode)
+        {
+            return T.Round(value, digits, mode);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Floor()
         {
             return T.Floor(value);

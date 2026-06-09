@@ -2055,10 +2055,10 @@ public sealed unsafe class Graphics
             _currentClip = clip;
             if (clip.HasValue)
                 Raylib.BeginScissorMode(
-                    (int)clip.Value.X.Round(),
-                    (int)clip.Value.Y.Round(),
-                    (int)clip.Value.Width.Round(),
-                    (int)clip.Value.Height.Round()
+                    (int)clip.Value.X.Floor(),
+                    (int)clip.Value.Y.Floor(),
+                    (int)clip.Value.Width.Ceil(),
+                    (int)clip.Value.Height.Ceil()
                 );
         }
 
@@ -2088,6 +2088,8 @@ public sealed unsafe class Graphics
 
         var matrix = GetMatrix(camera);
         matrix *= Matrix3x2.CreateScale(scale) * Matrix3x2.CreateTranslation(offset);
+        matrix.M31 = matrix.M31.Round(MidpointRounding.AwayFromZero);
+        matrix.M32 = matrix.M32.Round(MidpointRounding.AwayFromZero);
         Rlgl.PushMatrix();
         var float16 =
             stackalloc float[16] {

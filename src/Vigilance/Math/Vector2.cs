@@ -313,6 +313,18 @@ public record struct Vector2
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector2 Round(MidpointRounding mode)
+    {
+        return new Vector2(X.Round(mode), Y.Round(mode));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly Vector2 Round(int digits, MidpointRounding mode)
+    {
+        return new Vector2(X.Round(digits, mode), Y.Round(digits, mode));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector2 Floor()
     {
         return new Vector2(X.Floor(), Y.Floor());

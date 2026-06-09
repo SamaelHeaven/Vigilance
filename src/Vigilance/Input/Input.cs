@@ -36,7 +36,11 @@ public static class Input
         set => _config.VerticalAxis = value;
     }
 
+    public static Vector2 Direction => new(HorizontalAxis.Direction, VerticalAxis.Direction);
+
     public static Vector2 Axes => new(HorizontalAxis.Value, VerticalAxis.Value);
+
+    public static Vector2 RawAxes => new(HorizontalAxis.RawValue, VerticalAxis.RawValue);
 
     internal static void Initialize()
     {
