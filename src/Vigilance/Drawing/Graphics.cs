@@ -98,11 +98,6 @@ public sealed unsafe class Graphics
 
     #region Matrix
 
-    public ValueStackView<Matrix3x2> GetMatrices()
-    {
-        return _matrices;
-    }
-
     public ref Matrix3x2 GetMatrix()
     {
         return ref _matrices.Count == 0 ? ref _matrix : ref _matrices.Peek();
