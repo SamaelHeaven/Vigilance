@@ -20,7 +20,6 @@ public class UIScrollContainer : UIContainer
         Overflow = Overflow.Hidden;
         ScrollBarTrackFill = Color.DarkGray;
         ScrollBarThumbFill = Color.Gray;
-        ScrollBarThumbRadius = 1;
     }
 
     public Vector2 ChildrenLayoutSize { get; private set; }
@@ -167,11 +166,7 @@ public class UIScrollContainer : UIContainer
         set => _scrollBarTrackRectangle.StrokeWidth = value;
     }
 
-    public float ScrollBarTrackRadius
-    {
-        get => _scrollBarTrackRectangle.Radius;
-        set => _scrollBarTrackRectangle.Radius = value;
-    }
+    public Unit ScrollBarTrackRadius { get; set; }
 
     public Color ScrollBarThumbFill
     {
@@ -191,11 +186,7 @@ public class UIScrollContainer : UIContainer
         set => _scrollBarThumbRectangle.StrokeWidth = value;
     }
 
-    public float ScrollBarThumbRadius
-    {
-        get => _scrollBarThumbRectangle.Radius;
-        set => _scrollBarThumbRectangle.Radius = value;
-    }
+    public Unit ScrollBarThumbRadius { get; set; } = Unit.Full;
 
     public bool IsMouseInsideNestedScrollContainer { get; set; }
 
@@ -339,12 +330,14 @@ public class UIScrollContainer : UIContainer
     protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraProvider camera)
     {
         _scrollBarTrackRectangle.Camera = camera;
+        _scrollBarTrackRectangle.Radius = ScrollBarTrackRadius.Calculate(box.Size.X.Abs().Min(box.Size.Y.Abs()));
         graphics.DrawRectangle(box, _scrollBarTrackRectangle);
     }
 
     protected virtual void RenderScrollBarThumb(Graphics graphics, Box box, CameraProvider camera)
     {
         _scrollBarThumbRectangle.Camera = camera;
+        _scrollBarThumbRectangle.Radius = ScrollBarThumbRadius.Calculate(box.Size.X.Abs().Min(box.Size.Y.Abs()));
         graphics.DrawRectangle(box, _scrollBarThumbRectangle);
     }
 
