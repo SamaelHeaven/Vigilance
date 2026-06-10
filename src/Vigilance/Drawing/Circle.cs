@@ -15,6 +15,9 @@ public sealed class Circle : IFullCloneable
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public float StartAngle { get; set; } = 0;
+    public float EndAngle { get; set; } = 360;
+    public int Segments { get; set; } = 0;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 

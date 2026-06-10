@@ -430,15 +430,22 @@ public sealed unsafe class Graphics
         float height,
         Color? color = null,
         float? radius = null,
+        int segments = 0,
         Camera? camera = null
     )
     {
-        FillRoundedRectangle(new Vector2(x, y), new Vector2(width, height), color, radius, camera);
+        FillRoundedRectangle(new Vector2(x, y), new Vector2(width, height), color, radius, segments, camera);
     }
 
-    public void FillRoundedRectangle(in Box box, Color? color = null, float? radius = null, Camera? camera = null)
+    public void FillRoundedRectangle(
+        in Box box,
+        Color? color = null,
+        float? radius = null,
+        int segments = 0,
+        Camera? camera = null
+    )
     {
-        FillRoundedRectangle(box.Position, box.Size, color, radius, camera);
+        FillRoundedRectangle(box.Position, box.Size, color, radius, segments, camera);
     }
 
     public void FillRoundedRectangle(
@@ -446,18 +453,21 @@ public sealed unsafe class Graphics
         Vector2 size,
         Color? color = null,
         float? radius = null,
+        int segments = 0,
         Camera? camera = null
     )
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
-        var radiusValue = radius ?? Drawing.DefaultRadius.Or(1f);
-        if (colorValue == Color.Transparent || radiusValue <= 0 || (_culling && !IsBoxInBounds(position, size, camera)))
+        var radiusValue = radius ?? Drawing.DefaultRadius.Or(1);
+        if (colorValue == Color.Transparent || (_culling && !IsBoxInBounds(position, size, camera)))
             return;
+        var minSize = size.X.Abs().Min(size.Y.Abs());
+        segments = Drawing.CalculateSegments(minSize, 0, 90, segments);
         BeginDrawing(camera);
         Raylib.DrawRectangleRounded(
             new Raylib_cs.Rectangle(position, size),
-            radiusValue == 0 ? 0 : radiusValue / size.X.Abs().Min(size.Y.Abs()),
-            0,
+            radiusValue <= 0 ? 0 : radiusValue / minSize,
+            segments,
             colorValue.RColor
         );
         EndDrawing();
@@ -471,10 +481,19 @@ public sealed unsafe class Graphics
         Color? color = null,
         float? radius = null,
         float? strokeWidth = null,
+        int segments = 0,
         Camera? camera = null
     )
     {
-        StrokeRoundedRectangle(new Vector2(x, y), new Vector2(width, height), color, radius, strokeWidth, camera);
+        StrokeRoundedRectangle(
+            new Vector2(x, y),
+            new Vector2(width, height),
+            color,
+            radius,
+            strokeWidth,
+            segments,
+            camera
+        );
     }
 
     public void StrokeRoundedRectangle(
@@ -482,10 +501,11 @@ public sealed unsafe class Graphics
         Color? color = null,
         float? radius = null,
         float? strokeWidth = null,
+        int segments = 0,
         Camera? camera = null
     )
     {
-        StrokeRoundedRectangle(box.Position, box.Size, color, radius, strokeWidth, camera);
+        StrokeRoundedRectangle(box.Position, box.Size, color, radius, strokeWidth, segments, camera);
     }
 
     public void StrokeRoundedRectangle(
@@ -494,24 +514,26 @@ public sealed unsafe class Graphics
         Color? color = null,
         float? radius = null,
         float? strokeWidth = null,
+        int segments = 0,
         Camera? camera = null
     )
     {
         var colorValue = color ?? Drawing.DefaultStroke.Or(Color.White);
-        var radiusValue = radius ?? Drawing.DefaultRadius.Or(0.1f);
+        var radiusValue = radius ?? Drawing.DefaultRadius.Or(1);
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
         if (
             colorValue == Color.Transparent
-            || radiusValue <= 0
             || strokeWidthValue <= 0
             || (_culling && !IsBoxInBounds(position, size, camera, strokeWidthValue))
         )
             return;
+        var minSize = size.X.Abs().Min(size.Y.Abs());
+        segments = Drawing.CalculateSegments(minSize, 0, 90, segments);
         BeginDrawing(camera);
         Raylib.DrawRectangleRoundedLinesEx(
             new Raylib_cs.Rectangle(position, size),
-            radiusValue == 0 ? 0 : radiusValue / size.X.Abs().Min(size.Y.Abs()),
-            0,
+            radiusValue <= 0 ? 0 : radiusValue / minSize,
+            segments,
             strokeWidthValue,
             colorValue.RColor
         );
@@ -538,7 +560,8 @@ public sealed unsafe class Graphics
         var camera = rectangle.Camera.Get();
         var fill = rectangle.Fill;
         var stroke = rectangle.Stroke;
-        var radius = rectangle.Radius.Abs();
+        var radius = rectangle.Radius;
+        var segments = rectangle.Segments;
         var position = transform.Position;
         var scale = transform.Scale.Abs();
         var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.X.Min(scale.Y) * 0.5f);
@@ -547,17 +570,15 @@ public sealed unsafe class Graphics
         Pivot(transform, true);
         if (radius > 0)
         {
-            position += strokeWidth;
-            scale -= strokeWidth * 2;
             if (order == DrawOrder.StrokeThenFill)
             {
-                StrokeRoundedRectangle(position, scale, stroke, radius, strokeWidth, camera);
-                FillRoundedRectangle(position, scale, fill, radius, camera);
+                StrokeRoundedRectangle(position, scale, stroke, radius, strokeWidth, segments, camera);
+                FillRoundedRectangle(position + strokeWidth, scale - strokeWidth * 2, fill, radius, segments, camera);
             }
             else
             {
-                FillRoundedRectangle(position, scale, fill, radius, camera);
-                StrokeRoundedRectangle(position, scale, stroke, radius, strokeWidth, camera);
+                FillRoundedRectangle(position + strokeWidth, scale - strokeWidth * 2, fill, radius, segments, camera);
+                StrokeRoundedRectangle(position, scale, stroke, radius, strokeWidth, segments, camera);
             }
         }
         else
@@ -640,12 +661,29 @@ public sealed unsafe class Graphics
 
     #region Circle
 
-    public void FillCircle(float x, float y, float radius, Color? color = null, Camera? camera = null)
+    public void FillCircle(
+        float x,
+        float y,
+        float radius,
+        Color? color = null,
+        float startAngle = 0,
+        float endAngle = 360,
+        int segments = 0,
+        Camera? camera = null
+    )
     {
-        FillCircle(new Vector2(x, y), radius, color, camera);
+        FillCircle(new Vector2(x, y), radius, color, startAngle, endAngle, segments, camera);
     }
 
-    public void FillCircle(Vector2 center, float radius, Color? color = null, Camera? camera = null)
+    public void FillCircle(
+        Vector2 center,
+        float radius,
+        Color? color = null,
+        float startAngle = 0,
+        float endAngle = 360,
+        int segments = 0,
+        Camera? camera = null
+    )
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
         if (
@@ -653,8 +691,9 @@ public sealed unsafe class Graphics
             || (_culling && !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
         )
             return;
+        segments = Drawing.CalculateSegments(radius, startAngle, endAngle, segments);
         BeginDrawing(camera);
-        Raylib.DrawCircleV(center, radius, colorValue.RColor);
+        Raylib.DrawCircleSector(center, radius, startAngle, endAngle, segments, colorValue.RColor);
         EndDrawing();
     }
 
@@ -684,10 +723,13 @@ public sealed unsafe class Graphics
         float radius,
         Color? color = null,
         float? strokeWidth = null,
+        float startAngle = 0,
+        float endAngle = 360,
+        int segments = 0,
         Camera? camera = null
     )
     {
-        StrokeCircle(new Vector2(x, y), radius, color, strokeWidth, camera);
+        StrokeCircle(new Vector2(x, y), radius, color, strokeWidth, startAngle, endAngle, segments, camera);
     }
 
     public void StrokeCircle(
@@ -695,6 +737,9 @@ public sealed unsafe class Graphics
         float radius,
         Color? color = null,
         float? strokeWidth = null,
+        float startAngle = 0,
+        float endAngle = 360,
+        int segments = 0,
         Camera? camera = null
     )
     {
@@ -706,8 +751,17 @@ public sealed unsafe class Graphics
             || (_culling && !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
         )
             return;
+        segments = Drawing.CalculateSegments(radius, startAngle, endAngle, segments);
         BeginDrawing(camera);
-        Raylib.DrawRing(center, radius - strokeWidthValue, radius + 1, 0, 360, 0, colorValue.RColor);
+        Raylib.DrawRing(
+            center,
+            radius - strokeWidthValue,
+            radius + 1,
+            startAngle,
+            endAngle,
+            segments,
+            colorValue.RColor
+        );
         EndDrawing();
     }
 
@@ -717,6 +771,9 @@ public sealed unsafe class Graphics
         var fill = circle.Fill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
+        var startAngle = circle.StartAngle;
+        var endAngle = circle.EndAngle;
+        var segments = circle.Segments;
         var order = circle.DrawOrder;
         var position = transform.Position;
         var scale = transform.Scale;
@@ -725,13 +782,13 @@ public sealed unsafe class Graphics
         Pivot(transform, false);
         if (order == DrawOrder.StrokeThenFill)
         {
-            StrokeCircle(position, radius, stroke, strokeWidth, camera);
-            FillCircle(position, radius, fill, camera);
+            StrokeCircle(position, radius, stroke, strokeWidth, startAngle, endAngle, segments, camera);
+            FillCircle(position, radius, fill, startAngle, endAngle, segments, camera);
         }
         else
         {
-            FillCircle(position, radius, fill, camera);
-            StrokeCircle(position, radius, stroke, strokeWidth, camera);
+            FillCircle(position, radius, fill, startAngle, endAngle, segments, camera);
+            StrokeCircle(position, radius, stroke, strokeWidth, startAngle, endAngle, segments, camera);
         }
 
         PopMatrix();
@@ -744,6 +801,7 @@ public sealed unsafe class Graphics
         var outerFill = circle.OuterFill;
         var stroke = circle.Stroke;
         var strokeWidth = circle.StrokeWidth;
+        var segments = circle.Segments;
         var order = circle.DrawOrder;
         var position = transform.Position;
         var scale = transform.Scale;
@@ -752,13 +810,13 @@ public sealed unsafe class Graphics
         Pivot(transform, false);
         if (order == DrawOrder.StrokeThenFill)
         {
-            StrokeCircle(position, radius, stroke, strokeWidth, camera);
+            StrokeCircle(position, radius, stroke, strokeWidth, 0, 360, segments, camera);
             FillCircleGradient(position, radius, innerFill, outerFill, camera);
         }
         else
         {
             FillCircleGradient(position, radius, innerFill, outerFill, camera);
-            StrokeCircle(position, radius, stroke, strokeWidth, camera);
+            StrokeCircle(position, radius, stroke, strokeWidth, 0, 360, segments, camera);
         }
 
         PopMatrix();
@@ -1041,10 +1099,11 @@ public sealed unsafe class Graphics
         float startAngle,
         float endAngle,
         Color? color = null,
+        int segments = 0,
         Camera? camera = null
     )
     {
-        FillRing(new Vector2(x, y), innerRadius, outerRadius, startAngle, endAngle, color, camera);
+        FillRing(new Vector2(x, y), innerRadius, outerRadius, startAngle, endAngle, color, segments, camera);
     }
 
     public void FillRing(
@@ -1054,6 +1113,7 @@ public sealed unsafe class Graphics
         float startAngle,
         float endAngle,
         Color? color = null,
+        int segments = 0,
         Camera? camera = null
     )
     {
@@ -1064,8 +1124,9 @@ public sealed unsafe class Graphics
             || (_culling && !IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
         )
             return;
+        segments = Drawing.CalculateSegments(radius, startAngle, endAngle, segments);
         BeginDrawing(camera);
-        Raylib.DrawRing(center, innerRadius, outerRadius, startAngle, endAngle, 0, colorValue.RColor);
+        Raylib.DrawRing(center, innerRadius, outerRadius, startAngle, endAngle, segments, colorValue.RColor);
         EndDrawing();
     }
 
@@ -1078,10 +1139,21 @@ public sealed unsafe class Graphics
         float endAngle,
         Color? color = null,
         float? strokeWidth = null,
+        int segments = 0,
         Camera? camera = null
     )
     {
-        StrokeRing(new Vector2(x, y), innerRadius, outerRadius, startAngle, endAngle, color, strokeWidth, camera);
+        StrokeRing(
+            new Vector2(x, y),
+            innerRadius,
+            outerRadius,
+            startAngle,
+            endAngle,
+            color,
+            strokeWidth,
+            segments,
+            camera
+        );
     }
 
     public void StrokeRing(
@@ -1092,6 +1164,7 @@ public sealed unsafe class Graphics
         float endAngle,
         Color? color = null,
         float? strokeWidth = null,
+        int segments = 0,
         Camera? camera = null
     )
     {
@@ -1099,6 +1172,7 @@ public sealed unsafe class Graphics
         var strokeWidthValue = strokeWidth ?? Drawing.DefaultStrokeWidth.Or(1);
         var maxRadius = innerRadius.Max(outerRadius);
         var minRadius = innerRadius.Min(outerRadius);
+        var innerStrokeRadius = (minRadius - strokeWidthValue).Max(0);
         if (
             colorValue == Color.Transparent
             || strokeWidthValue <= 0
@@ -1109,15 +1183,25 @@ public sealed unsafe class Graphics
         var endDirection = endAngle.Max(startAngle).DegToDirection();
         var startTangent = new Vector2(-startDirection.Y, startDirection.X);
         var endTangent = new Vector2(-endDirection.Y, endDirection.X);
-        var startInner = center + startDirection * (minRadius - strokeWidthValue);
-        var endInner = center + endDirection * (minRadius - strokeWidthValue);
+        var startInner = center + startDirection * innerStrokeRadius;
+        var endInner = center + endDirection * innerStrokeRadius;
         var startOuter = center + startDirection * (maxRadius + strokeWidthValue);
         var endOuter = center + endDirection * (maxRadius + strokeWidthValue);
         var startOffset = startTangent * (strokeWidthValue * 0.5f);
         var endOffset = endTangent * (strokeWidthValue * 0.5f);
+        segments = Drawing.CalculateSegments(maxRadius, startAngle, endAngle, segments);
         BeginDrawing(camera);
-        Raylib.DrawRing(center, maxRadius, maxRadius + strokeWidthValue, startAngle, endAngle, 0, colorValue.RColor);
-        Raylib.DrawRing(center, minRadius - strokeWidthValue, minRadius, startAngle, endAngle, 0, colorValue.RColor);
+        Raylib.DrawRing(
+            center,
+            maxRadius,
+            maxRadius + strokeWidthValue,
+            startAngle,
+            endAngle,
+            segments,
+            colorValue.RColor
+        );
+        if (minRadius > 0)
+            Raylib.DrawRing(center, innerStrokeRadius, minRadius, startAngle, endAngle, segments, colorValue.RColor);
         Raylib.DrawLineEx(startInner - startOffset, startOuter - startOffset, strokeWidthValue, colorValue.RColor);
         Raylib.DrawLineEx(endInner + endOffset, endOuter + endOffset, strokeWidthValue, colorValue.RColor);
         EndDrawing();
@@ -1131,6 +1215,7 @@ public sealed unsafe class Graphics
         var fill = ring.Fill;
         var stroke = ring.Stroke;
         var strokeWidth = ring.StrokeWidth;
+        var segments = ring.Segments;
         var order = ring.DrawOrder;
         var position = transform.Position;
         var scale = transform.Scale.X.Abs().Min(transform.Scale.Y.Abs());
@@ -1140,13 +1225,13 @@ public sealed unsafe class Graphics
         Pivot(transform, false);
         if (order == DrawOrder.StrokeThenFill)
         {
-            StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, camera);
-            FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
+            StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, segments, camera);
+            FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, segments, camera);
         }
         else
         {
-            FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, camera);
-            StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, camera);
+            FillRing(position, innerRadius, outerRadius, startAngle, endAngle, fill, segments, camera);
+            StrokeRing(position, innerRadius, outerRadius, startAngle, endAngle, stroke, strokeWidth, segments, camera);
         }
 
         PopMatrix();

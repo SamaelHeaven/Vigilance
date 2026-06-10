@@ -56,6 +56,28 @@ public static class Drawing
         set => _config.DefaultCulling = value;
     }
 
+    public static float SegmentsErrorRate
+    {
+        get => _config.SegmentsErrorRate;
+        set => _config.SegmentsErrorRate = value;
+    }
+
+    public static int CalculateSegments(float radius, float startAngle, float endAngle, int segments)
+    {
+        if (radius <= 0)
+            radius = 0.1f;
+        if (endAngle < startAngle)
+            (startAngle, endAngle) = (endAngle, startAngle);
+        var minSegments = (int)MathF.Ceiling((endAngle - startAngle) / 90f);
+        if (segments >= minSegments)
+            return segments;
+        var th = MathF.Acos(2f * MathF.Pow(1f - SegmentsErrorRate / radius, 2f) - 1f);
+        segments = (int)MathF.Ceiling((endAngle - startAngle) * (2f * MathF.PI / th) / 360f);
+        if (segments <= 0)
+            segments = minSegments;
+        return segments;
+    }
+
     internal static void Initialize()
     {
         _config = Game.Config.Take<DrawingConfig>() ?? _config;
@@ -74,6 +96,7 @@ public sealed class DrawingConfig
     public CameraProvider DefaultCamera { get; set; } = Camera.Scene;
     public Func<Texture> DefaultTexture { get; set; } = () => Texture.Empty;
     public bool DefaultCulling { get; set; } = false;
+    public float SegmentsErrorRate { get; set; } = 0.25f;
 }
 
 public static class DrawingConfigExtensions

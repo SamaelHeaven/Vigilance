@@ -33,6 +33,24 @@ public class UICircle : UIContainer
         set => _circle.StrokeWidth = value;
     }
 
+    public float StartAngle
+    {
+        get => _circle.StartAngle;
+        set => _circle.StartAngle = value;
+    }
+
+    public float EndAngle
+    {
+        get => _circle.EndAngle;
+        set => _circle.EndAngle = value;
+    }
+
+    public int Segments
+    {
+        get => _circle.Segments;
+        set => _circle.Segments = value;
+    }
+
     public DrawOrder DrawOrder
     {
         get => _circle.DrawOrder;

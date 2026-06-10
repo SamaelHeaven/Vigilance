@@ -33,13 +33,19 @@ public class UIRectangle : UIContainer
         set => _rectangle.StrokeWidth = value;
     }
 
+    public Unit Radius { get; set; }
+
+    public int Segments
+    {
+        get => _rectangle.Segments;
+        set => _rectangle.Segments = value;
+    }
+
     public DrawOrder DrawOrder
     {
         get => _rectangle.DrawOrder;
         set => _rectangle.DrawOrder = value;
     }
-
-    public Unit Radius { get; set; }
 
     protected override void RenderSelf(Graphics graphics, CameraProvider camera)
     {

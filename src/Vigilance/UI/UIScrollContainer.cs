@@ -168,6 +168,18 @@ public class UIScrollContainer : UIContainer
 
     public Unit ScrollBarTrackRadius { get; set; }
 
+    public int ScrollBarTrackSegments
+    {
+        get => _scrollBarTrackRectangle.Segments;
+        set => _scrollBarTrackRectangle.Segments = value;
+    }
+
+    public DrawOrder ScrollBarTrackDrawOrder
+    {
+        get => _scrollBarTrackRectangle.DrawOrder;
+        set => _scrollBarTrackRectangle.DrawOrder = value;
+    }
+
     public Color ScrollBarThumbFill
     {
         get => _scrollBarThumbRectangle.Fill;
@@ -187,6 +199,18 @@ public class UIScrollContainer : UIContainer
     }
 
     public Unit ScrollBarThumbRadius { get; set; } = Unit.Full;
+
+    public int ScrollBarThumbSegments
+    {
+        get => _scrollBarThumbRectangle.Segments;
+        set => _scrollBarThumbRectangle.Segments = value;
+    }
+
+    public DrawOrder ScrollBarThumbDrawOrder
+    {
+        get => _scrollBarThumbRectangle.DrawOrder;
+        set => _scrollBarThumbRectangle.DrawOrder = value;
+    }
 
     public bool IsMouseInsideNestedScrollContainer { get; set; }
 

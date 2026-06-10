@@ -27,8 +27,8 @@ public sealed class Text : IFullCloneable
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
     public int VisibleCharacters { get; set; } = UnlimitedCharacters;
-    public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
     public Interpolation Interpolation { get; set; } = Drawing.DefaultInterpolation;
+    public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
 
     public string Value

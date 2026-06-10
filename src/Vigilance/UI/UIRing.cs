@@ -40,6 +40,12 @@ public class UIRing : UIContainer
         set => _ring.StrokeWidth = value;
     }
 
+    public int Segments
+    {
+        get => _ring.Segments;
+        set => _ring.Segments = value;
+    }
+
     public DrawOrder DrawOrder
     {
         get => _ring.DrawOrder;
