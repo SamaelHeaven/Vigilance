@@ -65,13 +65,10 @@ public sealed class Camera
         {
             if (_matrixCache.HasValue)
                 return _matrixCache.Value;
-            var pixelSize = 1 / Zoom;
-            var target = (Target / pixelSize).Floor() * pixelSize;
-            var offset = Offset;
-            var originMatrix = Matrix3x2.CreateTranslation(-target.X, -target.Y);
+            var originMatrix = Matrix3x2.CreateTranslation(-Target.X, -Target.Y);
             var rotationMatrix = Matrix3x2.CreateRotation(Rotation.DegToRad());
             var scaleMatrix = Matrix3x2.CreateScale(Zoom, Zoom);
-            var translationMatrix = Matrix3x2.CreateTranslation(offset.X, offset.Y);
+            var translationMatrix = Matrix3x2.CreateTranslation(Offset.X, Offset.Y);
             _matrixCache = originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
             return _matrixCache.Value;
         }
