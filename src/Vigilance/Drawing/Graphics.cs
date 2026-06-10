@@ -753,15 +753,7 @@ public sealed unsafe class Graphics
             return;
         segments = Drawing.CalculateSegments(radius, startAngle, endAngle, segments);
         BeginDrawing(camera);
-        Raylib.DrawRing(
-            center,
-            radius - strokeWidthValue,
-            radius + 1,
-            startAngle,
-            endAngle,
-            segments,
-            colorValue.RColor
-        );
+        Raylib.DrawRing(center, radius, radius + strokeWidthValue, startAngle, endAngle, segments, colorValue.RColor);
         EndDrawing();
     }
 
