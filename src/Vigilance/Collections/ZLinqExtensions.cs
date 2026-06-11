@@ -175,8 +175,7 @@ public struct DescendantsPostOrder<TTraverser, T> : IValueEnumerator<T>
             {
                 _stack.Push(traverser);
                 using var subTraversable = _traverser.ConvertToTraverser(child);
-                if (!subTraversable.TryGetHasChild(out var hasChild) || hasChild)
-                    _stack.Push(subTraversable);
+                _stack.Push(subTraversable);
             }
             else
             {

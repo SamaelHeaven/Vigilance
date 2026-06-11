@@ -45,7 +45,19 @@ public sealed class SceneGenerator : SourceGenerator
                     public static Scene Build<{{typeParams}}>(GameSystemsFunc? systems = null)
                         {{wheres}}
                     {
-                        return new Scene(() => (systems?.Invoke() ?? []).Concat([{{newArgs}}]));
+                        return new Scene(() => {
+                            try 
+                            {
+                                return (systems?.Invoke() ?? []).Concat([{{newArgs}}]);
+                            } 
+                            catch (System.Reflection.TargetInvocationException e)
+                            {
+                                if (e.InnerException is null) 
+                                    throw;
+                                else
+                                    throw new Exception(e.InnerException.Message, e.InnerException);
+                            }
+                        });
                     }
                     
                 """

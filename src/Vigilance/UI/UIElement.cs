@@ -1090,11 +1090,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         var size = element.LayoutSize;
         var offset = position + size * 0.5f;
         if (element is { Position: PositionType.Absolute, Parent: not null })
-        {
             data.OldMatrix = graphics.PopMatrix();
-            offset = new Vector2(element.LayoutLeft, element.LayoutTop) + size * 0.5f;
-        }
-
         graphics.PushMatrix();
         graphics.Translate(transform.Position + offset);
         graphics.Scale(transform.Scale);

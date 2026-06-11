@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Raylib_cs;
 using Vigilance.Core;
+using Vigilance.Math;
 using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Drawing;
@@ -245,6 +246,11 @@ public sealed unsafe partial class Shader : IDisposable
         {
             Raylib.SetShaderValueV(RShader, GetLocation(uniform), ptr, ShaderUniformDataType.UIVec4, values.Length);
         }
+    }
+    
+    public void SetMatrix(string uniform, in Matrix3x2 value)
+    {
+        Raylib.SetShaderValueMatrix(RShader, GetLocation(uniform),  value.ToMatrix4x4());
     }
 
     public void SetMatrix(string uniform, in Matrix4x4 value)
