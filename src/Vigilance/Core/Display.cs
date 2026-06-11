@@ -513,6 +513,23 @@ public static unsafe class Display
         var logLevel = Log.SetLogLevel(LogLevel.Info);
         Raylib.InitWindow(width, height, _config.Title);
         Log.LogLevel = logLevel;
+        if (OperatingSystem.IsWindows())
+        {
+            if (!_config.Position.HasValue)
+            {
+                var monitor = Raylib.GetCurrentMonitor();
+                var monitorSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
+                var windowSize = new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+                Raylib.SetWindowPosition(
+                    (int)((monitorSize.X - windowSize.X) / 2),
+                    (int)((monitorSize.Y - windowSize.Y) / 2)
+                );
+            }
+
+            if (!_config.Hidden)
+                Raylib.ClearWindowState(ConfigFlags.HiddenWindow);
+        }
+
         if (Platform.Desktop.IsCurrent && _config.Position.HasValue)
             Raylib.SetWindowPosition((int)_config.Position.Value.X, (int)_config.Position.Value.Y);
         if (Platform.Desktop.IsCurrent && _config.MinScreenSize.HasValue)
@@ -546,7 +563,7 @@ public static unsafe class Display
             flags |= ConfigFlags.AlwaysRunWindow;
         if (_config.Msaa4X)
             flags |= ConfigFlags.Msaa4xHint;
-        if (_config.Hidden)
+        if (_config.Hidden || OperatingSystem.IsWindows())
             flags |= ConfigFlags.HiddenWindow;
         if (_config.TopMost)
             flags |= ConfigFlags.TopmostWindow;
