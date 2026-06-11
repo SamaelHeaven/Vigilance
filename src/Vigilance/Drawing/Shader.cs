@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Raylib_cs;
 using Vigilance.Core;
@@ -258,10 +259,9 @@ public sealed unsafe partial class Shader : IDisposable
 
     private int GetLocation(string uniform)
     {
-        if (_locations.TryGetValue(uniform, out var location))
-            return location;
-        location = Raylib.GetShaderLocation(RShader, uniform);
-        _locations.Add(uniform, location);
+        ref var location = ref CollectionsMarshal.GetValueRefOrAddDefault(_locations, uniform, out var exists);
+        if (!exists)
+            location = Raylib.GetShaderLocation(RShader, uniform);
         return location;
     }
 
