@@ -527,16 +527,27 @@ public sealed unsafe class Graphics
             || (_culling && !IsBoxInBounds(position, size, camera, strokeWidthValue))
         )
             return;
+        position += strokeWidthValue * 0.5f;
+        size -= strokeWidthValue;
         var minSize = size.X.Abs().Min(size.Y.Abs());
         segments = Drawing.CalculateSegments(minSize, 0, 90, segments);
         BeginDrawing(camera);
-        Raylib.DrawRectangleRoundedLinesEx(
-            new Raylib_cs.Rectangle(position, size),
-            radiusValue <= 0 ? 0 : radiusValue / minSize,
-            segments,
-            strokeWidthValue,
-            colorValue.RColor
-        );
+        if (strokeWidthValue > 1f)
+            Raylib.DrawRectangleRoundedLinesEx(
+                new Raylib_cs.Rectangle(position, size),
+                radiusValue <= 0 ? 0 : radiusValue / minSize,
+                segments,
+                strokeWidthValue,
+                colorValue.RColor
+            );
+        else
+            Raylib.DrawRectangleRoundedLinesExShapes(
+                new Raylib_cs.Rectangle(position, size),
+                radiusValue <= 0 ? 0 : radiusValue / minSize,
+                segments,
+                strokeWidthValue,
+                colorValue.RColor
+            );
         EndDrawing();
     }
 
