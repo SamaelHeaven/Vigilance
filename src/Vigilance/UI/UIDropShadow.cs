@@ -71,13 +71,9 @@ public class UIDropShadow : IUIComponent
         if (IsTextureDirty)
         {
             IsTextureDirty = false;
-            var shadowElement = element.ShallowClone();
-            shadowElement.Position = PositionType.Relative;
-            shadowElement.Top = Unit.Undefined;
-            shadowElement.Right = Unit.Undefined;
-            shadowElement.Bottom = Unit.Undefined;
-            shadowElement.Left = Unit.Undefined;
-            using var targetTexture = shadowElement.ToTexture(element.Parent?.LayoutSize ?? element.LayoutSize);
+            var clone = element.ShallowClone();
+            clone.ResetLayoutAndTransform();
+            using var targetTexture = clone.ToTexture(element.Parent?.LayoutSize ?? element.LayoutSize);
             var image = targetTexture.ToImage();
             var result = new WritableImage<PixelGrayAlpha>(image.Width + offset * 2, image.Height + offset * 2);
             for (var y = 0; y < image.Height; y++)

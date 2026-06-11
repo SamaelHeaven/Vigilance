@@ -16,8 +16,8 @@ public record struct Dimensions
         Y = y;
     }
 
-    public Unit X { get; set; } = Unit.Zero;
-    public Unit Y { get; set; } = Unit.Zero;
+    public Unit X { get; set; }
+    public Unit Y { get; set; }
 
     public static implicit operator Dimensions(Vector2 value)
     {

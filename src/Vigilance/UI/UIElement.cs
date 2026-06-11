@@ -835,6 +835,19 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         Render(graphics, Camera);
     }
 
+    public void ResetLayoutAndTransform()
+    {
+        Camera = Core.Camera.Null;
+        Margin = Unit.Undefined;
+        Position = PositionType.Relative;
+        Insets = Unit.Undefined;
+        Translate = Unit.Undefined;
+        Scale = Vector2.One;
+        Skew = Vector2.Zero;
+        Rotation = 0;
+        PivotPoint = Vector2.Zero;
+    }
+
     public RenderTexture ToTexture(Vector2 size)
     {
         return ToTexture(size.X, size.Y);
