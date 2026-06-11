@@ -11,13 +11,13 @@ public sealed unsafe partial class Shader : IDisposable
     private static readonly Dictionary<string, string> _vertexVersions = new()
     {
         { "vigilance_100", Platform.Web.IsCurrent ? "\n" : "#version 120\n" },
-        { "vigilance_300", Platform.Web.IsCurrent ? "#version 300 es\n" : "#version 300\n" },
+        { "vigilance_300", Platform.Web.IsCurrent ? "#version 300 es\n" : "#version 330 core\n" },
     };
 
     private static readonly Dictionary<string, string> _fragmentVersions = new()
     {
         { "vigilance_100", Platform.Web.IsCurrent ? "precision mediump float;\n" : "#version 120\n" },
-        { "vigilance_300", Platform.Web.IsCurrent ? "#version 300 es\n" : "#version 300\n" },
+        { "vigilance_300", Platform.Web.IsCurrent ? "#version 300 es\nprecision mediump float;\n" : "#version 330 core\n" },
     };
 
     private readonly Dictionary<string, int> _locations = new();
