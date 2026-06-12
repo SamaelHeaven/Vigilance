@@ -20,10 +20,18 @@ public sealed class Attributes() : Dictionary<string, object>, IFullCloneable
     }
 
     public Attributes(IEnumerable<(string, object)> attributes)
-        : this(attributes.AsSpan()) { }
+        : this()
+    {
+        foreach (var (key, value) in attributes.FastEnumerate())
+            Add(key, value);
+    }
 
     public Attributes(IEnumerable<KeyValuePair<string, object>> attributes)
-        : this(attributes.AsSpan()) { }
+        : this()
+    {
+        foreach (var (key, value) in attributes.FastEnumerate())
+            Add(key, value);
+    }
 
     object IDeepCloneable.DeepClone()
     {
