@@ -29,7 +29,7 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
     private readonly IEnumerable<T>? _enumerable;
     private readonly T[]? _array;
     private readonly List<T>? _list;
-    private readonly IReadOnlySpan<T>? _spanView;
+    private readonly IReadOnlySpan<T>? _span;
     private readonly SourceKind _kind;
 
     private enum SourceKind
@@ -44,7 +44,7 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
     {
         _array = null;
         _list = null;
-        _spanView = null;
+        _span = null;
         _kind = SourceKind.Enumerable;
         _enumerable = enumerable;
         switch (enumerable)
@@ -57,8 +57,8 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
                 _list = list;
                 _kind = SourceKind.List;
                 break;
-            case IReadOnlySpan<T> spanView:
-                _spanView = spanView;
+            case IReadOnlySpan<T> span:
+                _span = span;
                 _kind = SourceKind.IReadOnlySpan;
                 break;
         }
@@ -127,7 +127,7 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
                 }
                 case SourceKind.IReadOnlySpan:
                 {
-                    var span = _enumerable._spanView!.AsSpan();
+                    var span = _enumerable._span!.AsSpan();
                     var newIndex = _index + 1;
                     if (newIndex >= span.Length)
                         return false;
@@ -167,7 +167,7 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
                     count = _enumerable._list!.Count;
                     return true;
                 case SourceKind.IReadOnlySpan:
-                    count = _enumerable._spanView!.AsSpan().Length;
+                    count = _enumerable._span!.AsSpan().Length;
                     return true;
                 default:
                     if (_enumerable._enumerable is ICollection<T> collection)
@@ -192,7 +192,7 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
                     span = CollectionsMarshal.AsSpan(_enumerable._list!);
                     return true;
                 case SourceKind.IReadOnlySpan:
-                    span = _enumerable._spanView!.AsSpan();
+                    span = _enumerable._span!.AsSpan();
                     return true;
                 default:
                     span = default;
