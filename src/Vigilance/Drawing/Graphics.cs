@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Numerics;
 using Raylib_cs;
 using Vigilance.Collections;
@@ -40,9 +41,8 @@ public sealed unsafe class Graphics
     {
         if (!Precision.AreEqual(offset, 0))
         {
-            var scaleX = MathF.Sqrt(matrix.M11 * matrix.M11 + matrix.M12 * matrix.M12);
-            var scaleY = MathF.Sqrt(matrix.M21 * matrix.M21 + matrix.M22 * matrix.M22);
-            offset *= scaleX.Max(scaleY);
+            var scale = matrix.GetScale();
+            offset *= scale.X.Max(scale.Y);
         }
 
         var clip = GetClip();
@@ -76,22 +76,31 @@ public sealed unsafe class Graphics
     public bool IsPolygonInBoundsSpan(ReadOnlySpan<Vector2> points, Camera? camera, float offset = 0)
     {
         var matrix = GetMatrix(camera);
-        if (points.Length > 128)
+        Vector2[]? pooledPoints = null;
+        try
         {
-            var transformedPoints = new Vector2[points.Length];
-            for (var i = 0; i < points.Length; i++)
-                transformedPoints[i] = points[i].Transform(matrix);
-            points = transformedPoints;
-        }
-        else
-        {
-            var transformedPoints = stackalloc Vector2[points.Length];
-            for (var i = 0; i < points.Length; i++)
-                transformedPoints[i] = points[i].Transform(matrix);
-            points = new ReadOnlySpan<Vector2>(transformedPoints, points.Length);
-        }
+            if (points.Length > 128)
+            {
+                pooledPoints = ArrayPool<Vector2>.Shared.Rent(points.Length);
+                for (var i = 0; i < points.Length; i++)
+                    pooledPoints[i] = points[i].Transform(matrix);
+                points = pooledPoints.AsSpan(0, points.Length);
+            }
+            else
+            {
+                var transformedPoints = stackalloc Vector2[points.Length];
+                for (var i = 0; i < points.Length; i++)
+                    transformedPoints[i] = points[i].Transform(matrix);
+                points = new ReadOnlySpan<Vector2>(transformedPoints, points.Length);
+            }
 
-        return Collision.CheckPolygonsSpan(points, new Quad(GetBounds(matrix, offset)));
+            return Collision.CheckPolygonsSpan(points, new Quad(GetBounds(matrix, offset)));
+        }
+        finally
+        {
+            if (pooledPoints is not null)
+                ArrayPool<Vector2>.Shared.Return(pooledPoints);
+        }
     }
 
     #endregion
@@ -531,11 +540,12 @@ public sealed unsafe class Graphics
         size -= strokeWidthValue;
         var minSize = size.X.Abs().Min(size.Y.Abs());
         segments = Drawing.CalculateSegments(minSize, 0, 90, segments);
+        radiusValue = radiusValue <= 0 ? 0 : radiusValue / minSize;
         BeginDrawing(camera);
         if (strokeWidthValue > 1f)
             Raylib.DrawRectangleRoundedLinesEx(
                 new Raylib_cs.Rectangle(position, size),
-                radiusValue <= 0 ? 0 : radiusValue / minSize,
+                radiusValue,
                 segments,
                 strokeWidthValue,
                 colorValue.RColor
@@ -543,7 +553,7 @@ public sealed unsafe class Graphics
         else
             Raylib.DrawRectangleRoundedLinesExShapes(
                 new Raylib_cs.Rectangle(position, size),
-                radiusValue <= 0 ? 0 : radiusValue / minSize,
+                radiusValue,
                 segments,
                 strokeWidthValue,
                 colorValue.RColor
@@ -1394,7 +1404,7 @@ public sealed unsafe class Graphics
         if (text.IsEmpty || colorValue == Color.Transparent || strokeWidthValue <= 0)
             return;
         font ??= Font.Default;
-        var (atlas, glyphInfos) = font.GetStroke((int)strokeWidthValue.Ceil());
+        var (atlas, glyphInfos) = font.GetStroke((int)strokeWidthValue.Round());
         Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
         BeginDrawing(camera);
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, visibleCharacters, glyphInfos))

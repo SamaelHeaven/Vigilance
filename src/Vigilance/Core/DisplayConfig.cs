@@ -17,7 +17,7 @@ public sealed class DisplayConfig
     public Color Background { get; set; } = Color.Black;
     public int FpsTarget { get; set; } = 0;
     public bool Fullscreen { get; set; } = false;
-    public bool DefaultFullscreenBorderless { get; set; } = true;
+    public bool DefaultFullscreenBorderless { get; set; } = false;
     public bool Maximized { get; set; } = false;
     public bool Decorated { get; set; } = true;
     public bool Focused { get; set; } = true;

@@ -802,7 +802,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         Update(Entity.Null);
     }
 
-    public void Update(Entity entity)
+    public void Update(in Entity entity)
     {
         Entity = entity;
         if (!IsLayoutReady)

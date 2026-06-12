@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Numerics;
 using Vigilance.Core;
 using Vigilance.Drawing;
-using ZLinq;
 
 namespace Vigilance.Math;
 
@@ -10,12 +9,19 @@ public static class Coordinates
 {
     public static Vector2 GetCenter(IReadOnlyCollection<Vector2> points)
     {
-        return points.AsValueEnumerable().Aggregate(Vector2.Zero, (a, b) => a + b) / points.Count;
+        var sum = Vector2.Zero;
+        // ReSharper disable once LoopCanBeConvertedToQuery
+        foreach (var point in points)
+            sum += point;
+        return sum / points.Count;
     }
 
     public static Vector2 GetCenter(in ReadOnlySpan<Vector2> points)
     {
-        return points.AsValueEnumerable().Aggregate(Vector2.Zero, (a, b) => a + b) / points.Length;
+        var sum = Vector2.Zero;
+        foreach (var point in points)
+            sum += point;
+        return sum / points.Length;
     }
 
     public static Vector2 GetCenter(in Quad quad)

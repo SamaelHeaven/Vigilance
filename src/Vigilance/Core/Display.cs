@@ -445,6 +445,8 @@ public static unsafe class Display
 
     internal static void Update()
     {
+        if (OperatingSystem.IsWindows() && !Raylib.IsWindowFocused() && Raylib.IsWindowFullscreen())
+            Raylib.MinimizeWindow();
         if (Platform.Web.IsCurrent)
         {
             _fullscreen = JSEngine.Eval("!!document.fullscreenElement");
