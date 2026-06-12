@@ -203,7 +203,9 @@ public readonly unsafe struct RenderCommand : IComparable<RenderCommand>
             data.EntityVersion == -1 ? Entity.Null : new Entity(GetSequence(command._order), data.EntityVersion, scene);
         ((Action<Entity, TComponent>)data.Action).Invoke(
             entity,
-            ((RenderComponents<TComponent>)data.Components!).Components[data.ComponentIndex]
+            data.ComponentIndex == -1
+                ? (TComponent)data.Components!
+                : ((RenderComponents<TComponent>)data.Components!).Components[data.ComponentIndex]
         );
     }
 

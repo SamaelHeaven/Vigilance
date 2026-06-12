@@ -80,11 +80,24 @@ public sealed class Camera
     }
 }
 
-public readonly record struct CameraProvider(Func<Camera?>? Func)
+public readonly record struct CameraProvider
 {
+    private readonly Camera? _camera;
+    private readonly Func<Camera?>? _func;
+
+    public CameraProvider(Func<Camera?>? func)
+    {
+        _func = func;
+    }
+
+    public CameraProvider(Camera? camera)
+    {
+        _camera = camera;
+    }
+
     public Camera? Get()
     {
-        return Func?.Invoke();
+        return _func?.Invoke() ?? _camera;
     }
 
     public override string? ToString()
@@ -95,5 +108,10 @@ public readonly record struct CameraProvider(Func<Camera?>? Func)
     public static implicit operator Camera?(CameraProvider provider)
     {
         return provider.Get();
+    }
+
+    public static implicit operator CameraProvider(Camera camera)
+    {
+        return new CameraProvider(camera);
     }
 }

@@ -5,44 +5,47 @@ using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class AnimationController : IDictionaryView<string, Animation>
+public sealed class SpriteAnimationController : IDictionaryView<string, SpriteAnimation>
 {
-    private readonly Dictionary<string, Animation> _animations;
+    private readonly Dictionary<string, SpriteAnimation> _animations;
 
-    public AnimationController(params ReadOnlySpan<(string, Animation)> animations)
+    public SpriteAnimationController(params ReadOnlySpan<(string, SpriteAnimation)> animations)
     {
         if (animations.Length == 0)
-            throw new ArgumentException("AnimationController must have at least one animation.");
+            throw new ArgumentException($"{nameof(SpriteAnimationController)} must have at least one animation.");
         _animations = animations.AsValueEnumerable().ToDictionary();
         Current = animations[0].Item1;
     }
 
-    public AnimationController(params ReadOnlySpan<KeyValuePair<string, Animation>> animations)
+    public SpriteAnimationController(params ReadOnlySpan<KeyValuePair<string, SpriteAnimation>> animations)
     {
         if (animations.Length == 0)
-            throw new ArgumentException("AnimationController must have at least one animation.");
+            throw new ArgumentException($"{nameof(SpriteAnimationController)} must have at least one animation.");
         _animations = animations.AsValueEnumerable().ToDictionary();
         Current = animations[0].Key;
     }
 
-    public AnimationController(IEnumerable<(string, Animation)> animations)
+    public SpriteAnimationController(IEnumerable<(string, SpriteAnimation)> animations)
         : this(animations.AsSpan()) { }
 
-    public AnimationController(IEnumerable<KeyValuePair<string, Animation>> animations)
+    public SpriteAnimationController(IEnumerable<KeyValuePair<string, SpriteAnimation>> animations)
         : this(animations.AsSpan()) { }
 
     public string Current { get; private set; }
 
-    public Animation Animation => _animations[Current];
+    public SpriteAnimation Animation => _animations[Current];
 
-    public Animation this[string animation] => _animations[animation];
+    public SpriteAnimation this[string animation] => _animations[animation];
 
-    public Dictionary<string, Animation>.Enumerator GetEnumerator()
+    public Dictionary<string, SpriteAnimation>.Enumerator GetEnumerator()
     {
         return _animations.GetEnumerator();
     }
 
-    public ValueEnumerable<FromDictionary<string, Animation>, KeyValuePair<string, Animation>> AsValueEnumerable()
+    public ValueEnumerable<
+        FromDictionary<string, SpriteAnimation>,
+        KeyValuePair<string, SpriteAnimation>
+    > AsValueEnumerable()
     {
         return _animations.AsValueEnumerable();
     }
@@ -57,12 +60,12 @@ public sealed class AnimationController : IDictionaryView<string, Animation>
         return _animations.ContainsKey(animation);
     }
 
-    public Animation Get(string animation)
+    public SpriteAnimation Get(string animation)
     {
         return _animations[animation];
     }
 
-    public bool TryGet(string animation, [MaybeNullWhen(false)] out Animation animationOut)
+    public bool TryGet(string animation, [MaybeNullWhen(false)] out SpriteAnimation animationOut)
     {
         return _animations.TryGetValue(animation, out animationOut!);
     }

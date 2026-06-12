@@ -1,17 +1,11 @@
 using Vigilance.Core;
 using Vigilance.Drawing;
-using Vigilance.Math;
 
 namespace Vigilance.Systems;
 
 public sealed class GraphicsSystem(Graphics? graphics = null) : GameSystem(queryWithDisabled: true)
 {
     public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
-
-    public override void Configure()
-    {
-        Scene.OnAddOrSet<Sprite>(OnSetSprite);
-    }
 
     public override void Render(RenderCommands commands)
     {
@@ -78,11 +72,5 @@ public sealed class GraphicsSystem(Graphics? graphics = null) : GameSystem(query
             this,
             static (system, entity, grid) => system.Graphics.DrawGrid(entity.WorldTransform, grid)
         );
-    }
-
-    private static void OnSetSprite(Entity entity, Sprite sprite)
-    {
-        if (entity.Scale == Vector2.One)
-            entity.Scale = sprite.Texture.Size;
     }
 }

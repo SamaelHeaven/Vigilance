@@ -561,6 +561,11 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
+    public void DrawRectangle(Rectangle rectangle)
+    {
+        DrawRectangle(new Transform(), rectangle);
+    }
+
     public void DrawRectangle(float x, float y, float width, float height, Rectangle rectangle)
     {
         DrawRectangle(new Vector2(x, y), new Vector2(width, height), rectangle);
@@ -576,8 +581,10 @@ public sealed unsafe class Graphics
         DrawRectangle(box.Position, box.Size, rectangle);
     }
 
-    public void DrawRectangle(in Transform transform, Rectangle rectangle)
+    public void DrawRectangle(Transform transform, Rectangle rectangle)
     {
+        rectangle.OnBeginDrawing?.Invoke(transform, rectangle, this);
+        transform += rectangle.Transform;
         var camera = rectangle.Camera.Get();
         var fill = rectangle.Fill;
         var stroke = rectangle.Stroke;
@@ -617,6 +624,12 @@ public sealed unsafe class Graphics
         }
 
         PopMatrix();
+        rectangle.OnEndDrawing?.Invoke(transform, rectangle, this);
+    }
+
+    public void DrawRectangleGradient(RectangleGradient rectangle)
+    {
+        DrawRectangleGradient(new Transform(), rectangle);
     }
 
     public void DrawRectangleGradient(float x, float y, float width, float height, RectangleGradient rectangle)
@@ -634,8 +647,10 @@ public sealed unsafe class Graphics
         DrawRectangleGradient(box.Position, box.Size, rectangle);
     }
 
-    public void DrawRectangleGradient(in Transform transform, RectangleGradient rectangle)
+    public void DrawRectangleGradient(Transform transform, RectangleGradient rectangle)
     {
+        rectangle.OnBeginDrawing?.Invoke(transform, rectangle, this);
+        transform += rectangle.Transform;
         var camera = rectangle.Camera.Get();
         var topLeftFill = rectangle.TopLeftFill;
         var bottomLeftFill = rectangle.BottomLeftFill;
@@ -676,6 +691,7 @@ public sealed unsafe class Graphics
         }
 
         PopMatrix();
+        rectangle.OnEndDrawing?.Invoke(transform, rectangle, this);
     }
 
     #endregion
@@ -778,8 +794,15 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void DrawCircle(in Transform transform, Circle circle)
+    public void DrawCircle(Circle circle)
     {
+        DrawCircle(new Transform(), circle);
+    }
+
+    public void DrawCircle(Transform transform, Circle circle)
+    {
+        circle.OnBeginDrawing?.Invoke(transform, circle, this);
+        transform += circle.Transform;
         var camera = circle.Camera.Get();
         var fill = circle.Fill;
         var stroke = circle.Stroke;
@@ -805,10 +828,18 @@ public sealed unsafe class Graphics
         }
 
         PopMatrix();
+        circle.OnEndDrawing?.Invoke(transform, circle, this);
     }
 
-    public void DrawCircleGradient(in Transform transform, CircleGradient circle)
+    public void DrawCircleGradient(CircleGradient circle)
     {
+        DrawCircleGradient(new Transform(), circle);
+    }
+
+    public void DrawCircleGradient(Transform transform, CircleGradient circle)
+    {
+        circle.OnBeginDrawing?.Invoke(transform, circle, this);
+        transform += circle.Transform;
         var camera = circle.Camera.Get();
         var innerFill = circle.InnerFill;
         var outerFill = circle.OuterFill;
@@ -833,6 +864,7 @@ public sealed unsafe class Graphics
         }
 
         PopMatrix();
+        circle.OnEndDrawing?.Invoke(transform, circle, this);
     }
 
     #endregion
@@ -866,8 +898,15 @@ public sealed unsafe class Graphics
         StrokeCustomPolygonSpan(span, color, strokeWidth, camera);
     }
 
-    public void DrawTriangle(in Transform transform, Triangle triangle)
+    public void DrawTriangle(Triangle triangle)
     {
+        DrawTriangle(new Transform(), triangle);
+    }
+
+    public void DrawTriangle(Transform transform, Triangle triangle)
+    {
+        triangle.OnBeginDrawing?.Invoke(transform, triangle, this);
+        transform += triangle.Transform;
         var camera = triangle.Camera.Get();
         var position = transform.Position;
         var scale = transform.Scale;
@@ -895,6 +934,7 @@ public sealed unsafe class Graphics
         }
 
         PopMatrix();
+        triangle.OnEndDrawing?.Invoke(transform, triangle, this);
     }
 
     #endregion
@@ -963,8 +1003,15 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void DrawRegularPolygon(in Transform transform, RegularPolygon polygon)
+    public void DrawRegularPolygon(RegularPolygon polygon)
     {
+        DrawRegularPolygon(new Transform(), polygon);
+    }
+
+    public void DrawRegularPolygon(Transform transform, RegularPolygon polygon)
+    {
+        polygon.OnBeginDrawing?.Invoke(transform, polygon, this);
+        transform += polygon.Transform;
         var camera = polygon.Camera.Get();
         var sides = polygon.Sides;
         var fill = polygon.Fill;
@@ -988,6 +1035,7 @@ public sealed unsafe class Graphics
         }
 
         PopMatrix();
+        polygon.OnEndDrawing?.Invoke(transform, polygon, this);
     }
 
     public void FillCustomPolygon(IEnumerable<Vector2> points, Color? color = null, Camera? camera = null)
@@ -1051,8 +1099,15 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void DrawCustomPolygon(in Transform transform, CustomPolygon polygon)
+    public void DrawCustomPolygon(CustomPolygon polygon)
     {
+        DrawCustomPolygon(new Transform(), polygon);
+    }
+
+    public void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
+    {
+        polygon.OnBeginDrawing?.Invoke(transform, polygon, this);
+        transform += polygon.Transform;
         var camera = polygon.Camera.Get();
         var position = transform.Position;
         var scale = transform.Scale;
@@ -1098,6 +1153,8 @@ public sealed unsafe class Graphics
         {
             pooledArray?.Dispose();
         }
+
+        polygon.OnEndDrawing?.Invoke(transform, polygon, this);
     }
 
     #endregion
@@ -1220,8 +1277,15 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void DrawRing(in Transform transform, Ring ring)
+    public void DrawRing(Ring ring)
     {
+        DrawRing(new Transform(), ring);
+    }
+
+    public void DrawRing(Transform transform, Ring ring)
+    {
+        ring.OnBeginDrawing?.Invoke(transform, ring, this);
+        transform += ring.Transform;
         var camera = ring.Camera.Get();
         var startAngle = ring.StartAngle;
         var endAngle = ring.EndAngle;
@@ -1248,6 +1312,7 @@ public sealed unsafe class Graphics
         }
 
         PopMatrix();
+        ring.OnEndDrawing?.Invoke(transform, ring, this);
     }
 
     #endregion
@@ -1282,8 +1347,15 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
-    public void DrawLine(in Transform transform, Line line)
+    public void DrawLine(Line line)
     {
+        DrawLine(new Transform(), line);
+    }
+
+    public void DrawLine(Transform transform, Line line)
+    {
+        line.OnBeginDrawing?.Invoke(transform, line, this);
+        transform += line.Transform;
         var camera = line.Camera.Get();
         var position = transform.Position;
         var start = line.Start + position;
@@ -1295,6 +1367,7 @@ public sealed unsafe class Graphics
         Pivot(transform, false);
         DrawLine(start, end, color, thick * scale, camera);
         PopMatrix();
+        line.OnEndDrawing?.Invoke(transform, line, this);
     }
 
     #endregion
@@ -1430,6 +1503,11 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
+    public void DrawText(Text text)
+    {
+        DrawText(new Transform(), text);
+    }
+
     public void DrawText(float x, float y, Text text)
     {
         DrawText(new Vector2(x, y), text);
@@ -1442,6 +1520,8 @@ public sealed unsafe class Graphics
 
     public void DrawText(Transform transform, Text text)
     {
+        text.OnBeginDrawing?.Invoke(transform, text, this);
+        transform += text.Transform;
         var camera = text.Camera.Get();
         var value = text.Value;
         var fill = text.Fill;
@@ -1497,6 +1577,7 @@ public sealed unsafe class Graphics
         }
 
         PopMatrix();
+        text.OnEndDrawing?.Invoke(transform, text, this);
     }
 
     #endregion
@@ -1688,6 +1769,11 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
+    public void DrawSprite(Sprite sprite)
+    {
+        DrawSprite(new Transform(), sprite);
+    }
+
     public void DrawSprite(float x, float y, float width, float height, Sprite sprite)
     {
         DrawSprite(new Vector2(x, y), new Vector2(width, height), sprite);
@@ -1703,8 +1789,10 @@ public sealed unsafe class Graphics
         DrawSprite(box.Position, box.Size, sprite);
     }
 
-    public void DrawSprite(in Transform transform, Sprite sprite)
+    public void DrawSprite(Transform transform, Sprite sprite)
     {
+        sprite.OnBeginDrawing?.Invoke(transform, sprite, this);
+        transform += sprite.Transform;
         var camera = sprite.Camera.Get();
         var texture = sprite.Texture;
         var interpolation = sprite.Interpolation;
@@ -1726,6 +1814,7 @@ public sealed unsafe class Graphics
         else
             DrawTexture(texture, source, new Box(position, scale), tint, interpolation, camera);
         PopMatrix();
+        sprite.OnEndDrawing?.Invoke(transform, sprite, this);
     }
 
     #endregion
@@ -1787,6 +1876,11 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
+    public void DrawGrid(Grid grid)
+    {
+        DrawGrid(new Transform(), grid);
+    }
+
     public void DrawGrid(float x, float y, float width, float height, Grid grid)
     {
         DrawGrid(new Vector2(x, y), new Vector2(width, height), grid);
@@ -1802,8 +1896,10 @@ public sealed unsafe class Graphics
         DrawGrid(box.Position, box.Size, grid);
     }
 
-    public void DrawGrid(in Transform transform, Grid grid)
+    public void DrawGrid(Transform transform, Grid grid)
     {
+        grid.OnBeginDrawing?.Invoke(transform, grid, this);
+        transform += grid.Transform;
         var camera = grid.Camera.Get();
         var color = grid.Color;
         var cellSize = grid.CellSize;
@@ -1814,6 +1910,7 @@ public sealed unsafe class Graphics
         Pivot(transform, true);
         DrawGrid(position, scale, cellSize, color, thick, camera);
         PopMatrix();
+        grid.OnEndDrawing?.Invoke(transform, grid, this);
     }
 
     #endregion

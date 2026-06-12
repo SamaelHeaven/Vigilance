@@ -6,17 +6,17 @@ using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class Animation : IArrayView<AnimationFrame>
+public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
 {
     public const int InfiniteCycleCount = -1;
-    private readonly AnimationFrame[] _frames;
+    private readonly SpriteAnimationFrame[] _frames;
     private TimeSpan _elapsed;
     private int _index;
     private int? _nextIndex;
     private int _startIndex;
 
-    public Animation(
-        IEnumerable<AnimationFrame> frames,
+    public SpriteAnimation(
+        IEnumerable<SpriteAnimationFrame> frames,
         TimeSpan delay,
         int cycleCount = InfiniteCycleCount,
         int startIndex = 0,
@@ -26,7 +26,7 @@ public sealed class Animation : IArrayView<AnimationFrame>
     {
         _frames = frames.AsValueEnumerable().ToArray();
         if (_frames.Length == 0)
-            throw new ArgumentException("Animation must have at least one frame.");
+            throw new ArgumentException($"{nameof(SpriteAnimation)} must have at least one frame.");
         _nextIndex = null;
         OnComplete = completeAction;
         OnRepeat = repeatAction;
@@ -45,7 +45,7 @@ public sealed class Animation : IArrayView<AnimationFrame>
     public Action? OnComplete { get; set; }
     public Action? OnRepeat { get; set; }
 
-    public AnimationFrame Frame => _frames[_index];
+    public SpriteAnimationFrame Frame => _frames[_index];
     public bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
     public int FrameCount => _frames.Length;
 
@@ -71,12 +71,12 @@ public sealed class Animation : IArrayView<AnimationFrame>
         set => _nextIndex = value?.Clamp(0, _frames.Length - 1);
     }
 
-    public ArrayEnumerator<AnimationFrame> GetEnumerator()
+    public ArrayEnumerator<SpriteAnimationFrame> GetEnumerator()
     {
         return _frames;
     }
 
-    public ValueEnumerable<FromArray<AnimationFrame>, AnimationFrame> AsValueEnumerable()
+    public ValueEnumerable<FromArray<SpriteAnimationFrame>, SpriteAnimationFrame> AsValueEnumerable()
     {
         return _frames.AsValueEnumerable();
     }
@@ -106,21 +106,7 @@ public sealed class Animation : IArrayView<AnimationFrame>
 
     public void UpdateSprite(Sprite sprite)
     {
-        var frame = Frame;
-        if (frame.Texture is not null)
-            sprite.Texture = frame.Texture;
-        if (frame.FlipX.HasValue)
-            sprite.FlipX = frame.FlipX.Value;
-        if (frame.FlipY.HasValue)
-            sprite.FlipY = frame.FlipY.Value;
-        if (frame.Source.HasValue)
-            sprite.Source = frame.Source;
-        if (frame.Tint.HasValue)
-            sprite.Tint = frame.Tint.Value;
-        if (frame.NPatchInfo.HasValue)
-            sprite.NPatchInfo = frame.NPatchInfo;
-        if (frame.Interpolation.HasValue)
-            sprite.Interpolation = frame.Interpolation.Value;
+        Frame.UpdateSprite(sprite);
     }
 
     public void Reset()

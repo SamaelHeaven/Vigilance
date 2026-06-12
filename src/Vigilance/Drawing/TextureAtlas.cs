@@ -100,30 +100,35 @@ public sealed class TextureAtlas : IArrayView<Box>, IReadOnlyList<Box>
         return row * Cols + col;
     }
 
-    public AnimationFrameEnumerable GetAnimationFrames(int startCol, int startRow, int endCol, int? endRow = null)
+    public SpriteAnimationFrameEnumerable GetSpriteAnimationFrames(
+        int startCol,
+        int startRow,
+        int endCol,
+        int? endRow = null
+    )
     {
-        return GetAnimationFrames(GetIndex(startCol, startRow), GetIndex(endCol, endRow ?? startRow));
+        return GetSpriteAnimationFrames(GetIndex(startCol, startRow), GetIndex(endCol, endRow ?? startRow));
     }
 
-    public AnimationFrameEnumerable GetAnimationFrames(Vector2 startPosition, Vector2 endPosition)
+    public SpriteAnimationFrameEnumerable GetSpriteAnimationFrames(Vector2 startPosition, Vector2 endPosition)
     {
-        return GetAnimationFrames(GetIndex(startPosition), GetIndex(endPosition));
+        return GetSpriteAnimationFrames(GetIndex(startPosition), GetIndex(endPosition));
     }
 
-    public AnimationFrameEnumerable GetAnimationFrames(int startIndex, int endIndex)
+    public SpriteAnimationFrameEnumerable GetSpriteAnimationFrames(int startIndex, int endIndex)
     {
-        return new AnimationFrameEnumerable(this, startIndex, endIndex);
+        return new SpriteAnimationFrameEnumerable(this, startIndex, endIndex);
     }
 
-    public readonly struct AnimationFrameEnumerable
-        : IStructEnumerable<AnimationFrameEnumerator, AnimationFrame>,
-            IReadOnlyCollection<AnimationFrame>
+    public readonly struct SpriteAnimationFrameEnumerable
+        : IStructEnumerable<SpriteAnimationFrameEnumerator, SpriteAnimationFrame>,
+            IReadOnlyCollection<SpriteAnimationFrame>
     {
         private readonly TextureAtlas _atlas;
         private readonly int _startIndex;
         private readonly int _endIndex;
 
-        internal AnimationFrameEnumerable(TextureAtlas atlas, int startIndex, int endIndex)
+        internal SpriteAnimationFrameEnumerable(TextureAtlas atlas, int startIndex, int endIndex)
         {
             if (startIndex < 0 || endIndex >= atlas.Count || startIndex > endIndex)
                 throw new ArgumentException("Invalid animation index range.");
@@ -132,30 +137,30 @@ public sealed class TextureAtlas : IArrayView<Box>, IReadOnlyList<Box>
             _endIndex = endIndex;
         }
 
-        public AnimationFrameEnumerator GetEnumerator()
+        public SpriteAnimationFrameEnumerator GetEnumerator()
         {
-            return new AnimationFrameEnumerator(_atlas, _startIndex, _endIndex);
+            return new SpriteAnimationFrameEnumerator(_atlas, _startIndex, _endIndex);
         }
 
         public ValueEnumerable<
-            StructEnumerator<AnimationFrameEnumerator, AnimationFrame>,
-            AnimationFrame
+            StructEnumerator<SpriteAnimationFrameEnumerator, SpriteAnimationFrame>,
+            SpriteAnimationFrame
         > AsValueEnumerable()
         {
-            return new StructEnumerator<AnimationFrameEnumerator, AnimationFrame>(GetEnumerator());
+            return new StructEnumerator<SpriteAnimationFrameEnumerator, SpriteAnimationFrame>(GetEnumerator());
         }
 
         public int Count => _endIndex - _startIndex + 1;
     }
 
-    public struct AnimationFrameEnumerator : IStructEnumerator<AnimationFrame>
+    public struct SpriteAnimationFrameEnumerator : IStructEnumerator<SpriteAnimationFrame>
     {
         private readonly TextureAtlas _atlas;
         private readonly int _startIndex;
         private readonly int _endIndex;
         private int _currentIndex;
 
-        internal AnimationFrameEnumerator(TextureAtlas atlas, int startIndex, int endIndex)
+        internal SpriteAnimationFrameEnumerator(TextureAtlas atlas, int startIndex, int endIndex)
         {
             _atlas = atlas;
             _startIndex = startIndex;
@@ -169,7 +174,7 @@ public sealed class TextureAtlas : IArrayView<Box>, IReadOnlyList<Box>
             if (_currentIndex >= _endIndex)
                 return false;
             _currentIndex++;
-            Current = new AnimationFrame { Texture = _atlas.Texture, Source = _atlas._boxes[_currentIndex] };
+            Current = new SpriteAnimationFrame { Texture = _atlas.Texture, Source = _atlas._boxes[_currentIndex] };
             return true;
         }
 
@@ -179,7 +184,7 @@ public sealed class TextureAtlas : IArrayView<Box>, IReadOnlyList<Box>
             Current = null!;
         }
 
-        public AnimationFrame Current { get; private set; }
+        public SpriteAnimationFrame Current { get; private set; }
 
         public void Dispose() { }
     }
