@@ -1,3 +1,4 @@
+using Vigilance.Collections;
 using Vigilance.Math;
 using ZLinq;
 
@@ -18,29 +19,38 @@ public sealed class InputAxis
     {
         get
         {
+            var deadZone = DeadZone;
             var negative =
                 NegativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
                 || Gamepads
                     .AsValueEnumerable()
-                    .Any(gamepad =>
-                        NegativeGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown)
-                        || GamepadAxes
-                            .AsValueEnumerable()
-                            .Any(axis =>
-                                (int)(gamepad.GetAxis(axis) - DeadZone).Round(MidpointRounding.AwayFromZero) <= -1
-                            )
+                    .Pair(NegativeGamepadButtons.AsValueEnumerable())
+                    .Any(pair => pair.First.IsButtonDown(pair.Second))
+                || Gamepads
+                    .AsValueEnumerable()
+                    .Pair(GamepadAxes.AsValueEnumerable())
+                    .Pair(deadZone.AsSpan().AsValueEnumerable())
+                    .Any(pair =>
+                        (int)
+                            (pair.First.First.GetAxis(pair.First.Second) - pair.Second).Round(
+                                MidpointRounding.AwayFromZero
+                            ) <= -1
                     );
             var positive =
                 PositiveKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
                 || Gamepads
                     .AsValueEnumerable()
-                    .Any(gamepad =>
-                        PositiveGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown)
-                        || GamepadAxes
-                            .AsValueEnumerable()
-                            .Any(axis =>
-                                (int)(gamepad.GetAxis(axis) + DeadZone).Round(MidpointRounding.AwayFromZero) >= 1
-                            )
+                    .Pair(PositiveGamepadButtons.AsValueEnumerable())
+                    .Any(pair => pair.First.IsButtonDown(pair.Second))
+                || Gamepads
+                    .AsValueEnumerable()
+                    .Pair(GamepadAxes.AsValueEnumerable())
+                    .Pair(deadZone.AsSpan().AsValueEnumerable())
+                    .Any(pair =>
+                        (int)
+                            (pair.First.First.GetAxis(pair.First.Second) + pair.Second).Round(
+                                MidpointRounding.AwayFromZero
+                            ) >= 1
                     );
             if (negative && !positive)
                 return -1;
@@ -54,6 +64,7 @@ public sealed class InputAxis
     {
         get
         {
+            var deadZone = DeadZone;
             float negative = 0;
             if (NegativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown))
                 negative = -1;
@@ -61,19 +72,24 @@ public sealed class InputAxis
                 if (
                     Gamepads
                         .AsValueEnumerable()
-                        .Any(gamepad => NegativeGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown))
+                        .Pair(NegativeGamepadButtons.AsValueEnumerable())
+                        .Any(pair => pair.First.IsButtonDown(pair.Second))
                 )
                     negative = -1;
             if (negative == 0)
             {
-                var (gamepad, axis) = Gamepads
+                var pair = Gamepads
                     .AsValueEnumerable()
-                    .SelectMany(gamepad => GamepadAxes.AsValueEnumerable().Select(axis => (gamepad, axis)))
+                    .Pair(GamepadAxes.AsValueEnumerable())
+                    .Pair(deadZone.AsSpan().AsValueEnumerable())
                     .FirstOrDefault(value =>
-                        (int)(value.gamepad.GetAxis(value.axis) - DeadZone).Round(MidpointRounding.AwayFromZero) <= -1
+                        (int)
+                            (value.First.First.GetAxis(value.First.Second) - value.Second).Round(
+                                MidpointRounding.AwayFromZero
+                            ) <= -1
                     );
-                if (gamepad is not null)
-                    negative = gamepad.GetAxis(axis);
+                if (pair != default)
+                    negative = pair.First.First.GetAxis(pair.First.Second);
             }
 
             float positive = 0;
@@ -83,19 +99,24 @@ public sealed class InputAxis
                 if (
                     Gamepads
                         .AsValueEnumerable()
-                        .Any(gamepad => PositiveGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown))
+                        .Pair(PositiveGamepadButtons.AsValueEnumerable())
+                        .Any(pair => pair.First.IsButtonDown(pair.Second))
                 )
                     positive = 1;
             if (positive == 0)
             {
-                var (gamepad, axis) = Gamepads
+                var pair = Gamepads
                     .AsValueEnumerable()
-                    .SelectMany(gamepad => GamepadAxes.AsValueEnumerable().Select(axis => (gamepad, axis)))
+                    .Pair(GamepadAxes.AsValueEnumerable())
+                    .Pair(deadZone.AsSpan().AsValueEnumerable())
                     .FirstOrDefault(value =>
-                        (int)(value.gamepad.GetAxis(value.axis) - DeadZone).Round(MidpointRounding.AwayFromZero) >= 1
+                        (int)
+                            (value.First.First.GetAxis(value.First.Second) - value.Second).Round(
+                                MidpointRounding.AwayFromZero
+                            ) >= 1
                     );
-                if (gamepad is not null)
-                    positive = gamepad.GetAxis(axis);
+                if (pair != default)
+                    positive = pair.First.First.GetAxis(pair.First.Second);
             }
 
             if (negative.Abs() > positive.Abs())
@@ -117,17 +138,18 @@ public sealed class InputAxis
                 if (
                     Gamepads
                         .AsValueEnumerable()
-                        .Any(gamepad => NegativeGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown))
+                        .Pair(NegativeGamepadButtons.AsValueEnumerable())
+                        .Any(pair => pair.First.IsButtonDown(pair.Second))
                 )
                     negative = -1;
             if (negative == 0)
             {
-                var (gamepad, axis) = Gamepads
+                var pair = Gamepads
                     .AsValueEnumerable()
-                    .SelectMany(gamepad => GamepadAxes.AsValueEnumerable().Select(axis => (gamepad, axis)))
-                    .FirstOrDefault(value => value.gamepad.GetAxis(value.axis) < 0);
-                if (gamepad is not null)
-                    negative = gamepad.GetAxis(axis);
+                    .Pair(GamepadAxes.AsValueEnumerable())
+                    .FirstOrDefault(value => value.First.GetAxis(value.Second) < 0);
+                if (pair != default)
+                    negative = pair.First.GetAxis(pair.Second);
             }
 
             float positive = 0;
@@ -137,17 +159,18 @@ public sealed class InputAxis
                 if (
                     Gamepads
                         .AsValueEnumerable()
-                        .Any(gamepad => PositiveGamepadButtons.AsValueEnumerable().Any(gamepad.IsButtonDown))
+                        .Pair(PositiveGamepadButtons.AsValueEnumerable())
+                        .Any(pair => pair.First.IsButtonDown(pair.Second))
                 )
                     positive = 1;
             if (positive == 0)
             {
-                var (gamepad, axis) = Gamepads
+                var pair = Gamepads
                     .AsValueEnumerable()
-                    .SelectMany(gamepad => GamepadAxes.AsValueEnumerable().Select(axis => (gamepad, axis)))
-                    .FirstOrDefault(value => value.gamepad.GetAxis(value.axis) > 0);
-                if (gamepad is not null)
-                    positive = gamepad.GetAxis(axis);
+                    .Pair(GamepadAxes.AsValueEnumerable())
+                    .FirstOrDefault(value => value.First.GetAxis(value.Second) > 0);
+                if (pair != default)
+                    positive = pair.First.GetAxis(pair.Second);
             }
 
             if (negative.Abs() > positive.Abs())

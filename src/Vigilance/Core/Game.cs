@@ -111,6 +111,7 @@ public static unsafe class Game
         Music.UpdateAll();
         Sound.UpdateAll();
         Display.Update();
+        UpdateExit();
         UpdateFullscreen();
         UpdateActions();
         Renderer.BeginDrawing();
@@ -162,9 +163,15 @@ public static unsafe class Game
         Display.Dispose();
     }
 
+    private static void UpdateExit()
+    {
+        if (Input.Input.ExitButton?.IsPressed ?? false)
+            Exit();
+    }
+
     private static void UpdateFullscreen()
     {
-        if (Keyboard.IsKeyPressed(Input.Input.FullscreenKey))
+        if (Input.Input.FullscreenButton?.IsPressed ?? false)
             Display.ToggleFullscreen();
     }
 

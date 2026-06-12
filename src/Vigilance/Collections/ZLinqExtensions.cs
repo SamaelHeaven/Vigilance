@@ -16,6 +16,21 @@ public static class ZLinqExtensions
         }
     }
 
+    extension<TEnumerator, TValue>(in ValueEnumerable<TEnumerator, TValue> enumerable)
+        where TEnumerator : struct, IValueEnumerator<TValue>, allows ref struct
+    {
+        public ValueEnumerable<
+            PairEnumerator<TEnumerator, TValue, TEnumerator2, TSecond>,
+            (TValue First, TSecond Second)
+        > Pair<TEnumerator2, TSecond>(in ValueEnumerable<TEnumerator2, TSecond> other)
+            where TEnumerator2 : struct, IValueEnumerator<TSecond>, allows ref struct
+        {
+            return new ValueEnumerable<PairEnumerator<TEnumerator, TValue, TEnumerator2, TSecond>, (TValue, TSecond)>(
+                new PairEnumerator<TEnumerator, TValue, TEnumerator2, TSecond>(enumerable, other)
+            );
+        }
+    }
+
     extension<TTraverser, T>(TTraverser traverser)
         where TTraverser : struct, ITraverser<TTraverser, T>
     {
@@ -56,6 +71,86 @@ public static class ZLinqExtensions
                 new DescendantsLevelOrder<TTraverser, T>(traverser, true)
             );
         }
+    }
+}
+
+public ref struct PairEnumerator<TEnumerator, TFirst, TEnumerator2, TSecond>
+    : IValueEnumerator<(TFirst First, TSecond Second)>
+    where TEnumerator : struct, IValueEnumerator<TFirst>, allows ref struct
+    where TEnumerator2 : struct, IValueEnumerator<TSecond>, allows ref struct
+{
+    private TEnumerator _outer;
+    private readonly ValueEnumerable<TEnumerator2, TSecond> _otherEnumerable;
+    private TEnumerator2 _inner;
+    private TFirst _outerCurrent;
+    private bool _hasOuterCurrent;
+    private bool _innerInitialized;
+
+    public PairEnumerator(
+        in ValueEnumerable<TEnumerator, TFirst> enumerable,
+        in ValueEnumerable<TEnumerator2, TSecond> other
+    )
+    {
+        _outer = enumerable.Enumerator;
+        _otherEnumerable = other;
+        _inner = default;
+        _outerCurrent = default!;
+        _hasOuterCurrent = false;
+        _innerInitialized = false;
+    }
+
+    public bool TryGetNonEnumeratedCount(out int count)
+    {
+        count = 0;
+        return false;
+    }
+
+    public bool TryGetSpan(out ReadOnlySpan<(TFirst First, TSecond Second)> span)
+    {
+        span = default;
+        return false;
+    }
+
+    public bool TryCopyTo(scoped Span<(TFirst First, TSecond Second)> destination, Index offset)
+    {
+        return false;
+    }
+
+    public bool TryGetNext(out (TFirst First, TSecond Second) current)
+    {
+        while (true)
+        {
+            if (!_hasOuterCurrent)
+            {
+                if (!_outer.TryGetNext(out _outerCurrent))
+                {
+                    Unsafe.SkipInit(out current);
+                    return false;
+                }
+
+                _inner = _otherEnumerable.Enumerator;
+                _innerInitialized = true;
+                _hasOuterCurrent = true;
+            }
+
+            if (_inner.TryGetNext(out var otherCurrent))
+            {
+                current = (_outerCurrent, otherCurrent);
+                return true;
+            }
+
+            _inner.Dispose();
+            _inner = default;
+            _innerInitialized = false;
+            _hasOuterCurrent = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_innerInitialized)
+            _inner.Dispose();
+        _outer.Dispose();
     }
 }
 

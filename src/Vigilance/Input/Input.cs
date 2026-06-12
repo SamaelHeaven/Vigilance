@@ -8,20 +8,16 @@ public static class Input
 {
     private static InputConfig _config = new();
 
-    public static Key ExitKey
+    public static InputButton? ExitButton
     {
-        get => _config.ExitKey;
-        set
-        {
-            _config.ExitKey = value;
-            Raylib.SetExitKey((KeyboardKey)value);
-        }
+        get => _config.ExitButton;
+        set => _config.ExitButton = value;
     }
 
-    public static Key FullscreenKey
+    public static InputButton? FullscreenButton
     {
-        get => _config.FullscreenKey;
-        set => _config.FullscreenKey = value;
+        get => _config.FullscreenButton;
+        set => _config.FullscreenButton = value;
     }
 
     public static InputAxis HorizontalAxis
@@ -45,13 +41,14 @@ public static class Input
     internal static void Initialize()
     {
         _config = Game.Config.Take<InputConfig>() ?? _config;
+        Raylib.SetExitKey(KeyboardKey.Null);
     }
 }
 
 public sealed class InputConfig
 {
-    public Key ExitKey { get; set; } = Key.Null;
-    public Key FullscreenKey { get; set; } = Key.Null;
+    public InputButton? ExitButton { get; set; } = null;
+    public InputButton? FullscreenButton { get; set; } = null;
 
     public InputAxis HorizontalAxis { get; set; } =
         new()
