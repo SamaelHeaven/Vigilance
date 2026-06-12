@@ -354,14 +354,14 @@ public class UIScrollContainer : UIContainer
     protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraProvider camera)
     {
         _scrollBarTrackRectangle.Camera = camera;
-        _scrollBarTrackRectangle.Radius = ScrollBarTrackRadius.Calculate(box.Size.X.Abs().Min(box.Size.Y.Abs()));
+        _scrollBarTrackRectangle.Radius = ScrollBarTrackRadius.Calculate(box.Size.Abs().Min());
         graphics.DrawRectangle(box, _scrollBarTrackRectangle);
     }
 
     protected virtual void RenderScrollBarThumb(Graphics graphics, Box box, CameraProvider camera)
     {
         _scrollBarThumbRectangle.Camera = camera;
-        _scrollBarThumbRectangle.Radius = ScrollBarThumbRadius.Calculate(box.Size.X.Abs().Min(box.Size.Y.Abs()));
+        _scrollBarThumbRectangle.Radius = ScrollBarThumbRadius.Calculate(box.Size.Abs().Min());
         graphics.DrawRectangle(box, _scrollBarThumbRectangle);
     }
 

@@ -56,7 +56,7 @@ public class UIRing : UIContainer
     {
         var position = LayoutPosition;
         var size = LayoutSize;
-        var outerRadius = size.X.Min(size.Y) * 0.5f;
+        var outerRadius = size.Min() * 0.5f;
         _ring.InnerRadius = InnerRadius.Calculate(outerRadius);
         _ring.OuterRadius = outerRadius;
         _ring.Camera = camera;

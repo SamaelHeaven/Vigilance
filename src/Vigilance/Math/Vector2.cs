@@ -212,6 +212,12 @@ public record struct Vector2
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly float Min()
+    {
+        return X.Min(Y);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly Vector2 Min(Vector2 min)
     {
         return new Vector2(X.Min(min.X), Y.Min(min.Y));
@@ -227,6 +233,12 @@ public record struct Vector2
     public readonly Vector2 MinY(float min)
     {
         return new Vector2(X, Y.Min(min));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly float Max()
+    {
+        return X.Max(Y);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

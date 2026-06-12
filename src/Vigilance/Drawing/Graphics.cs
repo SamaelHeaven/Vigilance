@@ -42,7 +42,7 @@ public sealed unsafe class Graphics
         if (!Precision.AreEqual(offset, 0))
         {
             var scale = matrix.GetScale();
-            offset *= scale.X.Max(scale.Y);
+            offset *= scale.Max();
         }
 
         var clip = GetClip();
@@ -470,7 +470,7 @@ public sealed unsafe class Graphics
         var radiusValue = radius ?? Drawing.DefaultRadius.Or(1);
         if (colorValue == Color.Transparent || (_culling && !IsBoxInBounds(position, size, camera)))
             return;
-        var minSize = size.X.Abs().Min(size.Y.Abs());
+        var minSize = size.Abs().Min();
         segments = Drawing.CalculateSegments(minSize, 0, 90, segments);
         BeginDrawing(camera);
         Raylib.DrawRectangleRounded(
@@ -538,7 +538,7 @@ public sealed unsafe class Graphics
             return;
         position += strokeWidthValue * 0.5f;
         size -= strokeWidthValue;
-        var minSize = size.X.Abs().Min(size.Y.Abs());
+        var minSize = size.Abs().Min();
         segments = Drawing.CalculateSegments(minSize, 0, 90, segments);
         radiusValue = radiusValue <= 0 ? 0 : radiusValue / minSize;
         BeginDrawing(camera);
@@ -585,7 +585,7 @@ public sealed unsafe class Graphics
         var segments = rectangle.Segments;
         var position = transform.Position;
         var scale = transform.Scale.Abs();
-        var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.X.Min(scale.Y) * 0.5f);
+        var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.Min() * 0.5f);
         var order = rectangle.DrawOrder;
         PushMatrix();
         Pivot(transform, true);
@@ -644,7 +644,7 @@ public sealed unsafe class Graphics
         var stroke = rectangle.Stroke;
         var position = transform.Position;
         var scale = transform.Scale.Abs();
-        var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.X.Min(scale.Y) * 0.5f);
+        var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.Min() * 0.5f);
         var order = rectangle.DrawOrder;
         PushMatrix();
         Pivot(transform, true);
@@ -790,7 +790,7 @@ public sealed unsafe class Graphics
         var order = circle.DrawOrder;
         var position = transform.Position;
         var scale = transform.Scale;
-        var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
+        var radius = scale.Abs().Min() * 0.5f;
         PushMatrix();
         Pivot(transform, false);
         if (order == DrawOrder.StrokeThenFill)
@@ -818,7 +818,7 @@ public sealed unsafe class Graphics
         var order = circle.DrawOrder;
         var position = transform.Position;
         var scale = transform.Scale;
-        var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
+        var radius = scale.Abs().Min() * 0.5f;
         PushMatrix();
         Pivot(transform, false);
         if (order == DrawOrder.StrokeThenFill)
@@ -975,7 +975,7 @@ public sealed unsafe class Graphics
         var scale = transform.Scale;
         PushMatrix();
         Pivot(transform, false);
-        var radius = scale.X.Abs().Min(scale.Y.Abs()) * 0.5f;
+        var radius = scale.Abs().Min() * 0.5f;
         if (order == DrawOrder.StrokeThenFill)
         {
             StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
@@ -1231,7 +1231,7 @@ public sealed unsafe class Graphics
         var segments = ring.Segments;
         var order = ring.DrawOrder;
         var position = transform.Position;
-        var scale = transform.Scale.X.Abs().Min(transform.Scale.Y.Abs());
+        var scale = transform.Scale.Abs().Min();
         var innerRadius = ring.InnerRadius * scale;
         var outerRadius = ring.OuterRadius * scale;
         PushMatrix();
@@ -1290,7 +1290,7 @@ public sealed unsafe class Graphics
         var end = line.End + position;
         var color = line.Color;
         var thick = line.Thick;
-        var scale = transform.Scale.X.Abs().Min(transform.Scale.Y.Abs());
+        var scale = transform.Scale.Abs().Min();
         PushMatrix();
         Pivot(transform, false);
         DrawLine(start, end, color, thick * scale, camera);
