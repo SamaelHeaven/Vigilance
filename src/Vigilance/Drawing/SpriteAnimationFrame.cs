@@ -14,12 +14,12 @@ public sealed class SpriteAnimationFrame
     public Color? Tint { get; set; } = null;
     public Wrapper<NPatchInfo?>? NPatchInfo { get; set; } = null;
     public Interpolation? Interpolation { get; set; } = null;
-    public Vector2? Position { get; set; } = Vector2.Zero;
-    public Vector2? Scale { get; set; } = Vector2.One;
-    public float? Rotation { get; set; } = 0;
-    public Vector2? PivotPoint { get; set; } = Vector2.Zero;
-    public Wrapper<Action<Transform, Sprite, Graphics>?>? OnBeginDrawing { get; set; }
-    public Wrapper<Action<Transform, Sprite, Graphics>?>? OnEndDrawing { get; set; }
+    public Vector2? Position { get; set; } = null;
+    public Vector2? Scale { get; set; } = null;
+    public float? Rotation { get; set; } = null;
+    public Vector2? PivotPoint { get; set; } = null;
+    public Wrapper<Action<Transform, Sprite, Graphics>?>? OnBeginDrawing { get; set; } = null;
+    public Wrapper<Action<Transform, Sprite, Graphics>?>? OnEndDrawing { get; set; } = null;
 
     public Transform Transform
     {
