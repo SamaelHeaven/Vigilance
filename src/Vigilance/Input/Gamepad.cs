@@ -69,7 +69,7 @@ public sealed unsafe class Gamepad
 
     public bool IsButtonUp(GamepadButton button)
     {
-        return _upButtons.Contains(button);
+        return !_downButtons.Contains(button);
     }
 
     public bool IsButtonPressed(GamepadButton button)
