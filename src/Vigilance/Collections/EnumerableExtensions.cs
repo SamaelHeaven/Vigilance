@@ -14,12 +14,12 @@ public static class EnumerableExtensions
             return new FastEnumerable<T>(enumerable);
         }
 
-        public IEnumerable<(T First, TSecond Second)> Pair<TSecond>(IEnumerable<TSecond> other)
+        public IEnumerable<(T Left, TRight Right)> Cross<TRight>(IEnumerable<TRight> other)
         {
             var otherEnumerable = other.FastEnumerate();
-            foreach (var first in enumerable.FastEnumerate())
-            foreach (var second in otherEnumerable)
-                yield return (first, second);
+            foreach (var left in enumerable.FastEnumerate())
+            foreach (var right in otherEnumerable)
+                yield return (left, right);
         }
     }
 }

@@ -34,7 +34,15 @@ public static class ObjectPrinter
             sb.Append(" { ");
             ref var props = ref CollectionsMarshal.GetValueRefOrAddDefault(_properties, type, out var exists);
             if (!exists)
-                props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+                props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy)
+                    .AsValueEnumerable()
+                    .Where(prop =>
+                        prop.CanRead
+                        && prop.GetIndexParameters().Length == 0
+                        && !prop.PropertyType.IsByRefLike
+                        && !prop.GetMethod!.ReturnType.IsByRef
+                    )
+                    .ToArray();
             var i = 0;
             if (filter.HasValue)
                 foreach (var prop in filter.Value.Apply(props!))

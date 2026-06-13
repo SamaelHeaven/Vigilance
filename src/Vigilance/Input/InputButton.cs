@@ -13,8 +13,8 @@ public sealed class InputButton
         Keys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
         || Gamepads
             .AsValueEnumerable()
-            .Pair(GamepadButtons.AsValueEnumerable())
-            .Any(pair => pair.First.IsButtonDown(pair.Second));
+            .Cross(GamepadButtons.AsValueEnumerable())
+            .Any(x => x.Left.IsButtonDown(x.Right));
 
     public bool IsUp => !IsDown;
 
@@ -22,15 +22,15 @@ public sealed class InputButton
         Keys.AsValueEnumerable().Any(Keyboard.IsKeyPressed)
         || Gamepads
             .AsValueEnumerable()
-            .Pair(GamepadButtons.AsValueEnumerable())
-            .Any(pair => pair.First.IsButtonPressed(pair.Second));
+            .Cross(GamepadButtons.AsValueEnumerable())
+            .Any(x => x.Left.IsButtonPressed(x.Right));
 
     public bool IsReleased =>
         Keys.AsValueEnumerable().Any(Keyboard.IsKeyReleased)
         || Gamepads
             .AsValueEnumerable()
-            .Pair(GamepadButtons.AsValueEnumerable())
-            .Any(pair => pair.First.IsButtonReleased(pair.Second));
+            .Cross(GamepadButtons.AsValueEnumerable())
+            .Any(x => x.Left.IsButtonReleased(x.Right));
 
     public static implicit operator InputButton(Key key)
     {

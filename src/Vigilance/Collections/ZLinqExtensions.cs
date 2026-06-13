@@ -20,13 +20,13 @@ public static class ZLinqExtensions
         where TEnumerator : struct, IValueEnumerator<TValue>, allows ref struct
     {
         public ValueEnumerable<
-            PairEnumerator<TEnumerator, TValue, TEnumerator2, TSecond>,
-            (TValue First, TSecond Second)
-        > Pair<TEnumerator2, TSecond>(in ValueEnumerable<TEnumerator2, TSecond> other)
-            where TEnumerator2 : struct, IValueEnumerator<TSecond>, allows ref struct
+            CrossEnumerator<TEnumerator, TValue, TEnumerator2, TRight>,
+            (TValue Left, TRight Right)
+        > Cross<TEnumerator2, TRight>(in ValueEnumerable<TEnumerator2, TRight> other)
+            where TEnumerator2 : struct, IValueEnumerator<TRight>, allows ref struct
         {
-            return new ValueEnumerable<PairEnumerator<TEnumerator, TValue, TEnumerator2, TSecond>, (TValue, TSecond)>(
-                new PairEnumerator<TEnumerator, TValue, TEnumerator2, TSecond>(enumerable, other)
+            return new ValueEnumerable<CrossEnumerator<TEnumerator, TValue, TEnumerator2, TRight>, (TValue, TRight)>(
+                new CrossEnumerator<TEnumerator, TValue, TEnumerator2, TRight>(enumerable, other)
             );
         }
     }
@@ -74,21 +74,21 @@ public static class ZLinqExtensions
     }
 }
 
-public ref struct PairEnumerator<TEnumerator, TFirst, TEnumerator2, TSecond>
-    : IValueEnumerator<(TFirst First, TSecond Second)>
-    where TEnumerator : struct, IValueEnumerator<TFirst>, allows ref struct
-    where TEnumerator2 : struct, IValueEnumerator<TSecond>, allows ref struct
+public ref struct CrossEnumerator<TEnumerator, TLeft, TEnumerator2, TRight>
+    : IValueEnumerator<(TLeft Left, TRight Right)>
+    where TEnumerator : struct, IValueEnumerator<TLeft>, allows ref struct
+    where TEnumerator2 : struct, IValueEnumerator<TRight>, allows ref struct
 {
     private TEnumerator _outer;
-    private readonly ValueEnumerable<TEnumerator2, TSecond> _otherEnumerable;
+    private readonly ValueEnumerable<TEnumerator2, TRight> _otherEnumerable;
     private TEnumerator2 _inner;
-    private TFirst _outerCurrent;
+    private TLeft _outerCurrent;
     private bool _hasOuterCurrent;
     private bool _innerInitialized;
 
-    public PairEnumerator(
-        in ValueEnumerable<TEnumerator, TFirst> enumerable,
-        in ValueEnumerable<TEnumerator2, TSecond> other
+    public CrossEnumerator(
+        in ValueEnumerable<TEnumerator, TLeft> enumerable,
+        in ValueEnumerable<TEnumerator2, TRight> other
     )
     {
         _outer = enumerable.Enumerator;
@@ -105,18 +105,18 @@ public ref struct PairEnumerator<TEnumerator, TFirst, TEnumerator2, TSecond>
         return false;
     }
 
-    public bool TryGetSpan(out ReadOnlySpan<(TFirst First, TSecond Second)> span)
+    public bool TryGetSpan(out ReadOnlySpan<(TLeft Left, TRight Right)> span)
     {
         span = default;
         return false;
     }
 
-    public bool TryCopyTo(scoped Span<(TFirst First, TSecond Second)> destination, Index offset)
+    public bool TryCopyTo(scoped Span<(TLeft Left, TRight Right)> destination, Index offset)
     {
         return false;
     }
 
-    public bool TryGetNext(out (TFirst First, TSecond Second) current)
+    public bool TryGetNext(out (TLeft Left, TRight Right) current)
     {
         while (true)
         {

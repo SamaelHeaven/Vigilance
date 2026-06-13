@@ -1,6 +1,7 @@
 ﻿using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
+using Vigilance.Logging;
 
 namespace Vigilance.Input;
 
@@ -8,9 +9,9 @@ public sealed unsafe class Gamepad
 {
     private const int MaxGamepads = 4;
     private const string DefaultName = "Unknown gamepad";
-    private static readonly Gamepad[] _gamepads = GetGamepads();
     private static readonly GamepadButton[] _buttonValues = Enum.GetValues<GamepadButton>();
     private static readonly GamepadAxis[] _axisValues = Enum.GetValues<GamepadAxis>();
+    private static readonly Gamepad[] _gamepads = GetGamepads();
     private readonly Dictionary<GamepadAxis, float> _axes;
     private ValueList<GamepadButton> _currentButtons = [];
     private ValueList<GamepadButton> _downButtons = [];
@@ -22,7 +23,7 @@ public sealed unsafe class Gamepad
     {
         Id = id;
         _axes = new Dictionary<GamepadAxis, float>();
-        foreach (var axis in Enum.GetValues<GamepadAxis>())
+        foreach (var axis in _axisValues)
             _axes.Add(axis, 0);
     }
 
@@ -39,8 +40,8 @@ public sealed unsafe class Gamepad
     public ValueListView<GamepadButton> PressedButtons => _pressedButtons;
     public ValueListView<GamepadButton> ReleasedButtons => _releasedButtons;
     public DictionaryView<GamepadAxis, float> Axes => _axes;
-    public bool IsConnected { get; private set; } = false;
     public string Name { get; private set; } = DefaultName;
+    public bool IsConnected { get; private set; } = false;
 
     internal static void UpdateAll()
     {
@@ -54,6 +55,11 @@ public sealed unsafe class Gamepad
         for (var i = 0; i < MaxGamepads; i++)
             gamepads[i] = new Gamepad(i);
         return gamepads;
+    }
+
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Include(nameof(Id), nameof(Name), nameof(IsConnected)));
     }
 
     public bool IsButtonDown(GamepadButton button)
@@ -101,8 +107,8 @@ public sealed unsafe class Gamepad
         _downButtons.Clear();
         _pressedButtons.Clear();
         _releasedButtons.Clear();
-        foreach (var axis in _axes)
-            _axes[axis.Key] = 0;
+        foreach (var axis in _axisValues)
+            _axes[axis] = 0;
     }
 
     private void UpdateState()
