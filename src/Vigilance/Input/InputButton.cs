@@ -10,28 +10,43 @@ public sealed class InputButton
     public List<Key> Keys { get; set; } = [];
     public List<MouseButton> MouseButtons { get; set; } = [];
 
-    public bool IsDown =>
-        Keys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
-        || MouseButtons.AsValueEnumerable().Any(Mouse.IsButtonDown)
-        || Gamepads
-            .AsValueEnumerable()
-            .Cross(GamepadButtons.AsValueEnumerable())
-            .Any(x => x.Left.IsButtonDown(x.Right));
+    public bool IsDown => IsKeyDown || IsMouseDown || IsGamepadDown;
 
     public bool IsUp => !IsDown;
 
-    public bool IsPressed =>
-        Keys.AsValueEnumerable().Any(Keyboard.IsKeyPressed)
-        || MouseButtons.AsValueEnumerable().Any(Mouse.IsButtonPressed)
-        || Gamepads
+    public bool IsPressed => IsKeyPressed || IsMousePressed || IsGamepadPressed;
+
+    public bool IsReleased => IsKeyReleased || IsMouseReleased || IsGamepadReleased;
+
+    public bool IsKeyDown => Keys.AsValueEnumerable().Any(Keyboard.IsKeyDown);
+
+    public bool IsMouseDown => MouseButtons.AsValueEnumerable().Any(Mouse.IsButtonDown);
+
+    public bool IsGamepadDown =>
+        Gamepads.AsValueEnumerable().Cross(GamepadButtons.AsValueEnumerable()).Any(x => x.Left.IsButtonDown(x.Right));
+
+    public bool IsKeyUp => !IsKeyDown;
+
+    public bool IsMouseUp => !IsMouseDown;
+
+    public bool IsGamepadUp => !IsGamepadDown;
+
+    public bool IsKeyPressed => Keys.AsValueEnumerable().Any(Keyboard.IsKeyPressed);
+
+    public bool IsMousePressed => MouseButtons.AsValueEnumerable().Any(Mouse.IsButtonPressed);
+
+    public bool IsGamepadPressed =>
+        Gamepads
             .AsValueEnumerable()
             .Cross(GamepadButtons.AsValueEnumerable())
             .Any(x => x.Left.IsButtonPressed(x.Right));
 
-    public bool IsReleased =>
-        Keys.AsValueEnumerable().Any(Keyboard.IsKeyReleased)
-        || MouseButtons.AsValueEnumerable().Any(Mouse.IsButtonReleased)
-        || Gamepads
+    public bool IsKeyReleased => Keys.AsValueEnumerable().Any(Keyboard.IsKeyReleased);
+
+    public bool IsMouseReleased => MouseButtons.AsValueEnumerable().Any(Mouse.IsButtonReleased);
+
+    public bool IsGamepadReleased =>
+        Gamepads
             .AsValueEnumerable()
             .Cross(GamepadButtons.AsValueEnumerable())
             .Any(x => x.Left.IsButtonReleased(x.Right));
