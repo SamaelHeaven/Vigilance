@@ -9,6 +9,11 @@ public class UIGrid : UIContainer
 
     public UIGrid() { }
 
+    public UIGrid(Color color)
+    {
+        Color = color;
+    }
+
     public UIGrid(float cellSize)
     {
         CellSize = cellSize;

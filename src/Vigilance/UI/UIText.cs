@@ -9,7 +9,18 @@ public class UIText : UIElement
 {
     private Text _text = new();
 
-    public UIText(string value = "")
+    public UIText()
+    {
+        Value = "";
+    }
+
+    public UIText(Color fill)
+        : this()
+    {
+        Fill = fill;
+    }
+
+    public UIText(string value)
     {
         Value = value;
     }

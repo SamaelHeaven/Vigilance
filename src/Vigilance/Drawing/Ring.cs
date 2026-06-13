@@ -6,6 +6,13 @@ namespace Vigilance.Drawing;
 
 public sealed class Ring : IFullCloneable
 {
+    public Ring() { }
+
+    public Ring(Color fill)
+    {
+        Fill = fill;
+    }
+
     public float InnerRadius { get; set; } = 0;
     public float OuterRadius { get; set; } = 0;
     public float StartAngle { get; set; } = 0;

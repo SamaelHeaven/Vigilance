@@ -10,6 +10,11 @@ public class UIPolygon : UIContainer
 
     public UIPolygon() { }
 
+    public UIPolygon(Color fill)
+    {
+        Fill = fill;
+    }
+
     public UIPolygon(int sides)
     {
         Sides = sides;

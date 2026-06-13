@@ -10,6 +10,11 @@ public sealed class Triangle : IFullCloneable
 {
     public Triangle() { }
 
+    public Triangle(Color fill)
+    {
+        Fill = fill;
+    }
+
     public Triangle(Vector2 p1, Vector2 p2, Vector2 p3)
     {
         P1 = p1;

@@ -8,6 +8,11 @@ public sealed class Line : IFullCloneable
 {
     public Line() { }
 
+    public Line(Color color)
+    {
+        Color = color;
+    }
+
     public Line(Vector2 start, Vector2 end)
     {
         Start = start;

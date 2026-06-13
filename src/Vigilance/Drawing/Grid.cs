@@ -8,6 +8,11 @@ public sealed class Grid : IFullCloneable
 {
     public Grid() { }
 
+    public Grid(Color color)
+    {
+        Color = color;
+    }
+
     public Grid(float cellSize)
     {
         CellSize = cellSize;

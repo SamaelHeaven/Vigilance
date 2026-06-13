@@ -12,6 +12,11 @@ public sealed class Text : IFullCloneable
 
     public Text() { }
 
+    public Text(Color fill)
+    {
+        Fill = fill;
+    }
+
     public Text(string value)
     {
         Value = value;

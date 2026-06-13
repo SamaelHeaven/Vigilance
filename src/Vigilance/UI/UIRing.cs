@@ -8,6 +8,13 @@ public class UIRing : UIContainer
 {
     private Ring _ring = new();
 
+    public UIRing() { }
+
+    public UIRing(Color fill)
+    {
+        Fill = fill;
+    }
+
     public Unit InnerRadius { get; set; }
 
     public float StartAngle

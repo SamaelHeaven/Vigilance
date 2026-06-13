@@ -8,6 +8,11 @@ public sealed class RegularPolygon : IFullCloneable
 {
     public RegularPolygon() { }
 
+    public RegularPolygon(Color fill)
+    {
+        Fill = fill;
+    }
+
     public RegularPolygon(int sides)
     {
         Sides = sides;

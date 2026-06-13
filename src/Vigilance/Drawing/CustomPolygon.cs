@@ -9,12 +9,28 @@ public sealed class CustomPolygon : IFullCloneable
 {
     public CustomPolygon() { }
 
+    public CustomPolygon(Color fill)
+    {
+        Fill = fill;
+    }
+
     public CustomPolygon(IEnumerable<Vector2> points)
     {
-        Points = points.ToList();
+        Points = points.AsValueEnumerable().ToList();
     }
 
     public CustomPolygon(IEnumerable<Vector2> points, Color fill)
+        : this(points)
+    {
+        Fill = fill;
+    }
+
+    public CustomPolygon(List<Vector2> points)
+    {
+        Points = points;
+    }
+
+    public CustomPolygon(List<Vector2> points, Color fill)
         : this(points)
     {
         Fill = fill;
