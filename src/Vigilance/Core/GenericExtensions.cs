@@ -6,23 +6,23 @@ namespace Vigilance.Core;
 
 public static class GenericExtensions
 {
-    extension<T>(T t)
+    extension<T>(T value)
     {
-        public T Tap(out T value)
+        public T Tap(out T t)
         {
-            value = t;
-            return t;
+            t = value;
+            return value;
         }
 
         public T Tap(Action<T> action)
         {
-            action.Invoke(t);
-            return t;
+            action.Invoke(value);
+            return value;
         }
 
         public SingletonEnumerable<T> AsSingleton()
         {
-            return new SingletonEnumerable<T>(in t);
+            return new SingletonEnumerable<T>(in value);
         }
     }
 }
