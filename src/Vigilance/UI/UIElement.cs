@@ -679,7 +679,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         return ApplyComputedMargin(DeclaredMargin);
     }
 
-    internal bool ApplyComputedMargin(Insets margin)
+    internal bool ApplyComputedMargin(in Insets margin)
     {
         if (
             _appliedMarginTop == margin.Top
@@ -712,7 +712,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
                     parent.Add(
                         (cloneMap ??= new Dictionary<UIElement, UIElement>(this.DescendantsAndSelf().Count()))[child]
                     );
-            clone.CloneSelf();
+            clone.OnClone();
             OnCloneSignal.Invoke(clone);
             if ((options & CloneOptions.SkipChildren) == 0)
                 break;
@@ -728,7 +728,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
             foreach (var child in this.Children())
                 parent.Add(child);
-        clone.CloneSelf();
+        clone.OnClone();
         OnCloneSignal.Invoke(clone);
         return clone;
     }
@@ -861,17 +861,29 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         return texture;
     }
 
-    protected virtual void CloneSelf() { }
+    protected virtual void OnUpdate() { }
 
-    protected virtual void UpdateSelf() { }
+    protected virtual void OnDisabledUpdate() { }
 
-    protected virtual void DisabledUpdateSelf() { }
+    protected virtual void OnDirty() { }
 
-    protected virtual void BeginRender(Graphics graphics, CameraProvider camera) { }
+    protected virtual void OnMouseEnter() { }
 
-    protected virtual void RenderSelf(Graphics graphics, CameraProvider camera) { }
+    protected virtual void OnMouseLeave() { }
 
-    protected virtual void EndRender(Graphics graphics, CameraProvider camera) { }
+    protected virtual void OnClick() { }
+
+    protected virtual void OnPress() { }
+
+    protected virtual void OnRelease() { }
+
+    protected virtual void OnClone() { }
+
+    protected virtual void OnBeginRender(Graphics graphics, CameraProvider camera) { }
+
+    protected virtual void OnRender(Graphics graphics, CameraProvider camera) { }
+
+    protected virtual void OnEndRender(Graphics graphics, CameraProvider camera) { }
 
     protected virtual Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
@@ -921,7 +933,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     }
 
     private static bool ApplyWrapMinSizeFloors(
-        ReadOnlySpan<WrapMinSizeState> saved,
+        in ReadOnlySpan<WrapMinSizeState> saved,
         float layoutWidth,
         float layoutHeight
     )
@@ -949,7 +961,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         return needsRelayout;
     }
 
-    private static void RestoreWrapMinSizeDimensions(ReadOnlySpan<WrapMinSizeState> saved)
+    private static void RestoreWrapMinSizeDimensions(in ReadOnlySpan<WrapMinSizeState> saved)
     {
         foreach (var state in saved)
         {
@@ -1012,22 +1024,26 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         if (element.IsDisabled || entity is { IsNull: false, IsDisabled: true })
         {
             element._click = false;
-            element.DisabledUpdateSelf();
+            element.OnDisabledUpdate();
             element.OnDisabledUpdateSignal.Invoke(element);
-            if (element.IsDirty)
-                element.OnDirtySignal.Invoke(element);
+            if (!element.IsDirty)
+                return;
+            element.OnDirty();
+            element.OnDirtySignal.Invoke(element);
             return;
         }
 
         var oldMouseInside = element.IsMouseInside;
-        element.UpdateSelf();
+        element.OnUpdate();
         element.OnUpdateSignal.Invoke(element);
         switch (oldMouseInside)
         {
             case false when element.IsMouseInside:
+                element.OnMouseEnter();
                 element.OnMouseEnterSignal.Invoke(element);
                 break;
             case true when !element.IsMouseInside:
+                element.OnMouseLeave();
                 element.OnMouseLeaveSignal.Invoke(element);
                 break;
         }
@@ -1036,20 +1052,32 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         {
             element._click = element.IsMouseInside;
             if (element.IsMouseInside)
+            {
+                element.OnPress();
                 element.OnPressSignal.Invoke(element);
+            }
         }
 
         if (Mouse.IsButtonReleased(MouseButton.Left))
         {
             element._click = element is { _click: true, IsMouseInside: true };
             if (element._click)
+            {
+                element.OnClick();
                 element.OnClickSignal.Invoke(element);
+            }
+
             if (element.IsMouseInside)
+            {
+                element.OnRelease();
                 element.OnReleaseSignal.Invoke(element);
+            }
         }
 
-        if (element.IsDirty)
-            element.OnDirtySignal.Invoke(element);
+        if (!element.IsDirty)
+            return;
+        element.OnDirty();
+        element.OnDirtySignal.Invoke(element);
     }
 
     private void Render(Graphics graphics, CameraProvider camera)
@@ -1163,9 +1191,9 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
         if (shouldSort)
             stack.AsSpan(i, count - i).Sort((a, b) => b.ZIndex.CompareTo(a.ZIndex));
-        element.BeginRender(graphics, camera);
+        element.OnBeginRender(graphics, camera);
         element.OnBeginRenderSignal.Invoke(element, graphics, camera);
-        element.RenderSelf(graphics, camera);
+        element.OnRender(graphics, camera);
         element.OnRenderSignal.Invoke(element, graphics, camera);
     }
 
@@ -1175,7 +1203,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         if (!data.ShouldRender)
             return;
         element.OnEndRenderSignal.Invoke(element, graphics, camera);
-        element.EndRender(graphics, camera);
+        element.OnEndRender(graphics, camera);
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
         if (data.OverflowHidden)
@@ -1398,6 +1426,16 @@ public static partial class UIElementExtensions
             set => element.OnDirtySignal.Subscribe(e => value.Invoke((T)e));
         }
 
+        public Action<T> OnMouseEnter
+        {
+            set => element.OnMouseEnterSignal.Subscribe(e => value.Invoke((T)e));
+        }
+
+        public Action<T> OnMouseLeave
+        {
+            set => element.OnMouseLeaveSignal.Subscribe(e => value.Invoke((T)e));
+        }
+
         public Action<T> OnClick
         {
             set => element.OnClickSignal.Subscribe(e => value.Invoke((T)e));
@@ -1411,16 +1449,6 @@ public static partial class UIElementExtensions
         public Action<T> OnRelease
         {
             set => element.OnReleaseSignal.Subscribe(e => value.Invoke((T)e));
-        }
-
-        public Action<T> OnMouseEnter
-        {
-            set => element.OnMouseEnterSignal.Subscribe(e => value.Invoke((T)e));
-        }
-
-        public Action<T> OnMouseLeave
-        {
-            set => element.OnMouseLeaveSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnClone

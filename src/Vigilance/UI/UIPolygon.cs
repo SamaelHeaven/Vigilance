@@ -51,7 +51,7 @@ public class UIPolygon : UIContainer
         set => _polygon.DrawOrder = value;
     }
 
-    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         var position = LayoutPosition;
         var size = LayoutSize;
@@ -59,7 +59,7 @@ public class UIPolygon : UIContainer
         graphics.DrawRegularPolygon(new Transform(position + size * 0.5f, size), _polygon);
     }
 
-    protected override void CloneSelf()
+    protected override void OnClone()
     {
         _polygon = _polygon.ShallowClone();
     }

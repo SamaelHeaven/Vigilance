@@ -130,13 +130,13 @@ public class UIText : UIElement
         }
     }
 
-    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         _text.Camera = camera;
         graphics.DrawText(LayoutPosition, _text);
     }
 
-    protected override void CloneSelf()
+    protected override void OnClone()
     {
         _text = _text.ShallowClone();
     }

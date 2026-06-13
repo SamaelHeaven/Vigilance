@@ -214,7 +214,7 @@ public class UIScrollContainer : UIContainer
 
     public bool IsMouseInsideNestedScrollContainer { get; set; }
 
-    protected override void UpdateSelf()
+    protected override void OnUpdate()
     {
         var offset = Vector2.Zero;
         var size = Vector2.Zero;
@@ -304,13 +304,13 @@ public class UIScrollContainer : UIContainer
         ScrollOffset = -offset;
     }
 
-    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         graphics.PushMatrix();
         graphics.Translate(ScrollOffset);
     }
 
-    protected override void EndRender(Graphics graphics, CameraProvider camera)
+    protected override void OnEndRender(Graphics graphics, CameraProvider camera)
     {
         graphics.PopMatrix();
         Box box;
@@ -345,7 +345,7 @@ public class UIScrollContainer : UIContainer
         RenderedVerticalScrollBarThumbBounds = box.Transform(matrix);
     }
 
-    protected override void CloneSelf()
+    protected override void OnClone()
     {
         _scrollBarTrackRectangle = _scrollBarTrackRectangle.ShallowClone();
         _scrollBarThumbRectangle = _scrollBarThumbRectangle.ShallowClone();

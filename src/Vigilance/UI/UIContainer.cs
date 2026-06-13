@@ -119,7 +119,7 @@ public class UIContainer : UIParent
     }
 
     private bool ApplyLineMargins(
-        ChildEnumerable children,
+        in ChildEnumerable children,
         int[] flowIndices,
         int start,
         int end,
@@ -160,7 +160,7 @@ public class UIContainer : UIParent
         };
     }
 
-    private Insets AddMainGap(Insets margin, float gap)
+    private Insets AddMainGap(in Insets margin, float gap)
     {
         return Direction switch
         {
@@ -172,7 +172,7 @@ public class UIContainer : UIParent
         };
     }
 
-    private Insets AddCrossGap(Insets margin, float gap)
+    private Insets AddCrossGap(in Insets margin, float gap)
     {
         return Direction.IsHorizontal
             ? Wrap == Wrap.WrapReverse

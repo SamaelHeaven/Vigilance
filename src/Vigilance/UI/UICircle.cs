@@ -57,7 +57,7 @@ public class UICircle : UIContainer
         set => _circle.DrawOrder = value;
     }
 
-    protected override void RenderSelf(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         var position = LayoutPosition;
         var size = LayoutSize;
@@ -65,7 +65,7 @@ public class UICircle : UIContainer
         graphics.DrawCircle(new Transform(position + size * 0.5f, size), _circle);
     }
 
-    protected override void CloneSelf()
+    protected override void OnClone()
     {
         _circle = _circle.ShallowClone();
     }
