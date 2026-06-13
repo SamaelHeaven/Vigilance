@@ -707,6 +707,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         foreach (var node in this.DescendantsPostOrderAndSelf())
         {
             clone = Clone(node, options);
+            DeepCloneComponents(clone);
             if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
                 foreach (var child in node.Children())
                     parent.Add(
@@ -725,6 +726,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     internal object ShallowClone(CloneOptions options)
     {
         var clone = Clone(this, options);
+        clone._components = clone._components.AsValueEnumerable().ToValueList();
         if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
             foreach (var child in this.Children())
                 parent.Add(child);
@@ -1239,6 +1241,23 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         parent.ChildrenOperations = [];
         parent.DeferredCount = 0;
         return result;
+    }
+
+    private static void DeepCloneComponents(UIElement clone)
+    {
+        var components = clone._components;
+        clone._components = new ValueList<IUIComponent>(components.Count);
+        foreach (var component in components)
+            component.Detach(clone);
+        foreach (var component in components)
+            clone.Attach(
+                component switch
+                {
+                    IDeepCloneable deepCloneable => (IUIComponent)deepCloneable.DeepClone(),
+                    IShallowCloneable shallowCloneable => (IUIComponent)shallowCloneable.ShallowClone(),
+                    _ => component,
+                }
+            );
     }
 
     private void MarkReady()

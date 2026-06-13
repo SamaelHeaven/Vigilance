@@ -722,12 +722,16 @@ public static class ValueListExtensions
             using var enumerator = enumerable.Enumerator;
             var result = new ValueList<T>();
             if (enumerator.TryGetNonEnumeratedCount(out var count))
+            {
                 result.Capacity = count;
+                result.Count = count;
+            }
             if (
                 enumerator.TryCopyTo(result.AsSpan(), 0)
                 || (enumerator.TryGetSpan(out var span) && span.TryCopyTo(result.AsSpan()))
             )
                 return result;
+            result.Count = 0;
             while (enumerator.TryGetNext(out var item))
                 result.Add(item);
             return result;

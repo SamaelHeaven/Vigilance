@@ -4,28 +4,23 @@ using Color = Vigilance.Drawing.Color;
 
 namespace Vigilance.UI;
 
-public class UIDropShadow : IUIComponent
+public class UIDropShadow : IUIComponent, IFullCloneable
 {
-    private readonly Func<UIElement, Graphics, CameraProvider, bool> _onBeginRenderHandler;
-    private readonly Func<UIElement, bool> _onDirtyHandler;
     private int _blur;
     private bool _isTextureUsed;
-    private Texture _texture = Texture.Empty;
+    private Func<UIElement, Graphics, CameraProvider, bool> _onBeginRenderHandler = null!;
+    private Func<UIElement, bool> _onDirtyHandler = null!;
+    private Texture _texture = null!;
 
     public UIDropShadow(int blur = 1, Color? color = null)
     {
         Color = color ?? Color.Black;
         Blur = blur;
-        _onBeginRenderHandler = BeginRender;
-        _onDirtyHandler = _ =>
-        {
-            MarkTextureDirty();
-            return false;
-        };
+        Initialize();
     }
 
     public Color Color { get; set; }
-    public bool IsTextureDirty { get; private set; } = true;
+    public bool IsTextureDirty { get; private set; }
 
     public Texture Texture
     {
@@ -46,6 +41,18 @@ public class UIDropShadow : IUIComponent
             _blur = value;
             MarkTextureDirty();
         }
+    }
+
+    object IDeepCloneable.DeepClone()
+    {
+        return this.ShallowClone();
+    }
+
+    object IShallowCloneable.ShallowClone()
+    {
+        var clone = (UIDropShadow)Cloner.MemberwiseClone(this);
+        clone.Initialize();
+        return clone;
     }
 
     public void Attach(UIElement element)
@@ -87,11 +94,25 @@ public class UIDropShadow : IUIComponent
             if (!_isTextureUsed)
                 _texture.Dispose();
             _texture = result.ToTexture();
+            _isTextureUsed = false;
         }
 
         var previousClip = graphics.SetClip(null);
         graphics.DrawTexture(_texture, element.LayoutPosition - offset, null, Color, camera: camera);
         graphics.SetClip(previousClip);
         return false;
+    }
+
+    private void Initialize()
+    {
+        IsTextureDirty = true;
+        _texture = Texture.Empty;
+        _isTextureUsed = false;
+        _onBeginRenderHandler = BeginRender;
+        _onDirtyHandler = _ =>
+        {
+            MarkTextureDirty();
+            return false;
+        };
     }
 }
