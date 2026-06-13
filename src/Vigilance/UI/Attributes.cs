@@ -22,14 +22,14 @@ public sealed class Attributes() : Dictionary<string, object>, IFullCloneable
     public Attributes(IEnumerable<(string, object)> attributes)
         : this()
     {
-        foreach (var (key, value) in attributes.FastEnumerate())
+        foreach (var (key, value) in attributes.AsFastEnumerable())
             Add(key, value);
     }
 
     public Attributes(IEnumerable<KeyValuePair<string, object>> attributes)
         : this()
     {
-        foreach (var (key, value) in attributes.FastEnumerate())
+        foreach (var (key, value) in attributes.AsFastEnumerable())
             Add(key, value);
     }
 

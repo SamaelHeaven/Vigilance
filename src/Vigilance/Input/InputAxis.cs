@@ -1,4 +1,5 @@
 using Vigilance.Collections;
+using Vigilance.Core;
 using Vigilance.Math;
 using ZLinq;
 
@@ -19,7 +20,6 @@ public sealed class InputAxis
     {
         get
         {
-            var deadZone = DeadZone;
             var negative =
                 NegativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
                 || Gamepads
@@ -29,7 +29,7 @@ public sealed class InputAxis
                 || Gamepads
                     .AsValueEnumerable()
                     .Cross(GamepadAxes.AsValueEnumerable())
-                    .Cross(deadZone.AsSpan().AsValueEnumerable())
+                    .Cross(DeadZone.AsSingleton().AsValueEnumerable())
                     .Any(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) - x.Right).Round(MidpointRounding.AwayFromZero) <= -1
                     );
@@ -42,7 +42,7 @@ public sealed class InputAxis
                 || Gamepads
                     .AsValueEnumerable()
                     .Cross(GamepadAxes.AsValueEnumerable())
-                    .Cross(deadZone.AsSpan().AsValueEnumerable())
+                    .Cross(DeadZone.AsSingleton().AsValueEnumerable())
                     .Any(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) + x.Right).Round(MidpointRounding.AwayFromZero) >= 1
                     );
@@ -58,7 +58,6 @@ public sealed class InputAxis
     {
         get
         {
-            var deadZone = DeadZone;
             float negative = 0;
             if (NegativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown))
                 negative = -1;
@@ -75,7 +74,7 @@ public sealed class InputAxis
                 var pair = Gamepads
                     .AsValueEnumerable()
                     .Cross(GamepadAxes.AsValueEnumerable())
-                    .Cross(deadZone.AsSpan().AsValueEnumerable())
+                    .Cross(DeadZone.AsSingleton().AsValueEnumerable())
                     .Where(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) - x.Right).Round(MidpointRounding.AwayFromZero) <= -1
                     )
@@ -101,7 +100,7 @@ public sealed class InputAxis
                 var cross = Gamepads
                     .AsValueEnumerable()
                     .Cross(GamepadAxes.AsValueEnumerable())
-                    .Cross(deadZone.AsSpan().AsValueEnumerable())
+                    .Cross(DeadZone.AsSingleton().AsValueEnumerable())
                     .Where(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) - x.Right).Round(MidpointRounding.AwayFromZero) >= 1
                     )

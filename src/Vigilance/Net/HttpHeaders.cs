@@ -21,14 +21,14 @@ public sealed class HttpHeaders() : Dictionary<string, string>(StringComparer.Or
     public HttpHeaders(IEnumerable<(string, string)> headers)
         : this()
     {
-        foreach (var (key, value) in headers.FastEnumerate())
+        foreach (var (key, value) in headers.AsFastEnumerable())
             Add(key, value);
     }
 
     public HttpHeaders(IEnumerable<KeyValuePair<string, string>> headers)
         : this()
     {
-        foreach (var (key, value) in headers.FastEnumerate())
+        foreach (var (key, value) in headers.AsFastEnumerable())
             Add(key, value);
     }
 }

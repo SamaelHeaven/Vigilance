@@ -9,15 +9,15 @@ public static class EnumerableExtensions
 {
     extension<T>(IEnumerable<T> enumerable)
     {
-        public FastEnumerable<T> FastEnumerate()
+        public FastEnumerable<T> AsFastEnumerable()
         {
             return new FastEnumerable<T>(enumerable);
         }
 
         public IEnumerable<(T Left, TRight Right)> Cross<TRight>(IEnumerable<TRight> other)
         {
-            var otherEnumerable = other.FastEnumerate();
-            foreach (var left in enumerable.FastEnumerate())
+            var otherEnumerable = other.AsFastEnumerable();
+            foreach (var left in enumerable.AsFastEnumerable())
             foreach (var right in otherEnumerable)
                 yield return (left, right);
         }

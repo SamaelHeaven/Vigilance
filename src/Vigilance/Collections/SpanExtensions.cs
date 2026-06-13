@@ -40,20 +40,4 @@ public static class SpanExtensions
         slice.CopyTo(destination);
         return true;
     }
-
-    extension<T>(ref T value)
-        where T : struct
-    {
-        [OverloadResolutionPriority(-2)]
-        public Span<T> AsSpan()
-        {
-            return MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in value), 1);
-        }
-
-        [OverloadResolutionPriority(-1)]
-        public Span<TValue> AsSpan<TValue>(int length)
-        {
-            return MemoryMarshal.CreateSpan(ref Unsafe.As<T, TValue>(ref value), length);
-        }
-    }
 }
