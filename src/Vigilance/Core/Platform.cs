@@ -9,12 +9,23 @@ public enum Platform
 
 public static class PlatformExtensions
 {
-    public static bool IsCurrent(this Platform platform)
+    private static readonly Platform _current = Enum.GetValues<Platform>()
+        .FirstOrDefault(platform => platform.IsCurrent);
+
+    extension(Platform platform)
     {
-        if (OperatingSystem.IsBrowser())
-            return platform == Platform.Web;
-        if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
-            return platform == Platform.Desktop;
-        return platform == Platform.Unknown;
+        public static Platform Current => _current;
+
+        public bool IsCurrent
+        {
+            get
+            {
+                if (OperatingSystem.IsBrowser())
+                    return platform == Platform.Web;
+                if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+                    return platform == Platform.Desktop;
+                return platform == Platform.Unknown;
+            }
+        }
     }
 }

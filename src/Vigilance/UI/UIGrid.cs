@@ -9,6 +9,11 @@ public class UIGrid : UIContainer
 
     public UIGrid() { }
 
+    public UIGrid(Color color)
+    {
+        Color = color;
+    }
+
     public UIGrid(float cellSize)
     {
         CellSize = cellSize;
@@ -38,17 +43,14 @@ public class UIGrid : UIContainer
         set => _grid.Color = value;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         _grid.Camera = camera;
         graphics.DrawGrid(LayoutPosition, LayoutSize, _grid);
-        base.Render(graphics, camera);
     }
 
-    protected override object DeepClone()
+    protected override void OnClone()
     {
-        var result = (UIGrid)base.DeepClone();
-        result._grid = _grid.DeepClone();
-        return result;
+        _grid = _grid.ShallowClone();
     }
 }

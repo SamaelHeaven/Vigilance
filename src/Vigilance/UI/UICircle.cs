@@ -33,25 +33,40 @@ public class UICircle : UIContainer
         set => _circle.StrokeWidth = value;
     }
 
+    public float StartAngle
+    {
+        get => _circle.StartAngle;
+        set => _circle.StartAngle = value;
+    }
+
+    public float EndAngle
+    {
+        get => _circle.EndAngle;
+        set => _circle.EndAngle = value;
+    }
+
+    public int Segments
+    {
+        get => _circle.Segments;
+        set => _circle.Segments = value;
+    }
+
     public DrawOrder DrawOrder
     {
         get => _circle.DrawOrder;
         set => _circle.DrawOrder = value;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         var position = LayoutPosition;
         var size = LayoutSize;
         _circle.Camera = camera;
         graphics.DrawCircle(new Transform(position + size * 0.5f, size), _circle);
-        base.Render(graphics, camera);
     }
 
-    protected override object DeepClone()
+    protected override void OnClone()
     {
-        var result = (UICircle)base.DeepClone();
-        result._circle = _circle.DeepClone();
-        return result;
+        _circle = _circle.ShallowClone();
     }
 }

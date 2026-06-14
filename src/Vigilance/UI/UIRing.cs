@@ -8,6 +8,13 @@ public class UIRing : UIContainer
 {
     private Ring _ring = new();
 
+    public UIRing() { }
+
+    public UIRing(Color fill)
+    {
+        Fill = fill;
+    }
+
     public Unit InnerRadius { get; set; }
 
     public float StartAngle
@@ -40,28 +47,31 @@ public class UIRing : UIContainer
         set => _ring.StrokeWidth = value;
     }
 
+    public int Segments
+    {
+        get => _ring.Segments;
+        set => _ring.Segments = value;
+    }
+
     public DrawOrder DrawOrder
     {
         get => _ring.DrawOrder;
         set => _ring.DrawOrder = value;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         var position = LayoutPosition;
         var size = LayoutSize;
-        var outerRadius = size.X.Min(size.Y) * 0.5f;
+        var outerRadius = size.Min() * 0.5f;
         _ring.InnerRadius = InnerRadius.Calculate(outerRadius);
         _ring.OuterRadius = outerRadius;
         _ring.Camera = camera;
         graphics.DrawRing(new Transform(position + size * 0.5f), _ring);
-        base.Render(graphics, camera);
     }
 
-    protected override object DeepClone()
+    protected override void OnClone()
     {
-        var result = (UIRing)base.DeepClone();
-        result._ring = _ring.DeepClone();
-        return result;
+        _ring = _ring.ShallowClone();
     }
 }

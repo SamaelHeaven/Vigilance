@@ -1,3 +1,4 @@
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Logging;
 using Vigilance.Math;
@@ -8,6 +9,11 @@ namespace Vigilance.Drawing;
 public sealed class Triangle : IFullCloneable
 {
     public Triangle() { }
+
+    public Triangle(Color fill)
+    {
+        Fill = fill;
+    }
 
     public Triangle(Vector2 p1, Vector2 p2, Vector2 p3)
     {
@@ -30,12 +36,30 @@ public sealed class Triangle : IFullCloneable
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
+    public Vector2 Position { get; set; } = Vector2.Zero;
+    public Vector2 Scale { get; set; } = Vector2.One;
+    public float Rotation { get; set; } = 0;
+    public Vector2 PivotPoint { get; set; } = Vector2.Zero;
+    public Action<Transform, Triangle, Graphics>? OnBeginDrawing { get; set; }
+    public Action<Transform, Triangle, Graphics>? OnEndDrawing { get; set; }
+
+    public Transform Transform
+    {
+        get => new(Position, Scale, Rotation, PivotPoint);
+        set
+        {
+            Position = value.Position;
+            Scale = value.Scale;
+            Rotation = value.Rotation;
+            PivotPoint = value.PivotPoint;
+        }
+    }
 
     public PointEnumerable Points => new(this);
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this);
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform), nameof(Points)), true);
     }
 
     public readonly struct PointEnumerable : IStructEnumerable<PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
@@ -73,15 +97,16 @@ public sealed class Triangle : IFullCloneable
 
         public bool MoveNext()
         {
-            if (_index >= 3)
+            var newIndex = _index + 1;
+            if (newIndex >= 3)
                 return false;
-            _index++;
+            _index = newIndex;
             return true;
         }
 
         public void Reset()
         {
-            _index = 0;
+            _index = -1;
         }
 
         public readonly Vector2 Current

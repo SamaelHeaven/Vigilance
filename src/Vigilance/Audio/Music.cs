@@ -1,23 +1,24 @@
 using System.Runtime.InteropServices;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
 
 namespace Vigilance.Audio;
 
-public sealed class Music
+public sealed class Music : IDisposable
 {
-    private static readonly List<Music> Musics = [];
-    private readonly nint _buffer;
-    private Raylib_cs.BleedingEdge.Music _music;
+    private static ValueList<Music> _musics = [];
+    private nint _buffer;
+    private Raylib_cs.Music _music;
     private float _pan = 0.5f;
     private float _pitch = 1;
     private float _volume = 1;
 
     public unsafe Music(string fileType, IEnumerable<byte> bytes)
     {
-        Game.EnsureRunning();
-        using var fileTypeBuffer = fileType.ToUtf8Buffer();
+        Game.ThrowIfNotRunning();
+        using var fileTypeBuffer = fileType.ToUtf8Ptr();
         var span = bytes.AsSpan();
         _buffer = Marshal.AllocHGlobal(span.Length);
         fixed (byte* bytesBuffer = span)
@@ -25,7 +26,7 @@ public sealed class Music
             Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, span.Length, span.Length);
         }
 
-        _music = Raylib.LoadMusicStreamFromMemory(fileTypeBuffer.AsPointer(), (byte*)_buffer, span.Length);
+        _music = Raylib.LoadMusicStreamFromMemory(fileTypeBuffer, (byte*)_buffer, span.Length);
     }
 
     public float Volume
@@ -66,21 +67,35 @@ public sealed class Music
         }
     }
 
-    public bool Looping
+    public bool IsLooping
     {
         get => _music.Looping;
         set => _music.Looping = value;
     }
 
-    public bool Paused { get; private set; }
+    public bool IsPaused { get; private set; }
 
-    public bool Playing => Raylib.IsMusicStreamPlaying(_music);
+    public bool IsPlaying => Raylib.IsMusicStreamPlaying(_music);
 
-    public bool Stopped => !Paused && !Raylib.IsMusicStreamPlaying(_music);
+    public bool IsStopped => !IsPaused && !Raylib.IsMusicStreamPlaying(_music);
 
     public TimeSpan TimeLength => TimeSpan.FromSeconds(Raylib.GetMusicTimeLength(_music));
 
     public TimeSpan TimePlayed => TimeSpan.FromSeconds(Raylib.GetMusicTimePlayed(_music));
+
+    public bool IsValid => _buffer != 0;
+
+    public void Dispose()
+    {
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+        _buffer = 0;
+        _music = default;
+        _pan = 0;
+        _pitch = 0;
+        _volume = 0;
+        IsPaused = false;
+    }
 
     public Music SetVolume(float volume)
     {
@@ -102,16 +117,16 @@ public sealed class Music
 
     public Music SetLooping(bool looping)
     {
-        Looping = looping;
+        IsLooping = looping;
         return this;
     }
 
     public Music Play()
     {
-        if (Paused)
+        if (IsPaused)
         {
             Raylib.PlayMusicStream(_music);
-            Paused = false;
+            IsPaused = false;
             Stop();
         }
         else if (Raylib.IsMusicStreamPlaying(_music))
@@ -120,14 +135,14 @@ public sealed class Music
         }
 
         Raylib.PlayMusicStream(_music);
-        if (!Musics.Contains(this))
-            Musics.Add(this);
+        if (!_musics.Contains(this))
+            _musics.Add(this);
         return this;
     }
 
     public Music Stop()
     {
-        Paused = false;
+        IsPaused = false;
         Raylib.StopMusicStream(_music);
         return this;
     }
@@ -136,19 +151,19 @@ public sealed class Music
     {
         if (!Raylib.IsMusicStreamPlaying(_music))
             return this;
-        Paused = true;
+        IsPaused = true;
         Raylib.PauseMusicStream(_music);
         return this;
     }
 
     public Music Resume()
     {
-        if (!Paused)
+        if (!IsPaused)
             return this;
-        Paused = false;
+        IsPaused = false;
         Raylib.ResumeMusicStream(_music);
-        if (!Musics.Contains(this))
-            Musics.Add(this);
+        if (!_musics.Contains(this))
+            _musics.Add(this);
         return this;
     }
 
@@ -160,21 +175,23 @@ public sealed class Music
 
     internal static void UpdateAll()
     {
-        for (var i = Musics.Count - 1; i >= 0; i--)
+        for (var i = _musics.Count - 1; i >= 0; i--)
         {
-            var music = Musics[i];
+            var music = _musics[i];
             Raylib.UpdateMusicStream(music._music);
             if (!Raylib.IsMusicStreamPlaying(music._music))
-                Musics.RemoveAt(i);
+                _musics.RemoveAt(i);
         }
+    }
+
+    private void ReleaseUnmanagedResources()
+    {
+        Raylib.UnloadMusicStream(_music);
+        Marshal.FreeHGlobal(_buffer);
     }
 
     ~Music()
     {
-        Game.Defer(() =>
-        {
-            Raylib.UnloadMusicStream(_music);
-            Marshal.FreeHGlobal(_buffer);
-        });
+        Game.Defer(ReleaseUnmanagedResources);
     }
 }

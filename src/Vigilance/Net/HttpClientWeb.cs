@@ -3,12 +3,13 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using Vigilance.Core;
+using Vigilance.Math;
 
 namespace Vigilance.Net;
 
 internal sealed unsafe class HttpClientWeb : IHttpClient
 {
-    private static readonly ConcurrentDictionary<nint, HttpRequest> Requests = new();
+    private static readonly ConcurrentDictionary<nint, HttpRequest> _requests = new();
     private static long _requestId = 0;
 
     public void Fetch(HttpRequest request)
@@ -23,7 +24,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
             Emscripten.FetchAttrInit(ref attr);
             attr.UserData = id;
             attr.Attributes = 1;
-            for (var i = 0; i < int.Min(method.Length, EmscriptenFetchAttr.RequestMethodSize); i++)
+            for (var i = 0; i < method.Length.Min(EmscriptenFetchAttr.RequestMethodSize); i++)
                 attr.RequestMethod[i] = method[i];
             attr.RequestMethod[EmscriptenFetchAttr.RequestMethodSize - 1] = 0;
             attr.TimeoutMSecs = (uint)request.Timeout.TotalMilliseconds;
@@ -51,7 +52,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
                 attr.RequestDataSize = (nuint)(request.Body?.Length ?? 0);
                 attr.OnSuccess = &OnFetchComplete;
                 attr.OnError = &OnFetchComplete;
-                Requests[id] = request;
+                _requests[id] = request;
                 Emscripten.Fetch(ref attr, request.Url);
             }
         }
@@ -79,7 +80,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         try
         {
             response.StatusCode = fetch->Status;
-            response.StatusText = Marshal.PtrToStringUTF8((nint)fetch->StatusText) ?? "";
+            response.StatusText = Utf8Ptr.GetString(fetch->StatusText) ?? "";
             response.Body = new byte[fetch->TotalBytes];
             if (fetch->Data != nint.Zero)
                 Marshal.Copy(fetch->Data, response.Body, 0, response.Body.Length);
@@ -108,8 +109,8 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         finally
         {
             Emscripten.FetchClose(fetch);
-            Http.CompleteFetch(Requests[id], response);
-            Requests.Remove(id, out _);
+            Http.CompleteFetch(_requests[id], response);
+            _requests.Remove(id, out _);
         }
     }
 }

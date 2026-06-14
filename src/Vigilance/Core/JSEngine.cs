@@ -1,22 +1,20 @@
-using System.Runtime.InteropServices;
+using JetBrains.Annotations;
 
 namespace Vigilance.Core;
 
 public static class JSEngine
 {
-    public static JSResult Eval(string script)
+    public static JSResult Eval([LanguageInjection(InjectedLanguage.JAVASCRIPT)] string script)
     {
-        if (!Platform.Web.IsCurrent())
+        if (!Platform.Web.IsCurrent)
             throw new PlatformNotSupportedException();
         var ptr = Emscripten.RunScriptString(script);
-        return new JSResult { Value = Marshal.PtrToStringUTF8(ptr) ?? "" };
+        return new JSResult(Utf8Ptr.GetString(ptr));
     }
 }
 
-public readonly record struct JSResult
+public readonly record struct JSResult(string Value)
 {
-    public string Value { get; init; }
-
     public static implicit operator string(JSResult result)
     {
         return result.Value;
@@ -24,67 +22,67 @@ public readonly record struct JSResult
 
     public static implicit operator char(JSResult result)
     {
-        return char.Parse(result);
+        return result.Value.IsEmpty ? '\0' : result.Value[0];
     }
 
     public static implicit operator bool(JSResult result)
     {
-        return bool.Parse(result);
+        return bool.TryParse(result, out var value) ? value : !result.Value.IsEmpty;
     }
 
     public static implicit operator sbyte(JSResult result)
     {
-        return sbyte.Parse(result);
+        return (sbyte)(double)result;
     }
 
     public static implicit operator short(JSResult result)
     {
-        return short.Parse(result);
+        return (short)(double)result;
     }
 
     public static implicit operator int(JSResult result)
     {
-        return int.Parse(result);
+        return (int)(double)result;
     }
 
     public static implicit operator long(JSResult result)
     {
-        return long.Parse(result);
+        return (long)(double)result;
     }
 
     public static implicit operator byte(JSResult result)
     {
-        return byte.Parse(result);
+        return (byte)(double)result;
     }
 
     public static implicit operator ushort(JSResult result)
     {
-        return ushort.Parse(result);
+        return (ushort)(double)result;
     }
 
     public static implicit operator uint(JSResult result)
     {
-        return uint.Parse(result);
+        return (uint)(double)result;
     }
 
     public static implicit operator ulong(JSResult result)
     {
-        return ulong.Parse(result);
+        return (ulong)(double)result;
     }
 
     public static implicit operator float(JSResult result)
     {
-        return float.Parse(result);
+        return (float)(double)result;
     }
 
     public static implicit operator double(JSResult result)
     {
-        return double.Parse(result);
+        return double.TryParse(result.Value, out var value) ? value : 0;
     }
 
     public static implicit operator decimal(JSResult result)
     {
-        return decimal.Parse(result);
+        return (decimal)(double)result;
     }
 
     public override string ToString()

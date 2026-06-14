@@ -14,20 +14,12 @@ public sealed class FontConfig
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
     public Func<Font> Default { get; set; } =
-        () =>
-        {
-            var assembly = Assemblies.Engine;
-            return Asset.FontResource(
-                "Font.Default.ttf",
-                @namespace: $"{assembly.GetName().Name}.Resources",
-                assembly: assembly
-            );
-        };
+        () => Font.Resource("Font.default.ttf", @namespace: "Resources", assembly: Assemblies.Engine);
 }
 
 public static class FontConfigExtensions
 {
-    public static ConfigBuilder Font(this ConfigBuilder builder, FontConfig config)
+    public static ConfigBuilder Font(this ConfigBuilder builder, Action<FontConfig> config)
     {
         return builder.Add(config);
     }

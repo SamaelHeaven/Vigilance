@@ -1,149 +1,149 @@
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.RegularExpressions;
-using Raylib_cs.BleedingEdge;
+using LinkDotNet.StringBuilder;
+using Raylib_cs;
+using Vigilance.Collections;
+using Vigilance.Logging;
 
 namespace Vigilance.Core;
 
 public static unsafe partial class FileSystem
 {
-    private static readonly Dictionary<Assembly, string[]> ResourceNames = new();
-
     public static string ApplicationDirectory { get; } =
-        FormatPath(Marshal.PtrToStringUTF8((nint)Raylib.GetApplicationDirectory()) ?? "");
+        FormatPath(Utf8Ptr.GetString(Raylib.GetApplicationDirectory()));
 
-    public static string WorkingNamespace { get; set; } = "";
+    public static string WorkingDirectory => FormatPath(Utf8Ptr.GetString(Raylib.GetWorkingDirectory()));
 
-    public static string WorkingDirectory =>
-        FormatPath(Marshal.PtrToStringUTF8((nint)Raylib.GetWorkingDirectory()) ?? "");
-
-    public static string[] DroppedFiles => !Raylib.IsFileDropped() ? Array.Empty<string>() : Raylib.GetDroppedFiles();
-
-    static FileSystem()
-    {
-        WorkingNamespace = new FileSystemConfig().WorkingNamespace;
-    }
+    public static string[] DroppedFiles => !Raylib.IsFileDropped() ? [] : Raylib.GetDroppedFiles();
 
     internal static void Initialize()
     {
-        FileSystemConfig config;
-        config = Game.Config.TryTake(out config) ? config : new FileSystemConfig();
-        WorkingNamespace = config.WorkingNamespace;
+        var config = Game.Config.Take<FileSystemConfig>() ?? new FileSystemConfig();
         ChangeDirectory(config.WorkingDirectory);
     }
 
     public static string FormatPath(string path)
     {
-        return DuplicatedSlashRegex().Replace(path.Replace('\\', '/'), "/").Trim('/');
+        if (path.IsEmpty)
+            return "";
+        var trimmedPath = path.AsSpan().Trim();
+        var initialCapacity = trimmedPath.Length;
+        using var sb =
+            initialCapacity <= 256
+                ? new ValueStringBuilder(stackalloc char[initialCapacity])
+                : new ValueStringBuilder(initialCapacity);
+        char? lastChar = null;
+        foreach (var c in trimmedPath)
+        {
+            var normalized = c == '\\' ? '/' : c;
+            if (normalized == '/' && lastChar == '/')
+                continue;
+            sb.Append(normalized);
+            lastChar = normalized;
+        }
+
+        return sb.AsSpan().Trim('/').ToString();
     }
 
-    public static string FormatResource(string resource, string @namespace = "")
+    public static string NormalizePath(string path)
     {
-        return @namespace == "" ? resource : @namespace + "." + resource;
+        return FormatPath(Path.Combine(WorkingDirectory, path));
     }
 
     public static bool ChangeDirectory(string path)
     {
         path = FormatPath(path);
-        if (!DirectoryExists(path))
+        using var buffer = path.ToUtf8Ptr();
+        if (!Raylib.DirectoryExists(buffer))
             return false;
-        using var buffer = path.ToUtf8Buffer();
-        return Raylib.ChangeDirectory(buffer.AsPointer());
+        return Raylib.ChangeDirectory(buffer);
     }
 
     public static bool FileExists(string path)
     {
         path = FormatPath(path);
-        if (path == "")
+        if (path.IsEmpty)
             return false;
-        using var buffer = path.ToUtf8Buffer();
-        return Raylib.FileExists(buffer.AsPointer());
+        using var buffer = path.ToUtf8Ptr();
+        return Raylib.FileExists(buffer);
     }
 
     public static bool DirectoryExists(string path)
     {
         path = FormatPath(path);
-        if (path == "")
+        if (path.IsEmpty)
             return false;
-        using var buffer = path.ToUtf8Buffer();
-        return Raylib.DirectoryExists(buffer.AsPointer());
-    }
-
-    public static bool ResourceExists(string resource, string? @namespace = null, Assembly? assembly = null)
-    {
-        assembly ??= Assemblies.Game;
-        if (ResourceNames.TryGetValue(assembly, out var names))
-            return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
-        names = assembly.GetManifestResourceNames();
-        ResourceNames[assembly] = names;
-        return names.Contains(FormatResource(resource, @namespace ?? WorkingNamespace));
+        using var buffer = path.ToUtf8Ptr();
+        return Raylib.DirectoryExists(buffer);
     }
 
     public static DateTime FileModTime(string path)
     {
         path = FormatPath(path);
-        return !FileExists(path)
+        using var buffer = path.ToUtf8Ptr();
+        return !Raylib.FileExists(buffer)
             ? DateTime.MinValue
-            : DateTimeOffset.FromUnixTimeSeconds(GetFileModTime(path)).UtcDateTime;
+            : DateTimeOffset.FromUnixTimeSeconds(GetFileModTime(buffer)).UtcDateTime;
     }
 
     public static int GetFileSize(string path)
     {
         path = FormatPath(path);
-        if (!FileExists(path))
-            return 0;
-        using var buffer = path.ToUtf8Buffer();
-        return Raylib.GetFileLength(buffer.AsPointer());
+        using var buffer = path.ToUtf8Ptr();
+        return !Raylib.FileExists(path) ? 0 : Raylib.GetFileLength(buffer);
+    }
+
+    public static bool TryReadText(string path, out string text)
+    {
+        var result = TryReadBytes(path, out var bytes);
+        text = Encoding.UTF8.GetString(bytes);
+        return result;
     }
 
     public static string ReadText(string path)
     {
-        path = FormatPath(path);
-        if (!FileExists(path))
-            return "";
-        using var buffer = path.ToUtf8Buffer();
-        var bytes = Raylib.LoadFileText(buffer.AsPointer());
-        var result = Marshal.PtrToStringUTF8((nint)bytes) ?? "";
-        Raylib.UnloadFileText(bytes);
-        return result;
-    }
-
-    public static string ReadResourceText(string resource, string? @namespace = null, Assembly? assembly = null)
-    {
-        return Encoding.UTF8.GetString(ReadResourceBytes(resource, @namespace, assembly));
+        if (!TryReadText(path, out var text))
+            Log.Warning($"FILEIO: [{FormatPath(path)}] Failed to read text file");
+        return text;
     }
 
     public static bool WriteText(string path, string text)
     {
         path = FormatPath(path);
-        using var pathBuffer = path.ToUtf8Buffer();
-        using var textBuffer = text.ToUtf8Buffer();
-        return Raylib.SaveFileText(pathBuffer.AsPointer(), textBuffer.AsPointer());
+        using var pathBuffer = path.ToUtf8Ptr();
+        using var textBuffer = text.ToUtf8Ptr();
+        return Raylib.SaveFileText(pathBuffer, textBuffer);
+    }
+
+    public static bool TryReadBytes(string path, out byte[] bytes)
+    {
+        path = FormatPath(path);
+        using var pathBuffer = path.ToUtf8Ptr();
+        if (!Raylib.FileExists(pathBuffer))
+        {
+            bytes = [];
+            return false;
+        }
+
+        int bytesRead;
+        var data = Raylib.LoadFileData(pathBuffer, &bytesRead);
+        if (data is null)
+        {
+            bytes = [];
+            return false;
+        }
+
+        bytes = new byte[bytesRead];
+        Marshal.Copy((nint)data, bytes, 0, bytesRead);
+        Raylib.UnloadFileData(data);
+        return true;
     }
 
     public static byte[] ReadBytes(string path)
     {
-        path = FormatPath(path);
-        if (!FileExists(path))
-            return Array.Empty<byte>();
-        var data = Raylib.LoadFileData(path, out var bytesRead);
-        var bytes = new byte[bytesRead];
-        Marshal.Copy((nint)data, bytes, 0, bytesRead);
-        Raylib.UnloadFileData(data);
+        if (!TryReadBytes(path, out var bytes))
+            Log.Warning($"FILEIO: [{FormatPath(path)}] Failed to read file");
         return bytes;
-    }
-
-    public static byte[] ReadResourceBytes(string resource, string? @namespace = null, Assembly? assembly = null)
-    {
-        using var stream = (assembly ?? Assemblies.Game).GetManifestResourceStream(
-            FormatResource(resource, @namespace ?? WorkingNamespace)
-        );
-        if (stream is null)
-            return Array.Empty<byte>();
-        using var ms = new MemoryStream();
-        stream.CopyTo(ms);
-        return ms.ToArray();
     }
 
     public static bool WriteBytes(string path, IEnumerable<byte> bytes)
@@ -151,32 +151,29 @@ public static unsafe partial class FileSystem
         return WriteBytesSpan(path, bytes.AsSpan());
     }
 
-    public static bool WriteBytesSpan(string path, ReadOnlySpan<byte> bytes)
+    public static bool WriteBytesSpan(string path, in ReadOnlySpan<byte> bytes)
     {
         path = FormatPath(path);
-        using var pathBuffer = path.ToUtf8Buffer();
+        using var pathBuffer = path.ToUtf8Ptr();
         fixed (byte* byteBuffer = bytes)
         {
-            return Raylib.SaveFileData(pathBuffer.AsPointer(), byteBuffer, bytes.Length);
+            return Raylib.SaveFileData(pathBuffer, byteBuffer, bytes.Length);
         }
     }
 
     public static string[] ScanDirectory(string path, bool recursive = false)
     {
         path = FormatPath(path);
-        using var pathBuffer = path.ToUtf8Buffer();
-        var filePathList = Raylib.LoadDirectoryFilesEx(pathBuffer.AsPointer(), null, recursive);
+        using var pathBuffer = path.ToUtf8Ptr();
+        var filePathList = Raylib.LoadDirectoryFilesEx(pathBuffer, null, recursive);
         var count = filePathList.Count;
         var result = new string[count];
         for (var i = 0; i < count; i++)
-            result[i] = FormatPath(Marshal.PtrToStringUTF8((nint)filePathList.Paths[i]) ?? "");
+            result[i] = FormatPath(Utf8Ptr.GetString(filePathList.Paths[i]));
         Raylib.UnloadDirectoryFiles(filePathList);
         return result;
     }
 
-    [GeneratedRegex(@"(\/{2,})")]
-    private static partial Regex DuplicatedSlashRegex();
-
-    [LibraryImport("raylib", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial long GetFileModTime(string path);
+    [LibraryImport("raylib")]
+    private static partial long GetFileModTime(sbyte* path);
 }

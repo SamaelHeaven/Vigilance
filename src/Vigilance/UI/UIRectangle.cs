@@ -1,5 +1,6 @@
 using Vigilance.Core;
 using Vigilance.Drawing;
+using Vigilance.Math;
 
 namespace Vigilance.UI;
 
@@ -32,29 +33,29 @@ public class UIRectangle : UIContainer
         set => _rectangle.StrokeWidth = value;
     }
 
+    public Unit Radius { get; set; }
+
+    public int Segments
+    {
+        get => _rectangle.Segments;
+        set => _rectangle.Segments = value;
+    }
+
     public DrawOrder DrawOrder
     {
         get => _rectangle.DrawOrder;
         set => _rectangle.DrawOrder = value;
     }
 
-    public float Roundness
-    {
-        get => _rectangle.Roundness;
-        set => _rectangle.Roundness = value;
-    }
-
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         _rectangle.Camera = camera;
+        _rectangle.Radius = Radius.Calculate(LayoutSize.X.Abs().Min(LayoutSize.Y.Abs()));
         graphics.DrawRectangle(LayoutPosition, LayoutSize, _rectangle);
-        base.Render(graphics, camera);
     }
 
-    protected override object DeepClone()
+    protected override void OnClone()
     {
-        var result = (UIRectangle)base.DeepClone();
-        result._rectangle = _rectangle.DeepClone();
-        return result;
+        _rectangle = _rectangle.ShallowClone();
     }
 }

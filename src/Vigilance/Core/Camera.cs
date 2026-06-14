@@ -7,24 +7,70 @@ namespace Vigilance.Core;
 
 public sealed class Camera
 {
-    public static CameraProvider Null { get; } = new(() => null);
+    private Matrix3x2? _matrixCache = null;
+    public static CameraProvider Null => default;
     public static CameraProvider Scene { get; } = new(() => Game.Scene.Camera);
-    public Vector2 Target { get; set; } = Vector2.Zero;
-    public Vector2 Offset { get; set; } = Vector2.Zero;
-    public float Rotation { get; set; } = 0;
-    public float Zoom { get; set; } = 1;
+
+    public Vector2 Target
+    {
+        get;
+        set
+        {
+            if (Precision.AreEqual(field, value))
+                return;
+            field = value;
+            _matrixCache = null;
+        }
+    } = Vector2.Zero;
+
+    public Vector2 Offset
+    {
+        get;
+        set
+        {
+            if (Precision.AreEqual(field, value))
+                return;
+            field = value;
+            _matrixCache = null;
+        }
+    } = Vector2.Zero;
+
+    public float Rotation
+    {
+        get;
+        set
+        {
+            if (Precision.AreEqual(field, value))
+                return;
+            field = value;
+            _matrixCache = null;
+        }
+    } = 0;
+
+    public float Zoom
+    {
+        get;
+        set
+        {
+            if (Precision.AreEqual(field, value))
+                return;
+            field = value;
+            _matrixCache = null;
+        }
+    } = 1;
 
     public Matrix3x2 Matrix
     {
         get
         {
-            var target = Target.Round();
-            var offset = Offset.Round();
-            var originMatrix = Matrix3x2.CreateTranslation(-target.X, -target.Y);
+            if (_matrixCache.HasValue)
+                return _matrixCache.Value;
+            var originMatrix = Matrix3x2.CreateTranslation(-Target.X, -Target.Y);
             var rotationMatrix = Matrix3x2.CreateRotation(Rotation.DegToRad());
             var scaleMatrix = Matrix3x2.CreateScale(Zoom, Zoom);
-            var translationMatrix = Matrix3x2.CreateTranslation(offset.X, offset.Y);
-            return originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
+            var translationMatrix = Matrix3x2.CreateTranslation(Offset.X, Offset.Y);
+            _matrixCache = originMatrix * scaleMatrix * rotationMatrix * translationMatrix;
+            return _matrixCache.Value;
         }
     }
 
@@ -34,11 +80,24 @@ public sealed class Camera
     }
 }
 
-public readonly record struct CameraProvider(Func<Camera?> Func)
+public readonly record struct CameraProvider
 {
+    private readonly Camera? _camera;
+    private readonly Func<Camera?>? _func;
+
+    public CameraProvider(Func<Camera?>? func)
+    {
+        _func = func;
+    }
+
+    public CameraProvider(Camera? camera)
+    {
+        _camera = camera;
+    }
+
     public Camera? Get()
     {
-        return Func.Invoke();
+        return _func?.Invoke() ?? _camera;
     }
 
     public override string? ToString()
@@ -49,5 +108,10 @@ public readonly record struct CameraProvider(Func<Camera?> Func)
     public static implicit operator Camera?(CameraProvider provider)
     {
         return provider.Get();
+    }
+
+    public static implicit operator CameraProvider(Camera camera)
+    {
+        return new CameraProvider(camera);
     }
 }

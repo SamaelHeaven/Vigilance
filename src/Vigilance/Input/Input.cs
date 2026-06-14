@@ -1,4 +1,4 @@
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -8,20 +8,16 @@ public static class Input
 {
     private static InputConfig _config = new();
 
-    public static Key ExitKey
+    public static InputButton? ExitButton
     {
-        get => _config.ExitKey;
-        set
-        {
-            _config.ExitKey = value;
-            Raylib.SetExitKey((KeyboardKey)value);
-        }
+        get => _config.ExitButton;
+        set => _config.ExitButton = value;
     }
 
-    public static Key FullscreenKey
+    public static InputButton? FullscreenButton
     {
-        get => _config.FullscreenKey;
-        set => _config.FullscreenKey = value;
+        get => _config.FullscreenButton;
+        set => _config.FullscreenButton = value;
     }
 
     public static InputAxis HorizontalAxis
@@ -36,19 +32,23 @@ public static class Input
         set => _config.VerticalAxis = value;
     }
 
+    public static Vector2 Direction => new(HorizontalAxis.Direction, VerticalAxis.Direction);
+
     public static Vector2 Axes => new(HorizontalAxis.Value, VerticalAxis.Value);
+
+    public static Vector2 RawAxes => new(HorizontalAxis.RawValue, VerticalAxis.RawValue);
 
     internal static void Initialize()
     {
-        if (Game.Config.TryTake(out InputConfig config))
-            _config = config;
+        _config = Game.Config.Take<InputConfig>() ?? _config;
+        Raylib.SetExitKey(KeyboardKey.Null);
     }
 }
 
 public sealed class InputConfig
 {
-    public Key ExitKey { get; set; } = Key.Null;
-    public Key FullscreenKey { get; set; } = Key.Null;
+    public InputButton? ExitButton { get; set; } = null;
+    public InputButton? FullscreenButton { get; set; } = null;
 
     public InputAxis HorizontalAxis { get; set; } =
         new()
@@ -69,7 +69,7 @@ public sealed class InputConfig
 
 public static class InputConfigExtensions
 {
-    public static ConfigBuilder Input(this ConfigBuilder builder, InputConfig config)
+    public static ConfigBuilder Input(this ConfigBuilder builder, Action<InputConfig> config)
     {
         return builder.Add(config);
     }

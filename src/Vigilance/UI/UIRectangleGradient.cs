@@ -79,17 +79,14 @@ public class UIRectangleGradient : UIContainer
         set => _rectangle.RightFill = value;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         _rectangle.Camera = camera;
         graphics.DrawRectangleGradient(LayoutPosition, LayoutSize, _rectangle);
-        base.Render(graphics, camera);
     }
 
-    protected override object DeepClone()
+    protected override void OnClone()
     {
-        var result = (UIRectangleGradient)base.DeepClone();
-        result._rectangle = _rectangle.DeepClone();
-        return result;
+        _rectangle = _rectangle.ShallowClone();
     }
 }

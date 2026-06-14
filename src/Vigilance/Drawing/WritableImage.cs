@@ -1,12 +1,13 @@
-using Raylib_cs.BleedingEdge;
-using Vigilance.Core;
+using System.Runtime.InteropServices;
+using Raylib_cs;
+using Vigilance.Collections;
 using Vigilance.Math;
 using ZLinq;
 using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public readonly struct WritableImage
+public readonly unsafe struct WritableImage : IDisposable
 {
     internal readonly Image Image;
 
@@ -38,7 +39,7 @@ public readonly struct WritableImage
 
     public int DataSize => Image.DataSize;
 
-    public bool Valid => Image.Valid;
+    public bool IsValid => Image.IsValid;
 
     public PixelFormat Format => Image.Format;
 
@@ -103,37 +104,39 @@ public readonly struct WritableImage
         Raylib.ImageColorReplace(ref Image.RImage, from.RColor, to.RColor);
     }
 
-    public void Crop(float x, float y, float width, float height)
+    public void Crop(int x, int y, int width, int height)
     {
         Crop(new Vector2(x, y), new Vector2(width, height));
     }
 
-    public void Crop(Box box)
+    public void Crop(in Box box)
     {
         Crop(box.Position, box.Size);
     }
 
     public void Crop(Vector2 position, Vector2 size)
     {
-        Raylib.ImageCrop(ref Image.RImage, new Raylib_cs.BleedingEdge.Rectangle(position, size));
+        Raylib.ImageCrop(ref Image.RImage, new Raylib_cs.Rectangle(position, size));
     }
 
-    public void Resize(float width, float height, Interpolation? interpolation = null)
+    public void Resize(int width, int height, Interpolation? interpolation = null)
     {
-        Resize(new Vector2(width, height), interpolation);
+        if (width == Width && height == Height)
+            return;
+        switch (interpolation ?? Interpolation.Nearest)
+        {
+            case Interpolation.Bilinear:
+                Raylib.ImageResize(ref Image.RImage, width, height);
+                break;
+            default:
+                Raylib.ImageResizeNN(ref Image.RImage, width, height);
+                break;
+        }
     }
 
     public void Resize(Vector2 size, Interpolation? interpolation = null)
     {
-        switch (interpolation ?? Interpolation.Nearest)
-        {
-            case Interpolation.Bilinear:
-                Raylib.ImageResize(ref Image.RImage, (int)size.X, (int)size.Y);
-                break;
-            default:
-                Raylib.ImageResizeNN(ref Image.RImage, (int)size.X, (int)size.Y);
-                break;
-        }
+        Resize((int)size.X, (int)size.Y, interpolation);
     }
 
     public void FlipHorizontally()
@@ -151,9 +154,18 @@ public readonly struct WritableImage
         KernelConvolutionSpan(kernel.AsSpan());
     }
 
-    public void KernelConvolutionSpan(ReadOnlySpan<float> kernel)
+    public void KernelConvolutionSpan(in ReadOnlySpan<float> kernel)
     {
-        Raylib.ImageKernelConvolution(ref Image.RImage, kernel, kernel.Length);
+        if (kernel.IsEmpty)
+            return;
+        fixed (Raylib_cs.Image* imagePtr = &Image.RImage)
+        {
+            ref var kernelRef = ref MemoryMarshal.GetReference(kernel);
+            fixed (float* kernelPtr = &kernelRef)
+            {
+                Raylib.ImageKernelConvolution(imagePtr, kernelPtr, kernel.Length);
+            }
+        }
     }
 
     public void Blur(int blur)
@@ -191,12 +203,14 @@ public readonly struct WritableImage
     {
         Raylib.ImageRotate(ref Image.RImage, angle);
     }
+
+    public void Dispose()
+    {
+        Image.Dispose();
+    }
 }
 
-public readonly unsafe struct WritableImage<T>
-    : IStructEnumerable<WritableImage<T>.PixelEnumerator, T>,
-        IReadOnlyList<T>,
-        IReadOnlySpan<T>
+public readonly unsafe struct WritableImage<T> : ISpanView<T>, IReadOnlyList<T>, IDisposable
     where T : unmanaged, IPixel
 {
     private readonly WritableImage _image;
@@ -204,7 +218,7 @@ public readonly unsafe struct WritableImage<T>
     internal WritableImage(WritableImage image)
     {
         if (image.Format != T.Format)
-            Raylib.ImageFormat(ref image.Image.RImage, (Raylib_cs.BleedingEdge.PixelFormat)T.Format);
+            Raylib.ImageFormat(ref image.Image.RImage, (Raylib_cs.PixelFormat)T.Format);
         _image = image;
     }
 
@@ -220,12 +234,12 @@ public readonly unsafe struct WritableImage<T>
         var data = Raylib.MemAlloc(size);
         _image = new WritableImage(
             new Image(
-                new Raylib_cs.BleedingEdge.Image
+                new Raylib_cs.Image
                 {
                     Data = data,
                     Width = width,
                     Height = height,
-                    Format = (Raylib_cs.BleedingEdge.PixelFormat)T.Format,
+                    Format = (Raylib_cs.PixelFormat)T.Format,
                     Mipmaps = 1,
                 }
             )
@@ -248,7 +262,7 @@ public readonly unsafe struct WritableImage<T>
 
     public int DataSize => _image.DataSize;
 
-    public bool Valid => _image.Valid;
+    public bool IsValid => _image.IsValid;
 
     public PixelFormat Format => _image.Format;
 
@@ -293,32 +307,6 @@ public readonly unsafe struct WritableImage<T>
         return _image.ExportToMemory(fileType);
     }
 
-    public struct PixelEnumerator : IStructEnumerator<T>
-    {
-        private readonly WritableImage<T> _image;
-        private int _index;
-
-        internal PixelEnumerator(WritableImage<T> image)
-        {
-            _image = image;
-            Reset();
-        }
-
-        public bool MoveNext()
-        {
-            return ++_index < _image.PixelCount;
-        }
-
-        public void Reset()
-        {
-            _index = -1;
-        }
-
-        public T Current => _image[_index];
-
-        public void Dispose() { }
-    }
-
     public Span<T> AsSpan()
     {
         return new Span<T>((T*)_image.Image.RImage.Data, PixelCount);
@@ -329,19 +317,14 @@ public readonly unsafe struct WritableImage<T>
         return AsSpan();
     }
 
-    public PixelEnumerator GetEnumerator()
-    {
-        return new PixelEnumerator(this);
-    }
-
-    ValueEnumerable<StructEnumerator<PixelEnumerator, T>, T> IStructEnumerable<PixelEnumerator, T>.AsValueEnumerable()
-    {
-        return new StructEnumerator<PixelEnumerator, T>(GetEnumerator());
-    }
-
     public ValueEnumerable<FromSpan<T>, T> AsValueEnumerable()
     {
         return AsSpan().AsValueEnumerable();
+    }
+
+    public ValueEnumerator<FromSpan<T>, T> GetEnumerator()
+    {
+        return new ValueEnumerator<FromSpan<T>, T>(AsValueEnumerable().Enumerator);
     }
 
     public int Count => PixelCount;
@@ -389,12 +372,12 @@ public readonly unsafe struct WritableImage<T>
         _image.ReplaceColor(from, to);
     }
 
-    public void Crop(float x, float y, float width, float height)
+    public void Crop(int x, int y, int width, int height)
     {
         _image.Crop(x, y, width, height);
     }
 
-    public void Crop(Box box)
+    public void Crop(in Box box)
     {
         _image.Crop(box);
     }
@@ -404,7 +387,7 @@ public readonly unsafe struct WritableImage<T>
         _image.Crop(position, size);
     }
 
-    public void Resize(float width, float height, Interpolation? interpolation = null)
+    public void Resize(int width, int height, Interpolation? interpolation = null)
     {
         _image.Resize(width, height, interpolation);
     }
@@ -429,7 +412,7 @@ public readonly unsafe struct WritableImage<T>
         _image.KernelConvolution(kernel);
     }
 
-    public void KernelConvolutionSpan(ReadOnlySpan<float> kernel)
+    public void KernelConvolutionSpan(in ReadOnlySpan<float> kernel)
     {
         _image.KernelConvolutionSpan(kernel);
     }
@@ -497,5 +480,10 @@ public readonly unsafe struct WritableImage<T>
     public void SetPixel(int index, T pixel)
     {
         this[index] = pixel;
+    }
+
+    public void Dispose()
+    {
+        _image.Dispose();
     }
 }

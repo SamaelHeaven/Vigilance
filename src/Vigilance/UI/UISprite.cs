@@ -58,17 +58,14 @@ public class UISprite : UIContainer
         set => _sprite.Interpolation = value;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         _sprite.Camera = camera;
         graphics.DrawSprite(LayoutPosition, LayoutSize, _sprite);
-        base.Render(graphics, camera);
     }
 
-    protected override object DeepClone()
+    protected override void OnClone()
     {
-        var result = (UISprite)base.DeepClone();
-        result._sprite = _sprite.DeepClone();
-        return result;
+        _sprite = _sprite.ShallowClone();
     }
 }

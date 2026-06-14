@@ -8,7 +8,6 @@ public sealed class HttpRequest(string url, string method, Action<HttpResponse>?
         : this(url, "GET", onComplete) { }
 
     public string Url { get; } = url;
-    public Action<HttpResponse>? OnComplete { get; } = onComplete;
     public string Method { get; init; } = method;
     public TimeSpan Timeout { get; set; }
     public HttpHeaders Headers { get; init; } = new();
@@ -16,7 +15,9 @@ public sealed class HttpRequest(string url, string method, Action<HttpResponse>?
 
     public string Text
     {
-        get => Encoding.UTF8.GetString(Body ?? Array.Empty<byte>());
+        get => Encoding.UTF8.GetString(Body ?? []);
         set => Body = Encoding.UTF8.GetBytes(value);
     }
+
+    public Action<HttpResponse>? OnComplete { get; set; } = onComplete;
 }

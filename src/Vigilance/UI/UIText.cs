@@ -1,19 +1,28 @@
+using LinkDotNet.StringBuilder;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Math;
-using ZLinq;
 
 namespace Vigilance.UI;
 
 public class UIText : UIElement
 {
     private Text _text = new();
-    private TextOverflow _textOverflow;
-    private string _value;
 
-    public UIText(string value = "")
+    public UIText()
     {
-        _value = value;
+        Value = "";
+    }
+
+    public UIText(Color fill)
+        : this()
+    {
+        Fill = fill;
+    }
+
+    public UIText(string value)
+    {
+        Value = value;
     }
 
     public UIText(string value, Color fill)
@@ -24,10 +33,12 @@ public class UIText : UIElement
 
     public string Value
     {
-        get => _value;
+        get;
         set
         {
-            _value = value;
+            if (value == field)
+                return;
+            field = value;
             MarkDirty();
         }
     }
@@ -53,6 +64,8 @@ public class UIText : UIElement
         get => _text.FontSize;
         set
         {
+            if (Precision.AreEqual(_text.FontSize, value))
+                return;
             _text.FontSize = value;
             MarkDirty();
         }
@@ -81,22 +94,36 @@ public class UIText : UIElement
         get => _text.Spacing;
         set
         {
+            if (Precision.AreEqual(_text.Spacing, value))
+                return;
             _text.Spacing = value;
             MarkDirty();
         }
     }
+
+    public int VisibleCharacters
+    {
+        get;
+        set
+        {
+            field = value;
+            MarkDirty();
+        }
+    } = Text.UnlimitedCharacters;
 
     public TextHeightMode HeightMode
     {
         get => _text.HeightMode;
         set
         {
+            if (value == _text.HeightMode)
+                return;
             _text.HeightMode = value;
             MarkDirty();
         }
     }
 
-    public Interpolation? Interpolation
+    public Interpolation Interpolation
     {
         get => _text.Interpolation;
         set => _text.Interpolation = value;
@@ -104,17 +131,31 @@ public class UIText : UIElement
 
     public TextOverflow TextOverflow
     {
-        get => _textOverflow;
+        get;
         set
         {
-            _textOverflow = value;
+            if (value == field)
+                return;
+            field = value;
             MarkDirty();
         }
+    }
+
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
+    {
+        _text.Camera = camera;
+        graphics.DrawText(LayoutPosition, _text);
+    }
+
+    protected override void OnClone()
+    {
+        _text = _text.ShallowClone();
     }
 
     protected override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         var maxWidth = widthMode == MeasureMode.Undefined ? float.PositiveInfinity : width;
+        _text.VisibleCharacters = VisibleCharacters;
         switch (TextOverflow)
         {
             case TextOverflow.Clip:
@@ -123,11 +164,9 @@ public class UIText : UIElement
             case TextOverflow.Ellipsis:
             {
                 const string ellipsis = "...";
-                var visibleText = Value;
-                _text.Value = visibleText;
-                var size = _text.Size;
-                if (size.X <= maxWidth)
-                    return size;
+                _text.Value = Value;
+                if (_text.Size.X <= maxWidth)
+                    return _text.Size;
                 var left = 0;
                 var right = Value.Length;
                 var result = "";
@@ -152,41 +191,60 @@ public class UIText : UIElement
             }
             case TextOverflow.Wrap:
             default:
-                var words = Value.Split(' ');
-                var lines = new List<string>();
-                var currentLine = "";
-                foreach (var word in words)
+            {
+                var initialCapacity = (int)(Value.Length * 1.25f);
+                using var lines =
+                    initialCapacity <= 256
+                        ? new ValueStringBuilder(stackalloc char[initialCapacity])
+                        : new ValueStringBuilder(initialCapacity);
+                using var currentLine =
+                    Value.Length <= 256
+                        ? new ValueStringBuilder(stackalloc char[Value.Length])
+                        : new ValueStringBuilder(Value.Length);
+                var hasLines = false;
+                foreach (var range in Value.AsSpan().Split(' '))
                 {
-                    var line = currentLine == "" ? word : currentLine + " " + word;
-                    _text.Value = line;
-                    if (_text.Size.X > maxWidth && currentLine != "")
+                    var word = Value.AsSpan(range);
+                    var candidate = currentLine.IsEmpty
+                        ? word.ToString()
+                        : string.Concat(currentLine.AsSpan(), " ", word);
+                    _text.Value = candidate;
+                    if (_text.Size.X > maxWidth && !currentLine.IsEmpty)
                     {
-                        lines.Add(currentLine);
-                        currentLine = word;
+                        if (hasLines)
+                        {
+                            if (VisibleCharacters == lines.Length)
+                                _text.VisibleCharacters++;
+                            lines.Append('\n');
+                        }
+
+                        lines.Append(currentLine.AsSpan());
+                        currentLine.Clear();
+                        currentLine.Append(word);
+                        hasLines = true;
                     }
                     else
                     {
-                        currentLine = line;
+                        currentLine.Clear();
+                        currentLine.Append(candidate);
                     }
                 }
 
-                if (currentLine != "")
-                    lines.Add(currentLine);
-                _text.Value = lines.AsValueEnumerable().JoinToString("\n");
+                if (!currentLine.IsEmpty)
+                {
+                    if (hasLines)
+                    {
+                        if (VisibleCharacters == lines.Length)
+                            _text.VisibleCharacters++;
+                        lines.Append('\n');
+                    }
+
+                    lines.Append(currentLine.AsSpan());
+                }
+
+                _text.Value = lines.ToString();
                 return _text.Size;
+            }
         }
-    }
-
-    protected override void Render(Graphics graphics, CameraProvider camera)
-    {
-        _text.Camera = camera;
-        graphics.DrawText(LayoutPosition, _text);
-    }
-
-    protected override object DeepClone()
-    {
-        var result = (UIText)base.DeepClone();
-        result._text = _text.DeepClone();
-        return result;
     }
 }

@@ -1,4 +1,4 @@
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 
 namespace Vigilance.Logging;
 
@@ -16,16 +16,36 @@ public enum LogLevel
 
 public static class LogLevelExtensions
 {
-    public static ConsoleColor? GetConsoleColor(this LogLevel level)
+    extension(LogLevel level)
     {
-        return level switch
+        public ConsoleColor? GetConsoleColor()
         {
-            LogLevel.Debug => ConsoleColor.Cyan,
-            LogLevel.Info => ConsoleColor.Green,
-            LogLevel.Warning => ConsoleColor.Yellow,
-            LogLevel.Error => ConsoleColor.Red,
-            LogLevel.Fatal => ConsoleColor.DarkRed,
-            _ => null,
-        };
+            return level switch
+            {
+                LogLevel.Trace => ConsoleColor.White,
+                LogLevel.Debug => ConsoleColor.Cyan,
+                LogLevel.Info => ConsoleColor.Green,
+                LogLevel.Warning => ConsoleColor.Yellow,
+                LogLevel.Error => ConsoleColor.Red,
+                LogLevel.Fatal => ConsoleColor.DarkRed,
+                _ => null,
+            };
+        }
+
+        public string ToUpperString()
+        {
+            return level switch
+            {
+                LogLevel.All => "ALL",
+                LogLevel.Trace => "TRACE",
+                LogLevel.Debug => "DEBUG",
+                LogLevel.Info => "INFO",
+                LogLevel.Warning => "WARNING",
+                LogLevel.Error => "ERROR",
+                LogLevel.Fatal => "FATAL",
+                LogLevel.None => "NONE",
+                _ => "",
+            };
+        }
     }
 }

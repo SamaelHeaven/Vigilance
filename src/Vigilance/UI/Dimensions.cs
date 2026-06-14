@@ -16,8 +16,8 @@ public record struct Dimensions
         Y = y;
     }
 
-    public Unit X { get; set; } = Unit.Zero;
-    public Unit Y { get; set; } = Unit.Zero;
+    public Unit X { get; set; }
+    public Unit Y { get; set; }
 
     public static implicit operator Dimensions(Vector2 value)
     {
@@ -37,6 +37,41 @@ public record struct Dimensions
     public static implicit operator Dimensions(float value)
     {
         return new Dimensions(value);
+    }
+
+    public static Dimensions operator -(in Dimensions dimensions)
+    {
+        return new Dimensions(-dimensions.X, -dimensions.Y);
+    }
+
+    public static Dimensions operator +(in Dimensions dimensions, float value)
+    {
+        return new Dimensions(dimensions.X + value, dimensions.Y + value);
+    }
+
+    public static Dimensions operator -(in Dimensions dimensions, float value)
+    {
+        return new Dimensions(dimensions.X - value, dimensions.Y - value);
+    }
+
+    public static Dimensions operator +(in Dimensions dimensions, Unit value)
+    {
+        return new Dimensions(dimensions.X + value, dimensions.Y + value);
+    }
+
+    public static Dimensions operator -(in Dimensions dimensions, Unit value)
+    {
+        return new Dimensions(dimensions.X - value, dimensions.Y - value);
+    }
+
+    public static Dimensions operator +(in Dimensions dimensions, in Dimensions value)
+    {
+        return new Dimensions(dimensions.X + value.X, dimensions.Y + value.Y);
+    }
+
+    public static Dimensions operator -(in Dimensions dimensions, in Dimensions value)
+    {
+        return new Dimensions(dimensions.X - value.X, dimensions.Y - value.Y);
     }
 
     public readonly Vector2 Calculate(Vector2 layoutSize)

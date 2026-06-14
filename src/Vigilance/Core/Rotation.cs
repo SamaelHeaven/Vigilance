@@ -1,7 +1,18 @@
 namespace Vigilance.Core;
 
-internal readonly record struct Rotation(float Value)
+public record struct Rotation(float Value)
+    : IWriteImmutableComponent,
+        IRemoveImmutableComponent,
+        ISkipAddEventComponent,
+        ISkipRemoveEventComponent
 {
-    public Rotation()
-        : this(0) { }
+    public static implicit operator float(Rotation rotation)
+    {
+        return rotation.Value;
+    }
+
+    public static implicit operator Rotation(float rotation)
+    {
+        return new Rotation(rotation);
+    }
 }

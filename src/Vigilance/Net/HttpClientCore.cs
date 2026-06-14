@@ -4,7 +4,7 @@ namespace Vigilance.Net;
 
 internal sealed class HttpClientCore : IHttpClient
 {
-    private static readonly HttpClient Client = new();
+    private static readonly HttpClient _client = new();
 
     public async void Fetch(HttpRequest request)
     {
@@ -29,7 +29,7 @@ internal sealed class HttpClientCore : IHttpClient
             if (request.Timeout != TimeSpan.Zero)
             {
                 using var cancellationTokenSource = new CancellationTokenSource(request.Timeout);
-                responseMessage = await Client.SendAsync(
+                responseMessage = await _client.SendAsync(
                     requestMessage,
                     HttpCompletionOption.ResponseContentRead,
                     cancellationTokenSource.Token
@@ -37,7 +37,7 @@ internal sealed class HttpClientCore : IHttpClient
             }
             else
             {
-                responseMessage = await Client.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead);
+                responseMessage = await _client.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead);
             }
 
             response.StatusCode = (int)responseMessage.StatusCode;

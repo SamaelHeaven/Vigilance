@@ -1,70 +1,61 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Drawing;
 using Vigilance.Input;
 using Vigilance.Logging;
-using Image = Vigilance.Drawing.Image;
 using Music = Vigilance.Audio.Music;
-using PixelFormat = Raylib_cs.BleedingEdge.PixelFormat;
 using Sound = Vigilance.Audio.Sound;
 
 namespace Vigilance.Core;
 
-public sealed unsafe class Game
+public static unsafe class Game
 {
-    private static Game? _game;
-    private static Action? _quitAction = null;
-    private static readonly ConcurrentStack<Action> Actions = [];
-    private Config _config = null!;
-    private bool _quit;
-    private Scene _scene = null!;
-    private GameSystemsFunc _systems = null!;
-
-    private Game()
-    {
-        EnsureRunning();
-    }
-
-    public static bool Running { get; private set; }
-
-    public static Platform Platform { get; } =
-        Enum.GetValues<Platform>().FirstOrDefault(platform => platform.IsCurrent());
+    private static readonly ConcurrentStack<Action> _actions = [];
+    private static bool _exit;
+    private static Scene _scene = null!;
 
     public static Scene Scene
     {
-        get => GetGame()._scene;
+        get
+        {
+            ThrowIfNotRunning();
+            return _scene;
+        }
         set
         {
-            var game = GetGame();
-            if (game._scene == value)
+            ThrowIfNotRunning();
+            if (_scene == value)
                 return;
             Defer(() =>
             {
-                game._scene.Stop();
-                game._scene = value;
+                var oldScene = _scene;
+                _scene.Stop();
+                _scene = value;
+                Hooks.OnSetScene?.Invoke(oldScene, _scene);
             });
         }
     }
 
-    public static Config Config => _game?._config ?? Config.Empty;
+    public static bool Running { get; private set; }
 
-    internal static GameSystemsFunc Systems => GetGame()._systems;
+    public static Config Config { get; private set; } = Config.Empty;
 
     public static void OpenUrl(string url)
     {
-        EnsureRunning();
+        ThrowIfNotRunning();
         Raylib.OpenURL(url);
     }
 
-    public static void EnsureRunning()
+    public static void ThrowIfNotRunning()
     {
         if (!Running)
             throw new InvalidOperationException("Game is not running.");
     }
 
-    public static void EnsureNotRunning()
+    public static void ThrowIfRunning()
     {
         if (Running)
             throw new InvalidOperationException("Game is already running.");
@@ -72,76 +63,46 @@ public sealed unsafe class Game
 
     public static void Defer(Action action)
     {
-        Actions.Push(action);
-    }
-
-    public static void OnQuit(Action action)
-    {
-        _quitAction += action;
-    }
-
-    public static WritableImage<PixelR8G8B8A8> Screenshot()
-    {
-        EnsureRunning();
-        var width = Display.ScreenWidth;
-        var height = Display.ScreenHeight;
-        Graphics.Reset();
-        Graphics.DrawCurrentBuffer();
-        var data = Rlgl.ReadScreenPixels(width, height);
-        var image = new Raylib_cs.BleedingEdge.Image
-        {
-            Data = data,
-            Width = width,
-            Height = height,
-            Mipmaps = 1,
-            Format = PixelFormat.UncompressedR8G8B8A8,
-        };
-        return new WritableImage<PixelR8G8B8A8>(new WritableImage(new Image(image)));
+        _actions.Push(action);
     }
 
     public static void Launch(Config config, Scene scene)
     {
-        EnsureNotRunning();
+        ThrowIfRunning();
         Running = true;
-        var game = GetGame();
-        game._config = config;
-        game._systems = config.Take<GameSystemsFunc>() ?? (() => []);
-        game._scene = scene;
+        Config = config;
+        _scene = scene;
         UpdateActions();
         try
         {
-            game.Loop();
+            Loop();
         }
         catch (Exception e)
         {
-            Logger.Fatal(e);
+            Log.Fatal(e);
         }
     }
 
-    public static void Quit()
+    public static void Exit()
     {
-        GetGame()._quit = true;
+        ThrowIfNotRunning();
+        _exit = true;
     }
 
-    private static Game GetGame()
+    private static void Loop()
     {
-        return _game ??= new Game();
-    }
-
-    private void Loop()
-    {
-        if (Platform.Web.IsCurrent())
+        if (Platform.Web.IsCurrent)
         {
             Emscripten.SetMainLoop(&UnmanagedFrame, 0, 1);
             return;
         }
 
-        while (!Raylib.WindowShouldClose() && !_quit)
+        while (!Raylib.WindowShouldClose() && !_exit)
             Frame();
         Dispose();
     }
 
-    private void Frame()
+    private static void Frame()
     {
         Time.Update();
         Keyboard.Update();
@@ -150,41 +111,73 @@ public sealed unsafe class Game
         Music.UpdateAll();
         Sound.UpdateAll();
         Display.Update();
-        UpdateActions();
+        UpdateExit();
         UpdateFullscreen();
+        UpdateActions();
         Renderer.BeginDrawing();
-        _scene.Update();
+        try
+        {
+            _scene.Update();
+        }
+        catch (Exception e)
+        {
+            var rethrow = true;
+            Hooks.OnException?.Invoke(e, out rethrow);
+            if (rethrow)
+                throw;
+        }
+
         Renderer.EndDrawing();
         Raylib.PollInputEvents();
     }
 
     private static void UpdateActions()
     {
-        var length = Actions.Count;
+        var length = _actions.Count;
         if (length == 0)
             return;
-        var actions = new Action[length];
-        var amount = Actions.TryPopRange(actions, 0, length);
-        for (var i = amount - 1; i >= 0; i--)
-            actions[i].Invoke();
+        var actions = ArrayPool<Action>.Shared.Rent(length);
+        try
+        {
+            var amount = _actions.TryPopRange(actions, 0, length);
+            for (var i = amount - 1; i >= 0; i--)
+                try
+                {
+                    actions[i].Invoke();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+        }
+        finally
+        {
+            ArrayPool<Action>.Shared.Return(actions);
+        }
     }
 
     private static void Dispose()
     {
-        _quitAction?.Invoke();
+        Hooks.OnExit?.Invoke();
         Audio.Audio.Dispose();
         Display.Dispose();
     }
 
+    private static void UpdateExit()
+    {
+        if (Input.Input.ExitButton?.IsPressed ?? false)
+            Exit();
+    }
+
     private static void UpdateFullscreen()
     {
-        if (Keyboard.IsKeyPressed(Input.Input.FullscreenKey))
+        if (Input.Input.FullscreenButton?.IsPressed ?? false)
             Display.ToggleFullscreen();
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static void UnmanagedFrame()
     {
-        GetGame().Frame();
+        Frame();
     }
 }

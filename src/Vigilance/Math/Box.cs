@@ -15,10 +15,10 @@ public record struct Box
     public Box(Vector2 position, Vector2 size)
         : this(position.X, position.Y, size.X, size.Y) { }
 
-    public Box(Transform transform)
+    public Box(in Transform transform)
         : this(new Quad(transform)) { }
 
-    public Box(Quad quad)
+    public Box(in Quad quad)
     {
         var (topLeft, bottomLeft, bottomRight, topRight) = quad;
         var minX = topLeft.X.Min(topRight.X).Min(bottomLeft.X).Min(bottomRight.X);
@@ -58,7 +58,7 @@ public record struct Box
 
     public readonly Vector2 Center => new(X + Width * 0.5f, Y + Height * 0.5f);
 
-    public static implicit operator (float X, float Y, float Width, float Height)(Box box)
+    public static implicit operator (float X, float Y, float Width, float Height)(in Box box)
     {
         return (box.X, box.Y, box.Width, box.Height);
     }
@@ -68,7 +68,7 @@ public record struct Box
         return new Box(box.X, box.Y, box.Width, box.Height);
     }
 
-    public static implicit operator (Vector2 Position, Vector2 Size)(Box box)
+    public static implicit operator (Vector2 Position, Vector2 Size)(in Box box)
     {
         return (box.Position, box.Size);
     }
@@ -78,7 +78,7 @@ public record struct Box
         return new Box(box.Position, box.Size);
     }
 
-    public readonly Quad Transform(Matrix3x2 matrix)
+    public readonly Quad Transform(in Matrix3x2 matrix)
     {
         var topLeft = new Vector2(X, Y).Transform(matrix);
         var bottomLeft = new Vector2(X, Y + Height).Transform(matrix);
@@ -87,7 +87,7 @@ public record struct Box
         return new Quad(topLeft, bottomLeft, bottomRight, topRight);
     }
 
-    public readonly Quad Transform(Matrix4x4 matrix)
+    public readonly Quad Transform(in Matrix4x4 matrix)
     {
         var topLeft = new Vector2(X, Y).Transform(matrix);
         var bottomLeft = new Vector2(X, Y + Height).Transform(matrix);
@@ -96,7 +96,7 @@ public record struct Box
         return new Quad(topLeft, bottomLeft, bottomRight, topRight);
     }
 
-    public readonly Quad Transform(Quaternion quaternion)
+    public readonly Quad Transform(in Quaternion quaternion)
     {
         var topLeft = new Vector2(X, Y).Transform(quaternion);
         var bottomLeft = new Vector2(X, Y + Height).Transform(quaternion);

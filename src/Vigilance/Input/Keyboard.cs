@@ -1,89 +1,82 @@
 ﻿using System.Text;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
+using Vigilance.Collections;
 using Vigilance.Core;
 using ZLinq;
 
 namespace Vigilance.Input;
 
-public sealed class Keyboard
+public static class Keyboard
 {
-    private static readonly Key[] KeyValues;
-    private static Keyboard? _keyboard;
-    private readonly List<Key> _currentKeys = [];
-    private readonly List<Key> _downKeys = [];
-    private readonly List<Key> _pressedKeys = [];
-    private readonly List<Key> _releasedKeys = [];
-    private readonly StringBuilder _typedString = new();
-    private readonly List<Key> _upKeys = [];
+    private static readonly Key[] _keyValues;
+    private static ValueList<Key> _currentKeys = [];
+    private static ValueList<Key> _downKeys = [];
+    private static ValueList<Key> _pressedKeys = [];
+    private static ValueList<Key> _releasedKeys = [];
+    private static readonly StringBuilder _typedString = new();
+    private static ValueList<Key> _upKeys = [];
 
     static Keyboard()
     {
-        Game.EnsureRunning();
-        KeyValues = Enum.GetValues<Key>().AsValueEnumerable().Where(key => key != Key.Null).ToArray();
+        Game.ThrowIfNotRunning();
+        _keyValues = Enum.GetValues<Key>().AsValueEnumerable().Where(key => key != Key.Null).ToArray();
     }
 
-    private Keyboard() { }
-
-    public static string TypedString => GetKeyboard()._typedString.ToString();
-    public static ListView<Key> DownKeys => GetKeyboard()._downKeys;
-    public static ListView<Key> UpKeys => GetKeyboard()._upKeys;
-    public static ListView<Key> PressedKeys => GetKeyboard()._pressedKeys;
-    public static ListView<Key> ReleasedKeys => GetKeyboard()._releasedKeys;
+    public static string TypedString { get; private set; } = "";
+    public static ValueListView<Key> DownKeys => _downKeys;
+    public static ValueListView<Key> UpKeys => _upKeys;
+    public static ValueListView<Key> PressedKeys => _pressedKeys;
+    public static ValueListView<Key> ReleasedKeys => _releasedKeys;
 
     public static bool IsKeyDown(Key key)
     {
-        return GetKeyboard()._downKeys.Contains(key);
+        return _downKeys.Contains(key);
     }
 
     public static bool IsKeyUp(Key key)
     {
-        return GetKeyboard()._upKeys.Contains(key);
+        return !_downKeys.Contains(key);
     }
 
     public static bool IsKeyPressed(Key key)
     {
-        return GetKeyboard()._pressedKeys.Contains(key);
+        return _pressedKeys.Contains(key);
     }
 
     public static bool IsKeyReleased(Key key)
     {
-        return GetKeyboard()._releasedKeys.Contains(key);
-    }
-
-    private static Keyboard GetKeyboard()
-    {
-        return _keyboard ??= new Keyboard();
+        return _releasedKeys.Contains(key);
     }
 
     internal static void Update()
     {
-        var keyboard = GetKeyboard();
         if (!Display.Focused)
         {
-            keyboard.Reset();
+            Reset();
             return;
         }
 
-        keyboard.UpdateState();
+        UpdateState();
     }
 
-    private void Reset()
+    private static void Reset()
     {
         _typedString.Clear();
         _downKeys.Clear();
         _upKeys.Clear();
-        _upKeys.AddRange(KeyValues);
+        _upKeys.AddRange(_keyValues);
         _pressedKeys.Clear();
         _releasedKeys.Clear();
     }
 
-    private void UpdateState()
+    private static void UpdateState()
     {
         _typedString.Clear();
         for (var c = (char)Raylib.GetCharPressed(); c != 0; c = (char)Raylib.GetCharPressed())
             _typedString.Append(c);
+        TypedString = _typedString.ToString();
         _currentKeys.Clear();
-        foreach (var key in KeyValues)
+        foreach (var key in _keyValues)
             if (Raylib.IsKeyDown((KeyboardKey)key))
                 _currentKeys.Add(key);
         _pressedKeys.Clear();
@@ -95,7 +88,7 @@ public sealed class Keyboard
         _downKeys.Clear();
         _downKeys.AddRange(_currentKeys);
         _upKeys.Clear();
-        _upKeys.AddRange(KeyValues);
+        _upKeys.AddRange(_keyValues);
         _upKeys.RemoveAll(_currentKeys.Contains);
     }
 }

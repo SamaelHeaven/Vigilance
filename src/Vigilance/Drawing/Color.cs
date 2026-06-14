@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
-using Raylib_cs.BleedingEdge;
-using Exception = System.Exception;
+using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
@@ -37,7 +36,7 @@ public record struct Color
     public byte B { get; set; }
     public byte A { get; set; }
 
-    internal Color(Raylib_cs.BleedingEdge.Color color)
+    internal Color(Raylib_cs.Color color)
         : this(color.R, color.G, color.B, color.A) { }
 
     public Color(byte r, byte g, byte b, byte a = 255)
@@ -48,37 +47,9 @@ public record struct Color
         A = a;
     }
 
-    public Color(uint hex)
-    {
-        var color = Raylib.GetColor(hex);
-        R = color.R;
-        G = color.G;
-        B = color.B;
-        A = color.A;
-    }
-
-    public Color(string hex)
-    {
-        try
-        {
-            if (hex.StartsWith('#'))
-                hex = hex[1..];
-            if (hex.Length != 6 && hex.Length != 8)
-                throw new Exception();
-            R = Convert.ToByte(hex[..2], 16);
-            G = Convert.ToByte(hex[2..4], 16);
-            B = Convert.ToByte(hex[4..6], 16);
-            A = hex.Length == 8 ? Convert.ToByte(hex[6..8], 16) : (byte)255;
-        }
-        catch (Exception)
-        {
-            throw new ArgumentException($"Invalid hexadecimal color code: '{hex}'.");
-        }
-    }
-
     public static implicit operator Color(string hex)
     {
-        return new Color(hex);
+        return FromHex(hex);
     }
 
     public static implicit operator (byte R, byte G, byte B)(Color color)
@@ -101,6 +72,124 @@ public record struct Color
         return new Color(rgba.R, rgba.G, rgba.B, rgba.A);
     }
 
+    public static Color FromInt(uint hex)
+    {
+        return new Color
+        {
+            R = (byte)((hex >> 24) & 0xff),
+            G = (byte)((hex >> 16) & 0xff),
+            B = (byte)((hex >> 8) & 0xff),
+            A = (byte)(hex & 0xff),
+        };
+    }
+
+    public static Color FromHex(string hex)
+    {
+        return TryFromHex(hex, out var color)
+            ? color
+            : throw new ArgumentException($"Invalid hexadecimal color code: '{hex}'.");
+    }
+
+    public static Color FromHsv(float hue, float saturation, float value)
+    {
+        return FromHsva(hue, saturation, value, 1.0f);
+    }
+
+    public static Color FromHsva(float hue, float saturation, float value, float alpha)
+    {
+        var result = new Color();
+        var k = (5.0f + hue / 60.0f) % 6;
+        var t = 4.0f - k;
+        k = t < k ? t : k;
+        k = k < 1 ? k : 1;
+        k = k > 0 ? k : 0;
+        result.R = (byte)((value - value * saturation * k) * 255.0f);
+        k = (3.0f + hue / 60.0f) % 6;
+        t = 4.0f - k;
+        k = t < k ? t : k;
+        k = k < 1 ? k : 1;
+        k = k > 0 ? k : 0;
+        result.G = (byte)((value - value * saturation * k) * 255.0f);
+        k = (1.0f + hue / 60.0f) % 6;
+        t = 4.0f - k;
+        k = t < k ? t : k;
+        k = k < 1 ? k : 1;
+        k = k > 0 ? k : 0;
+        result.B = (byte)((value - value * saturation * k) * 255.0f);
+        result.A = (byte)(255 * alpha);
+        return result;
+    }
+
+    public static bool TryFromHex(string? hex, out Color color)
+    {
+        color = default;
+        if (string.IsNullOrEmpty(hex))
+            return false;
+        var start = 0;
+        if (hex[0] == '#')
+        {
+            if (hex.Length == 1)
+                return false;
+            start = 1;
+        }
+
+        var len = hex.Length - start;
+        if (len != 6 && len != 8)
+            return false;
+        if (
+            !TryParseByte(hex, start + 0, out var r)
+            || !TryParseByte(hex, start + 2, out var g)
+            || !TryParseByte(hex, start + 4, out var b)
+        )
+            return false;
+        byte a = 255;
+        if (len == 8 && !TryParseByte(hex, start + 6, out a))
+            return false;
+        color = new Color
+        {
+            R = r,
+            G = g,
+            B = b,
+            A = a,
+        };
+        return true;
+
+        static bool TryParseByte(string hex, int index, out byte value)
+        {
+            value = 0;
+            if (index + 1 >= hex.Length)
+                return false;
+            var hi = HexValue(hex[index]);
+            var lo = HexValue(hex[index + 1]);
+            if (hi < 0 || lo < 0)
+                return false;
+            value = (byte)((hi << 4) | lo);
+            return true;
+        }
+
+        static int HexValue(char c)
+        {
+            return c switch
+            {
+                >= '0' and <= '9' => c - '0',
+                >= 'a' and <= 'f' => c - 'a' + 10,
+                >= 'A' and <= 'F' => c - 'A' + 10,
+                _ => -1,
+            };
+        }
+    }
+
+    public static Color Lerp(Color start, Color end, float t)
+    {
+        Color result = default;
+        t = t.Clamp(0, 1);
+        result.R = (byte)((1.0f - t) * start.R + t * end.R);
+        result.G = (byte)((1.0f - t) * start.G + t * end.G);
+        result.B = (byte)((1.0f - t) * start.B + t * end.B);
+        result.A = (byte)((1.0f - t) * start.A + t * end.A);
+        return result;
+    }
+
     public readonly void Deconstruct(out byte r, out byte g, out byte b)
     {
         r = R;
@@ -116,7 +205,7 @@ public record struct Color
         a = A;
     }
 
-    internal readonly Raylib_cs.BleedingEdge.Color RColor => new(R, G, B, A);
+    internal readonly Raylib_cs.Color RColor => new(R, G, B, A);
 
     public override string ToString()
     {
@@ -128,9 +217,61 @@ public record struct Color
         return $"#{R:X2}{G:X2}{B:X2}{A:X2}";
     }
 
-    public readonly int ToInt()
+    public readonly uint ToInt()
     {
-        return Raylib.ColorToInt(RColor);
+        return ((uint)R << 24) | ((uint)G << 16) | ((uint)B << 8) | A;
+    }
+
+    public readonly (float H, float S, float V) ToHsv()
+    {
+        (float H, float S, float V) hsv = (0, 0, 0);
+        (float R, float G, float B) rgb = (R / 255.0f, G / 255.0f, B / 255.0f);
+        var min = rgb.R < rgb.G ? rgb.R : rgb.G;
+        min = min < rgb.B ? min : rgb.B;
+        var max = rgb.R > rgb.G ? rgb.R : rgb.G;
+        max = max > rgb.B ? max : rgb.B;
+        hsv.V = max;
+        var delta = max - min;
+        if (delta < 0.00001f)
+        {
+            hsv.S = 0.0f;
+            hsv.H = 0.0f;
+            return hsv;
+        }
+
+        if (max > 0.0f)
+        {
+            hsv.S = delta / max;
+        }
+        else
+        {
+            hsv.S = 0.0f;
+            hsv.H = float.NaN;
+            return hsv;
+        }
+
+        if (rgb.R >= max)
+        {
+            hsv.H = (rgb.G - rgb.B) / delta;
+        }
+        else
+        {
+            if (rgb.G >= max)
+                hsv.H = 2.0f + (rgb.B - rgb.R) / delta;
+            else
+                hsv.H = 4.0f + (rgb.R - rgb.G) / delta;
+        }
+
+        hsv.H *= 60.0f;
+        if (hsv.H < 0.0f)
+            hsv.H += 360.0f;
+        return hsv;
+    }
+
+    public readonly (float H, float S, float V, float A) ToHsva()
+    {
+        var (h, s, v) = ToHsv();
+        return (h, s, v, A / 255.0f);
     }
 
     public readonly Color Blend(Color color)
@@ -294,24 +435,13 @@ public record struct Color
         return result;
     }
 
-    public readonly Color Lerp(Color color, float factor)
+    public readonly (float R, float G, float B, float A) Normalize()
     {
-        var result = Transparent;
-        factor = factor switch
-        {
-            < 0.0f => 0.0f,
-            > 1.0f => 1.0f,
-            _ => factor,
-        };
-        result.R = (byte)((1.0f - factor) * R + factor * color.R);
-        result.G = (byte)((1.0f - factor) * G + factor * color.G);
-        result.B = (byte)((1.0f - factor) * B + factor * color.B);
-        result.A = (byte)((1.0f - factor) * A + factor * color.A);
-        return result;
+        return (R / 255.0f, G / 255.0f, B / 255.0f, A / 255.0f);
     }
 
     public readonly Color Or(Color value)
     {
-        return this == Transparent ? value : this;
+        return this == default ? value : this;
     }
 }

@@ -1,4 +1,4 @@
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -14,21 +14,21 @@ public static class Audio
         set
         {
             value = value.Clamp(0, 1);
+            if (!Game.Running || Precision.AreEqual(value, MasterVolume))
+                return;
             _config.MasterVolume = value;
-            if (Game.Running)
-                Raylib.SetMasterVolume(value);
+            Raylib.SetMasterVolume(value);
         }
     }
 
     public static int DefaultSoundMaxAliases
     {
         get => _config.DefaultSoundMaxAliases;
-        set => _config.DefaultSoundMaxAliases = int.Max(value, 1);
+        set => _config.DefaultSoundMaxAliases = value.Max(1);
     }
 
     internal static void Initialize()
     {
-        Raylib.SetAudioStreamBufferSizeDefault(8192);
         if (OperatingSystem.IsWindows())
         {
             var thread = new Thread(Raylib.InitAudioDevice);
@@ -40,9 +40,8 @@ public static class Audio
             Raylib.InitAudioDevice();
         }
 
-        if (Game.Config.TryTake(out AudioConfig config))
-            _config = config;
-        MasterVolume = _config.MasterVolume;
+        _config = Game.Config.Take<AudioConfig>() ?? _config;
+        Raylib.SetMasterVolume(_config.MasterVolume);
         DefaultSoundMaxAliases = _config.DefaultSoundMaxAliases;
     }
 
@@ -61,7 +60,7 @@ public sealed class AudioConfig
 
 public static class AudioConfigExtensions
 {
-    public static ConfigBuilder Audio(this ConfigBuilder builder, AudioConfig config)
+    public static ConfigBuilder Audio(this ConfigBuilder builder, Action<AudioConfig> config)
     {
         return builder.Add(config);
     }

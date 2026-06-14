@@ -6,11 +6,11 @@ namespace Vigilance.Net;
 
 public static class Http
 {
-    private static readonly IHttpClient Client;
+    private static readonly IHttpClient _client;
 
     static Http()
     {
-        Client = Game.Platform switch
+        _client = Platform.Current switch
         {
             Platform.Web => new HttpClientWeb(),
             _ => new HttpClientCore(),
@@ -19,7 +19,7 @@ public static class Http
 
     public static void Fetch(HttpRequest request)
     {
-        Client.Fetch(request);
+        _client.Fetch(request);
     }
 
     internal static void CompleteFetch(HttpRequest request, HttpResponse response)
@@ -28,9 +28,8 @@ public static class Http
         var url = HttpUtility.UrlPathEncode(request.Url).Replace("\"", "%22");
         var statusCode = response.StatusCode;
         var statusText = response.StatusText;
-        var logLevel = response.Success ? LogLevel.Info : LogLevel.Error;
-        var logMessage = $"FETCH: {method} \"{url}\"{(statusCode == 0 ? "" : $" {statusCode}")} ({statusText})";
-        Logger.Log(logLevel, logMessage);
+        var logLevel = response.IsSuccess ? LogLevel.Info : LogLevel.Error;
+        Log.Invoke(logLevel, $"FETCH: {method} \"{url}\"{(statusCode == 0 ? "" : $" {statusCode}")} ({statusText})");
         Game.Defer(() => request.OnComplete?.Invoke(response));
     }
 }

@@ -1,3 +1,3 @@
 namespace Vigilance.Core;
 
-public record struct YSort(float Offset = 0);
+public record struct YSort(float Offset);

@@ -10,6 +10,11 @@ public class UIPolygon : UIContainer
 
     public UIPolygon() { }
 
+    public UIPolygon(Color fill)
+    {
+        Fill = fill;
+    }
+
     public UIPolygon(int sides)
     {
         Sides = sides;
@@ -51,19 +56,16 @@ public class UIPolygon : UIContainer
         set => _polygon.DrawOrder = value;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         var position = LayoutPosition;
         var size = LayoutSize;
         _polygon.Camera = camera;
         graphics.DrawRegularPolygon(new Transform(position + size * 0.5f, size), _polygon);
-        base.Render(graphics, camera);
     }
 
-    protected override object DeepClone()
+    protected override void OnClone()
     {
-        var result = (UIPolygon)base.DeepClone();
-        result._polygon = _polygon.DeepClone();
-        return result;
+        _polygon = _polygon.ShallowClone();
     }
 }

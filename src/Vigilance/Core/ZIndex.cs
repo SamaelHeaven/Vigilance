@@ -1,7 +1,18 @@
 namespace Vigilance.Core;
 
-internal readonly record struct ZIndex(int Value)
+public record struct ZIndex(int Value)
+    : IWriteImmutableComponent,
+        IRemoveImmutableComponent,
+        ISkipAddEventComponent,
+        ISkipRemoveEventComponent
 {
-    public ZIndex()
-        : this(0) { }
+    public static implicit operator int(ZIndex zIndex)
+    {
+        return zIndex.Value;
+    }
+
+    public static implicit operator ZIndex(int zIndex)
+    {
+        return new ZIndex(zIndex);
+    }
 }

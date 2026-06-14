@@ -12,13 +12,10 @@ public enum Direction
 
 public static class DirectionExtensions
 {
-    public static bool IsHorizontal(this Direction direction)
+    extension(Direction direction)
     {
-        return direction is Direction.LeftToRight or Direction.RightToLeft;
-    }
+        public bool IsHorizontal => direction is Direction.LeftToRight or Direction.RightToLeft;
 
-    public static bool IsVertical(this Direction direction)
-    {
-        return direction is Direction.TopToBottom or Direction.BottomToTop;
+        public bool IsVertical => direction is Direction.TopToBottom or Direction.BottomToTop;
     }
 }

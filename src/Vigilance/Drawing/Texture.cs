@@ -1,32 +1,36 @@
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
+using Vigilance.Collections;
 using Vigilance.Core;
+using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed unsafe class Texture
+public sealed unsafe class Texture : IDisposable
 {
     private static Texture? _empty;
     private static Texture? _white;
-    internal readonly RenderTexture? RenderTexture;
-    internal readonly Texture2D Texture2D;
+    internal RenderTexture? RenderTexture;
+    internal Texture2D Texture2D;
 
-    internal Texture(Texture2D texture2D, RenderTexture? renderTexture = null)
+    internal Texture(in Texture2D texture2D, RenderTexture? renderTexture = null)
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         Texture2D = texture2D;
         RenderTexture = renderTexture;
     }
 
     public Texture(string fileType, IEnumerable<byte> bytes)
     {
-        Game.EnsureRunning();
-        using var fileTypeBuffer = fileType.ToUtf8Buffer();
+        Game.ThrowIfNotRunning();
+        using var fileTypeBuffer = fileType.ToUtf8Ptr();
         var span = bytes.AsSpan();
         fixed (byte* bytesBuffer = span)
         {
-            var image = Raylib.LoadImageFromMemory(fileTypeBuffer.AsPointer(), bytesBuffer, span.Length);
+            var image = Raylib.LoadImageFromMemory(fileTypeBuffer, bytesBuffer, span.Length);
+            var logLevel = Log.SetLogLevel(LogLevel.Info);
             Texture2D = Raylib.LoadTextureFromImage(image);
+            Log.LogLevel = logLevel;
             Raylib.UnloadImage(image);
         }
     }
@@ -40,7 +44,7 @@ public sealed unsafe class Texture
                 Id = 1,
                 Width = 1,
                 Height = 1,
-                Format = Raylib_cs.BleedingEdge.PixelFormat.UncompressedR8G8B8A8,
+                Format = Raylib_cs.PixelFormat.UncompressedR8G8B8A8,
                 Mipmaps = 1,
             }
         );
@@ -55,14 +59,32 @@ public sealed unsafe class Texture
 
     public PixelFormat Format => (PixelFormat)Texture2D.Format;
 
+    public bool IsValid => Texture2D.Id != 0;
+
+    public void Dispose()
+    {
+        if (this == _empty || this == _white)
+            return;
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+        RenderTexture = null;
+        Texture2D = default;
+    }
+
     public WritableImage ToImage()
     {
         if (RenderTexture is not null && Graphics.IsBufferCurrent(RenderTexture))
             Graphics.DrawCurrentBuffer();
-        var image = Raylib.LoadImageFromTexture(Texture2D);
+        var image = new WritableImage(new Image(Raylib.LoadImageFromTexture(Texture2D)));
         if (RenderTexture is not null)
-            Raylib.ImageFlipVertical(ref image);
-        return new WritableImage(new Image(image));
+            image.FlipVertically();
+        return image;
+    }
+
+    public WritableImage<T> ToImage<T>()
+        where T : unmanaged, IPixel
+    {
+        return new WritableImage<T>(ToImage());
     }
 
     public WritableTexture Copy()
@@ -71,14 +93,16 @@ public sealed unsafe class Texture
         return new WritableTexture(image.ToTexture());
     }
 
+    private void ReleaseUnmanagedResources()
+    {
+        if (RenderTexture is not null)
+            Raylib.UnloadRenderTexture(RenderTexture.RenderTexture2D);
+        else
+            Raylib.UnloadTexture(Texture2D);
+    }
+
     ~Texture()
     {
-        Game.Defer(() =>
-        {
-            if (RenderTexture is null)
-                Raylib.UnloadTexture(Texture2D);
-            else
-                Raylib.UnloadRenderTexture(RenderTexture.RenderTexture2D);
-        });
+        Game.Defer(ReleaseUnmanagedResources);
     }
 }

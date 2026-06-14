@@ -2,18 +2,18 @@
 
 public enum GamepadAxis
 {
-    LeftX = Raylib_cs.BleedingEdge.GamepadAxis.LeftX,
-    LeftY = Raylib_cs.BleedingEdge.GamepadAxis.LeftY,
-    RightX = Raylib_cs.BleedingEdge.GamepadAxis.RightX,
-    RightY = Raylib_cs.BleedingEdge.GamepadAxis.RightY,
-    LeftTrigger = Raylib_cs.BleedingEdge.GamepadAxis.LeftTrigger,
-    RightTrigger = Raylib_cs.BleedingEdge.GamepadAxis.RightTrigger,
+    LeftX = Raylib_cs.GamepadAxis.LeftX,
+    LeftY = Raylib_cs.GamepadAxis.LeftY,
+    RightX = Raylib_cs.GamepadAxis.RightX,
+    RightY = Raylib_cs.GamepadAxis.RightY,
+    LeftTrigger = Raylib_cs.GamepadAxis.LeftTrigger,
+    RightTrigger = Raylib_cs.GamepadAxis.RightTrigger,
 }
 
 public static class GamepadAxisExtensions
 {
-    public static int GetJSValue(this GamepadAxis axis)
+    extension(GamepadAxis axis)
     {
-        return (int)axis;
+        public int JSValue => (int)axis;
     }
 }

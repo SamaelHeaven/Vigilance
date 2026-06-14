@@ -32,6 +32,12 @@ public class UICircleGradient : UIContainer
         set => _circle.StrokeWidth = value;
     }
 
+    public int Segments
+    {
+        get => _circle.Segments;
+        set => _circle.Segments = value;
+    }
+
     public DrawOrder DrawOrder
     {
         get => _circle.DrawOrder;
@@ -44,19 +50,16 @@ public class UICircleGradient : UIContainer
         set => _circle.Fill = value;
     }
 
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         var position = LayoutPosition;
         var size = LayoutSize;
         _circle.Camera = camera;
         graphics.DrawCircleGradient(new Transform(position + size * 0.5f, size), _circle);
-        base.Render(graphics, camera);
     }
 
-    protected override object DeepClone()
+    protected override void OnClone()
     {
-        var result = (UICircleGradient)base.DeepClone();
-        result._circle = _circle.DeepClone();
-        return result;
+        _circle = _circle.ShallowClone();
     }
 }

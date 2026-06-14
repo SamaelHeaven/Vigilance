@@ -1,6 +1,12 @@
+using Vigilance.Core;
+
 namespace Vigilance.Math;
 
 public record struct Transform
+    : IWriteImmutableComponent,
+        IRemoveImmutableComponent,
+        ISkipAddEventComponent,
+        ISkipRemoveEventComponent
 {
     public Transform() { }
 
@@ -35,7 +41,7 @@ public record struct Transform
     public float Rotation { get; set; } = 0;
     public Vector2 PivotPoint { get; set; } = Vector2.Zero;
 
-    public static Transform operator +(Transform a, Transform b)
+    public static Transform operator +(Transform a, in Transform b)
     {
         a.Position += b.Position;
         a.Scale *= b.Scale;
@@ -44,7 +50,7 @@ public record struct Transform
         return a;
     }
 
-    public static Transform operator -(Transform a, Transform b)
+    public static Transform operator -(Transform a, in Transform b)
     {
         a.Position -= b.Position;
         a.Scale /= b.Scale;

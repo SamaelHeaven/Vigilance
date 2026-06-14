@@ -1,4 +1,4 @@
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using Vigilance.Core;
 
 namespace Vigilance.Input;
@@ -9,8 +9,8 @@ public static class Clipboard
     {
         get
         {
-            Game.EnsureRunning();
-            return Game.Platform switch
+            Game.ThrowIfNotRunning();
+            return Platform.Current switch
             {
                 Platform.Web => "",
                 _ => Raylib.GetClipboardText_(),
@@ -18,9 +18,9 @@ public static class Clipboard
         }
         set
         {
-            Game.EnsureRunning();
-            if (Platform.Web.IsCurrent())
-                JSEngine.Eval($"navigator.clipboard.writeText({value.ToJson()})");
+            Game.ThrowIfNotRunning();
+            if (Platform.Web.IsCurrent)
+                JSEngine.Eval($"void navigator.clipboard.writeText({value.ToJson()})");
             else
                 Raylib.SetClipboardText(value);
         }

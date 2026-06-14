@@ -4,13 +4,18 @@ namespace Vigilance.Core;
 
 public static class StringExtensions
 {
-    public static string ToJson(this string str)
+    extension(string str)
     {
-        return $"\"{JsonEncodedText.Encode(str)}\"";
-    }
+        public bool IsEmpty => str.Length == 0;
 
-    public static Utf8Buffer ToUtf8Buffer(this string str)
-    {
-        return new Utf8Buffer(str);
+        public string ToJson()
+        {
+            return $"\"{JsonEncodedText.Encode(str)}\"";
+        }
+
+        public Utf8Ptr ToUtf8Ptr()
+        {
+            return new Utf8Ptr(str);
+        }
     }
 }

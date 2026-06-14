@@ -6,14 +6,16 @@ namespace Vigilance.Drawing;
 
 public sealed class Text : IFullCloneable
 {
-    private Font _font = Font.Default;
-    private float _fontSize = Font.DefaultSize;
-    private TextHeightMode _heightMode = Font.DefaultTextHeightMode;
+    public const int UnlimitedCharacters = -1;
+
     private Vector2? _sizeCache = null;
-    private Vector2 _spacing = Font.DefaultTextSpacing;
-    private string _value = "";
 
     public Text() { }
+
+    public Text(Color fill)
+    {
+        Fill = fill;
+    }
 
     public Text(string value)
     {
@@ -29,64 +31,93 @@ public sealed class Text : IFullCloneable
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
+    public int VisibleCharacters { get; set; } = UnlimitedCharacters;
+    public Interpolation Interpolation { get; set; } = Drawing.DefaultInterpolation;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
-    public Interpolation? Interpolation { get; set; } = Drawing.DefaultInterpolation;
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
+    public Vector2 Position { get; set; } = Vector2.Zero;
+    public Vector2 Scale { get; set; } = Vector2.One;
+    public float Rotation { get; set; } = 0;
+    public Vector2 PivotPoint { get; set; } = Vector2.Zero;
+    public Action<Transform, Text, Graphics>? OnBeginDrawing { get; set; }
+    public Action<Transform, Text, Graphics>? OnEndDrawing { get; set; }
+
+    public Transform Transform
+    {
+        get => new(Position, Scale, Rotation, PivotPoint);
+        set
+        {
+            Position = value.Position;
+            Scale = value.Scale;
+            Rotation = value.Rotation;
+            PivotPoint = value.PivotPoint;
+        }
+    }
 
     public string Value
     {
-        get => _value;
+        get;
         set
         {
-            _value = value;
+            if (field == value)
+                return;
+            field = value;
             _sizeCache = null;
         }
-    }
+    } = "";
 
     public Font Font
     {
-        get => _font;
+        get;
         set
         {
-            _font = value;
+            if (field == value)
+                return;
+            field = value;
             _sizeCache = null;
         }
-    }
+    } = Font.Default;
 
     public float FontSize
     {
-        get => _fontSize;
+        get;
         set
         {
-            _fontSize = value;
+            if (Precision.AreEqual(field, value))
+                return;
+            field = value;
             _sizeCache = null;
         }
-    }
+    } = Font.DefaultSize;
 
     public Vector2 Spacing
     {
-        get => _spacing;
+        get;
         set
         {
-            _spacing = value;
+            if (Precision.AreEqual(field, value))
+                return;
+            field = value;
             _sizeCache = null;
         }
-    }
+    } = Font.DefaultTextSpacing;
 
     public TextHeightMode HeightMode
     {
-        get => _heightMode;
+        get;
         set
         {
-            _heightMode = value;
+            if (field == value)
+                return;
+            field = value;
             _sizeCache = null;
         }
-    }
+    } = Font.DefaultTextHeightMode;
 
-    public Vector2 Size => _sizeCache ??= _font.MeasureText(_value, _fontSize, _spacing, _heightMode);
+    public Vector2 Size => _sizeCache ??= Font.MeasureText(Value, FontSize, Spacing, HeightMode);
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this);
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform)), true);
     }
 }

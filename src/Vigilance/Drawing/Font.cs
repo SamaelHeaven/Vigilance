@@ -1,16 +1,18 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FreeTypeSharp;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
 using ZLinq;
 
 namespace Vigilance.Drawing;
 
-public sealed unsafe class Font
+public sealed unsafe class Font : IDisposable
 {
     private const int AtlasSpacing = 4;
     private const int AtlasNbCols = 10;
-    private static readonly FreeTypeLibrary FtLibrary = new();
+    private static readonly FreeTypeLibrary _ftLibrary = new();
     private static FontConfig _config = new();
     private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
     private readonly Dictionary<int, (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
@@ -21,7 +23,7 @@ public sealed unsafe class Font
 
     public Font(IEnumerable<byte> bytes, int? quality = null, string? charset = null)
     {
-        Game.EnsureRunning();
+        Game.ThrowIfNotRunning();
         Quality = quality ?? DefaultQuality;
         Charset = string.Concat((charset ?? DefaultCharset).Distinct());
         var glyphs = LoadGlyphs(bytes);
@@ -60,29 +62,45 @@ public sealed unsafe class Font
         set => _config.DefaultCharset = value;
     }
 
-    public string Charset { get; }
-    public int Quality { get; }
+    public string Charset { get; private set; }
+    public int Quality { get; private set; }
     public DictionaryView<char, GlyphInfo> GlyphInfos => _glyphInfos;
-    public Texture Atlas { get; }
+    public Texture Atlas { get; private set; }
+    public bool IsValid => _buffer != 0;
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+        _glyphInfos.Clear();
+        _strokes.Clear();
+        _buffer = 0;
+        _face = null;
+        _spaceSize = 0;
+        _stroker = null;
+        Charset = "";
+        Quality = 0;
+        Atlas = Texture.Empty;
+    }
 
     internal static void Initialize()
     {
-        if (Game.Config.TryTake(out FontConfig config))
-            _config = config;
+        _config = Game.Config.Take<FontConfig>() ?? _config;
         Default = _config.Default.Invoke();
     }
 
     public Vector2 MeasureText(
         string text,
         float? fontSize = null,
-        Vector2? spacing = null,
-        TextHeightMode? textHeightMode = null
+        in Vector2? spacing = null,
+        TextHeightMode? textHeightMode = null,
+        int visibleCharacters = Text.UnlimitedCharacters
     )
     {
         var fontSizeValue = fontSize ?? DefaultSize;
         var spacingValue = spacing ?? DefaultTextSpacing;
         var size = Vector2.Zero;
-        foreach (var (_, dest) in GetTextBounds(text, fontSizeValue, spacingValue))
+        foreach (var (_, dest) in GetTextBounds(text, fontSizeValue, spacingValue, visibleCharacters))
             size = size.Max(dest.Position + dest.Size);
         if ((textHeightMode ?? DefaultTextHeightMode) == TextHeightMode.FontSize)
             size.Y = fontSizeValue + text.AsValueEnumerable().Count(c => c == '\n') * (fontSizeValue + spacingValue.Y);
@@ -112,16 +130,24 @@ public sealed unsafe class Font
     public TextBoundEnumerable GetTextBounds(
         string text,
         float? fontSize = null,
-        Vector2? spacing = null,
+        in Vector2? spacing = null,
+        int visibleCharacters = Text.UnlimitedCharacters,
         DictionaryView<char, GlyphInfo>? glyphInfos = null
     )
     {
-        return new TextBoundEnumerable(this, text, fontSize ?? DefaultSize, spacing ?? DefaultTextSpacing, glyphInfos);
+        return new TextBoundEnumerable(
+            this,
+            text,
+            fontSize ?? DefaultSize,
+            spacing ?? DefaultTextSpacing,
+            glyphInfos,
+            visibleCharacters
+        );
     }
 
     public (Texture Atlas, DictionaryView<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
     {
-        strokeWidth = int.Clamp(strokeWidth, 0, 50);
+        strokeWidth = strokeWidth.Clamp(0, 50);
         if (_strokes.TryGetValue(strokeWidth, out var stroke))
             return stroke;
         FT.FT_Stroker_Set(
@@ -136,7 +162,7 @@ public sealed unsafe class Font
             .Select(c => LoadGlyph(c, strokeWidth))
             .Where(g => g.HasValue)
             .Select(g => g!.Value)
-            .ToList();
+            .ToValueList();
         var glyphInfos = new Dictionary<char, GlyphInfo>();
         var atlas = DrawAtlas(glyphs, glyphInfos);
         var result = (atlas, glyphInfos);
@@ -144,7 +170,7 @@ public sealed unsafe class Font
         return result;
     }
 
-    private List<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
+    private ValueList<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
     {
         var span = bytes.AsSpan();
         _buffer = Marshal.AllocHGlobal(span.Length);
@@ -155,15 +181,15 @@ public sealed unsafe class Font
 
         fixed (FT_FaceRec_** face = &_face)
         {
-            FtEnsureOk(FT.FT_New_Memory_Face(FtLibrary.Native, (byte*)_buffer, span.Length, 0, face));
+            FtThrowIfError(FT.FT_New_Memory_Face(_ftLibrary.Native, (byte*)_buffer, span.Length, 0, face));
         }
 
-        FtEnsureOk(FT.FT_Set_Char_Size(_face, 0, Quality * 64, 0, 0));
-        FtEnsureOk(FT.FT_Load_Char(_face, ' ', FT_LOAD.FT_LOAD_DEFAULT));
+        FtThrowIfError(FT.FT_Set_Char_Size(_face, 0, Quality * 64, 0, 0));
+        FtThrowIfError(FT.FT_Load_Char(_face, ' ', FT_LOAD.FT_LOAD_DEFAULT));
         _spaceSize = _face->glyph->metrics.horiAdvance.ToInt32() / 64;
         fixed (FT_StrokerRec_** stroke = &_stroker)
         {
-            FtEnsureOk(FT.FT_Stroker_New(FtLibrary.Native, stroke));
+            FtThrowIfError(FT.FT_Stroker_New(_ftLibrary.Native, stroke));
         }
 
         return Charset
@@ -171,10 +197,10 @@ public sealed unsafe class Font
             .Select(c => LoadGlyph(c, null))
             .Where(g => g.HasValue)
             .Select(g => g!.Value)
-            .ToList();
+            .ToValueList();
     }
 
-    private Texture DrawAtlas(List<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
+    private Texture DrawAtlas(ValueList<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
     {
         var colSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Width).Prepend(0).Max();
         var rowSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Height).Prepend(0).Max();
@@ -238,9 +264,9 @@ public sealed unsafe class Font
             var index = FT.FT_Get_Char_Index(_face, c);
             FT.FT_Load_Glyph(_face, index, FT_LOAD.FT_LOAD_DEFAULT);
             FT_GlyphRec_* glyph;
-            FtEnsureOk(FT.FT_Get_Glyph(_face->glyph, &glyph));
-            FtEnsureOk(FT.FT_Glyph_Stroke(&glyph, _stroker, 1));
-            FtEnsureOk(FT.FT_Glyph_To_Bitmap(&glyph, FT_Render_Mode_.FT_RENDER_MODE_NORMAL, null, 1));
+            FtThrowIfError(FT.FT_Get_Glyph(_face->glyph, &glyph));
+            FtThrowIfError(FT.FT_Glyph_Stroke(&glyph, _stroker, 1));
+            FtThrowIfError(FT.FT_Glyph_To_Bitmap(&glyph, FT_Render_Mode_.FT_RENDER_MODE_NORMAL, null, 1));
             bitmap = (*(FtBitmapGlyphRec*)glyph).Bitmap;
             FT.FT_Done_Glyph(glyph);
         }
@@ -261,7 +287,8 @@ public sealed unsafe class Font
         );
     }
 
-    private static void FtEnsureOk(FT_Error error)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void FtThrowIfError(FT_Error error)
     {
         if (error != FT_Error.FT_Err_Ok)
             throw new Exception("An error occurred while loading font data.");
@@ -269,12 +296,21 @@ public sealed unsafe class Font
 
     ~Font()
     {
-        Game.Defer(() =>
-        {
-            FT.FT_Stroker_Done(_stroker);
-            FT.FT_Done_Face(_face);
-            Marshal.FreeHGlobal(_buffer);
-        });
+        Game.Defer(() => Dispose(false));
+    }
+
+    private void ReleaseUnmanagedResources()
+    {
+        FT.FT_Stroker_Done(_stroker);
+        FT.FT_Done_Face(_face);
+        Marshal.FreeHGlobal(_buffer);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        ReleaseUnmanagedResources();
+        if (disposing)
+            Atlas.Dispose();
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -293,13 +329,15 @@ public sealed unsafe class Font
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
         private readonly DictionaryView<char, GlyphInfo> _glyphInfos;
+        private readonly int _visibleCharacters;
 
         internal TextBoundEnumerable(
             Font font,
             string text,
             float fontSize,
             Vector2 spacing,
-            DictionaryView<char, GlyphInfo>? glyphInfos
+            DictionaryView<char, GlyphInfo>? glyphInfos,
+            int visibleCharacters
         )
         {
             _font = font;
@@ -307,11 +345,12 @@ public sealed unsafe class Font
             _fontSize = fontSize;
             _spacing = spacing;
             _glyphInfos = glyphInfos ?? font.GlyphInfos;
+            _visibleCharacters = visibleCharacters;
         }
 
         public TextBoundEnumerator GetEnumerator()
         {
-            return new TextBoundEnumerator(_font, _text, _fontSize, _spacing, _glyphInfos);
+            return new TextBoundEnumerator(_font, _text, _fontSize, _spacing, _glyphInfos, _visibleCharacters);
         }
 
         public ValueEnumerable<
@@ -330,6 +369,7 @@ public sealed unsafe class Font
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
         private readonly DictionaryView<char, GlyphInfo> _glyphInfos;
+        private readonly int _visibleCharacters;
         private readonly float _aspectRatio;
         private int _index;
         private Vector2 _position;
@@ -339,7 +379,8 @@ public sealed unsafe class Font
             string text,
             float fontSize,
             Vector2 spacing,
-            DictionaryView<char, GlyphInfo>? glyphInfos
+            in DictionaryView<char, GlyphInfo>? glyphInfos,
+            int visibleCharacters
         )
         {
             _font = font;
@@ -347,13 +388,14 @@ public sealed unsafe class Font
             _fontSize = fontSize;
             _spacing = spacing;
             _glyphInfos = glyphInfos ?? font.GlyphInfos;
+            _visibleCharacters = visibleCharacters;
             _aspectRatio = _font.Quality / fontSize;
             Reset();
         }
 
         public bool MoveNext()
         {
-            while (_index < _text.Length)
+            while (_index < _text.Length && (_visibleCharacters < 0 || _index < _visibleCharacters))
             {
                 var c = _text[_index++];
                 switch (c)

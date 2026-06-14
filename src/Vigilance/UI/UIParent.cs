@@ -1,12 +1,19 @@
-using Vigilance.Core;
-using Vigilance.Drawing;
+#pragma warning disable CS9084
+
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using Vigilance.Collections;
 using ZLinq;
 
 namespace Vigilance.UI;
 
 public abstract class UIParent : UIElement
 {
-    private LinkedList<UIElement> _children = new();
+    internal ValueList<UIElement> ChildrenList = [];
+    internal ValueQueue<ChildrenOperation> ChildrenOperations = [];
+    public bool IsDeferred => DeferredCount != 0 && SuspendedCount == 0;
+    public int DeferredCount { get; internal set; }
+    public int SuspendedCount { get; private set; }
 
     public UIParent this[UIElement? element]
     {
@@ -17,7 +24,7 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public UIParent this[params IEnumerable<UIElement?> elements]
+    public UIParent this[params ReadOnlySpan<UIElement?> elements]
     {
         get
         {
@@ -26,79 +33,41 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public ChildEnumerable Children => new(this);
-
-    protected override void Render(Graphics graphics, CameraProvider camera)
+    public UIParent this[IEnumerable<UIElement?> elements]
     {
-        foreach (var element in Children)
-            element.Render(element.LayoutTransform, graphics, camera);
-    }
-
-    public override void Update(Entity entity)
-    {
-        foreach (var element in Children)
-            element.Update(entity);
-        base.Update(entity);
-    }
-
-    public UIElement? Select(UISelector? selector = null)
-    {
-        return Select<UIElement>(selector);
-    }
-
-    public T? Select<T>(UISelector? selector = null)
-        where T : UIElement
-    {
-        selector ??= static _ => true;
-        foreach (var element in Children)
-            if (element is T t && selector.Invoke(t))
-                return t;
-        foreach (var element in Children)
+        get
         {
-            if (element is not UIParent container)
-                continue;
-            var result = container.Select<T>(selector);
-            if (result is not null)
-                return result;
+            foreach (var element in elements)
+                Add(element);
+            return this;
         }
-
-        return null;
     }
 
-    public IEnumerable<UIElement> SelectAll(UISelector? selector = null)
+    public ChildEnumerable Children()
     {
-        return SelectAll<UIElement>(selector);
-    }
-
-    public IEnumerable<T> SelectAll<T>(UISelector? selector = null)
-        where T : UIElement
-    {
-        selector ??= static _ => true;
-        foreach (var element in Children)
-            if (element is T t && selector(t))
-                yield return t;
-        foreach (var element in Children)
-        {
-            if (element is not UIParent container)
-                continue;
-            foreach (var child in container.SelectAll<T>(selector))
-                yield return child;
-        }
+        return new ChildEnumerable(this);
     }
 
     public void Add(UIElement? element)
     {
         if (element is null)
             return;
+        if (IsDeferred)
+        {
+            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Add, element));
+            return;
+        }
+
         element.Remove();
-        _children.AddLast(element);
+        ChildrenList.Add(element);
         element.Parent = this;
-        if (!LayoutCustom)
+        element.ApplyDeclaredMargin();
+        if (!IsLayoutCustom)
             Node.AddChild(element.Node);
         MarkDirty();
     }
 
-    public void Add(params IEnumerable<UIElement?> elements)
+    public void Add(params ReadOnlySpan<UIElement?> elements)
     {
         foreach (var element in elements)
             Add(element);
@@ -106,121 +75,239 @@ public abstract class UIParent : UIElement
 
     public void Insert(int index, UIElement element)
     {
-        var oldNode = _children.AsValueEnumerable().ElementAtOrDefault(index);
+        if (IsDeferred)
+        {
+            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Insert, element, index));
+            return;
+        }
+
+        ChildrenList.Insert(index, element);
         element.Remove();
         element.Parent = this;
-        if (oldNode is null)
-            _children.AddLast(element);
-        else
-            _children.AddBefore(_children.Find(oldNode)!, element);
-        if (!LayoutCustom)
+        element.ApplyDeclaredMargin();
+        if (!IsLayoutCustom)
             Node.InsertChild(element.Node, index);
         MarkDirty();
     }
 
     public int IndexOf(UIElement element)
     {
-        var index = 0;
-        foreach (var child in _children)
-        {
-            if (child == element)
-                return index;
-            index++;
-        }
-
-        return -1;
+        return ChildrenList.IndexOf(element);
     }
 
-    public bool Replace(int index, UIElement element)
+    public void Replace(int index, UIElement element)
     {
-        var oldNode = _children.AsValueEnumerable().ElementAtOrDefault(index);
-        if (oldNode is null)
-            return false;
+        if (IsDeferred)
+        {
+            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Replace, element, index));
+            return;
+        }
+
+        ChildrenList[index].Remove();
         element.Remove();
         element.Parent = this;
-        _children.Find(oldNode)!.Value = element;
-        if (!LayoutCustom)
+        element.ApplyDeclaredMargin();
+        ChildrenList[index] = element;
+        if (!IsLayoutCustom)
             Node.ReplaceChild(index, element.Node);
         MarkDirty();
-        return true;
     }
 
     public void Clear()
     {
-        foreach (var element in Children)
+        foreach (var element in Children())
             element.Remove();
     }
 
-    protected override object DeepClone()
+    public void BeginDefer()
     {
-        var result = (UIParent)base.DeepClone();
-        result._children = new LinkedList<UIElement>();
-        result.Add(_children.Select(el => el.DeepClone()));
-        return result;
+        DeferredCount++;
+    }
+
+    public void EndDefer()
+    {
+        if (DeferredCount == 0)
+            throw new InvalidOperationException("Element is not in a deferred state.");
+        if (--DeferredCount != 0)
+            return;
+        while (ChildrenOperations.TryDequeue(out var operation))
+            operation.Execute(this);
+    }
+
+    public void SuspendDefer()
+    {
+        SuspendedCount++;
+    }
+
+    public void ResumeDefer()
+    {
+        if (SuspendedCount == 0)
+            throw new InvalidOperationException("Element is not in a suspended state.");
+        SuspendedCount--;
     }
 
     internal void Remove(UIElement element)
     {
-        _children.Remove(element);
+        if (IsDeferred)
+        {
+            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Remove, element));
+            return;
+        }
+
+        ChildrenList.Remove(element);
         element.Parent = null;
-        if (!LayoutCustom)
+        if (!IsLayoutCustom)
             Node.RemoveChild(element.Node);
         MarkDirty();
     }
 
-    public readonly struct ChildEnumerable
-        : IStructEnumerable<ChildEnumerator, UIElement>,
-            IReadOnlyCollection<UIElement>
+    internal enum ChildrenOperationType
+    {
+        Add,
+        Remove,
+        Insert,
+        Replace,
+    }
+
+    internal readonly record struct ChildrenOperation(
+        ChildrenOperationType Type,
+        UIElement? Element = null,
+        int Index = 0
+    )
+    {
+        public void Execute(UIParent parent)
+        {
+            switch (Type)
+            {
+                case ChildrenOperationType.Add:
+                    parent.Add(Element);
+                    break;
+                case ChildrenOperationType.Remove:
+                    parent.Remove(Element!);
+                    break;
+                case ChildrenOperationType.Insert:
+                    parent.Insert(Index, Element!);
+                    break;
+                case ChildrenOperationType.Replace:
+                    parent.Replace(Index, Element!);
+                    break;
+                default:
+                    throw new InvalidEnumArgumentException(nameof(Type), (int)Type, typeof(ChildrenOperationType));
+            }
+        }
+    }
+
+    public unsafe struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
     {
         private readonly UIParent _parent;
+        private bool _deferred;
 
         internal ChildEnumerable(UIParent parent)
         {
             _parent = parent;
+            _deferred = true;
         }
 
         public ChildEnumerator GetEnumerator()
         {
-            return new ChildEnumerator(_parent);
+            return new ChildEnumerator(_parent, _deferred);
         }
 
-        public ValueEnumerable<StructEnumerator<ChildEnumerator, UIElement>, UIElement> AsValueEnumerable()
+        public ValueEnumerable<ChildEnumerator, UIElement> AsValueEnumerable()
+        {
+            return new ValueEnumerable<ChildEnumerator, UIElement>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<ChildEnumerator, UIElement>, UIElement> IStructEnumerable<
+            ChildEnumerator,
+            UIElement
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<ChildEnumerator, UIElement>(GetEnumerator());
         }
 
-        public int Count => _parent._children.Count;
+        public int Count => _parent.ChildrenList.Count;
+
+        public UIElement this[int index] => _parent.ChildrenList[index];
+
+        public ref ChildEnumerable Deferred(bool deferred = true)
+        {
+            _deferred = deferred;
+            return ref this;
+        }
     }
 
-    public struct ChildEnumerator : IStructEnumerator<UIElement>
+    public struct ChildEnumerator : IStructEnumerator<UIElement>, IValueEnumerator<UIElement>
     {
         private readonly UIParent _parent;
-        private LinkedListNode<UIElement>? _current;
-        private LinkedListNode<UIElement>? _next;
+        private int _index;
+        private readonly bool _deferred;
+        private bool _disposed;
 
-        internal ChildEnumerator(UIParent parent)
+        internal ChildEnumerator(UIParent parent, bool deferred)
         {
             _parent = parent;
+            _deferred = deferred;
+            _disposed = true;
             Reset();
         }
 
         public bool MoveNext()
         {
-            _current = _next;
-            if (_current is null)
+            var newIndex = _index + 1;
+            if (newIndex >= _parent.ChildrenList.Count)
                 return false;
-            _next = _current.Next;
-            return _current?.Value is not null;
+            _index = newIndex;
+            return true;
         }
 
         public void Reset()
         {
-            _next = _parent._children.First;
-            _current = null;
+            Dispose();
+            _index = -1;
+            _disposed = false;
+            if (_deferred)
+                _parent.BeginDefer();
         }
 
-        public UIElement Current => _current?.Value!;
+        public UIElement Current => _parent.ChildrenList[_index];
 
-        public void Dispose() { }
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            if (_deferred)
+                _parent.EndDefer();
+            _disposed = true;
+        }
+
+        public bool TryGetNext(out UIElement current)
+        {
+            if (MoveNext())
+            {
+                current = Current;
+                return true;
+            }
+
+            Unsafe.SkipInit(out current);
+            return false;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _parent.ChildrenList.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<UIElement> span)
+        {
+            span = _parent.ChildrenList.AsSpan();
+            return true;
+        }
+
+        public bool TryCopyTo(scoped Span<UIElement> destination, Index offset)
+        {
+            return _parent.ChildrenList.AsSpan().TryCopyTo(destination, offset);
+        }
     }
 }
