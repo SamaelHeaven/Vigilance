@@ -37,17 +37,7 @@ public sealed unsafe class Texture : IDisposable
 
     public static Texture Empty => _empty ??= new WritableImage<PixelGrayAlpha>(1, 1).ToTexture();
 
-    public static Texture White =>
-        _white ??= new Texture(
-            new Texture2D
-            {
-                Id = 1,
-                Width = 1,
-                Height = 1,
-                Format = Raylib_cs.PixelFormat.UncompressedR8G8B8A8,
-                Mipmaps = 1,
-            }
-        );
+    public static Texture White => _white ??= new WritableImage<PixelGrayAlpha>(1, 1, Color.White).ToTexture();
 
     public uint Id => Texture2D.Id;
 
@@ -63,7 +53,7 @@ public sealed unsafe class Texture : IDisposable
 
     public void Dispose()
     {
-        if (this == _empty || this == _white)
+        if (Id <= 1 || this == _empty || this == _white)
             return;
         ReleaseUnmanagedResources();
         GC.SuppressFinalize(this);
