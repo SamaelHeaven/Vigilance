@@ -34,7 +34,7 @@ public struct StructEnumerator<TEnumerator, TValue> : IStructEnumerator<TValue>,
 {
     private TEnumerator _enumerator;
 
-    public StructEnumerator(TEnumerator enumerator)
+    public StructEnumerator(in TEnumerator enumerator)
     {
         _enumerator = enumerator;
     }
