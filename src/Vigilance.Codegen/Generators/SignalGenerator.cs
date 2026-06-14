@@ -61,6 +61,11 @@ public sealed class SignalGenerator : SourceGenerator
                 {
                     _handlers -= handler;
                 }
+
+                public void Clear()
+                {
+                    _handlers = null;
+                }
                 
                 public bool Invoke({{invokeParams}})
                 {

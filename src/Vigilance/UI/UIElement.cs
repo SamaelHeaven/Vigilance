@@ -19,6 +19,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     {
         None = 0,
         SkipChildren = 1 << 0,
+        ClearSignals = 1 << 1,
     }
 
     private Unit _appliedMarginBottom = Unit.Undefined;
@@ -713,6 +714,8 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
                     parent.Add(
                         (cloneMap ??= new Dictionary<UIElement, UIElement>(this.DescendantsAndSelf().Count()))[child]
                     );
+            if ((options & CloneOptions.ClearSignals) != 0)
+                clone.ClearSignals();
             clone.OnClone();
             OnCloneSignal.Invoke(clone);
             if ((options & CloneOptions.SkipChildren) == 0)
@@ -730,6 +733,8 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
             foreach (var child in this.Children())
                 parent.Add(child);
+        if ((options & CloneOptions.ClearSignals) != 0)
+            clone.ClearSignals();
         clone.OnClone();
         OnCloneSignal.Invoke(clone);
         return clone;
@@ -850,6 +855,23 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         PivotPoint = Vector2.Zero;
     }
 
+    public void ClearSignals()
+    {
+        OnUpdateSignal.Clear();
+        OnDisabledUpdateSignal.Clear();
+        OnDirtySignal.Clear();
+        OnMouseEnterSignal.Clear();
+        OnMouseLeaveSignal.Clear();
+        OnClickSignal.Clear();
+        OnPressSignal.Clear();
+        OnReleaseSignal.Clear();
+        OnCloneSignal.Clear();
+        OnBeginRenderSignal.Clear();
+        OnRenderSignal.Clear();
+        OnEndRenderSignal.Clear();
+        OnClearSignals();
+    }
+
     public RenderTexture ToTexture(Vector2 size)
     {
         return ToTexture(size.X, size.Y);
@@ -886,6 +908,8 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     protected virtual void OnRender(Graphics graphics, CameraProvider camera) { }
 
     protected virtual void OnEndRender(Graphics graphics, CameraProvider camera) { }
+
+    protected virtual void OnClearSignals() { }
 
     protected virtual Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
