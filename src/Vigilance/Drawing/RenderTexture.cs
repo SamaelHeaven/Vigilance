@@ -17,7 +17,7 @@ public sealed class RenderTexture : IDisposable
         Game.ThrowIfNotRunning();
         Graphics.Reset();
         Scale = scale.Max(1);
-        var logLevel = Log.SetLogLevel(LogLevel.Info);
+        var logLevel = Log.SetLogLevel(Log.LogLevel.Max(LogLevel.Info));
         RenderTexture2D = Raylib.LoadRenderTexture((int)(width * Scale), (int)(height * Scale));
         Log.LogLevel = logLevel;
         Texture = new Texture(RenderTexture2D.Texture, this);

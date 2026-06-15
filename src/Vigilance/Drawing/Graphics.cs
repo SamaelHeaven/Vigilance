@@ -1406,7 +1406,7 @@ public sealed unsafe class Graphics
         if (text.IsEmpty || colorValue == Color.Transparent)
             return;
         font ??= Font.Default;
-        Raylib.SetTextureFilter(font.Atlas.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
+        font.Atlas.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
         BeginDrawing(camera);
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, visibleCharacters))
         {
@@ -1478,7 +1478,7 @@ public sealed unsafe class Graphics
             return;
         font ??= Font.Default;
         var (atlas, glyphInfos) = font.GetStroke((int)strokeWidthValue.Round());
-        Raylib.SetTextureFilter(atlas.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
+        atlas.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
         BeginDrawing(camera);
         foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, visibleCharacters, glyphInfos))
         {
@@ -1659,7 +1659,7 @@ public sealed unsafe class Graphics
             texture.RenderTexture is null ? source.Height : -source.Height
         );
         var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
-        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
+        texture.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
         BeginDrawing(camera);
         Raylib.DrawTexturePro(texture.Texture2D, rSource, rDest, Vector2.Zero, 0, tintValue.RColor);
         EndDrawing();
@@ -1763,7 +1763,7 @@ public sealed unsafe class Graphics
             Bottom = nPatchInfo.Bottom,
             Layout = (Raylib_cs.NPatchLayout)nPatchInfo.Layout,
         };
-        Raylib.SetTextureFilter(texture.Texture2D, (TextureFilter)(interpolation ?? Drawing.DefaultInterpolation));
+        texture.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
         BeginDrawing(camera);
         Raylib.DrawTextureNPatch(texture.Texture2D, rNPatchInfo, rDest, Vector2.Zero, 0, tintValue.RColor);
         EndDrawing();
@@ -2256,12 +2256,12 @@ public sealed unsafe class Graphics
         {
             DrawCurrentBuffer();
             Rlgl.SetBlendFactorsSeparate(
-                (int)_blendMode.SrcRgb,
-                (int)_blendMode.DstRgb,
-                (int)_blendMode.SrcAlpha,
-                (int)_blendMode.DstAlpha,
-                (int)_blendMode.EqRgb,
-                (int)_blendMode.EqAlpha
+                _blendMode.SrcRgb.ToGL(),
+                _blendMode.DstRgb.ToGL(),
+                _blendMode.SrcAlpha.ToGL(),
+                _blendMode.DstAlpha.ToGL(),
+                _blendMode.EqRgb.ToGL(),
+                _blendMode.EqAlpha.ToGL()
             );
             _currentBlendMode = _blendMode;
             Raylib.BeginBlendMode(Raylib_cs.BlendMode.CustomSeparate);

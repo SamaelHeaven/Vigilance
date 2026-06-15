@@ -28,7 +28,7 @@ public sealed unsafe class Texture : IDisposable
         fixed (byte* bytesBuffer = span)
         {
             var image = Raylib.LoadImageFromMemory(fileTypeBuffer, bytesBuffer, span.Length);
-            var logLevel = Log.SetLogLevel(LogLevel.Info);
+            var logLevel = Log.SetLogLevel(Log.LogLevel.Max(LogLevel.Info));
             Texture2D = Raylib.LoadTextureFromImage(image);
             Log.LogLevel = logLevel;
             Raylib.UnloadImage(image);
@@ -50,6 +50,30 @@ public sealed unsafe class Texture : IDisposable
     public PixelFormat Format => (PixelFormat)Texture2D.Format;
 
     public bool IsValid => Texture2D.Id != 0;
+
+    public Interpolation Interpolation
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            Raylib.SetTextureFilter(Texture2D, (TextureFilter)value);
+        }
+    } = Drawing.DefaultInterpolation;
+
+    public TextureWrap TextureWrap
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+            field = value;
+            Raylib.SetTextureWrap(Texture2D, (Raylib_cs.TextureWrap)value);
+        }
+    } = Drawing.DefaultTextureWrap;
 
     public void Dispose()
     {
