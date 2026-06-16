@@ -197,7 +197,7 @@ public sealed class SceneGenerator : SourceGenerator
                 "(T0)_component",
                 "TableComponent1Enumerator",
                 "Components",
-                "private object _component;",
+                "private object _component = default!;",
                 "_component = default!;",
                 "_component = _items.Current;"
             )
@@ -217,7 +217,7 @@ public sealed class SceneGenerator : SourceGenerator
                 "(_entity, (T0)_component)",
                 "TableEntry1Enumerator",
                 "Entries",
-                "private Entity _entity;\n        private object _component;",
+                "private Entity _entity;\n        private object _component = default!;",
                 "_entity = Core.Entity.Null;\n            _component = default!;",
                 "var entry = _items.Current;\n                    _entity = entry.Item1;\n                    _component = entry.Item2;"
             )
