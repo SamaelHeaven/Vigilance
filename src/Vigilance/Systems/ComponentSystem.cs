@@ -7,64 +7,55 @@ public sealed class ComponentSystem : GameSystem
 {
     public override void PreUpdate()
     {
-        foreach (var table in Scene.Tables<IPreUpdatable>())
-        foreach (var (entity, component) in Entries(table))
-            ((IPreUpdatable?)component)?.PreUpdate(entity);
+        foreach (var (entity, component) in AssignableEntries<IPreUpdatable>())
+            component.PreUpdate(entity);
     }
 
     public override void Update()
     {
-        foreach (var table in Scene.Tables<IUpdatable>())
-        foreach (var (entity, component) in Entries(table))
-            ((IUpdatable?)component)?.Update(entity);
+        foreach (var (entity, component) in AssignableEntries<IUpdatable>())
+            component.Update(entity);
     }
 
     public override void PostUpdate()
     {
-        foreach (var table in Scene.Tables<IPostUpdatable>())
-        foreach (var (entity, component) in Entries(table))
-            ((IPostUpdatable?)component)?.PostUpdate(entity);
+        foreach (var (entity, component) in Scene.AssignableEntries<IPostUpdatable>())
+            component.PostUpdate(entity);
     }
 
     public override void PreFixedUpdate()
     {
-        foreach (var table in Scene.Tables<IPreFixedUpdatable>())
-        foreach (var (entity, component) in Entries(table))
-            ((IPreFixedUpdatable?)component)?.PreFixedUpdate(entity);
+        foreach (var (entity, component) in AssignableEntries<IPreFixedUpdatable>())
+            component.PreFixedUpdate(entity);
     }
 
     public override void FixedUpdate()
     {
-        foreach (var table in Scene.Tables<IFixedUpdatable>())
-        foreach (var (entity, component) in Entries(table))
-            ((IFixedUpdatable?)component)?.FixedUpdate(entity);
+        foreach (var (entity, component) in AssignableEntries<IFixedUpdatable>())
+            component.FixedUpdate(entity);
     }
 
     public override void PostFixedUpdate()
     {
-        foreach (var table in Scene.Tables<IPostFixedUpdatable>())
-        foreach (var (entity, component) in Entries(table))
-            ((IPostFixedUpdatable?)component)?.PostFixedUpdate(entity);
+        foreach (var (entity, component) in AssignableEntries<IPostFixedUpdatable>())
+            component.PostFixedUpdate(entity);
     }
 
     public override void PreRender()
     {
-        foreach (var table in Scene.Tables<IPreRenderable>())
-        foreach (var (entity, component) in Entries(table))
-            ((IPreRenderable?)component)?.PreRender(entity);
+        foreach (var (entity, component) in AssignableEntries<IPreRenderable>())
+            component.PreRender(entity);
     }
 
     public override void Render(RenderCommands commands)
     {
-        foreach (var table in Scene.Tables<IRenderable>())
-        foreach (var (entity, component) in Entries(table))
-            ((IRenderable?)component)?.Render(entity, commands);
+        foreach (var (entity, component) in AssignableEntries<IRenderable>())
+            component.Render(entity, commands);
     }
 
     public override void PostRender()
     {
-        foreach (var table in Scene.Tables<IPostRenderable>())
-        foreach (var (entity, component) in Entries(table))
-            ((IPostRenderable?)component)?.PostRender(entity);
+        foreach (var (entity, component) in AssignableEntries<IPostRenderable>())
+            component.PostRender(entity);
     }
 }

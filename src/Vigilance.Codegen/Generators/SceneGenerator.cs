@@ -24,6 +24,9 @@ public sealed class SceneGenerator : SourceGenerator
         Entities(sb);
         Components(sb);
         Entries(sb);
+        AssignableEntities(sb);
+        AssignableComponents(sb);
+        AssignableEntries(sb);
         RefComponents(sb);
         RefEntries(sb);
         TableEntities(sb);
@@ -163,6 +166,75 @@ public sealed class SceneGenerator : SourceGenerator
         sb.EndRegion();
     }
 
+    private static void AssignableEntities(StringBuilder sb)
+    {
+        sb.BeginRegion("AssignableEntities");
+        sb.AppendLine(
+            AssignableQueryIterator(
+                "AssignableEntity",
+                "Entity",
+                "AssignableEntities",
+                "_entity",
+                "<T0>",
+                1,
+                "TableEntity1Enumerator",
+                "_items",
+                "Entities",
+                "private Entity _entity;",
+                "_entity = Core.Entity.Null;",
+                "_entity = _items.Current;"
+            )
+        );
+
+        sb.EndRegion();
+    }
+
+    private static void AssignableComponents(StringBuilder sb)
+    {
+        sb.BeginRegion("AssignableComponents");
+        sb.AppendLine(
+            AssignableQueryIterator(
+                "AssignableComponent",
+                "T0",
+                "AssignableComponents",
+                "(T0)_component",
+                "<T0>",
+                1,
+                "TableComponent1Enumerator",
+                "_items",
+                "Components",
+                "private object _component;",
+                "_component = default!;",
+                "_component = _items.Current;"
+            )
+        );
+
+        sb.EndRegion();
+    }
+
+    private static void AssignableEntries(StringBuilder sb)
+    {
+        sb.BeginRegion("AssignableEntries");
+        sb.AppendLine(
+            AssignableQueryIterator(
+                "AssignableEntries",
+                "(Entity, T0)",
+                "AssignableEntries",
+                "(_entity, (T0)_component)",
+                "<T0>",
+                1,
+                "TableEntry1Enumerator",
+                "_items",
+                "Entries",
+                "private Entity _entity;\n        private object _component;",
+                "_entity = Core.Entity.Null;\n            _component = default!;",
+                "var entry = _items.Current;\n                                _entity = entry.Item1;\n                                _component = entry.Item2;"
+            )
+        );
+
+        sb.EndRegion();
+    }
+
     private static void TableEntities(StringBuilder sb)
     {
         sb.BeginRegion("TableEntities");
@@ -176,7 +248,7 @@ public sealed class SceneGenerator : SourceGenerator
         sb.BeginRegion("TableComponents");
         for (var i = 0; i < 16; i++)
         {
-            var type = i == 0 ? "object?" : $"({string.Join(", ", Enumerable.Range(0, i + 1).Select(_ => "object?"))})";
+            var type = i == 0 ? "object" : $"({string.Join(", ", Enumerable.Range(0, i + 1).Select(_ => "object"))})";
             var current =
                 i == 0 ? "_field0" : $"({string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"))})";
             sb.AppendLine(TableQueryIterator("TableComponent", type, "Components", current, i + 1, noEntity: true));
@@ -192,8 +264,8 @@ public sealed class SceneGenerator : SourceGenerator
         {
             var type =
                 i == 0
-                    ? "(Entity, object?)"
-                    : $"(Entity, {string.Join(", ", Enumerable.Range(0, i + 1).Select(_ => "object?"))})";
+                    ? "(Entity, object)"
+                    : $"(Entity, {string.Join(", ", Enumerable.Range(0, i + 1).Select(_ => "object"))})";
             var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"));
             var current = $"(_entity, {getFields})";
             sb.AppendLine(TableQueryIterator("TableEntry", type, "Entries", current, i + 1));
@@ -401,7 +473,7 @@ public sealed class SceneGenerator : SourceGenerator
                     private readonly bool _withDisabled;
                     private readonly bool _deferred;
                     private bool _disposed;
-            {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private object? _field{n};")))}}
+            {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private object _field{n};")))}}
 
                     internal {{namePrefix}}{{tableCount}}Enumerator(Scene scene, bool withDisabled, bool deferred, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}})
                     {
@@ -513,7 +585,7 @@ public sealed class SceneGenerator : SourceGenerator
                         _withDisabled = withDisabled;
                         return ref this;
                     }
-                    
+
                     public ref {{name}}Enumerable{{typeParams}} Deferred(bool deferred = true)
                     {
                         _deferred = deferred;
@@ -604,6 +676,177 @@ public sealed class SceneGenerator : SourceGenerator
                             _scene.EndDefer();
                         _disposed = true;
                     }
+                }
+                
+            """;
+    }
+
+    private static string AssignableQueryIterator(
+        string name,
+        string type,
+        string methodName,
+        string current,
+        string typeParams,
+        int typeCount,
+        string iteratorType,
+        string iteratorFieldName,
+        string iteratorFactoryMethod,
+        string stateFieldDeclarations,
+        string stateResetStatements,
+        string moveNextStateAssignments
+    )
+    {
+        return $$"""
+                public struct {{name}}Enumerable{{typeParams}} : Collections.IStructEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
+                {
+                    private readonly Scene _scene;
+                    private bool _withDisabled;
+                    private bool _withHidden;
+                    private bool _deferred;
+
+                    internal {{name}}Enumerable(Scene scene)
+                    {
+                        _scene = scene;
+                        _deferred = true;
+                    }
+                    
+                    public {{name}}Enumerator{{typeParams}} GetEnumerator()
+                    {
+                        return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled, _withHidden, _deferred);
+                    }
+                    
+                    public ZLinq.ValueEnumerable<Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>, {{type}}> AsValueEnumerable()
+                    {
+                        return new Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
+                    }
+                    
+                    public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool withDisabled = true)
+                    {
+                        _withDisabled = withDisabled;
+                        return ref this;
+                    }
+
+                    public ref {{name}}Enumerable{{typeParams}} WithHidden(bool withHidden = true)
+                    {
+                        _withHidden = withHidden;
+                        return ref this;
+                    }
+                    
+                    public ref {{name}}Enumerable{{typeParams}} Deferred(bool deferred = true)
+                    {
+                        _deferred = deferred;
+                        return ref this;
+                    }
+                }
+                
+                public struct {{name}}Enumerator{{typeParams}} : Collections.IStructEnumerator<{{type}}>
+                {
+                    private readonly Scene _scene;
+                    private readonly bool _withDisabled;
+                    private readonly bool _withHidden;
+                    private readonly bool _deferred;
+            {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $"        private TableEnumerator<T{i}> _tables{i};"))}}
+                    private {{iteratorType}} {{iteratorFieldName}};
+                    private int _tableIndex;
+                    private bool _hasIterator;
+                    private bool _disposed;
+                    {{stateFieldDeclarations}}
+
+                    internal {{name}}Enumerator(Scene scene, bool withDisabled, bool withHidden, bool deferred)
+                    {
+                        _scene = scene;
+                        _withDisabled = withDisabled;
+                        _withHidden = withHidden;
+                        _deferred = deferred;
+            {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $"            _tables{i} = _scene.Tables<T{i}>().WithHidden(_withHidden).GetEnumerator();"))}}
+                        {{iteratorFieldName}} = default;
+                        _tableIndex = 0;
+                        _hasIterator = false;
+                        _disposed = true;
+                        {{stateResetStatements}}
+                        Reset();
+                    }
+
+                    public bool MoveNext()
+                    {
+                        while (true)
+                        {
+                            if (_hasIterator && {{iteratorFieldName}}.MoveNext())
+                            {
+                                {{moveNextStateAssignments}}
+                                return true;
+                            }
+
+                            if (_hasIterator)
+                            {
+                                {{iteratorFieldName}}.Dispose();
+                                _hasIterator = false;
+                            }
+                            if (!MoveNextTable())
+                                return false;
+                        }
+                    }
+
+                    private bool MoveNextTable()
+                    {
+                        while (true)
+                        {
+                            switch (_tableIndex)
+                            {
+            {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $$"""
+                                case {{i}}:
+                                    if (_tables{{i}}.MoveNext())
+                                    {
+                                        {{iteratorFieldName}} = _scene.{{iteratorFactoryMethod}}(_tables{{i}}.Current).WithDisabled(_withDisabled).Deferred(false).GetEnumerator();
+                                        _hasIterator = true;
+                                        return true;
+                                    }
+
+                                    _tables{{i}}.Dispose();
+                                    _tableIndex++;
+                                    continue;
+            """))}}
+                                default:
+                                    return false;
+                            }
+                        }
+                    }
+
+                    public void Reset()
+                    {
+                        Dispose();
+            {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $"            _tables{i} = _scene.Tables<T{i}>().WithHidden(_withHidden).GetEnumerator();"))}}
+                        {{iteratorFieldName}} = default;
+                        _tableIndex = 0;
+                        _hasIterator = false;
+                        {{stateResetStatements}}
+                        if (_deferred)
+                            _scene.BeginDefer();
+                        _disposed = false;
+                    }
+
+                    public {{type}} Current => {{current}};
+
+                    public void Dispose()
+                    {
+                        if (_disposed)
+                            return;
+                        if (_hasIterator)
+                        {
+                            {{iteratorFieldName}}.Dispose();
+                            _hasIterator = false;
+                        }
+            {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $"            _tables{i}.Dispose();"))}}
+                        if (_deferred)
+                            _scene.EndDefer();
+                        _disposed = true;
+                    }
+                }
+                
+                public {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}()
+                {
+                    ThrowIfNotInitialized();
+                    return new {{name}}Enumerable{{typeParams}}(this);
                 }
                 
             """;

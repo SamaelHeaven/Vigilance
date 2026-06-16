@@ -12,7 +12,7 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public abstract class UIElement : IComposable<UIElement>, IFullCloneable
+public abstract class UIElement : IFullCloneable
 {
     [Flags]
     public enum CloneOptions
@@ -659,11 +659,6 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     public Signal<UIElement, Graphics, CameraProvider> OnRenderSignal => new(ref _onRenderHandlers);
 
     public Signal<UIElement, Graphics, CameraProvider> OnEndRenderSignal => new(ref _onEndRenderHandlers);
-
-    UIElement IComposable<UIElement>.ToComponent()
-    {
-        return this;
-    }
 
     object IDeepCloneable.DeepClone()
     {

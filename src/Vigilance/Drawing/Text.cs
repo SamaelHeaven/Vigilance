@@ -4,7 +4,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class Text : IFullCloneable
+public sealed class Text : Drawable<Text>, IFullCloneable
 {
     public const int UnlimitedCharacters = -1;
 
@@ -34,25 +34,6 @@ public sealed class Text : IFullCloneable
     public int VisibleCharacters { get; set; } = UnlimitedCharacters;
     public Interpolation Interpolation { get; set; } = Drawing.DefaultInterpolation;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
-    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
-    public Vector2 Position { get; set; } = Vector2.Zero;
-    public Vector2 Scale { get; set; } = Vector2.One;
-    public float Rotation { get; set; } = 0;
-    public Vector2 PivotPoint { get; set; } = Vector2.Zero;
-    public Action<Transform, Text, Graphics>? OnBeginDrawing { get; set; }
-    public Action<Transform, Text, Graphics>? OnEndDrawing { get; set; }
-
-    public Transform Transform
-    {
-        get => new(Position, Scale, Rotation, PivotPoint);
-        set
-        {
-            Position = value.Position;
-            Scale = value.Scale;
-            Rotation = value.Rotation;
-            PivotPoint = value.PivotPoint;
-        }
-    }
 
     public string Value
     {
@@ -119,5 +100,10 @@ public sealed class Text : IFullCloneable
     public override string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform)), true);
+    }
+
+    public override void Render(Transform transform, Graphics graphics)
+    {
+        graphics.DrawText(transform, this);
     }
 }

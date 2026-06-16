@@ -52,13 +52,13 @@ public abstract class Table
 
     public abstract bool Has(in Entity entity);
 
-    public abstract object? Get(int index);
+    public abstract object Get(int index);
 
-    public abstract object? Get(in Entity entity);
+    public abstract object Get(in Entity entity);
 
-    public abstract bool TryGet(in Entity entity, out object? component);
+    public abstract bool TryGet(in Entity entity, out object component);
 
-    public abstract void Set(in Entity entity, object? component, Flags flags = Flags.Default);
+    public abstract void Set(in Entity entity, object component, Flags flags = Flags.Default);
 
     public abstract void Remove(in Entity entity, Flags flags = Flags.Default);
 
@@ -223,25 +223,25 @@ public sealed class Table<T> : Table
         return sparseValue != 0;
     }
 
-    public override object? Get(int index)
+    public override object Get(int index)
     {
-        return _components[index];
+        return _components[index]!;
     }
 
-    public override object? Get(in Entity entity)
+    public override object Get(in Entity entity)
     {
         var value = GetRef(in entity);
-        return value.IsNull ? null : value.Read;
+        return (value.IsNull ? null : value.Read)!;
     }
 
-    public override bool TryGet(in Entity entity, out object? component)
+    public override bool TryGet(in Entity entity, out object component)
     {
         var value = GetRef(in entity);
-        component = value.IsNull ? null : value.Read;
+        component = (value.IsNull ? null : value.Read)!;
         return !value.IsNull;
     }
 
-    public override void Set(in Entity entity, object? component, Flags flags = Flags.Default)
+    public override void Set(in Entity entity, object component, Flags flags = Flags.Default)
     {
         Set(entity, (T)component!, flags);
     }
@@ -316,6 +316,13 @@ public sealed class Table<T> : Table
 
     public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.Default)
     {
+        if (!typeof(T).IsValueType)
+        {
+            Debug.Assert(component is not null);
+            if ((T?)component is null)
+                return ComponentRef<T>.Null;
+        }
+
         if (Scene.IsDeferred)
         {
             _operations.Enqueue(new Operation(OperationType.Set, entity, component));

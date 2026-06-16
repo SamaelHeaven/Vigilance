@@ -43,13 +43,13 @@ public readonly ref partial struct RenderCommands
         Scene.RenderCommands.Add(RenderCommand.Make(Scene, entity, system, component, action));
     }
 
-    public void AddRange<TComponent>(Scene.EntryEnumerable<TComponent> entries, Action<Entity, TComponent> action)
+    public void AddEntries<TComponent>(Scene.EntryEnumerable<TComponent> entries, Action<Entity, TComponent> action)
     {
         foreach (var (entity, component) in entries)
             Add(entity, component, action);
     }
 
-    public void AddRange<TSystem, TComponent>(
+    public void AddEntries<TSystem, TComponent>(
         TSystem system,
         Scene.EntryEnumerable<TComponent> entries,
         Action<TSystem, Entity, TComponent> action
