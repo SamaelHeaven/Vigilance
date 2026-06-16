@@ -43,7 +43,7 @@ public sealed class Triangle : Drawable<Triangle>, IFullCloneable
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform), nameof(Points)), true);
     }
 
-    public override void Render(Transform transform, Graphics graphics)
+    protected override void Render(Transform transform, Graphics graphics)
     {
         graphics.DrawTriangle(transform, this);
     }

@@ -30,7 +30,7 @@ public sealed class CircleGradient : Drawable<CircleGradient>, IFullCloneable
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform), nameof(Fill)), true);
     }
 
-    public override void Render(Transform transform, Graphics graphics)
+    protected override void Render(Transform transform, Graphics graphics)
     {
         graphics.DrawCircleGradient(transform, this);
     }

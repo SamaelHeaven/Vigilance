@@ -28,7 +28,7 @@ public sealed class Circle : Drawable<Circle>, IFullCloneable
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform)), true);
     }
 
-    public override void Render(Transform transform, Graphics graphics)
+    protected override void Render(Transform transform, Graphics graphics)
     {
         graphics.DrawCircle(transform, this);
     }

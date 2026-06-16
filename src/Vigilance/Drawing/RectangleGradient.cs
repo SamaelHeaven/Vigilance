@@ -73,7 +73,7 @@ public sealed class RectangleGradient : Drawable<RectangleGradient>, IFullClonea
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform), nameof(Fill)), true);
     }
 
-    public override void Render(Transform transform, Graphics graphics)
+    protected override void Render(Transform transform, Graphics graphics)
     {
         graphics.DrawRectangleGradient(transform, this);
     }

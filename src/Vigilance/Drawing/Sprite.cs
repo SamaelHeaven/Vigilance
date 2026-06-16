@@ -27,7 +27,7 @@ public sealed class Sprite : Drawable<Sprite>, IFullCloneable
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform)), true);
     }
 
-    public override void Render(Transform transform, Graphics graphics)
+    protected override void Render(Transform transform, Graphics graphics)
     {
         graphics.DrawSprite(transform, this);
     }

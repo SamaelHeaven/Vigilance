@@ -35,7 +35,7 @@ public sealed class Grid : Drawable<Grid>, IFullCloneable
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform)), true);
     }
 
-    public override void Render(Transform transform, Graphics graphics)
+    protected override void Render(Transform transform, Graphics graphics)
     {
         graphics.DrawGrid(transform, this);
     }

@@ -26,5 +26,10 @@ public abstract class Drawable<T> : IDrawable
         }
     }
 
-    public abstract void Render(Transform transform, Graphics graphics);
+    void IDrawable.Render(Transform transform, Graphics graphics)
+    {
+        Render(transform, graphics);
+    }
+
+    protected abstract void Render(Transform transform, Graphics graphics);
 }

@@ -37,7 +37,7 @@ public sealed class RegularPolygon : Drawable<RegularPolygon>, IFullCloneable
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform)), true);
     }
 
-    public override void Render(Transform transform, Graphics graphics)
+    protected override void Render(Transform transform, Graphics graphics)
     {
         graphics.DrawRegularPolygon(transform, this);
     }

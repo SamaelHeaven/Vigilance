@@ -27,7 +27,7 @@ public sealed class Rectangle : Drawable<Rectangle>, IFullCloneable
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform)), true);
     }
 
-    public override void Render(Transform transform, Graphics graphics)
+    protected override void Render(Transform transform, Graphics graphics)
     {
         graphics.DrawRectangle(transform, this);
     }
