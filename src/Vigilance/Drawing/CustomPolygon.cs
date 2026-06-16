@@ -16,7 +16,7 @@ public sealed class CustomPolygon : Drawable<CustomPolygon>, IFullCloneable
 
     public CustomPolygon(IEnumerable<Vector2> points)
     {
-        Points = points.AsValueEnumerable().ToList();
+        Points = points.ToList();
     }
 
     public CustomPolygon(IEnumerable<Vector2> points, Color fill)
