@@ -1269,14 +1269,7 @@ public abstract class UIElement : IFullCloneable
         foreach (var component in components)
             component.Detach(clone);
         foreach (var component in components)
-            clone.Attach(
-                component switch
-                {
-                    IDeepCloneable deepCloneable => (IUIComponent)deepCloneable.DeepClone(),
-                    IShallowCloneable shallowCloneable => (IUIComponent)shallowCloneable.ShallowClone(),
-                    _ => component,
-                }
-            );
+            clone.Attach(Cloner.CloneOrSelf(component));
     }
 
     private void MarkReady()
