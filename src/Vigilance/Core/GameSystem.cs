@@ -22,22 +22,19 @@ public abstract partial class GameSystem : IGameSystem
         bool isDisabled = false,
         int order = 0,
         bool queryWithDisabled = false,
-        bool queryDeferred = true,
-        bool queryWithHidden = false
+        bool queryDeferred = true
     )
     {
         IsDisabled = isDisabled;
         Order = order;
         QueryWithDisabled = queryWithDisabled;
         QueryDeferred = queryDeferred;
-        QueryWithHidden = queryWithHidden;
     }
 
     public Scene Scene { get; private set; } = null!;
     public bool IsDisabled { get; set; }
     public bool QueryWithDisabled { get; set; }
     public bool QueryDeferred { get; set; }
-    public bool QueryWithHidden { get; set; }
     public int Order { get; set; }
 
     public void Configure(Scene scene)

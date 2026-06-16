@@ -916,6 +916,7 @@ public readonly unsafe partial record struct Entity
         {
             _parent = parent;
             _deferred = deferred;
+            _disposed = true;
             Reset();
         }
 
@@ -935,8 +936,7 @@ public readonly unsafe partial record struct Entity
 
         public void Reset()
         {
-            if (_nextChildId > 0)
-                Dispose();
+            Dispose();
             _parent.AssertValid();
             var parentRef = _parent.Scene.ParentTable.GetRef(_parent);
             _nextChildId = parentRef.IsNull ? 0 : parentRef.Read.FirstChildId;

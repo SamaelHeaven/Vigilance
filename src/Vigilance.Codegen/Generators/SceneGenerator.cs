@@ -175,10 +175,7 @@ public sealed class SceneGenerator : SourceGenerator
                 "Entity",
                 "AssignableEntities",
                 "_entity",
-                "<T0>",
-                1,
                 "TableEntity1Enumerator",
-                "_items",
                 "Entities",
                 "private Entity _entity;",
                 "_entity = Core.Entity.Null;",
@@ -198,10 +195,7 @@ public sealed class SceneGenerator : SourceGenerator
                 "T0",
                 "AssignableComponents",
                 "(T0)_component",
-                "<T0>",
-                1,
                 "TableComponent1Enumerator",
-                "_items",
                 "Components",
                 "private object _component;",
                 "_component = default!;",
@@ -221,14 +215,11 @@ public sealed class SceneGenerator : SourceGenerator
                 "(Entity, T0)",
                 "AssignableEntries",
                 "(_entity, (T0)_component)",
-                "<T0>",
-                1,
                 "TableEntry1Enumerator",
-                "_items",
                 "Entries",
                 "private Entity _entity;\n        private object _component;",
                 "_entity = Core.Entity.Null;\n            _component = default!;",
-                "var entry = _items.Current;\n                                _entity = entry.Item1;\n                                _component = entry.Item2;"
+                "var entry = _items.Current;\n                    _entity = entry.Item1;\n                    _component = entry.Item2;"
             )
         );
 
@@ -686,10 +677,7 @@ public sealed class SceneGenerator : SourceGenerator
         string type,
         string methodName,
         string current,
-        string typeParams,
-        int typeCount,
         string iteratorType,
-        string iteratorFieldName,
         string iteratorFactoryMethod,
         string stateFieldDeclarations,
         string stateResetStatements,
@@ -697,7 +685,7 @@ public sealed class SceneGenerator : SourceGenerator
     )
     {
         return $$"""
-                public struct {{name}}Enumerable{{typeParams}} : Collections.IStructEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
+                public struct {{name}}Enumerable<T0> : Collections.IStructEnumerable<{{name}}Enumerator<T0>, {{type}}>
                 {
                     private readonly Scene _scene;
                     private bool _withDisabled;
@@ -710,44 +698,43 @@ public sealed class SceneGenerator : SourceGenerator
                         _deferred = true;
                     }
                     
-                    public {{name}}Enumerator{{typeParams}} GetEnumerator()
+                    public {{name}}Enumerator<T0> GetEnumerator()
                     {
-                        return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled, _withHidden, _deferred);
+                        return new {{name}}Enumerator<T0>(_scene, _withDisabled, _withHidden, _deferred);
                     }
                     
-                    public ZLinq.ValueEnumerable<Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>, {{type}}> AsValueEnumerable()
+                    public ZLinq.ValueEnumerable<Collections.StructEnumerator<{{name}}Enumerator<T0>, {{type}}>, {{type}}> AsValueEnumerable()
                     {
-                        return new Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
+                        return new Collections.StructEnumerator<{{name}}Enumerator<T0>, {{type}}>(GetEnumerator());
                     }
                     
-                    public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool withDisabled = true)
+                    public ref {{name}}Enumerable<T0> WithDisabled(bool withDisabled = true)
                     {
                         _withDisabled = withDisabled;
                         return ref this;
                     }
 
-                    public ref {{name}}Enumerable{{typeParams}} WithHidden(bool withHidden = true)
+                    public ref {{name}}Enumerable<T0> WithHidden(bool withHidden = true)
                     {
                         _withHidden = withHidden;
                         return ref this;
                     }
                     
-                    public ref {{name}}Enumerable{{typeParams}} Deferred(bool deferred = true)
+                    public ref {{name}}Enumerable<T0> Deferred(bool deferred = true)
                     {
                         _deferred = deferred;
                         return ref this;
                     }
                 }
                 
-                public struct {{name}}Enumerator{{typeParams}} : Collections.IStructEnumerator<{{type}}>
+                public struct {{name}}Enumerator<T0> : Collections.IStructEnumerator<{{type}}>
                 {
                     private readonly Scene _scene;
                     private readonly bool _withDisabled;
                     private readonly bool _withHidden;
                     private readonly bool _deferred;
-            {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $"        private TableEnumerator<T{i}> _tables{i};"))}}
-                    private {{iteratorType}} {{iteratorFieldName}};
-                    private int _tableIndex;
+                    private TableEnumerator<T0> _tables;
+                    private {{iteratorType}} _items;
                     private bool _hasIterator;
                     private bool _disposed;
                     {{stateFieldDeclarations}}
@@ -758,12 +745,7 @@ public sealed class SceneGenerator : SourceGenerator
                         _withDisabled = withDisabled;
                         _withHidden = withHidden;
                         _deferred = deferred;
-            {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $"            _tables{i} = _scene.Tables<T{i}>().WithHidden(_withHidden).GetEnumerator();"))}}
-                        {{iteratorFieldName}} = default;
-                        _tableIndex = 0;
-                        _hasIterator = false;
                         _disposed = true;
-                        {{stateResetStatements}}
                         Reset();
                     }
 
@@ -771,15 +753,14 @@ public sealed class SceneGenerator : SourceGenerator
                     {
                         while (true)
                         {
-                            if (_hasIterator && {{iteratorFieldName}}.MoveNext())
+                            if (_hasIterator && _items.MoveNext())
                             {
                                 {{moveNextStateAssignments}}
                                 return true;
                             }
-
                             if (_hasIterator)
                             {
-                                {{iteratorFieldName}}.Dispose();
+                                _items.Dispose();
                                 _hasIterator = false;
                             }
                             if (!MoveNextTable())
@@ -789,35 +770,22 @@ public sealed class SceneGenerator : SourceGenerator
 
                     private bool MoveNextTable()
                     {
-                        while (true)
+                        if (_tables.MoveNext())
                         {
-                            switch (_tableIndex)
-                            {
-            {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $$"""
-                                    case {{i}}:
-                                        if (_tables{{i}}.MoveNext())
-                                        {
-                                            {{iteratorFieldName}} = _scene.{{iteratorFactoryMethod}}(_tables{{i}}.Current).WithDisabled(_withDisabled).Deferred(false).GetEnumerator();
-                                            _hasIterator = true;
-                                            return true;
-                                        }
-
-                                        _tables{{i}}.Dispose();
-                                        _tableIndex++;
-                                        continue;
-                """))}}
-                                default:
-                                    return false;
-                            }
+                            _items = _scene.{{iteratorFactoryMethod}}(_tables.Current).WithDisabled(_withDisabled).Deferred(false).GetEnumerator();
+                            _hasIterator = true;
+                            return true;
                         }
+
+                        _tables.Dispose();
+                        return false;
                     }
 
                     public void Reset()
                     {
                         Dispose();
-            {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $"            _tables{i} = _scene.Tables<T{i}>().WithHidden(_withHidden).GetEnumerator();"))}}
-                        {{iteratorFieldName}} = default;
-                        _tableIndex = 0;
+                        _tables = _scene.Tables<T0>().WithHidden(_withHidden).GetEnumerator();
+                        _items = default;
                         _hasIterator = false;
                         {{stateResetStatements}}
                         if (_deferred)
@@ -833,20 +801,20 @@ public sealed class SceneGenerator : SourceGenerator
                             return;
                         if (_hasIterator)
                         {
-                            {{iteratorFieldName}}.Dispose();
+                            _items.Dispose();
                             _hasIterator = false;
                         }
-            {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $"            _tables{i}.Dispose();"))}}
+                        _tables.Dispose();
                         if (_deferred)
                             _scene.EndDefer();
                         _disposed = true;
                     }
                 }
                 
-                public {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}()
+                public {{name}}Enumerable<T0> {{methodName}}<T0>()
                 {
                     ThrowIfNotInitialized();
-                    return new {{name}}Enumerable{{typeParams}}(this);
+                    return new {{name}}Enumerable<T0>(this);
                 }
                 
             """;

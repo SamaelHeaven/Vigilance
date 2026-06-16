@@ -72,21 +72,21 @@ public sealed class GameSystemGenerator : SourceGenerator
     private static void AssignableEntities(StringBuilder sb)
     {
         sb.BeginRegion("AssignableEntities");
-        sb.AppendLine(QueryIterator("AssignableEntity", "AssignableEntities", "<T0>", withHidden: true));
+        sb.AppendLine(QueryIterator("AssignableEntity", "AssignableEntities", "<T0>"));
         sb.EndRegion();
     }
 
     private static void AssignableComponents(StringBuilder sb)
     {
         sb.BeginRegion("AssignableComponents");
-        sb.AppendLine(QueryIterator("AssignableComponent", "AssignableComponents", "<T0>", withHidden: true));
+        sb.AppendLine(QueryIterator("AssignableComponent", "AssignableComponents", "<T0>"));
         sb.EndRegion();
     }
 
     private static void AssignableEntries(StringBuilder sb)
     {
         sb.BeginRegion("AssignableEntries");
-        sb.AppendLine(QueryIterator("AssignableEntries", "AssignableEntries", "<T0>", withHidden: true));
+        sb.AppendLine(QueryIterator("AssignableEntries", "AssignableEntries", "<T0>"));
         sb.EndRegion();
     }
 
@@ -134,15 +134,12 @@ public sealed class GameSystemGenerator : SourceGenerator
         string methodName,
         string typeParams = "",
         string methodParams = "",
-        string methodArgs = "",
-        bool withHidden = false
+        string methodArgs = ""
     )
     {
         return $$"""
                 public Scene.{{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}({{methodParams}}) {
-                    return Scene.{{methodName}}{{typeParams}}({{methodArgs}}).WithDisabled(QueryWithDisabled).Deferred(QueryDeferred){{(
-                        withHidden ? ".WithHidden(QueryWithHidden)" : ""
-                    )}};
+                    return Scene.{{methodName}}{{typeParams}}({{methodArgs}}).WithDisabled(QueryWithDisabled).Deferred(QueryDeferred);
                 }
 
             """;

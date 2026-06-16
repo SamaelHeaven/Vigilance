@@ -125,10 +125,10 @@ public sealed unsafe partial class Scene
         return new SystemEnumerable<T>(this);
     }
 
-    public T System<T>()
+    public T? System<T>()
         where T : IGameSystem
     {
-        return _systems.AsValueEnumerable().OfType<T>().FirstOrDefault()!;
+        return _systems.AsValueEnumerable().OfType<T>().FirstOrDefault();
     }
 
     public void Restart()
@@ -729,16 +729,22 @@ public sealed unsafe partial class Scene
 
         public bool MoveNext()
         {
-            do
+            while (true)
             {
                 var newIndex = _index + 1;
                 if (newIndex >= _scene._tables.Count)
+                {
+                    Current = null!;
                     return false;
-                _index = newIndex;
-                Current = _scene._tables[newIndex];
-            } while (!_withHidden && Current.IsHidden);
+                }
 
-            return true;
+                _index = newIndex;
+                var table = _scene._tables[newIndex];
+                if (!_withHidden && table.IsHidden)
+                    continue;
+                Current = table;
+                return true;
+            }
         }
 
         public void Reset()
