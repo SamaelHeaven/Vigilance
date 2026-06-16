@@ -112,3 +112,66 @@ public sealed class Triangle : Drawable<Triangle>, IFullCloneable
         public void Dispose() { }
     }
 }
+
+public static class TriangleExtensions
+{
+    extension(Graphics graphics)
+    {
+        public void FillTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color? color = null, Camera? camera = null)
+        {
+            ReadOnlySpan<Vector2> span = stackalloc Vector2[] { v1, v2, v3 };
+            graphics.FillCustomPolygonSpan(span, color, camera);
+        }
+
+        public void StrokeTriangle(
+            Vector2 v1,
+            Vector2 v2,
+            Vector2 v3,
+            Color? color = null,
+            float? strokeWidth = null,
+            Camera? camera = null
+        )
+        {
+            ReadOnlySpan<Vector2> span = stackalloc Vector2[] { v1, v2, v3 };
+            graphics.StrokeCustomPolygonSpan(span, color, strokeWidth, camera);
+        }
+
+        public void DrawTriangle(Triangle triangle)
+        {
+            graphics.DrawTriangle(new Transform(), triangle);
+        }
+
+        public void DrawTriangle(Transform transform, Triangle triangle)
+        {
+            triangle.OnBeginDrawing?.Invoke(transform, triangle, graphics);
+            transform += triangle.Transform;
+            var camera = triangle.Camera.Get();
+            var position = transform.Position;
+            var scale = transform.Scale;
+            var fill = triangle.Fill;
+            var stroke = triangle.Stroke;
+            var strokeWidth = triangle.StrokeWidth;
+            var order = triangle.DrawOrder;
+            graphics.PushMatrix();
+            graphics.Pivot(transform, false);
+            Span<Vector2> span = stackalloc Vector2[3];
+            var i = 0;
+            foreach (var point in triangle.Points)
+                span[i++] = point;
+            Coordinates.Scale(span, scale, position);
+            if (order == DrawOrder.StrokeThenFill)
+            {
+                graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+                graphics.FillCustomPolygonSpan(span, fill, camera);
+            }
+            else
+            {
+                graphics.FillCustomPolygonSpan(span, fill, camera);
+                graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+            }
+
+            graphics.PopMatrix();
+            triangle.OnEndDrawing?.Invoke(transform, triangle, graphics);
+        }
+    }
+}
