@@ -364,7 +364,7 @@ public readonly unsafe partial record struct Entity
         return Scene.Table<T>().GetRef(this);
     }
 
-    public object? Get(Table table)
+    public object Get(Table table)
     {
         AssertValid();
         return table.Get(this);
@@ -381,10 +381,17 @@ public readonly unsafe partial record struct Entity
         return true;
     }
 
-    public bool TryGet(Table table, out object? value)
+    public bool TryGet(Table table, out object value)
     {
         AssertValid();
         return table.TryGet(this, out value);
+    }
+
+    public T? GetOrDefault<T>()
+    {
+        AssertValid();
+        var value = Scene.Table<T>().GetRef(this);
+        return value.IsNull ? default : value;
     }
 
     public T GetOrDefault<T>(in T defaultValue)
@@ -401,13 +408,19 @@ public readonly unsafe partial record struct Entity
         return value.IsNull ? defaultFunc.Invoke() : value;
     }
 
-    public object? GetOrDefault(Table table, object? defaultValue)
+    public object? GetOrDefault(Table table)
+    {
+        AssertValid();
+        return table.TryGet(this, out var value) ? value : null;
+    }
+
+    public object GetOrDefault(Table table, object defaultValue)
     {
         AssertValid();
         return table.TryGet(this, out var value) ? value : defaultValue;
     }
 
-    public object? GetOrDefault(Table table, Func<object?> defaultValue)
+    public object GetOrDefault(Table table, Func<object> defaultValue)
     {
         AssertValid();
         return table.TryGet(this, out var value) ? value : defaultValue.Invoke();
@@ -465,7 +478,7 @@ public readonly unsafe partial record struct Entity
         return ref this;
     }
 
-    public ref readonly Entity Set(Table table, object? value)
+    public ref readonly Entity Set(Table table, object value)
     {
         AssertValid();
         table.Set(this, value);
@@ -776,7 +789,7 @@ public readonly unsafe partial record struct Entity
         }
     }
 
-    public struct ComponentEnumerable : IStructEnumerable<ComponentEnumerator, object?>
+    public struct ComponentEnumerable : IStructEnumerable<ComponentEnumerator, object>
     {
         private readonly Entity _entity;
         private bool _withHidden;
@@ -791,9 +804,9 @@ public readonly unsafe partial record struct Entity
             return new ComponentEnumerator(_entity, _withHidden);
         }
 
-        public ValueEnumerable<StructEnumerator<ComponentEnumerator, object?>, object?> AsValueEnumerable()
+        public ValueEnumerable<StructEnumerator<ComponentEnumerator, object>, object> AsValueEnumerable()
         {
-            return new StructEnumerator<ComponentEnumerator, object?>(GetEnumerator());
+            return new StructEnumerator<ComponentEnumerator, object>(GetEnumerator());
         }
 
         public ref ComponentEnumerable WithHidden(bool withHidden = true)
@@ -822,7 +835,7 @@ public readonly unsafe partial record struct Entity
         }
     }
 
-    public struct ComponentEnumerator : IStructEnumerator<object?>
+    public struct ComponentEnumerator : IStructEnumerator<object>
     {
         private readonly Entity _entity;
         private readonly bool _withHidden;
@@ -853,10 +866,10 @@ public readonly unsafe partial record struct Entity
         {
             _entity.AssertValid();
             _enumerator = _entity.Scene.Tables().WithHidden(_withHidden).GetEnumerator();
-            Current = null;
+            Current = null!;
         }
 
-        public object? Current { get; private set; } = null;
+        public object Current { get; private set; } = null!;
 
         public void Dispose()
         {

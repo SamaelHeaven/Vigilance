@@ -473,7 +473,7 @@ public sealed class SceneGenerator : SourceGenerator
                     private readonly bool _withDisabled;
                     private readonly bool _deferred;
                     private bool _disposed;
-            {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private object _field{n};")))}}
+            {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private object _field{n} = null!;")))}}
 
                     internal {{namePrefix}}{{tableCount}}Enumerator(Scene scene, bool withDisabled, bool deferred, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}})
                     {
@@ -518,7 +518,7 @@ public sealed class SceneGenerator : SourceGenerator
                         Dispose();
                         _index = -1;
                         {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
-            {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _field{n} = default;")))}}
+            {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _field{n} = default!;")))}}
             {{(tableCount > 1 ? "            var smallestCount = int.MaxValue;\n" : "")}}
             {{(tableCount > 1 ? string.Join("\n", Enumerable.Range(0, tableCount).Select(i => $$"""
                             if (_table{{i}}.Count < smallestCount)
@@ -794,18 +794,18 @@ public sealed class SceneGenerator : SourceGenerator
                             switch (_tableIndex)
                             {
             {{string.Join("\n", Enumerable.Range(0, typeCount).Select(i => $$"""
-                                case {{i}}:
-                                    if (_tables{{i}}.MoveNext())
-                                    {
-                                        {{iteratorFieldName}} = _scene.{{iteratorFactoryMethod}}(_tables{{i}}.Current).WithDisabled(_withDisabled).Deferred(false).GetEnumerator();
-                                        _hasIterator = true;
-                                        return true;
-                                    }
+                                    case {{i}}:
+                                        if (_tables{{i}}.MoveNext())
+                                        {
+                                            {{iteratorFieldName}} = _scene.{{iteratorFactoryMethod}}(_tables{{i}}.Current).WithDisabled(_withDisabled).Deferred(false).GetEnumerator();
+                                            _hasIterator = true;
+                                            return true;
+                                        }
 
-                                    _tables{{i}}.Dispose();
-                                    _tableIndex++;
-                                    continue;
-            """))}}
+                                        _tables{{i}}.Dispose();
+                                        _tableIndex++;
+                                        continue;
+                """))}}
                                 default:
                                     return false;
                             }
