@@ -776,7 +776,6 @@ public sealed class SceneGenerator : SourceGenerator
                             _hasIterator = true;
                             return true;
                         }
-
                         _tables.Dispose();
                         return false;
                     }
