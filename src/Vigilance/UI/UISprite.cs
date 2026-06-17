@@ -66,6 +66,6 @@ public class UISprite : UIContainer
 
     protected override void OnClone()
     {
-        _sprite = _sprite.ShallowClone();
+        _sprite = _sprite.DeepClone();
     }
 }

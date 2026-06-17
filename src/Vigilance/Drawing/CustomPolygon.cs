@@ -8,7 +8,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class CustomPolygon : Drawable<CustomPolygon>, IFullCloneable
+public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
 {
     public CustomPolygon() { }
 

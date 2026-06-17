@@ -6,7 +6,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Text : Drawable<Text>, IFullCloneable
+public sealed class Text : Drawable<Text>
 {
     public const int UnlimitedCharacters = -1;
 

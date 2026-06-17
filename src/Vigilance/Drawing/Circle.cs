@@ -6,7 +6,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Circle : Drawable<Circle>, IFullCloneable
+public sealed class Circle : Drawable<Circle>
 {
     public Circle() { }
 

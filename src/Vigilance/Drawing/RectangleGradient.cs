@@ -6,7 +6,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class RectangleGradient : Drawable<RectangleGradient>, IFullCloneable
+public sealed class RectangleGradient : Drawable<RectangleGradient>
 {
     public Color TopLeftFill { get; set; } = Drawing.DefaultFill;
     public Color BottomLeftFill { get; set; } = Drawing.DefaultFill;

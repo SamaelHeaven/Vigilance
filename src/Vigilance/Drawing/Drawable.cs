@@ -3,16 +3,16 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public abstract class Drawable<T> : IDrawable
-    where T : Drawable<T>
+public abstract class Drawable<TSelf> : IDrawable, IFullCloneable
+    where TSelf : Drawable<TSelf>
 {
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
     public Vector2 Position { get; set; } = Vector2.Zero;
     public Vector2 Scale { get; set; } = Vector2.One;
     public float Rotation { get; set; } = 0;
     public Vector2 PivotPoint { get; set; } = Vector2.Zero;
-    public Action<Transform, T, Graphics>? OnBeginDrawing { get; set; }
-    public Action<Transform, T, Graphics>? OnEndDrawing { get; set; }
+    public Action<Transform, TSelf, Graphics>? OnBeginDrawing { get; set; }
+    public Action<Transform, TSelf, Graphics>? OnEndDrawing { get; set; }
 
     public Transform Transform
     {

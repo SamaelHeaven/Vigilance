@@ -6,7 +6,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class RegularPolygon : Drawable<RegularPolygon>, IFullCloneable
+public sealed class RegularPolygon : Drawable<RegularPolygon>
 {
     public RegularPolygon() { }
 

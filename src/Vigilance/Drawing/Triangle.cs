@@ -6,7 +6,7 @@ using ZLinq;
 
 namespace Vigilance.Drawing;
 
-public sealed class Triangle : Drawable<Triangle>, IFullCloneable
+public sealed class Triangle : Drawable<Triangle>
 {
     public Triangle() { }
 

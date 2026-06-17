@@ -6,7 +6,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class CircleGradient : Drawable<CircleGradient>, IFullCloneable
+public sealed class CircleGradient : Drawable<CircleGradient>
 {
     public Color InnerFill { get; set; } = Drawing.DefaultFill;
     public Color OuterFill { get; set; } = Drawing.DefaultFill;

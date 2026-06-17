@@ -6,7 +6,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Line : Drawable<Line>, IFullCloneable
+public sealed class Line : Drawable<Line>
 {
     public Line() { }
 

@@ -347,8 +347,8 @@ public class UIScrollContainer : UIContainer
 
     protected override void OnClone()
     {
-        _scrollBarTrackRectangle = _scrollBarTrackRectangle.ShallowClone();
-        _scrollBarThumbRectangle = _scrollBarThumbRectangle.ShallowClone();
+        _scrollBarTrackRectangle = _scrollBarTrackRectangle.DeepClone();
+        _scrollBarThumbRectangle = _scrollBarThumbRectangle.DeepClone();
     }
 
     protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraProvider camera)

@@ -6,7 +6,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Grid : Drawable<Grid>, IFullCloneable
+public sealed class Grid : Drawable<Grid>
 {
     public Grid() { }
 
