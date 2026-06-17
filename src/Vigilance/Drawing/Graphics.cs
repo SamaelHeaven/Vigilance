@@ -145,11 +145,13 @@ public sealed unsafe class Graphics
 
     public void Translate(float v1, float? v2 = null)
     {
-        MultiplyMatrix(Matrix3x2.CreateTranslation(v1, v2 ?? v1));
+        Translate(new Vector2(v1, v2 ?? v1));
     }
 
     public void Translate(Vector2 translation)
     {
+        if (Precision.AreEqual(translation, Vector2.Zero))
+            return;
         MultiplyMatrix(Matrix3x2.CreateTranslation(translation.X, translation.Y));
     }
 
@@ -176,6 +178,8 @@ public sealed unsafe class Graphics
 
     public void Scale(Vector2 scale)
     {
+        if (Precision.AreEqual(scale, Vector2.One))
+            return;
         MultiplyMatrix(Matrix3x2.CreateScale(scale.X, scale.Y));
     }
 
@@ -186,7 +190,9 @@ public sealed unsafe class Graphics
 
     public void Skew(Vector2 skew)
     {
-        MultiplyMatrix(Matrix3x2.CreateSkew(skew.X, skew.Y));
+        if (Precision.AreEqual(skew, Vector2.Zero))
+            return;
+        MultiplyMatrix(Matrix3x2.CreateSkew(skew.X.DegToRad(), skew.Y.DegToRad()));
     }
 
     public void Transform(in Transform transform)
