@@ -37,10 +37,9 @@ public static class ObjectPrinter
                 props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy)
                     .AsValueEnumerable()
                     .Where(prop =>
-                        prop.CanRead
-                        && prop.GetIndexParameters().Length == 0
-                        && !prop.PropertyType.IsByRefLike
+                        prop is { CanRead: true, PropertyType.IsByRefLike: false }
                         && !prop.GetMethod!.ReturnType.IsByRef
+                        && prop.GetIndexParameters().Length == 0
                     )
                     .ToArray();
             var i = 0;

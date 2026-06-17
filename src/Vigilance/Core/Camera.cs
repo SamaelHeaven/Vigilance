@@ -80,7 +80,7 @@ public sealed class Camera
     }
 }
 
-public readonly record struct CameraProvider
+public readonly struct CameraProvider
 {
     private readonly Camera? _camera;
     private readonly Func<Camera?>? _func;
