@@ -243,7 +243,7 @@ public sealed class Table<T> : Table
 
     public override void Set(in Entity entity, object component, Flags flags = Flags.Default)
     {
-        Set(entity, (T)component!, flags);
+        Set(entity, (T)component, flags);
     }
 
     public override void Remove(in Entity entity, Flags flags = Flags.Default)
