@@ -101,7 +101,7 @@ public sealed class Text : Drawable<Text>
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform)), true);
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
     protected override void Render(Transform transform, Graphics graphics)

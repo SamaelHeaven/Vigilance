@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ZLinq;
-using ZLinq.Internal;
 
 namespace Vigilance.Collections;
 
@@ -202,12 +201,7 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
 
         public bool TryCopyTo(scoped Span<T> destination, Index offset)
         {
-            if (!TryGetSpan(out var span))
-                return false;
-            if (!EnumeratorHelper.TryGetSlice(span, offset, destination.Length, out var slice))
-                return false;
-            slice.CopyTo(destination);
-            return true;
+            return TryGetSpan(out var span) && span.TryCopyTo(destination, offset);
         }
 
         public void Reset()

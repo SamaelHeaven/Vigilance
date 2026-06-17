@@ -70,7 +70,7 @@ public sealed class RectangleGradient : Drawable<RectangleGradient>
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform), nameof(Fill)), true);
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Fill)]), true);
     }
 
     protected override void Render(Transform transform, Graphics graphics)

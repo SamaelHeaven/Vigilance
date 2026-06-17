@@ -40,7 +40,7 @@ public sealed class Triangle : Drawable<Triangle>
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform), nameof(Points)), true);
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Points)]), true);
     }
 
     protected override void Render(Transform transform, Graphics graphics)

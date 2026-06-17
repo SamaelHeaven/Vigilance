@@ -34,7 +34,7 @@ public sealed class SpriteAnimationFrame
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform)));
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]));
     }
 
     public void UpdateSprite(Sprite sprite)
