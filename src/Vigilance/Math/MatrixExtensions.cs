@@ -19,7 +19,7 @@ public static class MatrixExtensions
             );
         }
 
-        public Vector2 GetRotation()
+        public float GetRotation()
         {
             return MathF.Atan2(matrix.M21, matrix.M11).RadToDeg();
         }
