@@ -57,12 +57,12 @@ public static class ObjectPrinter
         }
     }
 
-    public static Filter Include(ReadOnlySpan<string> propertyNames)
+    public static Filter Include(in ReadOnlySpan<string> propertyNames)
     {
         return new Filter(FilterType.Include, propertyNames);
     }
 
-    public static Filter Exclude(ReadOnlySpan<string> propertyNames)
+    public static Filter Exclude(in ReadOnlySpan<string> propertyNames)
     {
         return new Filter(FilterType.Exclude, propertyNames);
     }
@@ -90,7 +90,7 @@ public static class ObjectPrinter
         public FilterType Type { get; }
         public ReadOnlySpan<string> PropertyNames { get; }
 
-        public Filter(FilterType type, ReadOnlySpan<string> propertyNames)
+        public Filter(FilterType type, in ReadOnlySpan<string> propertyNames)
         {
             Type = type;
             PropertyNames = propertyNames;
