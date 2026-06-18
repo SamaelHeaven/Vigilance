@@ -62,6 +62,14 @@ public static class Drawing
         set => _config.DefaultCulling = value;
     }
 
+    public static BlendMode DefaultBlendMode
+    {
+        get => _config.DefaultBlendMode;
+        set => _config.DefaultBlendMode = value;
+    }
+
+    public static Shader DefaultShader { get; set; } = null!;
+
     public static float SegmentsErrorRate
     {
         get => _config.SegmentsErrorRate;
@@ -88,6 +96,7 @@ public static class Drawing
     {
         _config = Game.Config.Take<DrawingConfig>() ?? _config;
         DefaultTexture = _config.DefaultTexture.Invoke();
+        DefaultShader = _config.DefaultShader.Invoke();
     }
 }
 
@@ -103,6 +112,8 @@ public sealed class DrawingConfig
     public CameraProvider DefaultCamera { get; set; } = Camera.Scene;
     public Func<Texture> DefaultTexture { get; set; } = () => Texture.Empty;
     public bool DefaultCulling { get; set; } = false;
+    public BlendMode DefaultBlendMode { get; set; } = BlendMode.Alpha;
+    public Func<Shader> DefaultShader { get; set; } = () => Shader.Default;
     public float SegmentsErrorRate { get; set; } = 0.25f;
 }
 

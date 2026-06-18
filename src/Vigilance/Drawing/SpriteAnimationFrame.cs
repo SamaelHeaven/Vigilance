@@ -18,6 +18,9 @@ public sealed class SpriteAnimationFrame
     public Vector2? Scale { get; set; } = null;
     public float? Rotation { get; set; } = null;
     public Vector2? PivotPoint { get; set; } = null;
+    public Wrapper<BlendMode?>? BlendMode { get; set; } = null;
+    public Wrapper<Shader?>? Shader { get; set; } = null;
+    public Wrapper<bool?>? Culling { get; set; } = null;
     public Wrapper<Action<Transform, Sprite, Graphics>?>? OnBeginDrawing { get; set; } = null;
     public Wrapper<Action<Transform, Sprite, Graphics>?>? OnEndDrawing { get; set; } = null;
 
@@ -34,7 +37,7 @@ public sealed class SpriteAnimationFrame
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]));
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
     public void UpdateSprite(Sprite sprite)
@@ -61,6 +64,12 @@ public sealed class SpriteAnimationFrame
             sprite.Rotation = Rotation.Value;
         if (PivotPoint.HasValue)
             sprite.PivotPoint = PivotPoint.Value;
+        if (BlendMode.HasValue)
+            sprite.BlendMode = BlendMode.Value;
+        if (Shader.HasValue)
+            sprite.Shader = Shader;
+        if (Culling.HasValue)
+            sprite.Culling = Culling.Value;
         if (OnBeginDrawing.HasValue)
             sprite.OnBeginDrawing = OnBeginDrawing.Value;
         if (OnEndDrawing.HasValue)

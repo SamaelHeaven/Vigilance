@@ -104,7 +104,7 @@ public sealed class Text : Drawable<Text>
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    protected override void Render(Transform transform, Graphics graphics)
+    public override void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawText(transform, this);
     }
@@ -280,8 +280,7 @@ public static class TextExtensions
 
         public void DrawText(Transform transform, Text text)
         {
-            text.OnBeginDrawing?.Invoke(transform, text, graphics);
-            transform += text.Transform;
+            using var _ = Drawable.EnterDrawing(ref transform, text, graphics);
             var camera = text.Camera.Get();
             var value = text.Value;
             var fill = text.Fill;
@@ -297,9 +296,9 @@ public static class TextExtensions
             var scale = (transform.Scale.X.Abs() + transform.Scale.Y.Abs()) * 0.5f;
             var size = text.Size;
             fontSize *= scale;
-            transform.Scale = size;
-            graphics.PushMatrix();
-            graphics.Pivot(transform, true);
+            var pivotTransform = transform;
+            pivotTransform.Scale = size;
+            graphics.Pivot(pivotTransform, true);
             if (!graphics.Culling() || graphics.IsBoxInBounds(position, size * scale, camera, strokeWidth * 0.5f))
             {
                 if (order == DrawOrder.StrokeThenFill)
@@ -355,9 +354,6 @@ public static class TextExtensions
                     );
                 }
             }
-
-            graphics.PopMatrix();
-            text.OnEndDrawing?.Invoke(transform, text, graphics);
         }
     }
 }

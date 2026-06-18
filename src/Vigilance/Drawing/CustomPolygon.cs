@@ -57,7 +57,7 @@ public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    protected override void Render(Transform transform, Graphics graphics)
+    public override void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawCustomPolygon(transform, this);
     }
@@ -139,8 +139,7 @@ public static class CustomPolygonExtensions
 
         public void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
         {
-            polygon.OnBeginDrawing?.Invoke(transform, polygon, graphics);
-            transform += polygon.Transform;
+            using var _ = Drawable.EnterDrawing(ref transform, polygon, graphics);
             var camera = polygon.Camera.Get();
             var position = transform.Position;
             var scale = transform.Scale;
@@ -148,7 +147,6 @@ public static class CustomPolygonExtensions
             var stroke = polygon.Stroke;
             var strokeWidth = polygon.StrokeWidth;
             var order = polygon.DrawOrder;
-            graphics.PushMatrix();
             graphics.Pivot(transform, false);
             PooledArray<Vector2>? pooledArray = null;
             try
@@ -179,15 +177,11 @@ public static class CustomPolygonExtensions
                     graphics.FillCustomPolygonSpan(span, fill, camera);
                     graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
                 }
-
-                graphics.PopMatrix();
             }
             finally
             {
                 pooledArray?.Dispose();
             }
-
-            polygon.OnEndDrawing?.Invoke(transform, polygon, graphics);
         }
     }
 }

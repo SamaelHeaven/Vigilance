@@ -26,7 +26,7 @@ public sealed class Sprite : Drawable<Sprite>
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    protected override void Render(Transform transform, Graphics graphics)
+    public override void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawSprite(transform, this);
     }
@@ -58,8 +58,7 @@ public static class SpriteExtensions
 
         public void DrawSprite(Transform transform, Sprite sprite)
         {
-            sprite.OnBeginDrawing?.Invoke(transform, sprite, graphics);
-            transform += sprite.Transform;
+            using var _ = Drawable.EnterDrawing(ref transform, sprite, graphics);
             var camera = sprite.Camera.Get();
             var texture = sprite.Texture;
             var interpolation = sprite.Interpolation;
@@ -69,12 +68,11 @@ public static class SpriteExtensions
             var flipY = sprite.FlipY;
             var position = transform.Position;
             var scale = transform.Scale.Abs();
-            var source = sprite.Source ?? new Box(Vector2.Zero, new Vector2(texture.Width, texture.Height));
+            var source = sprite.Source ?? new Box(Vector2.Zero, texture.Size);
             if (flipX)
                 source.Width = -source.Width;
             if (flipY)
                 source.Height = -source.Height;
-            graphics.PushMatrix();
             graphics.Pivot(transform, true);
             if (nPatchInfo.HasValue)
                 graphics.DrawTextureNPatch(
@@ -88,8 +86,6 @@ public static class SpriteExtensions
                 );
             else
                 graphics.DrawTexture(texture, source, new Box(position, scale), tint, interpolation, camera);
-            graphics.PopMatrix();
-            sprite.OnEndDrawing?.Invoke(transform, sprite, graphics);
         }
     }
 }

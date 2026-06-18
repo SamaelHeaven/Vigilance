@@ -21,6 +21,8 @@ public class UIDropShadow : IUIComponent, IFullCloneable
 
     public Color Color { get; set; }
     public bool IsTextureDirty { get; private set; }
+    public BlendMode BlendMode { get; set; } = Drawing.Drawing.DefaultBlendMode;
+    public Shader Shader { get; set; } = Drawing.Drawing.DefaultShader;
 
     public Texture Texture
     {
@@ -98,8 +100,12 @@ public class UIDropShadow : IUIComponent, IFullCloneable
         }
 
         var previousClip = graphics.SetClip(null);
+        var previousBlendMode = graphics.SetBlendMode(BlendMode);
+        var previousShader = graphics.SetShader(Shader);
         graphics.DrawTexture(_texture, element.LayoutPosition - offset, null, Color, camera: camera);
         graphics.SetClip(previousClip);
+        graphics.SetBlendMode(previousBlendMode);
+        graphics.SetShader(previousShader);
         return false;
     }
 

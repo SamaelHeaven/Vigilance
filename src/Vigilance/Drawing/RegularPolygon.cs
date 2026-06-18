@@ -37,7 +37,7 @@ public sealed class RegularPolygon : Drawable<RegularPolygon>
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    protected override void Render(Transform transform, Graphics graphics)
+    public override void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawRegularPolygon(transform, this);
     }
@@ -122,8 +122,7 @@ public static class RegularPolygonExtensions
 
         public void DrawRegularPolygon(Transform transform, RegularPolygon polygon)
         {
-            polygon.OnBeginDrawing?.Invoke(transform, polygon, graphics);
-            transform += polygon.Transform;
+            using var _ = Drawable.EnterDrawing(ref transform, polygon, graphics);
             var camera = polygon.Camera.Get();
             var sides = polygon.Sides;
             var fill = polygon.Fill;
@@ -132,7 +131,6 @@ public static class RegularPolygonExtensions
             var order = polygon.DrawOrder;
             var position = transform.Position;
             var scale = transform.Scale;
-            graphics.PushMatrix();
             graphics.Pivot(transform, false);
             var radius = scale.Abs().Min() * 0.5f;
             if (order == DrawOrder.StrokeThenFill)
@@ -145,9 +143,6 @@ public static class RegularPolygonExtensions
                 graphics.FillRegularPolygon(position, sides, radius, fill, camera);
                 graphics.StrokeRegularPolygon(position, sides, radius, stroke, strokeWidth, camera);
             }
-
-            graphics.PopMatrix();
-            polygon.OnEndDrawing?.Invoke(transform, polygon, graphics);
         }
     }
 }

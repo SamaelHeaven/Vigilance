@@ -132,6 +132,10 @@ public abstract class UIElement : IFullCloneable
 
     public int ZIndex { get; set; }
 
+    public BlendMode? BlendMode { get; set; } = null;
+
+    public Shader? Shader { get; set; } = null;
+
     public bool? Culling { get; set; } = null;
 
     public bool WasRenderedOutside { get; private set; } = true;
@@ -1181,6 +1185,18 @@ public abstract class UIElement : IFullCloneable
         }
 
         element.RenderedClip = graphics.GetClip();
+        if (element.BlendMode.HasValue)
+        {
+            data.OldBlendMode = graphics.GetBlendMode();
+            graphics.SetBlendMode(element.BlendMode.Value);
+        }
+
+        if (element.Shader is not null)
+        {
+            data.OldShader = graphics.GetShader();
+            graphics.SetShader(element.Shader);
+        }
+
         if (element.Culling.HasValue)
         {
             data.OldCulling = graphics.Culling();
@@ -1227,6 +1243,10 @@ public abstract class UIElement : IFullCloneable
         element.OnEndRender(graphics, camera);
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
+        if (data.OldShader is not null)
+            graphics.SetShader(data.OldShader);
+        if (data.OldBlendMode.HasValue)
+            graphics.SetBlendMode(data.OldBlendMode.Value);
         if (data.OverflowHidden)
             graphics.SetClip(data.OldClip);
         graphics.PopMatrix();
@@ -1292,6 +1312,8 @@ public abstract class UIElement : IFullCloneable
         public RenderPhase Phase;
         public Matrix3x2? OldMatrix;
         public Box? OldClip;
+        public BlendMode? OldBlendMode;
+        public Shader? OldShader;
         public bool? OldCulling;
         public bool OverflowHidden;
         public readonly bool ShouldRender;

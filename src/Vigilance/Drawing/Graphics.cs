@@ -14,19 +14,24 @@ public sealed unsafe class Graphics
     private static RenderTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
     private static BlendMode? _currentBlendMode = null;
-    private static Shader? _currentShader = null;
-    private BlendMode _blendMode = BlendMode.Alpha;
+    private BlendMode _blendMode = Drawing.DefaultBlendMode;
     private Box? _clip = null;
     private bool _culling = Drawing.DefaultCulling;
     private bool _drawing = false;
     private ValueStack<Matrix3x2> _matrices = new();
     private Matrix3x2 _matrix = Matrix3x2.Identity;
-    private Shader? _shader = null;
+    private Shader _shader = Drawing.DefaultShader;
     internal RenderTexture? Buffer;
 
     internal Graphics(RenderTexture? buffer)
     {
         Buffer = buffer;
+    }
+
+    private static Shader CurrentShader
+    {
+        get => field ??= Shader.Default;
+        set;
     }
 
     #region Bounds
@@ -269,14 +274,14 @@ public sealed unsafe class Graphics
 
     #region Shader
 
-    public Shader? SetShader(Shader? shader)
+    public Shader SetShader(Shader shader)
     {
         var previous = _shader;
         _shader = shader;
         return previous;
     }
 
-    public Shader? GetShader()
+    public Shader GetShader()
     {
         return _shader;
     }
@@ -569,12 +574,13 @@ public sealed unsafe class Graphics
             Raylib.BeginBlendMode(Raylib_cs.BlendMode.CustomSeparate);
         }
 
-        if (_currentShader != _shader)
+        var currentShader = CurrentShader;
+        if (currentShader != _shader)
         {
-            if (_currentShader is not null)
+            if (!currentShader.IsDefault)
                 Raylib.EndShaderMode();
-            _currentShader = _shader;
-            if (_shader is not null)
+            CurrentShader = _shader;
+            if (!_shader.IsDefault)
                 Raylib.BeginShaderMode(_shader.RShader);
         }
 
@@ -640,10 +646,10 @@ public sealed unsafe class Graphics
             _currentBlendMode = null;
         }
 
-        if (_currentShader is not null)
+        if (!CurrentShader.IsDefault)
         {
             Raylib.EndShaderMode();
-            _currentShader = null;
+            CurrentShader = Shader.Default;
         }
 
         Rlgl.LoadIdentity();

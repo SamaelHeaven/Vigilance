@@ -42,7 +42,20 @@ public sealed unsafe partial class Shader : IDisposable
         );
     }
 
+    public static Shader Default
+    {
+        get
+        {
+            Game.ThrowIfNotRunning();
+            return field ??= new Shader(
+                new Raylib_cs.Shader { Id = Rlgl.GetShaderIdDefault(), Locs = Rlgl.GetShaderLocsDefault() }
+            );
+        }
+    }
+
     public uint Id => RShader.Id;
+
+    public bool IsDefault => Id == Default.Id;
 
     public bool IsValid => RShader.Id != 0;
 
@@ -273,6 +286,8 @@ public sealed unsafe partial class Shader : IDisposable
 
     private void ReleaseUnmanagedResources()
     {
+        if (Id == Default.Id)
+            return;
         Raylib.UnloadShader(RShader);
     }
 

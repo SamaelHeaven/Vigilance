@@ -30,7 +30,7 @@ public sealed class CircleGradient : Drawable<CircleGradient>
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Fill)]), true);
     }
 
-    protected override void Render(Transform transform, Graphics graphics)
+    public override void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawCircleGradient(transform, this);
     }
@@ -67,8 +67,7 @@ public static class CircleGradientExtensions
 
         public void DrawCircleGradient(Transform transform, CircleGradient circle)
         {
-            circle.OnBeginDrawing?.Invoke(transform, circle, graphics);
-            transform += circle.Transform;
+            using var _ = Drawable.EnterDrawing(ref transform, circle, graphics);
             var camera = circle.Camera.Get();
             var innerFill = circle.InnerFill;
             var outerFill = circle.OuterFill;
@@ -79,7 +78,6 @@ public static class CircleGradientExtensions
             var position = transform.Position;
             var scale = transform.Scale;
             var radius = scale.Abs().Min() * 0.5f;
-            graphics.PushMatrix();
             graphics.Pivot(transform, false);
             if (order == DrawOrder.StrokeThenFill)
             {
@@ -91,9 +89,6 @@ public static class CircleGradientExtensions
                 graphics.FillCircleGradient(position, radius, innerFill, outerFill, camera);
                 graphics.StrokeCircle(position, radius, stroke, strokeWidth, 0, 360, segments, camera);
             }
-
-            graphics.PopMatrix();
-            circle.OnEndDrawing?.Invoke(transform, circle, graphics);
         }
     }
 }

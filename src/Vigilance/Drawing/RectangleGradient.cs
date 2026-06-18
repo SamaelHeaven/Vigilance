@@ -73,7 +73,7 @@ public sealed class RectangleGradient : Drawable<RectangleGradient>
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Fill)]), true);
     }
 
-    protected override void Render(Transform transform, Graphics graphics)
+    public override void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawRectangleGradient(transform, this);
     }
@@ -182,8 +182,7 @@ public static class RectangleGradientExtensions
 
         public void DrawRectangleGradient(Transform transform, RectangleGradient rectangle)
         {
-            rectangle.OnBeginDrawing?.Invoke(transform, rectangle, graphics);
-            transform += rectangle.Transform;
+            using var _ = Drawable.EnterDrawing(ref transform, rectangle, graphics);
             var camera = rectangle.Camera.Get();
             var topLeftFill = rectangle.TopLeftFill;
             var bottomLeftFill = rectangle.BottomLeftFill;
@@ -194,7 +193,6 @@ public static class RectangleGradientExtensions
             var scale = transform.Scale.Abs();
             var strokeWidth = rectangle.StrokeWidth.Clamp(0, scale.Min() * 0.5f);
             var order = rectangle.DrawOrder;
-            graphics.PushMatrix();
             graphics.Pivot(transform, true);
             if (order == DrawOrder.StrokeThenFill)
             {
@@ -222,9 +220,6 @@ public static class RectangleGradientExtensions
                 );
                 graphics.StrokeRectangle(position, scale, stroke, strokeWidth, camera);
             }
-
-            graphics.PopMatrix();
-            rectangle.OnEndDrawing?.Invoke(transform, rectangle, graphics);
         }
     }
 }

@@ -28,7 +28,7 @@ public sealed class Circle : Drawable<Circle>
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    protected override void Render(Transform transform, Graphics graphics)
+    public override void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawCircle(transform, this);
     }
@@ -138,8 +138,7 @@ public static class CircleExtensions
 
         public void DrawCircle(Transform transform, Circle circle)
         {
-            circle.OnBeginDrawing?.Invoke(transform, circle, graphics);
-            transform += circle.Transform;
+            using var _ = Drawable.EnterDrawing(ref transform, circle, graphics);
             var camera = circle.Camera.Get();
             var fill = circle.Fill;
             var stroke = circle.Stroke;
@@ -151,7 +150,6 @@ public static class CircleExtensions
             var position = transform.Position;
             var scale = transform.Scale;
             var radius = scale.Abs().Min() * 0.5f;
-            graphics.PushMatrix();
             graphics.Pivot(transform, false);
             if (order == DrawOrder.StrokeThenFill)
             {
@@ -163,9 +161,6 @@ public static class CircleExtensions
                 graphics.FillCircle(position, radius, fill, startAngle, endAngle, segments, camera);
                 graphics.StrokeCircle(position, radius, stroke, strokeWidth, startAngle, endAngle, segments, camera);
             }
-
-            graphics.PopMatrix();
-            circle.OnEndDrawing?.Invoke(transform, circle, graphics);
         }
     }
 }

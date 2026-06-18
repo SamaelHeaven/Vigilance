@@ -30,7 +30,7 @@ public sealed class Ring : Drawable<Ring>
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    protected override void Render(Transform transform, Graphics graphics)
+    public override void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawRing(transform, this);
     }
@@ -183,8 +183,7 @@ public static class RingExtensions
 
         public void DrawRing(Transform transform, Ring ring)
         {
-            ring.OnBeginDrawing?.Invoke(transform, ring, graphics);
-            transform += ring.Transform;
+            using var _ = Drawable.EnterDrawing(ref transform, ring, graphics);
             var camera = ring.Camera.Get();
             var startAngle = ring.StartAngle;
             var endAngle = ring.EndAngle;
@@ -197,7 +196,6 @@ public static class RingExtensions
             var scale = transform.Scale.Abs().Min();
             var innerRadius = ring.InnerRadius * scale;
             var outerRadius = ring.OuterRadius * scale;
-            graphics.PushMatrix();
             graphics.Pivot(transform, false);
             if (order == DrawOrder.StrokeThenFill)
             {
@@ -229,9 +227,6 @@ public static class RingExtensions
                     camera
                 );
             }
-
-            graphics.PopMatrix();
-            ring.OnEndDrawing?.Invoke(transform, ring, graphics);
         }
     }
 }

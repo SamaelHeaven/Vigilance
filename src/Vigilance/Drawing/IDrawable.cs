@@ -4,5 +4,5 @@ namespace Vigilance.Drawing;
 
 public interface IDrawable
 {
-    void Render(Transform transform, Graphics graphics);
+    void Draw(Transform transform, Graphics graphics);
 }

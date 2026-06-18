@@ -35,7 +35,7 @@ public sealed class Grid : Drawable<Grid>
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    protected override void Render(Transform transform, Graphics graphics)
+    public override void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawGrid(transform, this);
     }
@@ -128,19 +128,15 @@ public static class GridExtensions
 
         public void DrawGrid(Transform transform, Grid grid)
         {
-            grid.OnBeginDrawing?.Invoke(transform, grid, graphics);
-            transform += grid.Transform;
+            using var _ = Drawable.EnterDrawing(ref transform, grid, graphics);
             var camera = grid.Camera.Get();
             var color = grid.Color;
             var cellSize = grid.CellSize;
             var thick = grid.Thick;
             var position = transform.Position;
             var scale = transform.Scale.Abs();
-            graphics.PushMatrix();
             graphics.Pivot(transform, true);
             graphics.DrawGrid(position, scale, cellSize, color, thick, camera);
-            graphics.PopMatrix();
-            grid.OnEndDrawing?.Invoke(transform, grid, graphics);
         }
     }
 }

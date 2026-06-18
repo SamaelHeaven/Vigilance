@@ -43,7 +43,7 @@ public sealed class Triangle : Drawable<Triangle>
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Points)]), true);
     }
 
-    protected override void Render(Transform transform, Graphics graphics)
+    public override void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawTriangle(transform, this);
     }
@@ -143,8 +143,7 @@ public static class TriangleExtensions
 
         public void DrawTriangle(Transform transform, Triangle triangle)
         {
-            triangle.OnBeginDrawing?.Invoke(transform, triangle, graphics);
-            transform += triangle.Transform;
+            using var _ = Drawable.EnterDrawing(ref transform, triangle, graphics);
             var camera = triangle.Camera.Get();
             var position = transform.Position;
             var scale = transform.Scale;
@@ -152,7 +151,6 @@ public static class TriangleExtensions
             var stroke = triangle.Stroke;
             var strokeWidth = triangle.StrokeWidth;
             var order = triangle.DrawOrder;
-            graphics.PushMatrix();
             graphics.Pivot(transform, false);
             Span<Vector2> span = stackalloc Vector2[3];
             var i = 0;
@@ -169,9 +167,6 @@ public static class TriangleExtensions
                 graphics.FillCustomPolygonSpan(span, fill, camera);
                 graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
             }
-
-            graphics.PopMatrix();
-            triangle.OnEndDrawing?.Invoke(transform, triangle, graphics);
         }
     }
 }

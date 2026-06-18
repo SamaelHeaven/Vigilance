@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace Vigilance.Drawing;
 
 public enum BlendFactor : byte
@@ -132,7 +134,7 @@ public static class BlendModeExtensions
                 BlendFactor.OneMinusDstAlpha => 0x0305,
                 BlendFactor.DstColor => 0x0306,
                 BlendFactor.OneMinusDstColor => 0x0307,
-                _ => throw new ArgumentOutOfRangeException(nameof(factor)),
+                _ => throw new InvalidEnumArgumentException(nameof(factor), (int)factor, typeof(BlendFactor)),
             };
         }
     }
@@ -148,7 +150,7 @@ public static class BlendModeExtensions
                 BlendEquation.ReverseSubtract => 0x800B,
                 BlendEquation.Min => 0x8007,
                 BlendEquation.Max => 0x8008,
-                _ => throw new ArgumentOutOfRangeException(nameof(equation)),
+                _ => throw new InvalidEnumArgumentException(nameof(equation), (int)equation, typeof(BlendEquation)),
             };
         }
     }
