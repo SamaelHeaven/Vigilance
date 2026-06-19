@@ -2,8 +2,6 @@ using System.Diagnostics.CodeAnalysis;
 using Vigilance.Collections;
 using Vigilance.Logging;
 
-// ReSharper disable ParameterOnlyUsedForPreconditionCheck.Global
-
 namespace Vigilance.Core;
 
 public abstract class Table
@@ -66,21 +64,21 @@ public abstract class Table
 
     internal abstract void DequeueEvent();
 
-    public readonly record struct Event<T>(EventType Type, Entity Entity, T OldValue, T NewValue)
+    public readonly record struct Event<T>(Entity Entity, EventType Type, T OldValue, T NewValue)
     {
         public static Event<T> Add(in Entity entity, in T value)
         {
-            return new Event<T>(EventType.Add, entity, default!, value);
+            return new Event<T>(entity, EventType.Add, default!, value);
         }
 
         public static Event<T> Set(in Entity entity, in T oldValue, in T newValue)
         {
-            return new Event<T>(EventType.Set, entity, oldValue, newValue);
+            return new Event<T>(entity, EventType.Set, oldValue, newValue);
         }
 
         public static Event<T> Remove(in Entity entity, in T value)
         {
-            return new Event<T>(EventType.Remove, entity, default!, value);
+            return new Event<T>(entity, EventType.Remove, default!, value);
         }
     }
 }
