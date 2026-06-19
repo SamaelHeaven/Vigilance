@@ -18,6 +18,7 @@ public abstract class Table
     {
         Default = 0,
         SilentOnImmutable = 1 << 0,
+        ForceMutable = 1 << 1,
     }
 
     internal static int CurrentIndex = -1;
@@ -39,6 +40,8 @@ public abstract class Table
     public abstract bool SkipRemoveEvent { get; }
 
     public abstract bool SkipSetEventIfEqual { get; }
+
+    public abstract bool AddImmutable { get; }
 
     public abstract bool SetImmutable { get; }
 
@@ -80,14 +83,6 @@ public abstract class Table
         {
             return new Event<T>(entity, EventType.Remove, default!, value);
         }
-    }
-}
-
-public static class TableExtensions
-{
-    extension(Table.Flags)
-    {
-        internal static Table.Flags ForceMutable => (Table.Flags)(1 << 30);
     }
 }
 
@@ -137,6 +132,8 @@ public sealed class Table<T> : Table
 
     public override bool SkipSetEventIfEqual { get; } =
         typeof(ISkipSetEventIfEqualComponent).IsAssignableFrom(typeof(T));
+
+    public override bool AddImmutable { get; } = typeof(IAddImmutableComponent).IsAssignableFrom(typeof(T));
 
     public override bool SetImmutable { get; } = typeof(ISetImmutableComponent).IsAssignableFrom(typeof(T));
 
@@ -335,6 +332,13 @@ public sealed class Table<T> : Table
         var sparseValue = chunk[withinChunk];
         if (sparseValue == 0)
         {
+            if (AddImmutable && (flags & Flags.ForceMutable) == 0)
+                if ((flags & Flags.SilentOnImmutable) != 0)
+                    return ComponentRef<T>.Null;
+                else
+                    throw new InvalidOperationException(
+                        $"Cannot add {Type} because it implements {nameof(IAddImmutableComponent)}."
+                    );
             var index = _components.Count + 1;
             _components.Add(component);
             _entityIds.Add(entity.Id);
@@ -343,12 +347,12 @@ public sealed class Table<T> : Table
             return new ComponentRef<T>(ref _components[index - 1]);
         }
 
-        if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
+        if (SetImmutable && (flags & Flags.ForceMutable) == 0)
             if ((flags & Flags.SilentOnImmutable) != 0)
                 return ComponentRef<T>.Null;
             else
                 throw new InvalidOperationException(
-                    $"Cannot set {Type} because it implements {nameof(IRemoveImmutableComponent)}."
+                    $"Cannot set {Type} because it implements {nameof(ISetImmutableComponent)}."
                 );
         var denseIndex = sparseValue - 1;
         ref var componentRef = ref _components[denseIndex];

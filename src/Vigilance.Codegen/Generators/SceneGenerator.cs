@@ -73,7 +73,7 @@ public sealed class SceneGenerator : SourceGenerator
     private static void Entities(StringBuilder sb)
     {
         sb.BeginRegion("Entities");
-        sb.AppendLine(QueryIterator("Entity", "Entity", "Entities", "_entity", ["ZIndex"], noFields: true));
+        sb.AppendLine(QueryIterator("Entity", "Entity", "Entities", "_entity", ["EntityTag"], noFields: true));
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));

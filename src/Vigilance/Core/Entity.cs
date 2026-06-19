@@ -45,7 +45,8 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.NameTable.GetRef(this).Read;
+            var name = Scene.NameTable.GetRef(this);
+            return name.IsNull ? $"#{Id}" : name.Read;
         }
     }
 
@@ -170,36 +171,104 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.TransformTable.GetRef(this);
+            return Scene.TransformTable.GetRef(this).GetOrDefault(new Transform());
         }
         set
         {
             AssertValid();
             ref var transform = ref Scene.TransformTable.GetRef(this).Value;
-            var oldTransform = transform;
-            if (Precision.AreEqual(value, oldTransform))
-                return;
-            transform = value;
+            Transform oldTransform;
+            if (Unsafe.IsNullRef(ref transform))
+            {
+                oldTransform = new Transform();
+                Scene.SuspendDefer();
+                transform = ref Scene.TransformTable.Set(this, value).Value;
+                Scene.ResumeDefer();
+            }
+            else
+            {
+                oldTransform = transform;
+                if (Precision.AreEqual(value, oldTransform))
+                    return;
+                transform = value;
+            }
+
             ref var position = ref Scene.PositionTable.GetRef(this).Value;
-            var oldPosition = position;
-            var positionChanged = !Precision.AreEqual(value.Position, oldPosition);
+            Position oldPosition;
+            var positionNull = Unsafe.IsNullRef(ref position);
+            oldPosition = positionNull ? default : position;
+            var positionChanged = positionNull || !Precision.AreEqual(value.Position, oldPosition);
             if (positionChanged)
-                position.Value = value.Position;
+            {
+                if (positionNull)
+                {
+                    Scene.SuspendDefer();
+                    position = ref Scene.PositionTable.Set(this, value.Position).Value;
+                    Scene.ResumeDefer();
+                }
+                else
+                {
+                    position.Value = value.Position;
+                }
+            }
+
             ref var scale = ref Scene.ScaleTable.GetRef(this).Value;
-            var oldScale = scale;
-            var scaleChanged = !Precision.AreEqual(value.Scale, oldScale);
+            Scale oldScale;
+            var scaleNull = Unsafe.IsNullRef(ref scale);
+            oldScale = scaleNull ? new Scale() : scale;
+            var scaleChanged = scaleNull || !Precision.AreEqual(value.Scale, oldScale);
             if (scaleChanged)
-                scale.Value = value.Scale;
+            {
+                if (scaleNull)
+                {
+                    Scene.SuspendDefer();
+                    scale = ref Scene.ScaleTable.Set(this, value.Scale).Value;
+                    Scene.ResumeDefer();
+                }
+                else
+                {
+                    scale.Value = value.Scale;
+                }
+            }
+
             ref var rotation = ref Scene.RotationTable.GetRef(this).Value;
-            var oldRotation = rotation;
-            var rotationChanged = !Precision.AreEqual(value.Rotation, oldRotation);
+            Rotation oldRotation;
+            var rotationNull = Unsafe.IsNullRef(ref rotation);
+            oldRotation = rotationNull ? default : rotation;
+            var rotationChanged = rotationNull || !Precision.AreEqual(value.Rotation, oldRotation);
             if (rotationChanged)
-                rotation.Value = value.Rotation;
+            {
+                if (rotationNull)
+                {
+                    Scene.SuspendDefer();
+                    rotation = ref Scene.RotationTable.Set(this, value.Rotation).Value;
+                    Scene.ResumeDefer();
+                }
+                else
+                {
+                    rotation.Value = value.Rotation;
+                }
+            }
+
             ref var pivotPoint = ref Scene.PivotPointTable.GetRef(this).Value;
-            var oldPivotPoint = pivotPoint;
-            var pivotPointChanged = !Precision.AreEqual(value.PivotPoint, oldPivotPoint);
+            PivotPoint oldPivotPoint;
+            var pivotPointNull = Unsafe.IsNullRef(ref pivotPoint);
+            oldPivotPoint = pivotPointNull ? default : pivotPoint;
+            var pivotPointChanged = pivotPointNull || !Precision.AreEqual(value.PivotPoint, oldPivotPoint);
             if (pivotPointChanged)
-                pivotPoint.Value = value.PivotPoint;
+            {
+                if (pivotPointNull)
+                {
+                    Scene.SuspendDefer();
+                    pivotPoint = ref Scene.PivotPointTable.Set(this, value.PivotPoint).Value;
+                    Scene.ResumeDefer();
+                }
+                else
+                {
+                    pivotPoint.Value = value.PivotPoint;
+                }
+            }
+
             Scene.TransformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, value));
             if (positionChanged)
                 Scene.PositionTable.Enqueue(Table.Event<Position>.Set(this, oldPosition, value.Position));
@@ -217,19 +286,43 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.PositionTable.GetRef(this).Read;
+            return Scene.PositionTable.GetRef(this).GetOrDefault();
         }
         set
         {
             AssertValid();
             ref var position = ref Scene.PositionTable.GetRef(this).Value;
-            var oldPosition = position;
-            if (Precision.AreEqual(value, oldPosition))
-                return;
-            position.Value = value;
+            Vector2 oldPosition;
+            if (Unsafe.IsNullRef(ref position))
+            {
+                Scene.SuspendDefer();
+                position = ref Scene.PositionTable.Set(this, value).Value;
+                oldPosition = new Position();
+                Scene.ResumeDefer();
+            }
+            else
+            {
+                oldPosition = position;
+                if (Precision.AreEqual(value, oldPosition))
+                    return;
+                position.Value = value;
+            }
+
             ref var transform = ref Scene.TransformTable.GetRef(this).Value;
-            var oldTransform = transform;
-            transform.Position = value;
+            Transform oldTransform;
+            if (Unsafe.IsNullRef(ref transform))
+            {
+                Scene.SuspendDefer();
+                transform = ref Scene.TransformTable.Set(this, new Transform { Position = value }).Value;
+                oldTransform = new Transform();
+                Scene.ResumeDefer();
+            }
+            else
+            {
+                oldTransform = transform;
+                transform.Position = value;
+            }
+
             Scene.PositionTable.Enqueue(Table.Event<Position>.Set(this, oldPosition, value));
             Scene.TransformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
         }
@@ -240,19 +333,43 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.ScaleTable.GetRef(this).Read;
+            return Scene.ScaleTable.GetRef(this).GetOrDefault(new Scale());
         }
         set
         {
             AssertValid();
             ref var scale = ref Scene.ScaleTable.GetRef(this).Value;
-            var oldScale = scale;
-            if (Precision.AreEqual(value, oldScale))
-                return;
-            scale.Value = value;
+            Scale oldScale;
+            if (Unsafe.IsNullRef(ref scale))
+            {
+                Scene.SuspendDefer();
+                scale = ref Scene.ScaleTable.Set(this, value).Value;
+                oldScale = new Scale();
+                Scene.ResumeDefer();
+            }
+            else
+            {
+                oldScale = scale;
+                if (Precision.AreEqual(value, oldScale))
+                    return;
+                scale.Value = value;
+            }
+
             ref var transform = ref Scene.TransformTable.GetRef(this).Value;
-            var oldTransform = transform;
-            transform.Scale = value;
+            Transform oldTransform;
+            if (Unsafe.IsNullRef(ref transform))
+            {
+                Scene.SuspendDefer();
+                transform = ref Scene.TransformTable.Set(this, new Transform { Scale = value }).Value;
+                oldTransform = new Transform();
+                Scene.ResumeDefer();
+            }
+            else
+            {
+                oldTransform = transform;
+                transform.Scale = value;
+            }
+
             Scene.ScaleTable.Enqueue(Table.Event<Scale>.Set(this, oldScale, value));
             Scene.TransformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
         }
@@ -263,19 +380,43 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.RotationTable.GetRef(this).Read;
+            return Scene.RotationTable.GetRef(this).GetOrDefault();
         }
         set
         {
             AssertValid();
             ref var rotation = ref Scene.RotationTable.GetRef(this).Value;
-            var oldRotation = rotation;
-            if (Precision.AreEqual(value, oldRotation))
-                return;
-            rotation.Value = value;
+            Rotation oldRotation;
+            if (Unsafe.IsNullRef(ref rotation))
+            {
+                Scene.SuspendDefer();
+                rotation = ref Scene.RotationTable.Set(this, value).Value;
+                oldRotation = default;
+                Scene.ResumeDefer();
+            }
+            else
+            {
+                oldRotation = rotation;
+                if (Precision.AreEqual(value, oldRotation))
+                    return;
+                rotation.Value = value;
+            }
+
             ref var transform = ref Scene.TransformTable.GetRef(this).Value;
-            var oldTransform = transform;
-            transform.Rotation = value;
+            Transform oldTransform;
+            if (Unsafe.IsNullRef(ref transform))
+            {
+                Scene.SuspendDefer();
+                transform = ref Scene.TransformTable.Set(this, new Transform { Rotation = value }).Value;
+                oldTransform = new Transform();
+                Scene.ResumeDefer();
+            }
+            else
+            {
+                oldTransform = transform;
+                transform.Rotation = value;
+            }
+
             Scene.RotationTable.Enqueue(Table.Event<Rotation>.Set(this, oldRotation, value));
             Scene.TransformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
         }
@@ -286,19 +427,43 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.PivotPointTable.GetRef(this).Read;
+            return Scene.PivotPointTable.GetRef(this).GetOrDefault();
         }
         set
         {
             AssertValid();
             ref var pivotPoint = ref Scene.PivotPointTable.GetRef(this).Value;
-            var oldPivotPoint = pivotPoint;
-            if (Precision.AreEqual(value, oldPivotPoint))
-                return;
-            pivotPoint.Value = value;
+            PivotPoint oldPivotPoint;
+            if (Unsafe.IsNullRef(ref pivotPoint))
+            {
+                Scene.SuspendDefer();
+                pivotPoint = ref Scene.PivotPointTable.Set(this, value).Value;
+                oldPivotPoint = default;
+                Scene.ResumeDefer();
+            }
+            else
+            {
+                oldPivotPoint = pivotPoint;
+                if (Precision.AreEqual(value, oldPivotPoint))
+                    return;
+                pivotPoint.Value = value;
+            }
+
             ref var transform = ref Scene.TransformTable.GetRef(this).Value;
-            var oldTransform = transform;
-            transform.PivotPoint = value;
+            Transform oldTransform;
+            if (Unsafe.IsNullRef(ref transform))
+            {
+                Scene.SuspendDefer();
+                transform = ref Scene.TransformTable.Set(this, new Transform { PivotPoint = value }).Value;
+                oldTransform = new Transform();
+                Scene.ResumeDefer();
+            }
+            else
+            {
+                oldTransform = transform;
+                transform.PivotPoint = value;
+            }
+
             Scene.PivotPointTable.Enqueue(Table.Event<PivotPoint>.Set(this, oldPivotPoint, value));
             Scene.TransformTable.Enqueue(Table.Event<Transform>.Set(this, oldTransform, transform));
         }
@@ -309,16 +474,28 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.ZIndexTable.GetRef(this).Read;
+            return Scene.ZIndexTable.GetRef(this).GetOrDefault();
         }
         set
         {
             AssertValid();
             ref var zIndex = ref Scene.ZIndexTable.GetRef(this).Value;
-            var oldZIndex = zIndex;
-            if (value == oldZIndex.Value)
-                return;
-            zIndex.Value = value;
+            ZIndex oldZIndex;
+            if (Unsafe.IsNullRef(ref zIndex))
+            {
+                Scene.SuspendDefer();
+                zIndex = ref Scene.ZIndexTable.Set(this, value).Value;
+                oldZIndex = default;
+                Scene.ResumeDefer();
+            }
+            else
+            {
+                oldZIndex = zIndex;
+                if (value == oldZIndex.Value)
+                    return;
+                zIndex.Value = value;
+            }
+
             Scene.ZIndexTable.Enqueue(Table.Event<ZIndex>.Set(this, oldZIndex, value));
         }
     }
@@ -387,6 +564,7 @@ public readonly unsafe partial record struct Entity
         return table.TryGet(this, out value);
     }
 
+    // ReSharper disable once ReturnTypeCanBeNotNullable
     public T? GetOrDefault<T>()
     {
         AssertValid();
