@@ -31,9 +31,19 @@ public sealed class SpriteAnimationController : IDictionaryView<string, SpriteAn
     public SpriteAnimationController(IEnumerable<KeyValuePair<string, SpriteAnimation>> animations)
         : this(animations.AsSpan()) { }
 
-    public string Current { get; private set; }
+    public string Current
+    {
+        get;
+        private set
+        {
+            if (field == value)
+                return;
+            field = value;
+            Animation = _animations[Current];
+        }
+    }
 
-    public SpriteAnimation Animation => _animations[Current];
+    public SpriteAnimation Animation { get; private set; } = null!;
 
     public SpriteAnimation this[string animation] => _animations[animation];
 

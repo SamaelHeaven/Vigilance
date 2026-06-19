@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Vigilance.Logging;
 
 namespace Vigilance.Core;
 
@@ -112,15 +113,11 @@ public static class Asset
                 var cacheTypeValue = cacheType ?? DefaultCacheType;
                 var weak = cacheTypeValue == CacheType.Weak;
                 var strong = cacheTypeValue == CacheType.Strong;
-                if (weak || strong)
-                {
-                    if (weakValues.TryGetValue(key, out var reference))
-                        if (reference.TryGetTarget(out value!))
-                            return true;
-                    if (strongValues.TryGetValue(key, out value!))
+                if (weakValues.TryGetValue(key, out var reference))
+                    if (reference.TryGetTarget(out value!))
                         return true;
-                }
-
+                if (strongValues.TryGetValue(key, out value!))
+                    return true;
                 value = valueFunc.Invoke();
                 if (value is null)
                     return false;
@@ -130,8 +127,9 @@ public static class Asset
                     strongValues[key] = value;
                 return true;
             }
-            catch
+            catch (Exception e)
             {
+                Log.Error(e);
                 value = null;
                 return false;
             }
