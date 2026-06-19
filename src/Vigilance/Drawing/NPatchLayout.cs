@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-public enum NPatchLayout
+public enum NPatchLayout : byte
 {
     Full = Raylib_cs.NPatchLayout.NinePatch,
     Horizontal = Raylib_cs.NPatchLayout.ThreePatchHorizontal,

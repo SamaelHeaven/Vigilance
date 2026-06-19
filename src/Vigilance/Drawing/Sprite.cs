@@ -20,6 +20,7 @@ public sealed class Sprite : Drawable<Sprite>
     public Color Tint { get; set; } = Color.White;
     public NPatchInfo? NPatchInfo { get; set; } = null;
     public Interpolation Interpolation { get; set; } = Drawing.DefaultInterpolation;
+    public TextureWrap TextureWrap { get; set; } = Drawing.DefaultTextureWrap;
 
     public override string ToString()
     {
@@ -62,6 +63,7 @@ public static class SpriteExtensions
             var camera = sprite.Camera.Get();
             var texture = sprite.Texture;
             var interpolation = sprite.Interpolation;
+            var textureWrap = sprite.TextureWrap;
             var tint = sprite.Tint;
             var nPatchInfo = sprite.NPatchInfo;
             var flipX = sprite.FlipX;
@@ -82,10 +84,19 @@ public static class SpriteExtensions
                     new Box(position, scale),
                     tint,
                     interpolation,
+                    textureWrap,
                     camera
                 );
             else
-                graphics.DrawTexture(texture, source, new Box(position, scale), tint, interpolation, camera);
+                graphics.DrawTexture(
+                    texture,
+                    source,
+                    new Box(position, scale),
+                    tint,
+                    interpolation,
+                    textureWrap,
+                    camera
+                );
         }
     }
 }

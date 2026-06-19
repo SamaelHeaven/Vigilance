@@ -3,7 +3,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Input;
 
-public enum Key
+public enum Key : short
 {
     Null = KeyboardKey.Null,
     Apostrophe = KeyboardKey.Apostrophe,

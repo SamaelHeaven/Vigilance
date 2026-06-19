@@ -1,6 +1,6 @@
 namespace Vigilance.UI;
 
-public enum ScrollBarVisibility
+public enum ScrollBarVisibility : byte
 {
     Auto,
     Hidden,

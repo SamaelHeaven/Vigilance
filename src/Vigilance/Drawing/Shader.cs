@@ -302,7 +302,8 @@ public sealed unsafe partial class Shader : IDisposable
                 {
                     var key = match.Groups[1].Value.ToLower();
                     return versions.TryGetValue(key, out var replacement) ? replacement : match.Value;
-                }
+                },
+                1
             );
     }
 

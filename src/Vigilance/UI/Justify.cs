@@ -1,6 +1,6 @@
 namespace Vigilance.UI;
 
-public enum Justify
+public enum Justify : byte
 {
     Start = FlexLayoutSharp.Justify.FlexStart,
     Center = FlexLayoutSharp.Justify.Center,

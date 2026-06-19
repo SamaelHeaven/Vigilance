@@ -8,7 +8,7 @@ namespace Vigilance.Core;
 
 public abstract class Table
 {
-    public enum EventType
+    public enum EventType : byte
     {
         Add,
         Set,

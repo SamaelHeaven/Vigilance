@@ -58,6 +58,12 @@ public class UISprite : UIContainer
         set => _sprite.Interpolation = value;
     }
 
+    public TextureWrap TextureWrap
+    {
+        get => _sprite.TextureWrap;
+        set => _sprite.TextureWrap = value;
+    }
+
     protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
         _sprite.Camera = camera;

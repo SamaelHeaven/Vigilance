@@ -28,11 +28,11 @@ public abstract class Drawable : IDrawable, IFullCloneable
 
     public abstract void Draw(Transform transform, Graphics graphics);
 
-    public static DrawScope<T> EnterDrawing<T>(ref Transform transform, Drawable<T> drawable, Graphics graphics)
+    public static DrawScope<T> EnterDrawing<T>(ref Transform transform, T drawable, Graphics graphics)
         where T : Drawable<T>
     {
         var originalTransform = transform;
-        drawable.OnBeginDrawing?.Invoke(originalTransform, (T)drawable, graphics);
+        drawable.OnBeginDrawing?.Invoke(originalTransform, drawable, graphics);
         BlendMode? previousBlendMode = null;
         Shader? previousShader = null;
         bool? previousCulling = null;
@@ -46,7 +46,7 @@ public abstract class Drawable : IDrawable, IFullCloneable
         graphics.PushMatrix();
         return new DrawScope<T>(
             originalTransform,
-            (T)drawable,
+            drawable,
             graphics,
             previousBlendMode,
             previousShader,

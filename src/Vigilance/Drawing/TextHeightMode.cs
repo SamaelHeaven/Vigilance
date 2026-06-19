@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-public enum TextHeightMode
+public enum TextHeightMode : byte
 {
     Character,
     FontSize,

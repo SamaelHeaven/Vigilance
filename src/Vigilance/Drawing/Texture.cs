@@ -37,7 +37,7 @@ public sealed unsafe class Texture : IDisposable
 
     public static Texture Empty => _empty ??= new WritableImage<PixelGrayAlpha>(1, 1).ToTexture();
 
-    public static Texture White => _white ??= new WritableImage<PixelGrayAlpha>(1, 1, Color.White).ToTexture();
+    public static Texture White => _white ??= new WritableImage<PixelGrayscale>(1, 1, Color.White).ToTexture();
 
     public uint Id => Texture2D.Id;
 

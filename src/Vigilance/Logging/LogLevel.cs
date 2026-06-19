@@ -3,7 +3,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Logging;
 
-public enum LogLevel
+public enum LogLevel : byte
 {
     All = TraceLogLevel.All,
     Trace = TraceLogLevel.Trace,

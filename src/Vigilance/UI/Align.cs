@@ -1,6 +1,6 @@
 namespace Vigilance.UI;
 
-public enum Align
+public enum Align : byte
 {
     Auto = FlexLayoutSharp.Align.Auto,
     Start = FlexLayoutSharp.Align.FlexStart,

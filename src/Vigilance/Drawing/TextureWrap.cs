@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-public enum TextureWrap
+public enum TextureWrap : byte
 {
     Repeat = Raylib_cs.TextureWrap.Repeat,
     Clamp = Raylib_cs.TextureWrap.Clamp,
