@@ -111,6 +111,26 @@ public sealed unsafe class Graphics
 
     #region Matrix
 
+    public static Matrix4x4 GetMatrixModelView()
+    {
+        return Matrix4x4.Transpose(Rlgl.GetMatrixModelview());
+    }
+
+    public static Matrix4x4 GetMatrixTransform()
+    {
+        return Matrix4x4.Transpose(Rlgl.GetMatrixTransform());
+    }
+
+    public static Matrix4x4 GetMatrixProjection()
+    {
+        return Matrix4x4.Transpose(Rlgl.GetMatrixProjection());
+    }
+
+    public static Matrix4x4 GetCurrentMatrix()
+    {
+        return GetMatrixModelView() * GetMatrixTransform() * GetMatrixProjection();
+    }
+
     public ref Matrix3x2 GetMatrix()
     {
         return ref _matrices.Count == 0 ? ref _matrix : ref _matrices.Peek();
@@ -206,8 +226,8 @@ public sealed unsafe class Graphics
         var pivotPoint = transform.PivotPoint;
         var position = transform.Position;
         var scale = transform.Scale.Abs();
-        Rotate(rotation, pivotPoint);
         Translate(position);
+        Rotate(rotation, pivotPoint);
         Scale(scale);
     }
 
@@ -384,7 +404,7 @@ public sealed unsafe class Graphics
             source.X,
             source.Y,
             source.Width,
-            texture.RenderTexture is null ? source.Height : -source.Height
+            texture.IsRenderTexture ? -source.Height : source.Height
         );
         var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
         texture.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
@@ -535,6 +555,45 @@ public sealed unsafe class Graphics
         EndDrawing();
     }
 
+    public static bool IsBufferCurrent(RenderTexture? buffer)
+    {
+        return _currentBuffer == buffer;
+    }
+
+    public static void Reset()
+    {
+        if (_currentBuffer is not null)
+        {
+            Raylib.EndTextureMode();
+            _currentBuffer = null;
+        }
+
+        if (_currentClip.HasValue)
+        {
+            Raylib.EndScissorMode();
+            _currentClip = null;
+        }
+
+        if (_currentBlendMode.HasValue)
+        {
+            Raylib.EndBlendMode();
+            _currentBlendMode = null;
+        }
+
+        if (!CurrentShader.IsDefault)
+        {
+            Raylib.EndShaderMode();
+            CurrentShader = Shader.Default;
+        }
+
+        Rlgl.LoadIdentity();
+    }
+
+    public static void DrawCurrentBuffer()
+    {
+        Rlgl.DrawRenderBatchActive();
+    }
+
     #endregion
 
     #region Drawing
@@ -602,26 +661,7 @@ public sealed unsafe class Graphics
         var matrix = GetMatrix(camera);
         matrix *= Matrix3x2.CreateScale(scale) * Matrix3x2.CreateTranslation(offset);
         Rlgl.PushMatrix();
-        var float16 = stackalloc float[16]
-        {
-            matrix.M11,
-            matrix.M12,
-            0,
-            0,
-            matrix.M21,
-            matrix.M22,
-            0,
-            0,
-            0,
-            0,
-            1,
-            0,
-            matrix.M31,
-            matrix.M32,
-            0,
-            1,
-        };
-        Rlgl.MultMatrixf(float16);
+        Rlgl.MultMatrixf(Matrix4x4.Transpose(matrix.ToMatrix4x4()));
     }
 
     public void EndDrawing()
@@ -630,49 +670,6 @@ public sealed unsafe class Graphics
             throw new InvalidOperationException($"{nameof(BeginDrawing)} must be called before {nameof(EndDrawing)}.");
         _drawing = false;
         Rlgl.PopMatrix();
-    }
-
-    #endregion
-
-    #region Internal
-
-    internal static bool IsBufferCurrent(RenderTexture? buffer)
-    {
-        return _currentBuffer == buffer;
-    }
-
-    internal static void Reset()
-    {
-        if (_currentBuffer is not null)
-        {
-            Raylib.EndTextureMode();
-            _currentBuffer = null;
-        }
-
-        if (_currentClip.HasValue)
-        {
-            Raylib.EndScissorMode();
-            _currentClip = null;
-        }
-
-        if (_currentBlendMode.HasValue)
-        {
-            Raylib.EndBlendMode();
-            _currentBlendMode = null;
-        }
-
-        if (!CurrentShader.IsDefault)
-        {
-            Raylib.EndShaderMode();
-            CurrentShader = Shader.Default;
-        }
-
-        Rlgl.LoadIdentity();
-    }
-
-    internal static void DrawCurrentBuffer()
-    {
-        Rlgl.DrawRenderBatchActive();
     }
 
     #endregion

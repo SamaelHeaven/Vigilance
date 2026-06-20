@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Vigilance.Math;
 
@@ -435,9 +436,9 @@ public record struct Color
         return result;
     }
 
-    public readonly (float R, float G, float B, float A) Normalize()
+    public readonly Vector4 Normalize()
     {
-        return (R / 255.0f, G / 255.0f, B / 255.0f, A / 255.0f);
+        return new Vector4(R / 255.0f, G / 255.0f, B / 255.0f, A / 255.0f);
     }
 
     public readonly Color Or(Color value)

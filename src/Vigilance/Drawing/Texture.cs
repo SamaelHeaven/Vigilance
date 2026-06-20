@@ -51,6 +51,8 @@ public sealed unsafe class Texture : IDisposable
 
     public bool IsValid => Texture2D.Id != 0;
 
+    public bool IsRenderTexture => RenderTexture is not null;
+
     public Interpolation Interpolation
     {
         get;

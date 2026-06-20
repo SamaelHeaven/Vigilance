@@ -821,7 +821,7 @@ public abstract class UIElement : IFullCloneable
     {
         graphics.PushMatrix();
         graphics.Translate(transform.Position);
-        graphics.Scale(transform.Scale);
+        graphics.Scale(transform.Scale.Abs());
         graphics.Pivot(
             new Transform
             {
@@ -1159,7 +1159,7 @@ public abstract class UIElement : IFullCloneable
             data.OldMatrix = graphics.PopMatrix();
         graphics.PushMatrix();
         graphics.Translate(transform.Position + offset);
-        graphics.Scale(transform.Scale);
+        graphics.Scale(transform.Scale.Abs());
         graphics.Skew(element.Skew);
         graphics.Translate(-offset);
         graphics.Rotate(transform.Rotation, transform.PivotPoint + position + size * 0.5f);

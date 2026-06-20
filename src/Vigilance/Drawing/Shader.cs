@@ -276,7 +276,7 @@ public sealed unsafe partial class Shader : IDisposable
         Raylib.SetShaderValueTexture(RShader, GetLocation(uniform), texture.Texture2D);
     }
 
-    private int GetLocation(string uniform)
+    public int GetLocation(string uniform)
     {
         ref var location = ref CollectionsMarshal.GetValueRefOrAddDefault(_locations, uniform, out var exists);
         if (!exists)
