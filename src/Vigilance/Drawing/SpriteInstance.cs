@@ -19,9 +19,9 @@ public unsafe struct SpriteInstance : ISpriteInstance<SpriteInstance>
             layout(location = 4) in float instanceRotation;
             layout(location = 5) in vec2 instancePivotPoint;
             layout(location = 6) in vec4 instanceTint;
-            layout(location = 7) in int instanceFlipX;
-            layout(location = 8) in int instanceFlipY;
-            layout(location = 9) in int instanceHasSource;
+            layout(location = 7) in float instanceFlipX;
+            layout(location = 8) in float instanceFlipY;
+            layout(location = 9) in float instanceHasSource;
             layout(location = 10) in vec4 instanceSource;
 
             out vec2 fragTexCoord;
@@ -45,12 +45,12 @@ public unsafe struct SpriteInstance : ISpriteInstance<SpriteInstance>
 
             void main()
             {
-                vec4 source = instanceHasSource == 0 ? vec4(0, 0, textureSize) : instanceSource;
+                vec4 source = instanceHasSource > 0.5 ? instanceSource : vec4(0, 0, textureSize);
                 vec2 invTextureSize = 1.0 / textureSize;
-                float sw = instanceFlipX == 0 ? source.z : -source.z;
-                float sh = instanceFlipY == 0 ? source.w : -source.w;
+                float sw = instanceFlipX > 0.5 ? -source.z : source.z;
+                float sh = instanceFlipY > 0.5 ? -source.w : source.w;
                 float sx = source.x;
-                float sy = source.y < 0 ? source.y - sh : source.y;
+                float sy = source.y < 0.0 ? source.y - sh : source.y;
                 bool flipX = sw < 0.0;
                 sw = abs(sw);
                 float uLeft = sx * invTextureSize.x;
