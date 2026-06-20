@@ -5,7 +5,42 @@ using ZLinq;
 
 namespace Vigilance.Drawing;
 
-public sealed unsafe class VertexBuffer<T> : IValueListView<T>, IDisposable
+public static class VertexBuffer
+{
+    public static VertexBuffer<float> Quad()
+    {
+        var quad = new VertexBuffer<float>([
+            -0.5f,
+            -0.5f,
+            0f,
+            0f,
+            0.5f,
+            0.5f,
+            1f,
+            1f,
+            0.5f,
+            -0.5f,
+            1f,
+            0f,
+            -0.5f,
+            -0.5f,
+            0f,
+            0f,
+            -0.5f,
+            0.5f,
+            0f,
+            1f,
+            0.5f,
+            0.5f,
+            1f,
+            1f,
+        ]);
+        quad.Sync();
+        return quad;
+    }
+}
+
+public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDisposable
     where T : unmanaged
 {
     private ValueList<bool> _dirtyValues;
@@ -42,6 +77,8 @@ public sealed unsafe class VertexBuffer<T> : IValueListView<T>, IDisposable
 
     public uint Id { get; private set; } = 0;
 
+    public int Version { get; private set; } = 0;
+
     public bool IsValid => Id != 0;
 
     public void Dispose()
@@ -53,6 +90,8 @@ public sealed unsafe class VertexBuffer<T> : IValueListView<T>, IDisposable
 
     public int Count => _values.Count;
 
+    bool ICollection<T>.IsReadOnly => false;
+
     public T this[int index]
     {
         get => _values[index];
@@ -61,6 +100,49 @@ public sealed unsafe class VertexBuffer<T> : IValueListView<T>, IDisposable
             _values[index] = value;
             _dirtyValues[index] = true;
         }
+    }
+
+    void ICollection<T>.Add(T item)
+    {
+        Add(item);
+    }
+
+    public void Clear()
+    {
+        _values.Clear();
+        _dirtyValues.Clear();
+    }
+
+    bool ICollection<T>.Contains(T item)
+    {
+        return Contains(item);
+    }
+
+    public void CopyTo(T[] array, int arrayIndex)
+    {
+        _values.CopyTo(array, arrayIndex);
+    }
+
+    int IList<T>.IndexOf(T item)
+    {
+        return IndexOf(item);
+    }
+
+    void IList<T>.Insert(int index, T item)
+    {
+        Insert(index, item);
+    }
+
+    public void RemoveAt(int index)
+    {
+        _values.RemoveAt(index);
+        _dirtyValues.Count--;
+        _dirtyValues.AsSpan().Slice(index, _dirtyValues.Count - index).Fill(true);
+    }
+
+    bool ICollection<T>.Remove(T item)
+    {
+        return Remove(item);
     }
 
     public ReadOnlySpan<T> AsSpan()
@@ -78,24 +160,36 @@ public sealed unsafe class VertexBuffer<T> : IValueListView<T>, IDisposable
         return _values.AsValueEnumerable();
     }
 
-    public void Add(in T value)
+    public void Add(in T item)
     {
-        _values.Add(value);
+        _values.Add(item);
         _dirtyValues.Add(true);
     }
 
-    public void Clear()
+    public bool Contains(in T item)
     {
-        _values.Clear();
-        _dirtyValues.Clear();
+        return _values.Contains(item);
     }
 
-    public void RemoveAt(int index)
+    public int IndexOf(in T item)
     {
-        _values.RemoveAt(index);
-        _dirtyValues.Count--;
-        for (var i = index; i < _dirtyValues.Count; i++)
-            _dirtyValues[i] = true;
+        return _values.IndexOf(item);
+    }
+
+    public void Insert(int index, in T item)
+    {
+        _values.Insert(index, item);
+        _dirtyValues.Count++;
+        _dirtyValues.AsSpan().Slice(index, _dirtyValues.Count - index).Fill(true);
+    }
+
+    public bool Remove(in T item)
+    {
+        var index = _values.IndexOf(item);
+        if (index == -1)
+            return false;
+        RemoveAt(index);
+        return true;
     }
 
     public void Sync()
@@ -114,6 +208,7 @@ public sealed unsafe class VertexBuffer<T> : IValueListView<T>, IDisposable
                 Id = Rlgl.LoadVertexBuffer(buffer, _vboCapacity * sizeof(T), true);
             }
 
+            Version++;
             _dirtyValues.AsSpan().Clear();
             return;
         }
