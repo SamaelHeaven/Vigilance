@@ -83,31 +83,31 @@ public sealed class Triangle : Drawable<Triangle>
 
         public bool MoveNext()
         {
-            var newIndex = _index + 1;
-            if (newIndex >= 3)
-                return false;
-            _index = newIndex;
-            return true;
-        }
-
-        public void Reset()
-        {
-            _index = -1;
-        }
-
-        public readonly Vector2 Current
-        {
-            get
+            if ((uint)_index < 3)
             {
-                return _index switch
+                Current = _index switch
                 {
                     0 => _triangle.P1,
                     1 => _triangle.P2,
                     2 => _triangle.P3,
                     _ => throw new IndexOutOfRangeException(),
                 };
+                _index++;
+                return true;
             }
+
+            Current = default!;
+            _index = -1;
+            return false;
         }
+
+        public void Reset()
+        {
+            _index = 0;
+            Current = default;
+        }
+
+        public Vector2 Current { get; private set; }
 
         public void Dispose() { }
     }
@@ -119,8 +119,7 @@ public static class TriangleExtensions
     {
         public void FillTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color? color = null, Camera? camera = null)
         {
-            ReadOnlySpan<Vector2> span = stackalloc Vector2[] { v1, v2, v3 };
-            graphics.FillCustomPolygonSpan(span, color, camera);
+            graphics.FillCustomPolygonSpan([v1, v2, v3], color, camera);
         }
 
         public void StrokeTriangle(
@@ -132,8 +131,7 @@ public static class TriangleExtensions
             Camera? camera = null
         )
         {
-            ReadOnlySpan<Vector2> span = stackalloc Vector2[] { v1, v2, v3 };
-            graphics.StrokeCustomPolygonSpan(span, color, strokeWidth, camera);
+            graphics.StrokeCustomPolygonSpan([v1, v2, v3], color, strokeWidth, camera);
         }
 
         public void DrawTriangle(Triangle triangle)

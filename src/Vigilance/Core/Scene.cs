@@ -730,25 +730,25 @@ public sealed unsafe partial class Scene
         {
             while (true)
             {
-                var newIndex = _index + 1;
-                if (newIndex >= _scene._tables.Count)
+                if ((uint)_index < (uint)_scene._tables.Count)
                 {
-                    Current = null!;
-                    return false;
+                    var table = _scene._tables[_index];
+                    _index++;
+                    if (!_withHidden && table.IsHidden)
+                        continue;
+                    Current = table;
+                    return true;
                 }
 
-                _index = newIndex;
-                var table = _scene._tables[newIndex];
-                if (!_withHidden && table.IsHidden)
-                    continue;
-                Current = table;
-                return true;
+                Current = null!;
+                _index = -1;
+                return false;
             }
         }
 
         public void Reset()
         {
-            _index = -1;
+            _index = 0;
             Current = null!;
         }
 
@@ -866,17 +866,21 @@ public sealed unsafe partial class Scene
 
         public bool MoveNext()
         {
-            var newIndex = _index + 1;
-            if (newIndex >= _scene._systems.Count)
-                return false;
-            _index = newIndex;
-            Current = _scene._systems[_index];
-            return true;
+            if ((uint)_index < (uint)_scene._systems.Count)
+            {
+                Current = _scene._systems[_index];
+                _index++;
+                return true;
+            }
+
+            Current = null!;
+            _index = -1;
+            return false;
         }
 
         public void Reset()
         {
-            _index = -1;
+            _index = 0;
             Current = null!;
         }
 

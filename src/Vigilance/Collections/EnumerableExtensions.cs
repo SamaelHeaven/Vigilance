@@ -85,17 +85,16 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
         private List<T>.Enumerator _listEnumerator;
         private bool _hasListEnumerator;
         private int _index;
-        private T _current = default!;
 
         internal Enumerator(in FastEnumerable<T> enumerable)
         {
             _enumerable = enumerable;
             _listEnumerator = default;
             _hasListEnumerator = false;
-            _index = -1;
+            _index = 0;
         }
 
-        public T Current => _current;
+        public T Current { get; private set; } = default!;
 
         public bool MoveNext()
         {
@@ -104,12 +103,16 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
                 case SourceKind.Array:
                 {
                     var array = _enumerable._array!;
-                    var newIndex = _index + 1;
-                    if (newIndex >= array.Length)
-                        return false;
-                    _index = newIndex;
-                    _current = array[newIndex];
-                    return true;
+                    if ((uint)_index < (uint)array.Length)
+                    {
+                        Current = array[_index];
+                        _index++;
+                        return true;
+                    }
+
+                    Current = default!;
+                    _index = -1;
+                    return false;
                 }
                 case SourceKind.List:
                 {
@@ -121,24 +124,28 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
 
                     if (!_listEnumerator.MoveNext())
                         return false;
-                    _current = _listEnumerator.Current;
+                    Current = _listEnumerator.Current;
                     return true;
                 }
                 case SourceKind.IReadOnlySpan:
                 {
                     var span = _enumerable._span!.AsSpan();
-                    var newIndex = _index + 1;
-                    if (newIndex >= span.Length)
-                        return false;
-                    _index = newIndex;
-                    _current = span[newIndex];
-                    return true;
+                    if ((uint)_index < (uint)span.Length)
+                    {
+                        Current = span[_index];
+                        _index++;
+                        return true;
+                    }
+
+                    Current = default!;
+                    _index = -1;
+                    return false;
                 }
                 default:
                     _enumerator ??= _enumerable._enumerable!.GetEnumerator();
                     if (!_enumerator.MoveNext())
                         return false;
-                    _current = _enumerator.Current;
+                    Current = _enumerator.Current;
                     return true;
             }
         }
@@ -147,7 +154,7 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
         {
             if (MoveNext())
             {
-                current = _current;
+                current = Current;
                 return true;
             }
 
@@ -216,8 +223,8 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
             _listEnumerator.Dispose();
             _listEnumerator = default;
             _hasListEnumerator = false;
-            _index = -1;
-            _current = default!;
+            _index = 0;
+            Current = default!;
         }
     }
 }
