@@ -90,8 +90,8 @@ public abstract class Table
 [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
 public sealed class Table<T>
     : Table,
-        IStructEnumerable<Table<T>.Enumerator, KeyValuePair<Entity, T>>,
-        IReadOnlyList<KeyValuePair<Entity, T>>
+        IReadOnlyList<KeyValuePair<Entity, T>>,
+        IStructEnumerable<Table<T>.Enumerator, KeyValuePair<Entity, T>>
 {
     private const int SparseChunkSize = 2048;
     private Action<Entity, T>? _addAction;
