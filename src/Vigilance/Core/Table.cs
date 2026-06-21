@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Logging;
 using ZLinq;
@@ -90,6 +91,7 @@ public abstract class Table
 [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
 public sealed class Table<T>
     : Table,
+        IReadOnlyDictionary<Entity, T>,
         IReadOnlyList<KeyValuePair<Entity, T>>,
         IStructEnumerable<Table<T>.Enumerator, KeyValuePair<Entity, T>>
 {
@@ -148,6 +150,31 @@ public sealed class Table<T>
     public ValueListView<T> Components => _components;
 
     public override int Count => _components.Count;
+
+    bool IReadOnlyDictionary<Entity, T>.ContainsKey(Entity key)
+    {
+        return Has(key);
+    }
+
+    bool IReadOnlyDictionary<Entity, T>.TryGetValue(Entity key, [MaybeNullWhen(false)] out T value)
+    {
+        var component = GetRef(key);
+        if (component.IsNull)
+        {
+            Unsafe.SkipInit(out value);
+            return false;
+        }
+
+        value = component.Read;
+        return true;
+    }
+
+    T IReadOnlyDictionary<Entity, T>.this[Entity key] => GetRef(key);
+
+    IEnumerable<Entity> IReadOnlyDictionary<Entity, T>.Keys =>
+        _entityIds.Select(entityId => new Entity(entityId, Scene));
+
+    IEnumerable<T> IReadOnlyDictionary<Entity, T>.Values => _components.AsReadOnly();
 
     public KeyValuePair<Entity, T> this[int index] => new(new Entity(_entityIds[index], Scene), _components[index]);
 

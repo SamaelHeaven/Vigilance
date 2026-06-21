@@ -26,6 +26,7 @@ public class SparseSet<TKey, TItem> : SparseSet<TKey, TItem, ValueList<TItem>>
 
 public class SparseSet<TKey, TValue, TStorage>
     : IDictionary<TKey, TValue>,
+        IReadOnlyDictionary<TKey, TValue>,
         IReadOnlyList<KeyValuePair<TKey, TValue>>,
         IStructEnumerable<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>
     where TStorage : IList<TValue>
@@ -206,6 +207,31 @@ public class SparseSet<TKey, TValue, TStorage>
             AssertValid();
             this[key] = value;
         }
+    }
+
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => _keys.AsReadOnly();
+
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => _values.AsReadOnly();
+
+    bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    {
+        AssertValid();
+        return TryGetValue(key, out value);
+    }
+
+    TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key]
+    {
+        get
+        {
+            AssertValid();
+            return this[key];
+        }
+    }
+
+    bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
+    {
+        AssertValid();
+        return ContainsKey(key);
     }
 
     public KeyValuePair<TKey, TValue> this[int index]

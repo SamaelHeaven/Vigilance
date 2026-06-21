@@ -43,7 +43,8 @@ public static class VertexBuffer
 public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDisposable
     where T : unmanaged
 {
-    private ValueList<bool> _dirtyValues;
+    private int _dirtyEnd = 0;
+    private int _dirtyStart = int.MaxValue;
     private ValueList<T> _values;
     private int _vboCapacity = 0;
 
@@ -51,28 +52,24 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     {
         Game.ThrowIfNotRunning();
         _values = [];
-        _dirtyValues = [];
     }
 
     public VertexBuffer(int capacity)
     {
         Game.ThrowIfNotRunning();
         _values = new ValueList<T>(capacity);
-        _dirtyValues = new ValueList<bool>(capacity);
     }
 
     public VertexBuffer(in ReadOnlySpan<T> values)
     {
         Game.ThrowIfNotRunning();
         _values = values.AsValueEnumerable().ToValueList();
-        _dirtyValues = new ValueList<bool>(_values.Count) { Count = _values.Count };
     }
 
     public VertexBuffer(in IEnumerable<T> values)
     {
         Game.ThrowIfNotRunning();
         _values = values.AsValueEnumerable().ToValueList();
-        _dirtyValues = new ValueList<bool>(_values.Count) { Count = _values.Count };
     }
 
     public uint Id { get; private set; } = 0;
@@ -98,7 +95,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
         set
         {
             _values[index] = value;
-            _dirtyValues[index] = true;
+            MarkDirty(index, index + 1);
         }
     }
 
@@ -110,7 +107,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     public void Clear()
     {
         _values.Clear();
-        _dirtyValues.Clear();
+        ClearDirty();
     }
 
     bool ICollection<T>.Contains(T item)
@@ -136,8 +133,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     public void RemoveAt(int index)
     {
         _values.RemoveAt(index);
-        _dirtyValues.Count--;
-        _dirtyValues.AsSpan().Slice(index, _dirtyValues.Count - index).Fill(true);
+        MarkDirty(index, _values.Count);
     }
 
     bool ICollection<T>.Remove(T item)
@@ -163,7 +159,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     public void Add(in T item)
     {
         _values.Add(item);
-        _dirtyValues.Add(true);
+        MarkDirty(_values.Count - 1, _values.Count);
     }
 
     public bool Contains(in T item)
@@ -179,8 +175,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     public void Insert(int index, in T item)
     {
         _values.Insert(index, item);
-        _dirtyValues.Count++;
-        _dirtyValues.AsSpan().Slice(index, _dirtyValues.Count - index).Fill(true);
+        MarkDirty(index, _values.Count);
     }
 
     public bool Remove(in T item)
@@ -209,34 +204,40 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
             }
 
             Version++;
-            _dirtyValues.AsSpan().Clear();
+            ClearDirty();
             return;
         }
 
         var span = _values.AsSpan();
-        var dirty = _dirtyValues.AsSpan();
-        var i = 0;
-        var count = span.Length;
-        var isDirty = false;
-        while (i < count)
+        var start = _dirtyStart;
+        var end = System.Math.Min(_dirtyEnd, span.Length);
+        if (start >= end)
         {
-            while (i < count && !dirty[i])
-                i++;
-            if (i >= count)
-                break;
-            isDirty = true;
-            var start = i;
-            while (i < count && dirty[i])
-                i++;
-            var length = i - start;
-            fixed (T* ptr = &span[start])
-            {
-                Rlgl.UpdateVertexBuffer(Id, ptr, length * sizeof(T), start * sizeof(T));
-            }
+            ClearDirty();
+            return;
         }
 
-        if (isDirty)
-            dirty.Clear();
+        var length = end - start;
+        fixed (T* ptr = &span[start])
+        {
+            Rlgl.UpdateVertexBuffer(Id, ptr, length * sizeof(T), start * sizeof(T));
+        }
+
+        ClearDirty();
+    }
+
+    private void MarkDirty(int start, int end)
+    {
+        if (start < _dirtyStart)
+            _dirtyStart = start;
+        if (end > _dirtyEnd)
+            _dirtyEnd = end;
+    }
+
+    private void ClearDirty()
+    {
+        _dirtyStart = int.MaxValue;
+        _dirtyEnd = 0;
     }
 
     private void ReleaseUnmanagedResources()
