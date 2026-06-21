@@ -617,21 +617,21 @@ public sealed unsafe partial class Scene
         Table<T>().OnAdd(action);
     }
 
-    public void OnChange<T>(Action<Entity> action)
+    public void OnAddOrSet<T>(Action<Entity> action)
     {
         ThrowIfInitialized();
         Table<T>().OnAdd((entity, _) => action.Invoke(entity));
         Table<T>().OnSet((entity, _, _) => action.Invoke(entity));
     }
 
-    public void OnChange<T>(Action<T> action)
+    public void OnAddOrSet<T>(Action<T> action)
     {
         ThrowIfInitialized();
         Table<T>().OnAdd((_, value) => action.Invoke(value));
         Table<T>().OnSet((_, _, value) => action.Invoke(value));
     }
 
-    public void OnChange<T>(Action<Entity, T> action)
+    public void OnAddOrSet<T>(Action<Entity, T> action)
     {
         ThrowIfInitialized();
         Table<T>().OnAdd(action);

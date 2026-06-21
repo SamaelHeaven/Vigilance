@@ -49,7 +49,7 @@ public abstract class Table
 
     public abstract bool WriteImmutable { get; }
 
-    public abstract ReadOnlySpan<ulong> EntityIds { get; }
+    public abstract ValueListView<ulong> EntityIds { get; }
 
     public abstract bool Has(in Entity entity);
 
@@ -141,9 +141,9 @@ public sealed class Table<T> : Table
 
     public override bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public override ReadOnlySpan<ulong> EntityIds => _entityIds.AsSpan();
+    public override ValueListView<ulong> EntityIds => _entityIds;
 
-    public ReadOnlySpan<T> Components => _components.AsSpan();
+    public ValueListView<T> Components => _components;
 
     public void Enqueue(in Event<T> tableEvent)
     {
@@ -299,7 +299,7 @@ public sealed class Table<T> : Table
         if (chunkIndex >= _sparseChunks.Count)
             return ComponentRef<T>.Null;
         var chunk = _sparseChunks[chunkIndex];
-        if (chunk == null)
+        if (chunk is null)
             return ComponentRef<T>.Null;
         var withinChunk = entity.Index % SparseChunkSize;
         var sparseValue = chunk[withinChunk];
