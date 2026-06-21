@@ -3,7 +3,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Collections;
 
-public class SparseSet<TKey, TItem> : SparseSet<TKey, TItem, List<TItem>>
+public sealed class SparseSet<TKey, TItem> : SparseSet<TKey, TItem, List<TItem>>
 {
     public SparseSet(Func<TKey, int> keyIndexFunc)
         : base([], keyIndexFunc) { }
