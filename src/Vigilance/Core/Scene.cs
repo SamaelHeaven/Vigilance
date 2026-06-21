@@ -1191,7 +1191,7 @@ public sealed unsafe partial class Scene
         if (parentRef.IsNull)
         {
             SuspendDefer();
-            parentRef = ParentTable.Set(parentEntity, new Parent());
+            parentRef = ParentTable.Set(parentEntity, new Parent(), Core.Table.Flags.ForceMutable);
             ResumeDefer();
         }
 
@@ -1261,7 +1261,7 @@ public sealed unsafe partial class Scene
         }
 
         if (parent.FirstChildId == 0)
-            ParentTable.Remove(parentEntity);
+            ParentTable.Remove(parentEntity, Core.Table.Flags.ForceMutable);
     }
 
     private void OnRemoveParent(Parent parent)
