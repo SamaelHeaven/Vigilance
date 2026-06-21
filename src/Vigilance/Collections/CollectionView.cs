@@ -847,19 +847,25 @@ public struct ArrayEnumerator<TValue> : IStructEnumerator<TValue>
 
     public bool MoveNext()
     {
-        var newIndex = _index + 1;
-        if (newIndex >= _array.Length)
-            return false;
-        _index = newIndex;
-        return true;
+        if ((uint)_index < (uint)_array.Length)
+        {
+            Current = _array[_index];
+            _index++;
+            return true;
+        }
+
+        Current = default!;
+        _index = -1;
+        return false;
     }
 
     public void Reset()
     {
-        _index = -1;
+        _index = 0;
+        Current = default!;
     }
 
-    public readonly TValue Current => _array[_index];
+    public TValue Current { get; private set; } = default!;
 
     public void Dispose() { }
 
@@ -882,19 +888,26 @@ public struct SpanViewEnumerator<TValue> : IStructEnumerator<TValue>, ISpanView<
 
     public bool MoveNext()
     {
-        var newIndex = _index + 1;
-        if (newIndex >= _spanView.AsSpan().Length)
-            return false;
-        _index = newIndex;
-        return true;
+        var span = _spanView.AsSpan();
+        if ((uint)_index < (uint)span.Length)
+        {
+            Current = span[_index];
+            _index++;
+            return true;
+        }
+
+        Current = default!;
+        _index = -1;
+        return false;
     }
 
     public void Reset()
     {
-        _index = -1;
+        _index = 0;
+        Current = default!;
     }
 
-    public readonly TValue Current => _spanView.AsSpan()[_index];
+    public TValue Current { get; private set; } = default!;
 
     public void Dispose() { }
 

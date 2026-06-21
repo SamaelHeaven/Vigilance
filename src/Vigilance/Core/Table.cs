@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Vigilance.Collections;
 using Vigilance.Logging;
+using ZLinq;
 
 namespace Vigilance.Core;
 
@@ -87,7 +88,10 @@ public abstract class Table
 }
 
 [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
-public sealed class Table<T> : Table
+public sealed class Table<T>
+    : Table,
+        IReadOnlyList<KeyValuePair<Entity, T>>,
+        IStructEnumerable<Table<T>.Enumerator, KeyValuePair<Entity, T>>
 {
     private const int SparseChunkSize = 2048;
     private Action<Entity, T>? _addAction;
@@ -109,8 +113,6 @@ public sealed class Table<T> : Table
     public override Scene Scene { get; }
 
     public override Type Type { get; } = typeof(T);
-
-    public override int Count => _components.Count;
 
     public override int Capacity
     {
@@ -144,6 +146,23 @@ public sealed class Table<T> : Table
     public override ValueListView<ulong> EntityIds => _entityIds;
 
     public ValueListView<T> Components => _components;
+
+    public override int Count => _components.Count;
+
+    public KeyValuePair<Entity, T> this[int index] => new(new Entity(_entityIds[index], Scene), _components[index]);
+
+    public Enumerator GetEnumerator()
+    {
+        return new Enumerator(this);
+    }
+
+    public ValueEnumerable<
+        StructEnumerator<Enumerator, KeyValuePair<Entity, T>>,
+        KeyValuePair<Entity, T>
+    > AsValueEnumerable()
+    {
+        return new StructEnumerator<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
+    }
 
     public void Enqueue(in Event<T> tableEvent)
     {
@@ -417,4 +436,43 @@ public sealed class Table<T> : Table
     }
 
     private readonly record struct Operation(OperationType Type, Entity Entity, T Value);
+
+    public struct Enumerator : IStructEnumerator<KeyValuePair<Entity, T>>
+    {
+        private readonly Table<T> _table;
+        private int _index;
+
+        internal Enumerator(Table<T> table)
+        {
+            _table = table;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            if ((uint)_index < (uint)_table._entityIds.Count)
+            {
+                Current = new KeyValuePair<Entity, T>(
+                    new Entity(_table._entityIds[_index], _table.Scene),
+                    _table._components[_index]
+                );
+                _index++;
+                return true;
+            }
+
+            Current = default;
+            _index = -1;
+            return false;
+        }
+
+        public KeyValuePair<Entity, T> Current { get; private set; }
+
+        public void Reset()
+        {
+            _index = 0;
+            Current = default;
+        }
+
+        public void Dispose() { }
+    }
 }

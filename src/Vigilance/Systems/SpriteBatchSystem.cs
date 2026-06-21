@@ -9,7 +9,7 @@ namespace Vigilance.Systems;
 
 public sealed class SpriteBatchSystem : GameSystem
 {
-    private readonly Dictionary<SpriteBatch, SparseSet<Entity, SpriteInstance, SpriteBatch>> _batches = new();
+    private readonly Dictionary<SpriteBatch, EntitySparseSet<SpriteInstance, SpriteBatch>> _batches = new();
 
     public override void Configure()
     {
@@ -32,18 +32,14 @@ public sealed class SpriteBatchSystem : GameSystem
     {
         ref var instances = ref CollectionsMarshal.GetValueRefOrAddDefault(_batches, sprite.Batch, out var exists)!;
         if (!exists)
-            instances = new SparseSet<Entity, SpriteInstance, SpriteBatch>(sprite.Batch, e => e.Index);
-        instances.Set(entity, sprite.Instance with { Transform = sprite.Instance.Transform + entity.WorldTransform });
+            instances = new EntitySparseSet<SpriteInstance, SpriteBatch>(sprite.Batch);
+        instances[entity] = sprite.Instance with { Transform = sprite.Instance.Transform + entity.WorldTransform };
     }
 
     private void SetSprite(Entity entity, BatchedSprite oldSprite, BatchedSprite newSprite)
     {
         if (oldSprite.Batch != newSprite.Batch)
-        {
             RemoveSprite(entity, oldSprite);
-            return;
-        }
-
         UpdateSprite(entity, newSprite);
     }
 

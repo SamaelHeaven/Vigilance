@@ -254,23 +254,29 @@ public abstract class UIParent : UIElement
 
         public bool MoveNext()
         {
-            var newIndex = _index + 1;
-            if (newIndex >= _parent.ChildrenList.Count)
-                return false;
-            _index = newIndex;
-            return true;
+            if ((uint)_index < (uint)_parent.ChildrenList.Count)
+            {
+                Current = _parent.ChildrenList[_index];
+                _index++;
+                return true;
+            }
+
+            Current = null!;
+            _index = -1;
+            return false;
         }
 
         public void Reset()
         {
             Dispose();
-            _index = -1;
+            _index = 0;
+            Current = null!;
             _disposed = false;
             if (_deferred)
                 _parent.BeginDefer();
         }
 
-        public UIElement Current => _parent.ChildrenList[_index];
+        public UIElement Current { get; private set; } = null!;
 
         public void Dispose()
         {
