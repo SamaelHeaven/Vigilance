@@ -3,6 +3,7 @@ using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.Systems;
 
@@ -22,8 +23,9 @@ public sealed class SpriteBatchSystem : GameSystem
 
     private void TryUpdateSprite(Entity entity)
     {
-        if (entity.TryGet(out BatchedSprite sprite))
-            UpdateSprite(entity, sprite);
+        foreach (var child in entity.DescendantsAndSelf())
+            if (child.TryGet(out BatchedSprite sprite))
+                UpdateSprite(child, sprite);
     }
 
     private void UpdateSprite(Entity entity, BatchedSprite sprite)
