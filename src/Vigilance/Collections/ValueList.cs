@@ -3,11 +3,10 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Vigilance.Core;
 using ZLinq;
-using ZLinq.Linq;
 
 namespace Vigilance.Collections;
 
-public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator, T>, ISpanView<T>
+public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator, T>, IReadOnlySpan<T>
 {
     private const int DefaultCapacity = 4;
 
@@ -126,16 +125,6 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
     readonly ValueEnumerable<StructEnumerator<Enumerator, T>, T> IStructEnumerable<Enumerator, T>.AsValueEnumerable()
     {
         return new StructEnumerator<Enumerator, T>(GetEnumerator());
-    }
-
-    readonly ValueEnumerable<FromSpan<T>, T> ISpanView<T>.AsValueEnumerable()
-    {
-        return _items.AsSpan().AsValueEnumerable();
-    }
-
-    readonly ValueEnumerator<FromSpan<T>, T> ISpanView<T>.GetEnumerator()
-    {
-        return new ValueEnumerator<FromSpan<T>, T>(_items.AsSpan().AsValueEnumerable().Enumerator);
     }
 
     readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
@@ -726,6 +715,7 @@ public static class ValueListExtensions
                 result.Capacity = count;
                 result.Count = count;
             }
+
             if (
                 enumerator.TryCopyTo(result.AsSpan(), 0)
                 || (enumerator.TryGetSpan(out var span) && span.TryCopyTo(result.AsSpan()))

@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-public enum Viewport
+public enum Viewport : byte
 {
     Fit,
     Stretch,

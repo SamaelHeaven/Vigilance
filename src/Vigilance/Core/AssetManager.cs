@@ -9,8 +9,6 @@ public static class TextureAssetManager
 {
     private static readonly Asset.Container<string, Texture> _container = new();
 
-    public static Action<Texture>? OnInvalidate { get; set; }
-
     extension(Texture)
     {
         public static Texture File(string path, CacheType? cacheType = null)
@@ -63,20 +61,12 @@ public static class TextureAssetManager
                 out texture
             );
         }
-
-        public static void Invalidate(Texture texture)
-        {
-            _container.Invalidate(texture);
-            OnInvalidate?.Invoke(texture);
-        }
     }
 }
 
 public static class ImageAssetManager
 {
     private static readonly Asset.Container<string, Image> _container = new();
-
-    public static Action<Image>? OnInvalidate { get; set; }
 
     extension(Image)
     {
@@ -130,20 +120,12 @@ public static class ImageAssetManager
                 out image
             );
         }
-
-        public static void Invalidate(Image image)
-        {
-            _container.Invalidate(image);
-            OnInvalidate?.Invoke(image);
-        }
     }
 }
 
 public static class FontAssetManager
 {
     private static readonly Asset.Container<(string Key, int Quality, string Charset), Font> _container = new();
-
-    public static Action<Font>? OnInvalidate { get; set; }
 
     extension(Font)
     {
@@ -207,20 +189,12 @@ public static class FontAssetManager
                 out font
             );
         }
-
-        public static void Invalidate(Font font)
-        {
-            _container.Invalidate(font);
-            OnInvalidate?.Invoke(font);
-        }
     }
 }
 
 public static class MusicAssetManager
 {
     private static readonly Asset.Container<string, Music> _container = new();
-
-    public static Action<Music>? OnInvalidate { get; set; }
 
     extension(Music)
     {
@@ -274,20 +248,12 @@ public static class MusicAssetManager
                 out music
             );
         }
-
-        public static void Invalidate(Music music)
-        {
-            _container.Invalidate(music);
-            OnInvalidate?.Invoke(music);
-        }
     }
 }
 
 public static class SoundAssetManager
 {
     private static readonly Asset.Container<(string Key, int MaxAliases), Sound> _container = new();
-
-    public static Action<Sound>? OnInvalidate { get; set; }
 
     extension(Sound)
     {
@@ -352,20 +318,12 @@ public static class SoundAssetManager
                 out sound
             );
         }
-
-        public static void Invalidate(Sound sound)
-        {
-            _container.Invalidate(sound);
-            OnInvalidate?.Invoke(sound);
-        }
     }
 }
 
 public static class ShaderAssetManager
 {
     private static readonly Asset.Container<(string? VertexKey, string? FragmentKey), Shader> _container = new();
-
-    public static Action<Shader>? OnInvalidate { get; set; }
 
     extension(Shader)
     {
@@ -516,12 +474,6 @@ public static class ShaderAssetManager
         {
             _container.Raw((vertex, fragment), () => new Shader(vertex, fragment), cacheType, out var value);
             return value!;
-        }
-
-        public static void Invalidate(Shader shader)
-        {
-            _container.Invalidate(shader);
-            OnInvalidate?.Invoke(shader);
         }
     }
 }

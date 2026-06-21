@@ -10,7 +10,7 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
 
     public override void Update()
     {
-        foreach (var (entity, element) in Entries<UIElement>())
+        foreach (var (entity, element) in AssignableEntries<UIElement>())
         {
             if (!element.IsLayoutReady)
                 element.CalculateLayout();
@@ -21,9 +21,9 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
 
     public override void Render(RenderCommands commands)
     {
-        commands.AddRange<UISystem, UIElement>(
+        commands.AddAssignableEntries<UISystem, UIElement>(
             this,
-            static (system, entity, element) => element.Render(entity.WorldTransform, system.Graphics)
+            (system, entity, element) => element.Render(entity.WorldTransform, system.Graphics)
         );
     }
 }

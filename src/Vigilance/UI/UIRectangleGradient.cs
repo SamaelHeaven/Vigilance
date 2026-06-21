@@ -87,6 +87,6 @@ public class UIRectangleGradient : UIContainer
 
     protected override void OnClone()
     {
-        _rectangle = _rectangle.ShallowClone();
+        _rectangle = _rectangle.DeepClone();
     }
 }

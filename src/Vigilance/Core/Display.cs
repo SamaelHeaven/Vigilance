@@ -512,7 +512,7 @@ public static unsafe class Display
         var height = (int)(
             _config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent ? _config.Size.Y : _config.ScreenSize.Y
         );
-        var logLevel = Log.SetLogLevel(LogLevel.Info);
+        var logLevel = Log.SetLogLevel(Log.LogLevel.Max(LogLevel.Info));
         Raylib.InitWindow(width, height, _config.Title);
         Log.LogLevel = logLevel;
         if (OperatingSystem.IsWindows())

@@ -24,7 +24,7 @@ public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
         Action? completeAction = null
     )
     {
-        _frames = frames.AsValueEnumerable().ToArray();
+        _frames = frames.ToArray();
         if (_frames.Length == 0)
             throw new ArgumentException($"{nameof(SpriteAnimation)} must have at least one frame.");
         _nextIndex = null;

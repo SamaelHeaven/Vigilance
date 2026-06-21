@@ -19,10 +19,10 @@ public sealed unsafe partial class Scene
     private readonly GameSystemsFunc _systemsFunc;
     private Action? _deferredAction;
     private Action<Entity>? _destroyAction;
-    private ValueList<(int Index, int Version)> _entities = [];
-    private ValueQueue<Event> _events = [];
+    private Collections.ValueList<(int Index, int Version)> _entities = [];
+    private Collections.ValueQueue<Event> _events = [];
     private Action? _fixedUpdateAction;
-    private ValueQueue<int> _freeIndices = [];
+    private Collections.ValueQueue<int> _freeIndices = [];
     private Action? _initializeAction;
     private Action<Entity>? _instantiateAction;
     private bool _isEndingDefer;
@@ -34,8 +34,8 @@ public sealed unsafe partial class Scene
     private Action? _preRenderAction;
     private Action? _preUpdateAction;
     private Action<RenderCommands>? _renderAction;
-    private ValueList<RenderComponents?> _sparseRenderComponentsList = [];
-    private ValueList<Table?> _sparseTables = [];
+    private Collections.ValueList<RenderComponents?> _sparseRenderComponentsList = [];
+    private Collections.ValueList<Table?> _sparseTables = [];
     private Action? _startAction;
     private bool _started;
     private Action? _stopAction;
@@ -45,6 +45,7 @@ public sealed unsafe partial class Scene
     private Action? _updateAction;
     internal Table<Child> ChildTable;
     internal Table<Disabled> DisabledTable;
+    internal Table<EntityTag> EntityTagTable;
     internal Table<Name> NameTable;
     internal Table<Parent> ParentTable;
     internal Table<PivotPoint> PivotPointTable;
@@ -61,6 +62,7 @@ public sealed unsafe partial class Scene
     {
         _entities.Add((0, 0));
         _systemsFunc = systems ?? Array.Empty<IGameSystem>;
+        EntityTagTable = Table<EntityTag>();
         NameTable = Table<Name>();
         ZIndexTable = Table<ZIndex>();
         PositionTable = Table<Position>();
@@ -125,10 +127,10 @@ public sealed unsafe partial class Scene
         return new SystemEnumerable<T>(this);
     }
 
-    public T System<T>()
+    public T? System<T>()
         where T : IGameSystem
     {
-        return _systems.AsValueEnumerable().OfType<T>().FirstOrDefault()!;
+        return _systems.AsValueEnumerable().OfType<T>().FirstOrDefault();
     }
 
     public void Restart()
@@ -157,7 +159,7 @@ public sealed unsafe partial class Scene
         }
     }
 
-    public Entity Entity(string name = "")
+    public Entity Entity(string? name = null)
     {
         ThrowIfNotInitialized();
         ulong id;
@@ -174,12 +176,14 @@ public sealed unsafe partial class Scene
             id = Core.Entity.GetId(_entities.Count, 0);
         }
 
-        name = name.Trim();
-        if (name.IsEmpty)
-            name = $"#{id}";
-        ref var nameId = ref CollectionsMarshal.GetValueRefOrAddDefault(_nameMap, name, out var exists);
-        if (exists)
-            throw new InvalidOperationException($"Entity \"{name}\" already exists.");
+        if (name is not null)
+        {
+            ref var nameId = ref CollectionsMarshal.GetValueRefOrAddDefault(_nameMap, name, out var exists);
+            if (exists)
+                throw new InvalidOperationException($"Entity \"{name}\" already exists.");
+            nameId = id;
+        }
+
         if (recycle)
         {
             info.Index = Core.Entity.GetIndex(id);
@@ -191,16 +195,11 @@ public sealed unsafe partial class Scene
             _entities.Add((_entities.Count, 0));
         }
 
-        nameId = id;
         var entity = new Entity(id, this);
         SuspendDefer();
-        NameTable.Set(entity, new Name(name));
-        ZIndexTable.Set(entity, new ZIndex());
-        PositionTable.Set(entity, new Position());
-        ScaleTable.Set(entity, new Scale());
-        RotationTable.Set(entity, new Rotation());
-        PivotPointTable.Set(entity, new PivotPoint());
-        TransformTable.Set(entity, new Transform());
+        EntityTagTable.Set(entity, new EntityTag());
+        if (name is not null)
+            NameTable.Set(entity, new Name(name), Core.Table.Flags.ForceMutable);
         ResumeDefer();
         if (!Scope.IsNull)
             ChildTable.Set(entity, new Child(Scope.Id));
@@ -536,7 +535,7 @@ public sealed unsafe partial class Scene
 
     internal bool IsValid(in Entity entity)
     {
-        if (entity.Index == 0 || entity.Index >= _entities.Count)
+        if ((uint)entity.Index == 0 || entity.Index >= _entities.Count)
             return false;
         var info = _entities[entity.Index];
         return info.Index == entity.Index && info.Version == entity.Version;
@@ -729,16 +728,22 @@ public sealed unsafe partial class Scene
 
         public bool MoveNext()
         {
-            do
+            while (true)
             {
                 var newIndex = _index + 1;
                 if (newIndex >= _scene._tables.Count)
+                {
+                    Current = null!;
                     return false;
-                _index = newIndex;
-                Current = _scene._tables[newIndex];
-            } while (!_withHidden && Current.IsHidden);
+                }
 
-            return true;
+                _index = newIndex;
+                var table = _scene._tables[newIndex];
+                if (!_withHidden && table.IsHidden)
+                    continue;
+                Current = table;
+                return true;
+            }
         }
 
         public void Reset()
@@ -1008,67 +1013,163 @@ public sealed unsafe partial class Scene
     private void OnSetPosition(Entity entity, Position position)
     {
         ref var transform = ref TransformTable.GetRef(entity).Value;
-        var oldTransform = transform;
-        if (Precision.AreEqual(oldTransform.Position, position))
+        var nullTransform = Unsafe.IsNullRef(ref transform);
+        var oldTransform = nullTransform ? new Transform() : transform;
+        if (!nullTransform && Precision.AreEqual(oldTransform.Position, position))
             return;
-        transform.Position = position;
+        if (nullTransform)
+        {
+            SuspendDefer();
+            transform = ref TransformTable.Set(entity, new Transform { Position = position }).Value;
+            ResumeDefer();
+        }
+        else
+        {
+            transform.Position = position;
+        }
+
         TransformTable.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
     private void OnSetScale(Entity entity, Scale scale)
     {
         ref var transform = ref TransformTable.GetRef(entity).Value;
-        var oldTransform = transform;
-        if (Precision.AreEqual(oldTransform.Scale, scale))
+        var nullTransform = Unsafe.IsNullRef(ref transform);
+        var oldTransform = nullTransform ? new Transform() : transform;
+        if (!nullTransform && Precision.AreEqual(oldTransform.Scale, scale))
             return;
-        transform.Scale = scale;
+        if (nullTransform)
+        {
+            SuspendDefer();
+            transform = ref TransformTable.Set(entity, new Transform { Scale = scale }).Value;
+            ResumeDefer();
+        }
+        else
+        {
+            transform.Scale = scale;
+        }
+
         TransformTable.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
     private void OnSetRotation(Entity entity, Rotation rotation)
     {
         ref var transform = ref TransformTable.GetRef(entity).Value;
-        var oldTransform = transform;
-        if (Precision.AreEqual(oldTransform.Rotation, rotation))
+        var nullTransform = Unsafe.IsNullRef(ref transform);
+        var oldTransform = nullTransform ? new Transform() : transform;
+        if (!nullTransform && Precision.AreEqual(oldTransform.Rotation, rotation))
             return;
-        transform.Rotation = rotation;
+        if (nullTransform)
+        {
+            SuspendDefer();
+            transform = ref TransformTable.Set(entity, new Transform { Rotation = rotation }).Value;
+            ResumeDefer();
+        }
+        else
+        {
+            transform.Rotation = rotation;
+        }
+
         TransformTable.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
     private void OnSetPivotPoint(Entity entity, PivotPoint pivotPoint)
     {
         ref var transform = ref TransformTable.GetRef(entity).Value;
-        var oldTransform = transform;
-        if (Precision.AreEqual(oldTransform.PivotPoint, pivotPoint))
+        var nullTransform = Unsafe.IsNullRef(ref transform);
+        var oldTransform = nullTransform ? new Transform() : transform;
+        if (!nullTransform && Precision.AreEqual(oldTransform.PivotPoint, pivotPoint))
             return;
-        transform.PivotPoint = pivotPoint;
+        if (nullTransform)
+        {
+            SuspendDefer();
+            transform = ref TransformTable.Set(entity, new Transform { PivotPoint = pivotPoint }).Value;
+            ResumeDefer();
+        }
+        else
+        {
+            transform.PivotPoint = pivotPoint;
+        }
+
         TransformTable.Emit(Core.Table.Event<Transform>.Set(entity, oldTransform, transform));
     }
 
     private void OnSetTransform(Entity entity, Transform transform)
     {
         ref var position = ref PositionTable.GetRef(entity).Value;
-        var oldPosition = position;
-        var positionChanged = !Precision.AreEqual(transform.Position, oldPosition);
+        var positionNull = Unsafe.IsNullRef(ref position);
+        var oldPosition = positionNull ? default : position;
+        var positionChanged = positionNull || !Precision.AreEqual(transform.Position, oldPosition);
         ref var scale = ref ScaleTable.GetRef(entity).Value;
-        var oldScale = scale;
-        var scaleChanged = !Precision.AreEqual(transform.Scale, oldScale);
+        var scaleNull = Unsafe.IsNullRef(ref scale);
+        var oldScale = scaleNull ? new Scale() : scale;
+        var scaleChanged = scaleNull || !Precision.AreEqual(transform.Scale, oldScale);
         ref var rotation = ref RotationTable.GetRef(entity).Value;
-        var oldRotation = rotation;
-        var rotationChanged = !Precision.AreEqual(transform.Rotation, oldRotation);
+        var rotationNull = Unsafe.IsNullRef(ref rotation);
+        var oldRotation = rotationNull ? default : rotation;
+        var rotationChanged = rotationNull || !Precision.AreEqual(transform.Rotation, oldRotation);
         ref var pivotPoint = ref PivotPointTable.GetRef(entity).Value;
-        var oldPivotPoint = pivotPoint;
-        var pivotPointChanged = !Precision.AreEqual(transform.PivotPoint, oldPivotPoint);
+        var pivotPointNull = Unsafe.IsNullRef(ref pivotPoint);
+        var oldPivotPoint = pivotPointNull ? default : pivotPoint;
+        var pivotPointChanged = pivotPointNull || !Precision.AreEqual(transform.PivotPoint, oldPivotPoint);
         if (!positionChanged && !scaleChanged && !rotationChanged && !pivotPointChanged)
             return;
         if (positionChanged)
-            position.Value = transform.Position;
+        {
+            if (positionNull)
+            {
+                SuspendDefer();
+                position = ref PositionTable.Set(entity, transform.Position).Value;
+                ResumeDefer();
+            }
+            else
+            {
+                position.Value = transform.Position;
+            }
+        }
+
         if (scaleChanged)
-            scale.Value = transform.Scale;
+        {
+            if (scaleNull)
+            {
+                SuspendDefer();
+                scale = ref ScaleTable.Set(entity, transform.Scale).Value;
+                ResumeDefer();
+            }
+            else
+            {
+                scale.Value = transform.Scale;
+            }
+        }
+
         if (rotationChanged)
-            rotation.Value = transform.Rotation;
+        {
+            if (rotationNull)
+            {
+                SuspendDefer();
+                rotation = ref RotationTable.Set(entity, transform.Rotation).Value;
+                ResumeDefer();
+            }
+            else
+            {
+                rotation.Value = transform.Rotation;
+            }
+        }
+
         if (pivotPointChanged)
-            pivotPoint.Value = transform.PivotPoint;
+        {
+            if (pivotPointNull)
+            {
+                SuspendDefer();
+                pivotPoint = ref PivotPointTable.Set(entity, transform.PivotPoint).Value;
+                ResumeDefer();
+            }
+            else
+            {
+                pivotPoint.Value = transform.PivotPoint;
+            }
+        }
+
         if (positionChanged)
             PositionTable.Emit(Core.Table.Event<Position>.Set(entity, oldPosition, transform.Position));
         if (scaleChanged)
@@ -1090,7 +1191,7 @@ public sealed unsafe partial class Scene
         if (parentRef.IsNull)
         {
             SuspendDefer();
-            parentRef = ParentTable.Set(parentEntity, new Parent());
+            parentRef = ParentTable.Set(parentEntity, new Parent(), Core.Table.Flags.ForceMutable);
             ResumeDefer();
         }
 
@@ -1160,7 +1261,7 @@ public sealed unsafe partial class Scene
         }
 
         if (parent.FirstChildId == 0)
-            ParentTable.Remove(parentEntity);
+            ParentTable.Remove(parentEntity, Core.Table.Flags.ForceMutable);
     }
 
     private void OnRemoveParent(Parent parent)

@@ -1,10 +1,12 @@
+using Raylib_cs;
 using Vigilance.Core;
 using Vigilance.Logging;
 using Vigilance.Math;
+using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Line : IFullCloneable
+public sealed class Line : Drawable<Line>
 {
     public Line() { }
 
@@ -30,28 +32,76 @@ public sealed class Line : IFullCloneable
     public Vector2 End { get; set; } = Vector2.Zero;
     public Color Color { get; set; } = Drawing.DefaultFill;
     public float Thick { get; set; } = Drawing.DefaultStrokeWidth == 0 ? 1 : Drawing.DefaultStrokeWidth;
-    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
-    public Vector2 Position { get; set; } = Vector2.Zero;
-    public Vector2 Scale { get; set; } = Vector2.One;
-    public float Rotation { get; set; } = 0;
-    public Vector2 PivotPoint { get; set; } = Vector2.Zero;
-    public Action<Transform, Line, Graphics>? OnBeginDrawing { get; set; }
-    public Action<Transform, Line, Graphics>? OnEndDrawing { get; set; }
-
-    public Transform Transform
-    {
-        get => new(Position, Scale, Rotation, PivotPoint);
-        set
-        {
-            Position = value.Position;
-            Scale = value.Scale;
-            Rotation = value.Rotation;
-            PivotPoint = value.PivotPoint;
-        }
-    }
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform)), true);
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
+    }
+
+    public override void Draw(Transform transform, Graphics graphics)
+    {
+        graphics.DrawLine(transform, this);
+    }
+}
+
+public static class LineExtensions
+{
+    extension(Graphics graphics)
+    {
+        public void DrawLine(
+            float startX,
+            float startY,
+            float endX,
+            float endY,
+            Color? color = null,
+            float? thick = null,
+            Camera? camera = null
+        )
+        {
+            graphics.DrawLine(new Vector2(startX, startY), new Vector2(endX, endY), color, thick, camera);
+        }
+
+        public void DrawLine(
+            Vector2 start,
+            Vector2 end,
+            Color? color = null,
+            float? thick = null,
+            Camera? camera = null
+        )
+        {
+            var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
+            var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
+            if (
+                colorValue == Color.Transparent
+                || thickValue <= 0
+                || (
+                    graphics.Culling()
+                    && !graphics.IsPolygonInBoundsSpan(new Quad(start, start, end, end), camera, thickValue * 0.5f)
+                )
+            )
+                return;
+            graphics.BeginDrawing(camera);
+            Raylib.DrawLineEx(start, end, thickValue, colorValue.RColor);
+            graphics.EndDrawing();
+        }
+
+        public void DrawLine(Line line)
+        {
+            graphics.DrawLine(new Transform(), line);
+        }
+
+        public void DrawLine(Transform transform, Line line)
+        {
+            using var _ = Drawable.EnterDrawing(ref transform, line, graphics);
+            var camera = line.Camera.Get();
+            var position = transform.Position;
+            var start = line.Start + position;
+            var end = line.End + position;
+            var color = line.Color;
+            var thick = line.Thick;
+            var scale = transform.Scale.Abs().Min();
+            graphics.Pivot(transform, false);
+            graphics.DrawLine(start, end, color, thick * scale, camera);
+        }
     }
 }

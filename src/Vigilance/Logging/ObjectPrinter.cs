@@ -4,14 +4,14 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using LinkDotNet.StringBuilder;
 using ZLinq;
-using ZLinq.Linq;
 
 namespace Vigilance.Logging;
 
 public static class ObjectPrinter
 {
-    public enum FilterType
+    public enum FilterType : byte
     {
+        None,
         Include,
         Exclude,
     }
@@ -20,7 +20,7 @@ public static class ObjectPrinter
 
     public static string Print<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         in T obj,
-        Filter? filter = null,
+        Filter filter = default,
         bool removeNulls = false
     )
         where T : notnull
@@ -32,23 +32,19 @@ public static class ObjectPrinter
         {
             sb.Append(type.Name);
             sb.Append(" { ");
-            ref var props = ref CollectionsMarshal.GetValueRefOrAddDefault(_properties, type, out var exists);
+            ref var props = ref CollectionsMarshal.GetValueRefOrAddDefault(_properties, type, out var exists)!;
             if (!exists)
                 props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy)
                     .AsValueEnumerable()
                     .Where(prop =>
-                        prop.CanRead
-                        && prop.GetIndexParameters().Length == 0
-                        && !prop.PropertyType.IsByRefLike
+                        prop is { CanRead: true, PropertyType.IsByRefLike: false }
                         && !prop.GetMethod!.ReturnType.IsByRef
+                        && prop.GetIndexParameters().Length == 0
                     )
                     .ToArray();
             var i = 0;
-            if (filter.HasValue)
-                foreach (var prop in filter.Value.Apply(props!))
-                    PrintProperty(ref sb, boxed, prop, ref i, removeNulls);
-            else
-                foreach (var prop in props!)
+            foreach (var prop in props)
+                if (filter.Matches(prop))
                     PrintProperty(ref sb, boxed, prop, ref i, removeNulls);
             if (i > 0)
                 sb.Append(' ');
@@ -61,12 +57,12 @@ public static class ObjectPrinter
         }
     }
 
-    public static Filter Include(params string[] propertyNames)
+    public static Filter Include(in ReadOnlySpan<string> propertyNames)
     {
         return new Filter(FilterType.Include, propertyNames);
     }
 
-    public static Filter Exclude(params string[] propertyNames)
+    public static Filter Exclude(in ReadOnlySpan<string> propertyNames)
     {
         return new Filter(FilterType.Exclude, propertyNames);
     }
@@ -89,15 +85,24 @@ public static class ObjectPrinter
         sb.Append(value?.ToString());
     }
 
-    public readonly record struct Filter(FilterType Type, string[] PropertyNames)
+    public readonly ref struct Filter
     {
-        public ValueEnumerable<ArrayWhere<PropertyInfo>, PropertyInfo> Apply(PropertyInfo[] properties)
+        public FilterType Type { get; }
+        public ReadOnlySpan<string> PropertyNames { get; }
+
+        public Filter(FilterType type, in ReadOnlySpan<string> propertyNames)
         {
-            var propertyNames = PropertyNames;
+            Type = type;
+            PropertyNames = propertyNames;
+        }
+
+        public bool Matches(PropertyInfo property)
+        {
             return Type switch
             {
-                FilterType.Include => properties.AsValueEnumerable().Where(p => propertyNames.Contains(p.Name)),
-                FilterType.Exclude => properties.AsValueEnumerable().Where(p => !propertyNames.Contains(p.Name)),
+                FilterType.None => true,
+                FilterType.Include => PropertyNames.Contains(property.Name),
+                FilterType.Exclude => !PropertyNames.Contains(property.Name),
                 _ => throw new InvalidEnumArgumentException(nameof(Type), (int)Type, typeof(FilterType)),
             };
         }

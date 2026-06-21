@@ -72,6 +72,6 @@ public class UIRing : UIContainer
 
     protected override void OnClone()
     {
-        _ring = _ring.ShallowClone();
+        _ring = _ring.DeepClone();
     }
 }

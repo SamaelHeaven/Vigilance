@@ -23,6 +23,9 @@ public sealed class GameSystemGenerator : SourceGenerator
         Entities(sb);
         Components(sb);
         Entries(sb);
+        AssignableEntities(sb);
+        AssignableComponents(sb);
+        AssignableEntries(sb);
         TableEntities(sb);
         TableComponents(sb);
         TableEntries(sb);
@@ -63,6 +66,27 @@ public sealed class GameSystemGenerator : SourceGenerator
             sb.AppendLine(QueryIterator("Entry", "Entries", $"<{typeParams}>"));
         }
 
+        sb.EndRegion();
+    }
+
+    private static void AssignableEntities(StringBuilder sb)
+    {
+        sb.BeginRegion("AssignableEntities");
+        sb.AppendLine(QueryIterator("AssignableEntity", "AssignableEntities", "<T0>"));
+        sb.EndRegion();
+    }
+
+    private static void AssignableComponents(StringBuilder sb)
+    {
+        sb.BeginRegion("AssignableComponents");
+        sb.AppendLine(QueryIterator("AssignableComponent", "AssignableComponents", "<T0>"));
+        sb.EndRegion();
+    }
+
+    private static void AssignableEntries(StringBuilder sb)
+    {
+        sb.BeginRegion("AssignableEntries");
+        sb.AppendLine(QueryIterator("AssignableEntries", "AssignableEntries", "<T0>"));
         sb.EndRegion();
     }
 

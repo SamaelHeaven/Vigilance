@@ -49,7 +49,7 @@ public sealed unsafe class Image : IDisposable
 
     public WritableTexture ToTexture()
     {
-        var logLevel = Log.SetLogLevel(LogLevel.Info);
+        var logLevel = Log.SetLogLevel(Log.LogLevel.Max(LogLevel.Info));
         var image = Raylib.LoadTextureFromImage(RImage);
         Log.LogLevel = logLevel;
         return new WritableTexture(new Texture(image));

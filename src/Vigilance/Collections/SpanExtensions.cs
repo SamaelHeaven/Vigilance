@@ -33,7 +33,7 @@ public static class SpanExtensions
         return view.AsSpan();
     }
 
-    public static bool TryCopyTo<T>(this ReadOnlySpan<T> span, scoped Span<T> destination, Index offset)
+    public static bool TryCopyTo<T>(in this ReadOnlySpan<T> span, scoped Span<T> destination, Index offset)
     {
         if (!EnumeratorHelper.TryGetSlice(span, offset, destination.Length, out var slice))
             return false;

@@ -1,3 +1,3 @@
 namespace Vigilance.Core;
 
-internal record struct Parent(ulong FirstChildId, ulong LastChildId) : IHiddenComponent;
+public record struct Parent(ulong FirstChildId, ulong LastChildId) : IImmutableComponent;

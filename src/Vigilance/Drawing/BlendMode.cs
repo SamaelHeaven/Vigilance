@@ -1,26 +1,28 @@
+using System.ComponentModel;
+
 namespace Vigilance.Drawing;
 
-public enum BlendFactor
+public enum BlendFactor : byte
 {
-    Zero = 0,
-    One = 1,
-    SrcColor = 0x0300,
-    OneMinusSrcColor = 0x0301,
-    SrcAlpha = 0x0302,
-    OneMinusSrcAlpha = 0x0303,
-    DstAlpha = 0x0304,
-    OneMinusDstAlpha = 0x0305,
-    DstColor = 0x0306,
-    OneMinusDstColor = 0x0307,
+    Zero,
+    One,
+    SrcColor,
+    OneMinusSrcColor,
+    SrcAlpha,
+    OneMinusSrcAlpha,
+    DstAlpha,
+    OneMinusDstAlpha,
+    DstColor,
+    OneMinusDstColor,
 }
 
-public enum BlendEquation
+public enum BlendEquation : byte
 {
-    Add = 0x8006,
-    Subtract = 0x800A,
-    ReverseSubtract = 0x800B,
-    Min = 0x8007,
-    Max = 0x8008,
+    Add,
+    Subtract,
+    ReverseSubtract,
+    Min,
+    Max,
 }
 
 public record struct BlendMode(
@@ -112,4 +114,44 @@ public record struct BlendMode(
         BlendEquation.Max,
         BlendEquation.Max
     );
+}
+
+public static class BlendModeExtensions
+{
+    extension(BlendFactor factor)
+    {
+        public int ToGL()
+        {
+            return factor switch
+            {
+                BlendFactor.Zero => 0,
+                BlendFactor.One => 1,
+                BlendFactor.SrcColor => 0x0300,
+                BlendFactor.OneMinusSrcColor => 0x0301,
+                BlendFactor.SrcAlpha => 0x0302,
+                BlendFactor.OneMinusSrcAlpha => 0x0303,
+                BlendFactor.DstAlpha => 0x0304,
+                BlendFactor.OneMinusDstAlpha => 0x0305,
+                BlendFactor.DstColor => 0x0306,
+                BlendFactor.OneMinusDstColor => 0x0307,
+                _ => throw new InvalidEnumArgumentException(nameof(factor), (int)factor, typeof(BlendFactor)),
+            };
+        }
+    }
+
+    extension(BlendEquation equation)
+    {
+        public int ToGL()
+        {
+            return equation switch
+            {
+                BlendEquation.Add => 0x8006,
+                BlendEquation.Subtract => 0x800A,
+                BlendEquation.ReverseSubtract => 0x800B,
+                BlendEquation.Min => 0x8007,
+                BlendEquation.Max => 0x8008,
+                _ => throw new InvalidEnumArgumentException(nameof(equation), (int)equation, typeof(BlendEquation)),
+            };
+        }
+    }
 }

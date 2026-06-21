@@ -6,7 +6,7 @@ using ZLinq;
 
 namespace Vigilance.Drawing;
 
-public sealed class Triangle : IFullCloneable
+public sealed class Triangle : Drawable<Triangle>
 {
     public Triangle() { }
 
@@ -35,31 +35,17 @@ public sealed class Triangle : IFullCloneable
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
-    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
-    public Vector2 Position { get; set; } = Vector2.Zero;
-    public Vector2 Scale { get; set; } = Vector2.One;
-    public float Rotation { get; set; } = 0;
-    public Vector2 PivotPoint { get; set; } = Vector2.Zero;
-    public Action<Transform, Triangle, Graphics>? OnBeginDrawing { get; set; }
-    public Action<Transform, Triangle, Graphics>? OnEndDrawing { get; set; }
-
-    public Transform Transform
-    {
-        get => new(Position, Scale, Rotation, PivotPoint);
-        set
-        {
-            Position = value.Position;
-            Scale = value.Scale;
-            Rotation = value.Rotation;
-            PivotPoint = value.PivotPoint;
-        }
-    }
 
     public PointEnumerable Points => new(this);
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform), nameof(Points)), true);
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Points)]), true);
+    }
+
+    public override void Draw(Transform transform, Graphics graphics)
+    {
+        graphics.DrawTriangle(transform, this);
     }
 
     public readonly struct PointEnumerable : IStructEnumerable<PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
@@ -124,5 +110,63 @@ public sealed class Triangle : IFullCloneable
         }
 
         public void Dispose() { }
+    }
+}
+
+public static class TriangleExtensions
+{
+    extension(Graphics graphics)
+    {
+        public void FillTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color? color = null, Camera? camera = null)
+        {
+            ReadOnlySpan<Vector2> span = stackalloc Vector2[] { v1, v2, v3 };
+            graphics.FillCustomPolygonSpan(span, color, camera);
+        }
+
+        public void StrokeTriangle(
+            Vector2 v1,
+            Vector2 v2,
+            Vector2 v3,
+            Color? color = null,
+            float? strokeWidth = null,
+            Camera? camera = null
+        )
+        {
+            ReadOnlySpan<Vector2> span = stackalloc Vector2[] { v1, v2, v3 };
+            graphics.StrokeCustomPolygonSpan(span, color, strokeWidth, camera);
+        }
+
+        public void DrawTriangle(Triangle triangle)
+        {
+            graphics.DrawTriangle(new Transform(), triangle);
+        }
+
+        public void DrawTriangle(Transform transform, Triangle triangle)
+        {
+            using var _ = Drawable.EnterDrawing(ref transform, triangle, graphics);
+            var camera = triangle.Camera.Get();
+            var position = transform.Position;
+            var scale = transform.Scale;
+            var fill = triangle.Fill;
+            var stroke = triangle.Stroke;
+            var strokeWidth = triangle.StrokeWidth;
+            var order = triangle.DrawOrder;
+            graphics.Pivot(transform, false);
+            Span<Vector2> span = stackalloc Vector2[3];
+            var i = 0;
+            foreach (var point in triangle.Points)
+                span[i++] = point;
+            Coordinates.Scale(span, scale, position);
+            if (order == DrawOrder.StrokeThenFill)
+            {
+                graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+                graphics.FillCustomPolygonSpan(span, fill, camera);
+            }
+            else
+            {
+                graphics.FillCustomPolygonSpan(span, fill, camera);
+                graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+            }
+        }
     }
 }

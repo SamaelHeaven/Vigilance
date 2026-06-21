@@ -168,7 +168,7 @@ public record struct Unit(UnitType Type, float Value = 0)
     }
 }
 
-public enum UnitType
+public enum UnitType : byte
 {
     Undefined,
     Auto,

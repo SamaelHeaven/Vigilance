@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using Vigilance.Logging;
+using ZLinq;
 
 namespace Vigilance.Core;
 
@@ -42,7 +43,7 @@ public static class Resource
         ref var names = ref CollectionsMarshal.GetValueRefOrAddDefault(_resourceNames, assembly, out var exists)!;
         if (exists)
             return names.Contains(resource);
-        names = assembly.GetManifestResourceNames().ToHashSet();
+        names = assembly.GetManifestResourceNames().AsValueEnumerable().ToHashSet();
         return names.Contains(resource);
     }
 

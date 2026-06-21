@@ -24,6 +24,16 @@ public static class Cloner
 {
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "MemberwiseClone")]
     public static extern object MemberwiseClone(object obj);
+
+    public static T CloneOrSelf<T>(T obj)
+    {
+        return obj switch
+        {
+            IDeepCloneable deepCloneable => (T)deepCloneable.DeepClone(),
+            IShallowCloneable shallowCloneable => (T)shallowCloneable.ShallowClone(),
+            _ => obj,
+        };
+    }
 }
 
 public static class CloneableExtensions

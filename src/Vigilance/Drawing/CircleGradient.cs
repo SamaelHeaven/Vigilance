@@ -1,10 +1,12 @@
+using Raylib_cs;
 using Vigilance.Core;
 using Vigilance.Logging;
 using Vigilance.Math;
+using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class CircleGradient : IFullCloneable
+public sealed class CircleGradient : Drawable<CircleGradient>
 {
     public Color InnerFill { get; set; } = Drawing.DefaultFill;
     public Color OuterFill { get; set; } = Drawing.DefaultFill;
@@ -12,25 +14,6 @@ public sealed class CircleGradient : IFullCloneable
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
     public int Segments { get; set; } = 0;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
-    public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
-    public Vector2 Position { get; set; } = Vector2.Zero;
-    public Vector2 Scale { get; set; } = Vector2.One;
-    public float Rotation { get; set; } = 0;
-    public Vector2 PivotPoint { get; set; } = Vector2.Zero;
-    public Action<Transform, CircleGradient, Graphics>? OnBeginDrawing { get; set; }
-    public Action<Transform, CircleGradient, Graphics>? OnEndDrawing { get; set; }
-
-    public Transform Transform
-    {
-        get => new(Position, Scale, Rotation, PivotPoint);
-        set
-        {
-            Position = value.Position;
-            Scale = value.Scale;
-            Rotation = value.Rotation;
-            PivotPoint = value.PivotPoint;
-        }
-    }
 
     public Color Fill
     {
@@ -44,6 +27,68 @@ public sealed class CircleGradient : IFullCloneable
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Transform), nameof(Fill)), true);
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Fill)]), true);
+    }
+
+    public override void Draw(Transform transform, Graphics graphics)
+    {
+        graphics.DrawCircleGradient(transform, this);
+    }
+}
+
+public static class CircleGradientExtensions
+{
+    extension(Graphics graphics)
+    {
+        public void FillCircleGradient(
+            Vector2 center,
+            float radius,
+            Color? innerColor = null,
+            Color? outerColor = null,
+            Camera? camera = null
+        )
+        {
+            var innerColorValue = innerColor ?? Drawing.DefaultFill.Or(Color.White);
+            var outerColorValue = outerColor ?? Drawing.DefaultFill.Or(Color.White);
+            if (
+                (innerColorValue == Color.Transparent && outerColorValue == Color.Transparent)
+                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+            )
+                return;
+            graphics.BeginDrawing(camera);
+            Raylib.DrawCircleGradient(center, radius, innerColorValue.RColor, outerColorValue.RColor);
+            graphics.EndDrawing();
+        }
+
+        public void DrawCircleGradient(CircleGradient circle)
+        {
+            graphics.DrawCircleGradient(new Transform(), circle);
+        }
+
+        public void DrawCircleGradient(Transform transform, CircleGradient circle)
+        {
+            using var _ = Drawable.EnterDrawing(ref transform, circle, graphics);
+            var camera = circle.Camera.Get();
+            var innerFill = circle.InnerFill;
+            var outerFill = circle.OuterFill;
+            var stroke = circle.Stroke;
+            var strokeWidth = circle.StrokeWidth;
+            var segments = circle.Segments;
+            var order = circle.DrawOrder;
+            var position = transform.Position;
+            var scale = transform.Scale;
+            var radius = scale.Abs().Min() * 0.5f;
+            graphics.Pivot(transform, false);
+            if (order == DrawOrder.StrokeThenFill)
+            {
+                graphics.StrokeCircle(position, radius, stroke, strokeWidth, 0, 360, segments, camera);
+                graphics.FillCircleGradient(position, radius, innerFill, outerFill, camera);
+            }
+            else
+            {
+                graphics.FillCircleGradient(position, radius, innerFill, outerFill, camera);
+                graphics.StrokeCircle(position, radius, stroke, strokeWidth, 0, 360, segments, camera);
+            }
+        }
     }
 }

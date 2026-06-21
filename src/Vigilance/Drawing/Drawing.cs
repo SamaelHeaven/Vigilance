@@ -36,6 +36,12 @@ public static class Drawing
         set => _config.DefaultRadius = value;
     }
 
+    public static TextureWrap DefaultTextureWrap
+    {
+        get => _config.DefaultTextureWrap;
+        set => _config.DefaultTextureWrap = value;
+    }
+
     public static Interpolation DefaultInterpolation
     {
         get => _config.DefaultInterpolation;
@@ -55,6 +61,14 @@ public static class Drawing
         get => _config.DefaultCulling;
         set => _config.DefaultCulling = value;
     }
+
+    public static BlendMode DefaultBlendMode
+    {
+        get => _config.DefaultBlendMode;
+        set => _config.DefaultBlendMode = value;
+    }
+
+    public static Shader DefaultShader { get; set; } = null!;
 
     public static float SegmentsErrorRate
     {
@@ -82,6 +96,7 @@ public static class Drawing
     {
         _config = Game.Config.Take<DrawingConfig>() ?? _config;
         DefaultTexture = _config.DefaultTexture.Invoke();
+        DefaultShader = _config.DefaultShader.Invoke();
     }
 }
 
@@ -92,10 +107,13 @@ public sealed class DrawingConfig
     public float DefaultStrokeWidth { get; set; } = 0;
     public DrawOrder DefaultOrder { get; set; } = DrawOrder.FillThenStroke;
     public float DefaultRadius { get; set; } = 0;
+    public TextureWrap DefaultTextureWrap { get; set; } = TextureWrap.Repeat;
     public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
     public CameraProvider DefaultCamera { get; set; } = Camera.Scene;
     public Func<Texture> DefaultTexture { get; set; } = () => Texture.Empty;
     public bool DefaultCulling { get; set; } = false;
+    public BlendMode DefaultBlendMode { get; set; } = BlendMode.Alpha;
+    public Func<Shader> DefaultShader { get; set; } = () => Shader.Default;
     public float SegmentsErrorRate { get; set; } = 0.25f;
 }
 

@@ -1,8 +1,9 @@
 using Raylib_cs;
+using Vigilance.Math;
 
 namespace Vigilance.Logging;
 
-public enum LogLevel
+public enum LogLevel : byte
 {
     All = TraceLogLevel.All,
     Trace = TraceLogLevel.Trace,
@@ -18,6 +19,16 @@ public static class LogLevelExtensions
 {
     extension(LogLevel level)
     {
+        public LogLevel Min(LogLevel other)
+        {
+            return (LogLevel)((int)level).Max((int)other);
+        }
+
+        public LogLevel Max(LogLevel other)
+        {
+            return (LogLevel)((int)level).Max((int)other);
+        }
+
         public ConsoleColor? GetConsoleColor()
         {
             return level switch

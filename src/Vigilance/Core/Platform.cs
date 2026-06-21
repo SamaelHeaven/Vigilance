@@ -1,6 +1,6 @@
 namespace Vigilance.Core;
 
-public enum Platform
+public enum Platform : byte
 {
     Unknown,
     Desktop,

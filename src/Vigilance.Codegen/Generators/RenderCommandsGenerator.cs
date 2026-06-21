@@ -19,14 +19,18 @@ public sealed class RenderCommandsGenerator : SourceGenerator
 
             """
         );
-        AddRangeEnumerable(sb, false);
-        AddRangeEnumerable(sb, true);
-        AddRangeGameSystem(sb, false);
-        AddRangeGameSystem(sb, true);
+        AddEntriesEnumerable(sb, false);
+        AddEntriesEnumerable(sb, true);
+        AddAssignableEntriesEnumerable(sb, false);
+        AddAssignableEntriesEnumerable(sb, true);
+        AddEntriesGameSystem(sb, false);
+        AddEntriesGameSystem(sb, true);
+        AddAssignableEntriesGameSystem(sb, false);
+        AddAssignableEntriesGameSystem(sb, true);
         sb.AppendLine("}");
     }
 
-    private static void AddRangeEnumerable(StringBuilder sb, bool system)
+    private static void AddEntriesEnumerable(StringBuilder sb, bool system)
     {
         for (var i = 1; i < 15; i++)
         {
@@ -34,7 +38,7 @@ public sealed class RenderCommandsGenerator : SourceGenerator
             var items = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"entry.Item{n + 2}"));
             sb.AppendLine(
                 $$"""
-                    public void AddRange<{{(system ? "TSystem, " : "")}}{{typeParams}}>({{(
+                    public void AddEntries<{{(system ? "TSystem, " : "")}}{{typeParams}}>({{(
                         system ? "TSystem system, " : ""
                     )}}{{$"Scene.EntryEnumerable<{typeParams}>"}} entries, Action<{{(
                     system ? "TSystem, " : ""
@@ -49,7 +53,7 @@ public sealed class RenderCommandsGenerator : SourceGenerator
         }
     }
 
-    private static void AddRangeGameSystem(StringBuilder sb, bool system)
+    private static void AddEntriesGameSystem(StringBuilder sb, bool system)
     {
         for (var i = 0; i < 15; i++)
         {
@@ -57,15 +61,46 @@ public sealed class RenderCommandsGenerator : SourceGenerator
             var type = i == 0 ? typeParams : $"({typeParams})";
             sb.AppendLine(
                 $$"""
-                    public void AddRange<TSystem, {{typeParams}}>(TSystem system, Action<{{(
+                    public void AddEntries<TSystem, {{typeParams}}>(TSystem system, Action<{{(
                         system ? "TSystem, " : ""
                     )}}Entity, {{type}}> action) where TSystem : GameSystem
                     {
-                        AddRange({{(system ? "system, " : "")}}system.Entries<{{typeParams}}>(), action);
+                        AddEntries({{(system ? "system, " : "")}}system.Entries<{{typeParams}}>(), action);
                     }
 
                 """
             );
         }
+    }
+
+    private static void AddAssignableEntriesEnumerable(StringBuilder sb, bool system)
+    {
+        sb.AppendLine(
+            $$"""
+                public void AddAssignableEntries<{{(system ? "TSystem, " : "")}}T0>({{(
+                    system ? "TSystem system, " : ""
+                )}}Scene.AssignableEntriesEnumerable<T0> entries, Action<{{(system ? "TSystem, " : "")}}Entity, T0> action)
+                {
+                    foreach (var entry in entries)
+                        Add({{(system ? "system, " : "")}}entry.Item1, (T0)entry.Item2, action);
+                }
+                
+            """
+        );
+    }
+
+    private static void AddAssignableEntriesGameSystem(StringBuilder sb, bool system)
+    {
+        sb.AppendLine(
+            $$"""
+                public void AddAssignableEntries<TSystem, T0>(TSystem system, Action<{{(
+                    system ? "TSystem, " : ""
+                )}}Entity, T0> action) where TSystem : GameSystem
+                {
+                    AddAssignableEntries({{(system ? "system, " : "")}}system.AssignableEntries<T0>(), action);
+                }
+
+            """
+        );
     }
 }

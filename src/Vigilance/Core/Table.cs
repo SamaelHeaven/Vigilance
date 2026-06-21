@@ -2,13 +2,11 @@ using System.Diagnostics.CodeAnalysis;
 using Vigilance.Collections;
 using Vigilance.Logging;
 
-// ReSharper disable ParameterOnlyUsedForPreconditionCheck.Global
-
 namespace Vigilance.Core;
 
 public abstract class Table
 {
-    public enum EventType
+    public enum EventType : byte
     {
         Add,
         Set,
@@ -20,6 +18,7 @@ public abstract class Table
     {
         Default = 0,
         SilentOnImmutable = 1 << 0,
+        ForceMutable = 1 << 1,
     }
 
     internal static int CurrentIndex = -1;
@@ -42,23 +41,25 @@ public abstract class Table
 
     public abstract bool SkipSetEventIfEqual { get; }
 
+    public abstract bool AddImmutable { get; }
+
     public abstract bool SetImmutable { get; }
 
     public abstract bool RemoveImmutable { get; }
 
     public abstract bool WriteImmutable { get; }
 
-    public abstract ReadOnlySpan<ulong> EntityIds { get; }
+    public abstract ValueListView<ulong> EntityIds { get; }
 
     public abstract bool Has(in Entity entity);
 
-    public abstract object? Get(int index);
+    public abstract object Get(int index);
 
-    public abstract object? Get(in Entity entity);
+    public abstract object Get(in Entity entity);
 
-    public abstract bool TryGet(in Entity entity, out object? component);
+    public abstract bool TryGet(in Entity entity, out object component);
 
-    public abstract void Set(in Entity entity, object? component, Flags flags = Flags.Default);
+    public abstract void Set(in Entity entity, object component, Flags flags = Flags.Default);
 
     public abstract void Remove(in Entity entity, Flags flags = Flags.Default);
 
@@ -66,30 +67,22 @@ public abstract class Table
 
     internal abstract void DequeueEvent();
 
-    public readonly record struct Event<T>(EventType Type, Entity Entity, T OldValue, T NewValue)
+    public readonly record struct Event<T>(Entity Entity, EventType Type, T OldValue, T NewValue)
     {
         public static Event<T> Add(in Entity entity, in T value)
         {
-            return new Event<T>(EventType.Add, entity, default!, value);
+            return new Event<T>(entity, EventType.Add, default!, value);
         }
 
         public static Event<T> Set(in Entity entity, in T oldValue, in T newValue)
         {
-            return new Event<T>(EventType.Set, entity, oldValue, newValue);
+            return new Event<T>(entity, EventType.Set, oldValue, newValue);
         }
 
         public static Event<T> Remove(in Entity entity, in T value)
         {
-            return new Event<T>(EventType.Remove, entity, default!, value);
+            return new Event<T>(entity, EventType.Remove, default!, value);
         }
-    }
-}
-
-public static class TableExtensions
-{
-    extension(Table.Flags)
-    {
-        internal static Table.Flags ForceMutable => (Table.Flags)(1 << 30);
     }
 }
 
@@ -140,15 +133,17 @@ public sealed class Table<T> : Table
     public override bool SkipSetEventIfEqual { get; } =
         typeof(ISkipSetEventIfEqualComponent).IsAssignableFrom(typeof(T));
 
+    public override bool AddImmutable { get; } = typeof(IAddImmutableComponent).IsAssignableFrom(typeof(T));
+
     public override bool SetImmutable { get; } = typeof(ISetImmutableComponent).IsAssignableFrom(typeof(T));
 
     public override bool RemoveImmutable { get; } = typeof(IRemoveImmutableComponent).IsAssignableFrom(typeof(T));
 
     public override bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public override ReadOnlySpan<ulong> EntityIds => _entityIds.AsSpan();
+    public override ValueListView<ulong> EntityIds => _entityIds;
 
-    public ReadOnlySpan<T> Components => _components.AsSpan();
+    public ValueListView<T> Components => _components;
 
     public void Enqueue(in Event<T> tableEvent)
     {
@@ -223,27 +218,27 @@ public sealed class Table<T> : Table
         return sparseValue != 0;
     }
 
-    public override object? Get(int index)
+    public override object Get(int index)
     {
-        return _components[index];
+        return _components[index]!;
     }
 
-    public override object? Get(in Entity entity)
+    public override object Get(in Entity entity)
     {
         var value = GetRef(in entity);
-        return value.IsNull ? null : value.Read;
+        return (value.IsNull ? null : value.Read)!;
     }
 
-    public override bool TryGet(in Entity entity, out object? component)
+    public override bool TryGet(in Entity entity, out object component)
     {
         var value = GetRef(in entity);
-        component = value.IsNull ? null : value.Read;
+        component = (value.IsNull ? null : value.Read)!;
         return !value.IsNull;
     }
 
-    public override void Set(in Entity entity, object? component, Flags flags = Flags.Default)
+    public override void Set(in Entity entity, object component, Flags flags = Flags.Default)
     {
-        Set(entity, (T)component!, flags);
+        Set(entity, (T)component, flags);
     }
 
     public override void Remove(in Entity entity, Flags flags = Flags.Default)
@@ -304,7 +299,7 @@ public sealed class Table<T> : Table
         if (chunkIndex >= _sparseChunks.Count)
             return ComponentRef<T>.Null;
         var chunk = _sparseChunks[chunkIndex];
-        if (chunk == null)
+        if (chunk is null)
             return ComponentRef<T>.Null;
         var withinChunk = entity.Index % SparseChunkSize;
         var sparseValue = chunk[withinChunk];
@@ -316,6 +311,13 @@ public sealed class Table<T> : Table
 
     public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.Default)
     {
+        if (!typeof(T).IsValueType)
+        {
+            Debug.Assert(component is not null);
+            if ((T?)component is null)
+                return ComponentRef<T>.Null;
+        }
+
         if (Scene.IsDeferred)
         {
             _operations.Enqueue(new Operation(OperationType.Set, entity, component));
@@ -330,6 +332,13 @@ public sealed class Table<T> : Table
         var sparseValue = chunk[withinChunk];
         if (sparseValue == 0)
         {
+            if (AddImmutable && (flags & Flags.ForceMutable) == 0)
+                if ((flags & Flags.SilentOnImmutable) != 0)
+                    return ComponentRef<T>.Null;
+                else
+                    throw new InvalidOperationException(
+                        $"Cannot add {Type} because it implements {nameof(IAddImmutableComponent)}."
+                    );
             var index = _components.Count + 1;
             _components.Add(component);
             _entityIds.Add(entity.Id);
@@ -338,12 +347,12 @@ public sealed class Table<T> : Table
             return new ComponentRef<T>(ref _components[index - 1]);
         }
 
-        if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
+        if (SetImmutable && (flags & Flags.ForceMutable) == 0)
             if ((flags & Flags.SilentOnImmutable) != 0)
                 return ComponentRef<T>.Null;
             else
                 throw new InvalidOperationException(
-                    $"Cannot set {Type} because it implements {nameof(IRemoveImmutableComponent)}."
+                    $"Cannot set {Type} because it implements {nameof(ISetImmutableComponent)}."
                 );
         var denseIndex = sparseValue - 1;
         ref var componentRef = ref _components[denseIndex];

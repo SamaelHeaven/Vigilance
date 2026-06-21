@@ -37,12 +37,7 @@ public sealed class Attributes() : Dictionary<string, object>, IFullCloneable
     {
         var result = new Attributes();
         foreach (var (key, value) in this)
-            result[key] = value switch
-            {
-                IDeepCloneable deepCloneable => deepCloneable.DeepClone(),
-                IShallowCloneable shallowCloneable => shallowCloneable.ShallowClone(),
-                _ => value,
-            };
+            result[key] = Cloner.CloneOrSelf(value);
         return result;
     }
 

@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using ZLinq;
+using Vigilance.Logging;
 
 namespace Vigilance.Core;
 
@@ -98,16 +98,6 @@ public static class Asset
             return Get(_weakValues, _strongValues, () => key, valueFunc, cacheType, out value);
         }
 
-        public void Invalidate(TValue value)
-        {
-            Invalidate(value, _weakFiles);
-            Invalidate(value, _weakResources);
-            Invalidate(value, _weakValues);
-            Invalidate(value, _strongFiles);
-            Invalidate(value, _strongResources);
-            Invalidate(value, _strongValues);
-        }
-
         private static bool Get(
             Dictionary<TKey, WeakReference<TValue>> weakValues,
             Dictionary<TKey, TValue> strongValues,
@@ -123,15 +113,11 @@ public static class Asset
                 var cacheTypeValue = cacheType ?? DefaultCacheType;
                 var weak = cacheTypeValue == CacheType.Weak;
                 var strong = cacheTypeValue == CacheType.Strong;
-                if (weak || strong)
-                {
-                    if (weakValues.TryGetValue(key, out var reference))
-                        if (reference.TryGetTarget(out value!))
-                            return true;
-                    if (strongValues.TryGetValue(key, out value!))
+                if (weakValues.TryGetValue(key, out var reference))
+                    if (reference.TryGetTarget(out value!))
                         return true;
-                }
-
+                if (strongValues.TryGetValue(key, out value!))
+                    return true;
                 value = valueFunc.Invoke();
                 if (value is null)
                     return false;
@@ -141,33 +127,12 @@ public static class Asset
                     strongValues[key] = value;
                 return true;
             }
-            catch
+            catch (Exception e)
             {
+                Log.Error(e);
                 value = null;
                 return false;
             }
-        }
-
-        private static void Invalidate(TValue value, Dictionary<TKey, WeakReference<TValue>> values)
-        {
-            var keys = values
-                .AsValueEnumerable()
-                .Where(kvp =>
-                    kvp.Value.TryGetTarget(out var target) && EqualityComparer<TValue>.Default.Equals(target, value)
-                )
-                .Select(kvp => kvp.Key);
-            foreach (var key in keys)
-                values.Remove(key);
-        }
-
-        private static void Invalidate(TValue value, Dictionary<TKey, TValue> values)
-        {
-            var keys = values
-                .AsValueEnumerable()
-                .Where(kvp => EqualityComparer<TValue>.Default.Equals(kvp.Value, value))
-                .Select(kvp => kvp.Key);
-            foreach (var key in keys)
-                values.Remove(key);
         }
     }
 }

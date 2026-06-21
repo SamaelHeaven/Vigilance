@@ -39,7 +39,12 @@ public interface IPreRenderable
 
 public interface IRenderable
 {
-    void Render(Entity entity, RenderCommands commands);
+    void Render(Entity entity, RenderCommands commands)
+    {
+        commands.Add(entity, this, (entity, component) => component.Render(entity));
+    }
+
+    void Render(Entity entity);
 }
 
 public interface IPostRenderable
@@ -72,7 +77,7 @@ public interface IComponent
 
     void IPreUpdatable.PreUpdate(Entity entity) { }
 
-    void IRenderable.Render(Entity entity, RenderCommands commands) { }
+    void IRenderable.Render(Entity entity) { }
 
     void IUpdatable.Update(Entity entity) { }
 }

@@ -59,7 +59,7 @@ public sealed unsafe class Gamepad
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Include(nameof(Id), nameof(Name), nameof(IsConnected)));
+        return ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Id), nameof(Name), nameof(IsConnected)]));
     }
 
     public bool IsButtonDown(GamepadButton button)

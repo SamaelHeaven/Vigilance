@@ -1,3 +1,4 @@
+using System.Numerics;
 using Vigilance.Core;
 
 namespace Vigilance.Math;
@@ -57,5 +58,29 @@ public record struct Transform
         a.Rotation -= b.Rotation;
         a.PivotPoint -= b.PivotPoint;
         return a;
+    }
+
+    // ReSharper disable once InconsistentNaming
+    public Matrix3x2 ToMatrix3x2()
+    {
+        var matrix = Matrix3x2.Identity;
+        if (!Precision.AreEqual(Rotation, 0))
+        {
+            if (!Precision.AreEqual(PivotPoint, Vector2.Zero))
+                matrix = Matrix3x2.CreateTranslation(PivotPoint.X, PivotPoint.Y) * matrix;
+            matrix = Matrix3x2.CreateRotation(Rotation.DegToRad()) * matrix;
+            if (!Precision.AreEqual(PivotPoint, Vector2.Zero))
+                matrix = Matrix3x2.CreateTranslation(-PivotPoint.X, -PivotPoint.Y) * matrix;
+        }
+
+        matrix = Matrix3x2.CreateTranslation(Position.X, Position.Y) * matrix;
+        matrix = Matrix3x2.CreateScale(Scale.X.Abs(), Scale.Y.Abs()) * matrix;
+        return matrix;
+    }
+
+    // ReSharper disable once InconsistentNaming
+    public Matrix4x4 ToMatrix4x4()
+    {
+        return ToMatrix3x2().ToMatrix4x4();
     }
 }

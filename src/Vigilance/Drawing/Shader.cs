@@ -42,7 +42,20 @@ public sealed unsafe partial class Shader : IDisposable
         );
     }
 
+    public static Shader Default
+    {
+        get
+        {
+            Game.ThrowIfNotRunning();
+            return field ??= new Shader(
+                new Raylib_cs.Shader { Id = Rlgl.GetShaderIdDefault(), Locs = Rlgl.GetShaderLocsDefault() }
+            );
+        }
+    }
+
     public uint Id => RShader.Id;
+
+    public bool IsDefault => Id == Default.Id;
 
     public bool IsValid => RShader.Id != 0;
 
@@ -263,7 +276,7 @@ public sealed unsafe partial class Shader : IDisposable
         Raylib.SetShaderValueTexture(RShader, GetLocation(uniform), texture.Texture2D);
     }
 
-    private int GetLocation(string uniform)
+    public int GetLocation(string uniform)
     {
         ref var location = ref CollectionsMarshal.GetValueRefOrAddDefault(_locations, uniform, out var exists);
         if (!exists)
@@ -273,6 +286,8 @@ public sealed unsafe partial class Shader : IDisposable
 
     private void ReleaseUnmanagedResources()
     {
+        if (Id == Default.Id)
+            return;
         Raylib.UnloadShader(RShader);
     }
 
@@ -287,7 +302,8 @@ public sealed unsafe partial class Shader : IDisposable
                 {
                     var key = match.Groups[1].Value.ToLower();
                     return versions.TryGetValue(key, out var replacement) ? replacement : match.Value;
-                }
+                },
+                1
             );
     }
 

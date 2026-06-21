@@ -67,6 +67,6 @@ public class UICircle : UIContainer
 
     protected override void OnClone()
     {
-        _circle = _circle.ShallowClone();
+        _circle = _circle.DeepClone();
     }
 }

@@ -12,7 +12,7 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public abstract class UIElement : IComposable<UIElement>, IFullCloneable
+public abstract class UIElement : IFullCloneable
 {
     [Flags]
     public enum CloneOptions
@@ -131,6 +131,10 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     public bool IsDirty => Node.IsDirty;
 
     public int ZIndex { get; set; }
+
+    public BlendMode? BlendMode { get; set; } = null;
+
+    public Shader? Shader { get; set; } = null;
 
     public bool? Culling { get; set; } = null;
 
@@ -660,11 +664,6 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
 
     public Signal<UIElement, Graphics, CameraProvider> OnEndRenderSignal => new(ref _onEndRenderHandlers);
 
-    UIElement IComposable<UIElement>.ToComponent()
-    {
-        return this;
-    }
-
     object IDeepCloneable.DeepClone()
     {
         return DeepClone(CloneOptions.None);
@@ -822,7 +821,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
     {
         graphics.PushMatrix();
         graphics.Translate(transform.Position);
-        graphics.Scale(transform.Scale);
+        graphics.Scale(transform.Scale.Abs());
         graphics.Pivot(
             new Transform
             {
@@ -1160,7 +1159,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
             data.OldMatrix = graphics.PopMatrix();
         graphics.PushMatrix();
         graphics.Translate(transform.Position + offset);
-        graphics.Scale(transform.Scale);
+        graphics.Scale(transform.Scale.Abs());
         graphics.Skew(element.Skew);
         graphics.Translate(-offset);
         graphics.Rotate(transform.Rotation, transform.PivotPoint + position + size * 0.5f);
@@ -1186,6 +1185,18 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         }
 
         element.RenderedClip = graphics.GetClip();
+        if (element.BlendMode.HasValue)
+        {
+            data.OldBlendMode = graphics.GetBlendMode();
+            graphics.SetBlendMode(element.BlendMode.Value);
+        }
+
+        if (element.Shader is not null)
+        {
+            data.OldShader = graphics.GetShader();
+            graphics.SetShader(element.Shader);
+        }
+
         if (element.Culling.HasValue)
         {
             data.OldCulling = graphics.Culling();
@@ -1232,6 +1243,10 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         element.OnEndRender(graphics, camera);
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
+        if (data.OldShader is not null)
+            graphics.SetShader(data.OldShader);
+        if (data.OldBlendMode.HasValue)
+            graphics.SetBlendMode(data.OldBlendMode.Value);
         if (data.OverflowHidden)
             graphics.SetClip(data.OldClip);
         graphics.PopMatrix();
@@ -1274,14 +1289,7 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         foreach (var component in components)
             component.Detach(clone);
         foreach (var component in components)
-            clone.Attach(
-                component switch
-                {
-                    IDeepCloneable deepCloneable => (IUIComponent)deepCloneable.DeepClone(),
-                    IShallowCloneable shallowCloneable => (IUIComponent)shallowCloneable.ShallowClone(),
-                    _ => component,
-                }
-            );
+            clone.Attach(Cloner.CloneOrSelf(component));
     }
 
     private void MarkReady()
@@ -1304,6 +1312,8 @@ public abstract class UIElement : IComposable<UIElement>, IFullCloneable
         public RenderPhase Phase;
         public Matrix3x2? OldMatrix;
         public Box? OldClip;
+        public BlendMode? OldBlendMode;
+        public Shader? OldShader;
         public bool? OldCulling;
         public bool OverflowHidden;
         public readonly bool ShouldRender;

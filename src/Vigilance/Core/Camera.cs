@@ -76,11 +76,11 @@ public sealed class Camera
 
     public override string ToString()
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude(nameof(Matrix)));
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Matrix)]));
     }
 }
 
-public readonly record struct CameraProvider
+public readonly struct CameraProvider
 {
     private readonly Camera? _camera;
     private readonly Func<Camera?>? _func;

@@ -114,11 +114,11 @@ public static class Renderer
         }
         else
         {
-            var texture = _buffer.Texture.Texture2D;
+            var texture = _buffer.Texture;
             var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
             var dest = new Raylib_cs.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
-            Raylib.SetTextureFilter(texture, (TextureFilter)mode.Interpolation);
-            Raylib.DrawTexturePro(texture, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
+            texture.Interpolation = mode.Interpolation;
+            Raylib.DrawTexturePro(texture.Texture2D, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
         }
 
         Graphics.DrawCurrentBuffer();
