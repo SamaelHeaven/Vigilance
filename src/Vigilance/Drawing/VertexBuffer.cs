@@ -1,40 +1,44 @@
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
+using Vigilance.Math;
 using ZLinq;
 
 namespace Vigilance.Drawing;
 
 public static class VertexBuffer
 {
-    public static VertexBuffer<float> Quad()
+    public static VertexBuffer<float> Quad(bool isDynamic = false)
     {
-        var quad = new VertexBuffer<float>([
-            -0.5f,
-            -0.5f,
-            0f,
-            0f,
-            0.5f,
-            0.5f,
-            1f,
-            1f,
-            0.5f,
-            -0.5f,
-            1f,
-            0f,
-            -0.5f,
-            -0.5f,
-            0f,
-            0f,
-            -0.5f,
-            0.5f,
-            0f,
-            1f,
-            0.5f,
-            0.5f,
-            1f,
-            1f,
-        ]);
+        var quad = new VertexBuffer<float>(
+            [
+                -0.5f,
+                -0.5f,
+                0f,
+                0f,
+                0.5f,
+                0.5f,
+                1f,
+                1f,
+                0.5f,
+                -0.5f,
+                1f,
+                0f,
+                -0.5f,
+                -0.5f,
+                0f,
+                0f,
+                -0.5f,
+                0.5f,
+                0f,
+                1f,
+                0.5f,
+                0.5f,
+                1f,
+                1f,
+            ],
+            isDynamic
+        );
         quad.Sync();
         return quad;
     }
@@ -48,33 +52,37 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     private ValueList<T> _values;
     private int _vboCapacity = 0;
 
-    public VertexBuffer()
+    public VertexBuffer(bool isDynamic = true)
     {
         Game.ThrowIfNotRunning();
         _values = [];
+        IsDynamic = isDynamic;
     }
 
-    public VertexBuffer(int capacity)
+    public VertexBuffer(int capacity, bool isDynamic = true)
     {
         Game.ThrowIfNotRunning();
         _values = new ValueList<T>(capacity);
+        IsDynamic = isDynamic;
     }
 
-    public VertexBuffer(in ReadOnlySpan<T> values)
+    public VertexBuffer(in ReadOnlySpan<T> values, bool isDynamic = true)
     {
         Game.ThrowIfNotRunning();
         _values = values.AsValueEnumerable().ToValueList();
+        IsDynamic = isDynamic;
     }
 
-    public VertexBuffer(in IEnumerable<T> values)
+    public VertexBuffer(in IEnumerable<T> values, bool isDynamic = true)
     {
         Game.ThrowIfNotRunning();
         _values = values.AsValueEnumerable().ToValueList();
+        IsDynamic = isDynamic;
     }
 
     public uint Id { get; private set; } = 0;
-
     public int Version { get; private set; } = 0;
+    public bool IsDynamic { get; }
 
     public bool IsValid => Id != 0;
 
@@ -200,7 +208,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
             _vboCapacity = _values.Capacity;
             fixed (void* buffer = _values.AsSpan())
             {
-                Id = Rlgl.LoadVertexBuffer(buffer, _vboCapacity * sizeof(T), true);
+                Id = Rlgl.LoadVertexBuffer(buffer, _vboCapacity * sizeof(T), IsDynamic);
             }
 
             Version++;
@@ -210,7 +218,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
 
         var span = _values.AsSpan();
         var start = _dirtyStart;
-        var end = System.Math.Min(_dirtyEnd, span.Length);
+        var end = _dirtyEnd.Min(span.Length);
         if (start >= end)
         {
             ClearDirty();
