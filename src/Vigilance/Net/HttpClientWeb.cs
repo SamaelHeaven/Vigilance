@@ -109,8 +109,8 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         finally
         {
             Emscripten.FetchClose(fetch);
-            Http.CompleteFetch(_requests[id], response);
-            _requests.Remove(id, out _);
+            if (_requests.Remove(id, out var request))
+                Http.CompleteFetch(request, response);
         }
     }
 }
