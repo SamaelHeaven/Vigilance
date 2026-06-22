@@ -23,15 +23,12 @@ public sealed class SpriteBatchSystem : GameSystem
 
     private void TryUpdateSprite(Entity entity)
     {
+        if (entity.TryGet(out BatchedSprite sprite))
+            UpdateSprite(entity, sprite);
         if (!entity.IsParent)
-        {
-            if (entity.TryGet(out BatchedSprite sprite))
-                UpdateSprite(entity, sprite);
             return;
-        }
-
-        foreach (var child in entity.DescendantsAndSelf())
-            if (child.TryGet(out BatchedSprite sprite))
+        foreach (var child in entity.Descendants())
+            if (child.TryGet(out sprite))
                 UpdateSprite(child, sprite);
     }
 
