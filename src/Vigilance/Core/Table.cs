@@ -282,6 +282,19 @@ public sealed class Table<T>
         return !value.IsNull;
     }
 
+    public bool TryGet(in Entity entity, out T component)
+    {
+        var value = GetRef(in entity);
+        if (value.IsNull)
+        {
+            Unsafe.SkipInit(out component);
+            return false;
+        }
+
+        component = value.Read;
+        return true;
+    }
+
     public override void Set(in Entity entity, object component, Flags flags = Flags.Default)
     {
         Set(entity, (T)component, flags);
