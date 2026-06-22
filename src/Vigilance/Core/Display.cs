@@ -365,7 +365,7 @@ public static unsafe class Display
         if (Focused)
             return;
         if (Platform.Web.IsCurrent)
-            JSEngine.Eval("Module.canvas.focus()"u8);
+            JSEngine.Run("Module.canvas.focus()"u8);
         else
             Raylib.SetWindowFocused();
         Focused = Raylib.IsWindowFocused();
@@ -376,7 +376,7 @@ public static unsafe class Display
         var borderlessValue = borderless ?? DefaultFullscreenBorderless;
         if (Platform.Web.IsCurrent)
         {
-            JSEngine.Eval(Fullscreen ? "document.exitFullscreen()"u8 : "Module.canvas.requestFullscreen()"u8);
+            JSEngine.Run(Fullscreen ? "document.exitFullscreen()"u8 : "Module.canvas.requestFullscreen()"u8);
             _fullscreen = JSEngine.Eval("!!document.fullscreenElement"u8);
         }
         else if (Platform.Desktop.IsCurrent)

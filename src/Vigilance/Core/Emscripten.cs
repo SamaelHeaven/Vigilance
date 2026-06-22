@@ -6,6 +6,12 @@ internal static unsafe partial class Emscripten
 {
     public const string LibraryName = "libc";
 
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8, EntryPoint = "emscripten_run_script")]
+    public static partial void RunScript(string script);
+
+    [LibraryImport(LibraryName, EntryPoint = "emscripten_run_script")]
+    public static partial void RunScript(byte* script);
+
     [LibraryImport(
         LibraryName,
         StringMarshalling = StringMarshalling.Utf8,
