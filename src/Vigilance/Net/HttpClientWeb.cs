@@ -80,7 +80,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         try
         {
             response.StatusCode = fetch->Status;
-            response.StatusText = Utf8Ptr.GetString(fetch->StatusText) ?? "";
+            response.StatusText = Utf8Ptr.GetString(fetch->StatusText);
             response.Body = new byte[fetch->TotalBytes];
             if (fetch->Data != nint.Zero)
                 Marshal.Copy(fetch->Data, response.Body, 0, response.Body.Length);

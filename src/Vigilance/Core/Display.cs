@@ -365,7 +365,7 @@ public static unsafe class Display
         if (Focused)
             return;
         if (Platform.Web.IsCurrent)
-            JSEngine.Eval("Module.canvas.focus()");
+            JSEngine.Eval("Module.canvas.focus()"u8);
         else
             Raylib.SetWindowFocused();
         Focused = Raylib.IsWindowFocused();
@@ -376,8 +376,8 @@ public static unsafe class Display
         var borderlessValue = borderless ?? DefaultFullscreenBorderless;
         if (Platform.Web.IsCurrent)
         {
-            JSEngine.Eval(Fullscreen ? "document.exitFullscreen()" : "Module.canvas.requestFullscreen()");
-            _fullscreen = JSEngine.Eval("!!document.fullscreenElement");
+            JSEngine.Eval(Fullscreen ? "document.exitFullscreen()"u8 : "Module.canvas.requestFullscreen()"u8);
+            _fullscreen = JSEngine.Eval("!!document.fullscreenElement"u8);
         }
         else if (Platform.Desktop.IsCurrent)
         {
@@ -449,11 +449,11 @@ public static unsafe class Display
             Raylib.MinimizeWindow();
         if (Platform.Web.IsCurrent)
         {
-            _fullscreen = JSEngine.Eval("!!document.fullscreenElement");
+            _fullscreen = JSEngine.Eval("!!document.fullscreenElement"u8);
             RefreshRate = 0;
-            MonitorWidth = JSEngine.Eval("screen.width");
-            MonitorHeight = JSEngine.Eval("screen.height");
-            Focused = JSEngine.Eval("document.activeElement === Module.canvas");
+            MonitorWidth = JSEngine.Eval("screen.width"u8);
+            MonitorHeight = JSEngine.Eval("screen.height"u8);
+            Focused = JSEngine.Eval("document.activeElement === Module.canvas"u8);
         }
         else
         {
