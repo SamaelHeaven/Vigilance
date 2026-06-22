@@ -533,8 +533,6 @@ public sealed unsafe class Graphics
     public void ClearBackground(Color? color = null)
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
-        if (colorValue == Color.Transparent)
-            return;
         BeginDrawing();
         Raylib.ClearBackground(colorValue.RColor);
         EndDrawing();

@@ -10,6 +10,7 @@ public sealed unsafe class Texture : IDisposable
 {
     private static Texture? _empty;
     private static Texture? _white;
+    internal Vector2? LogicalSize;
     internal RenderTexture? RenderTexture;
     internal Texture2D Texture2D;
 
@@ -41,11 +42,17 @@ public sealed unsafe class Texture : IDisposable
 
     public uint Id => Texture2D.Id;
 
-    public int Width => Texture2D.Width;
+    public int Width => LogicalSize is { } size ? (int)size.X : Texture2D.Width;
 
-    public int Height => Texture2D.Height;
+    public int Height => LogicalSize is { } size ? (int)size.Y : Texture2D.Height;
 
     public Vector2 Size => new(Width, Height);
+
+    public int PhysicalWidth => RenderTexture?.PhysicalWidth ?? Texture2D.Width;
+
+    public int PhysicalHeight => RenderTexture?.PhysicalHeight ?? Texture2D.Height;
+
+    public Vector2 PhysicalSize => new(PhysicalWidth, PhysicalHeight);
 
     public PixelFormat Format => (PixelFormat)Texture2D.Format;
 
@@ -92,6 +99,8 @@ public sealed unsafe class Texture : IDisposable
         if (RenderTexture is not null && Graphics.IsBufferCurrent(RenderTexture))
             Graphics.DrawCurrentBuffer();
         var image = new WritableImage(new Image(Raylib.LoadImageFromTexture(Texture2D)));
+        if (LogicalSize is { } size && (image.Width != (int)size.X || image.Height != (int)size.Y))
+            image.Crop(0, 0, (int)size.X, (int)size.Y);
         if (RenderTexture is not null)
             image.FlipVertically();
         return image;

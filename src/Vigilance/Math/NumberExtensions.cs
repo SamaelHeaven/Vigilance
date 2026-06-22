@@ -43,5 +43,11 @@ public static class NumberExtensions
         {
             return value == default ? defaultValue : value;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T RoundUpToMultipleOf(T multiple)
+        {
+            return (value + multiple - T.One) / multiple * multiple;
+        }
     }
 }

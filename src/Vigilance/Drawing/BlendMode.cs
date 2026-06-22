@@ -114,6 +114,15 @@ public record struct BlendMode(
         BlendEquation.Max,
         BlendEquation.Max
     );
+
+    public static readonly BlendMode Replace = new(
+        BlendFactor.One,
+        BlendFactor.Zero,
+        BlendFactor.One,
+        BlendFactor.Zero,
+        BlendEquation.Add,
+        BlendEquation.Add
+    );
 }
 
 public static class BlendModeExtensions

@@ -14,7 +14,7 @@ public sealed class FontConfig
         "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
     public Func<Font> Default { get; set; } =
-        () => Font.Resource("Font.default.ttf", @namespace: "Resources", assembly: Assemblies.Engine);
+        () => Font.Resource("Resources.Font.default.ttf", @namespace: "", assembly: Assemblies.Engine);
 }
 
 public static class FontConfigExtensions

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Math;
@@ -13,10 +14,12 @@ public static class Time
     private static TimeSpan _delta;
     private static TimeSpan _last;
     private static float _scale;
+    private static readonly Stopwatch _stopwatch;
 
     static Time()
     {
         Game.ThrowIfNotRunning();
+        _stopwatch = Stopwatch.StartNew();
         _fpsHistory = new ValueQueue<float>(FpsHistorySize);
         _delta = TimeSpan.Zero;
         _last = Elapsed;
@@ -50,7 +53,7 @@ public static class Time
 
     public static float AverageFps { get; private set; }
 
-    public static TimeSpan Elapsed => TimeSpan.FromSeconds(Raylib.GetTime());
+    public static TimeSpan Elapsed => _stopwatch.Elapsed;
 
     public static void Sleep(TimeSpan duration)
     {

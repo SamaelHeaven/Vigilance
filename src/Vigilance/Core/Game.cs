@@ -111,6 +111,7 @@ public static unsafe class Game
         Music.UpdateAll();
         Sound.UpdateAll();
         Display.Update();
+        RenderTexturePool.Update();
         UpdateExit();
         UpdateFullscreen();
         UpdateActions();
