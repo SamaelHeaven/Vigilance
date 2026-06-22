@@ -6,7 +6,6 @@ namespace Vigilance.Drawing;
 
 internal static class RenderTexturePool
 {
-    private static readonly TimeSpan _lifetime = TimeSpan.FromSeconds(6);
     private static ValueList<(RenderTexture Texture, TimeSpan Time)> _entries = [];
 
     public static bool TryRent(
@@ -59,7 +58,7 @@ internal static class RenderTexturePool
         var now = Time.Elapsed;
         _entries.RemoveAll(entry =>
         {
-            if (now - entry.Time <= _lifetime)
+            if (now - entry.Time <= Drawing.RenderTexturePoolLifetime)
                 return false;
             entry.Texture.DetachForReuse(out var renderTexture2D, out _, out _);
             Raylib.UnloadRenderTexture(renderTexture2D);
