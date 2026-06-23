@@ -47,8 +47,8 @@ public struct ValueDictionary<TKey, TValue>
         _freeList = source._freeList;
         _freeCount = source._freeCount;
         _fastModMultiplier = source._fastModMultiplier;
-        _buckets = source._buckets is null ? null : (int[])source._buckets.Clone();
-        _entries = source._entries is null ? null : (Entry[])source._entries.Clone();
+        _buckets = (int[]?)source._buckets?.Clone();
+        _entries = (Entry[]?)source._entries?.Clone();
     }
 
     public ValueDictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey>? comparer = null)
