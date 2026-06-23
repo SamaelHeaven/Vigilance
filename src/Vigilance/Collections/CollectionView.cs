@@ -6,11 +6,6 @@ using ZLinq.Linq;
 
 namespace Vigilance.Collections;
 
-public interface IReadOnlySpan<TValue>
-{
-    ReadOnlySpan<TValue> AsSpan();
-}
-
 public interface ISpanView<TValue>
     : IStructEnumerable<SpanViewEnumerator<TValue>, TValue>,
         IReadOnlyCollection<TValue>,
@@ -874,38 +869,6 @@ public readonly record struct SparseSetView<TKey, TValue, TStorage>
 
     public TValue this[in TKey key] => _sparseSet[key];
 
-    public KeyValuePair<TKey, TValue> this[int index] => _sparseSet[index];
-
-    public int Count => _sparseSet.Count;
-
-    public bool ContainsKey(in TKey key)
-    {
-        return _sparseSet.ContainsKey(key);
-    }
-
-    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
-    {
-        return _sparseSet.TryGetValue(key, out value);
-    }
-
-    public int GetKeyIndex(in TKey key)
-    {
-        return _sparseSet.GetKeyIndex(key);
-    }
-
-    public SparseSet<TKey, TValue, TStorage>.Enumerator GetEnumerator()
-    {
-        return _sparseSet.GetEnumerator();
-    }
-
-    public ValueEnumerable<
-        StructEnumerator<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
-        KeyValuePair<TKey, TValue>
-    > AsValueEnumerable()
-    {
-        return _sparseSet.AsValueEnumerable();
-    }
-
     IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys.AsEnumerable();
 
     IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
@@ -921,6 +884,38 @@ public readonly record struct SparseSetView<TKey, TValue, TStorage>
     }
 
     TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
+
+    public KeyValuePair<TKey, TValue> this[int index] => _sparseSet[index];
+
+    public int Count => _sparseSet.Count;
+
+    public SparseSet<TKey, TValue, TStorage>.Enumerator GetEnumerator()
+    {
+        return _sparseSet.GetEnumerator();
+    }
+
+    public ValueEnumerable<
+        StructEnumerator<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+        KeyValuePair<TKey, TValue>
+    > AsValueEnumerable()
+    {
+        return _sparseSet.AsValueEnumerable();
+    }
+
+    public bool ContainsKey(in TKey key)
+    {
+        return _sparseSet.ContainsKey(key);
+    }
+
+    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return _sparseSet.TryGetValue(key, out value);
+    }
+
+    public int GetKeyIndex(in TKey key)
+    {
+        return _sparseSet.GetKeyIndex(key);
+    }
 
     public static implicit operator SparseSetView<TKey, TValue, TStorage>(SparseSet<TKey, TValue, TStorage> sparseSet)
     {
