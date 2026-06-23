@@ -82,6 +82,12 @@ public static class Drawing
         set => _config.RenderTexturePoolLifetime = value;
     }
 
+    public static int RenderTexturePoolRoundUpToMultipleOf
+    {
+        get => _config.RenderTexturePoolRoundUpToMultipleOf;
+        set => _config.RenderTexturePoolRoundUpToMultipleOf = value;
+    }
+
     public static int CalculateSegments(float radius, float startAngle, float endAngle, int segments)
     {
         if (radius <= 0)
@@ -121,7 +127,8 @@ public sealed class DrawingConfig
     public BlendMode DefaultBlendMode { get; set; } = BlendMode.Alpha;
     public Func<Shader> DefaultShader { get; set; } = () => Shader.Default;
     public float SegmentsErrorRate { get; set; } = 0.25f;
-    public TimeSpan RenderTexturePoolLifetime { get; set; } = TimeSpan.FromSeconds(6);
+    public TimeSpan RenderTexturePoolLifetime { get; set; } = TimeSpan.FromSeconds(5);
+    public int RenderTexturePoolRoundUpToMultipleOf { get; set; } = 128;
 }
 
 public static class DrawingConfigExtensions

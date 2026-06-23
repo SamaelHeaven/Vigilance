@@ -7,6 +7,7 @@ namespace Vigilance.Drawing;
 
 public sealed class RenderTexture : IDisposable
 {
+    private readonly bool _pool;
     private bool _pooled;
     internal RenderTexture2D RenderTexture2D;
 
@@ -17,12 +18,13 @@ public sealed class RenderTexture : IDisposable
     {
         Game.ThrowIfNotRunning();
         Graphics.Reset();
+        _pool = pool;
         Scale = scale.Max(1);
         var scaledWidth = (int)(width * Scale).Max(1);
         var scaledHeight = (int)(height * Scale).Max(1);
         bool rented;
         if (
-            pool
+            _pool
             && RenderTexturePool.TryRent(
                 scaledWidth,
                 scaledHeight,
@@ -38,8 +40,9 @@ public sealed class RenderTexture : IDisposable
         }
         else
         {
-            PhysicalWidth = pool ? scaledWidth.RoundUpToMultipleOf(64) : scaledWidth;
-            PhysicalHeight = pool ? scaledHeight.RoundUpToMultipleOf(64) : scaledHeight;
+            var multipleOf = Drawing.RenderTexturePoolRoundUpToMultipleOf;
+            PhysicalWidth = _pool ? scaledWidth.RoundUpToMultipleOf(multipleOf) : scaledWidth;
+            PhysicalHeight = _pool ? scaledHeight.RoundUpToMultipleOf(multipleOf) : scaledHeight;
             var logLevel = Log.SetLogLevel(Log.LogLevel.Max(LogLevel.Info));
             physical = Raylib.LoadRenderTexture(PhysicalWidth, PhysicalHeight);
             Log.LogLevel = logLevel;
@@ -81,7 +84,7 @@ public sealed class RenderTexture : IDisposable
 
     public void Dispose()
     {
-        Dispose(true);
+        Dispose(_pool);
     }
 
     public void Dispose(bool pool)
