@@ -1,19 +1,18 @@
 using System.Diagnostics.CodeAnalysis;
 using Vigilance.Collections;
 using ZLinq;
-using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class SpriteAnimationController : IDictionaryView<string, SpriteAnimation>
+public sealed class SpriteAnimationController : IValueDictionaryView<string, SpriteAnimation>
 {
-    private readonly Dictionary<string, SpriteAnimation> _animations;
+    private readonly ValueDictionary<string, SpriteAnimation> _animations;
 
     public SpriteAnimationController(params ReadOnlySpan<(string, SpriteAnimation)> animations)
     {
         if (animations.Length == 0)
             throw new ArgumentException($"{nameof(SpriteAnimationController)} must have at least one animation.");
-        _animations = animations.AsValueEnumerable().ToDictionary();
+        _animations = animations.AsValueEnumerable().ToValueDictionary();
         Current = animations[0].Item1;
     }
 
@@ -21,7 +20,7 @@ public sealed class SpriteAnimationController : IDictionaryView<string, SpriteAn
     {
         if (animations.Length == 0)
             throw new ArgumentException($"{nameof(SpriteAnimationController)} must have at least one animation.");
-        _animations = animations.AsValueEnumerable().ToDictionary();
+        _animations = animations.AsValueEnumerable().ToValueDictionary();
         Current = animations[0].Key;
     }
 
@@ -47,17 +46,20 @@ public sealed class SpriteAnimationController : IDictionaryView<string, SpriteAn
 
     public SpriteAnimation this[string animation] => _animations[animation];
 
-    public Dictionary<string, SpriteAnimation>.Enumerator GetEnumerator()
+    public ValueDictionary<string, SpriteAnimation>.Enumerator GetEnumerator()
     {
         return _animations.GetEnumerator();
     }
 
     public ValueEnumerable<
-        FromDictionary<string, SpriteAnimation>,
+        StructEnumerator<ValueDictionary<string, SpriteAnimation>.Enumerator, KeyValuePair<string, SpriteAnimation>>,
         KeyValuePair<string, SpriteAnimation>
     > AsValueEnumerable()
     {
-        return _animations.AsValueEnumerable();
+        return new StructEnumerator<
+            ValueDictionary<string, SpriteAnimation>.Enumerator,
+            KeyValuePair<string, SpriteAnimation>
+        >(GetEnumerator());
     }
 
     public bool IsUsing(string animation)

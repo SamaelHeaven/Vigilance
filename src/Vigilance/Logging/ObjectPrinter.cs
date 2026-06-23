@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using LinkDotNet.StringBuilder;
+using Vigilance.Collections;
 using ZLinq;
 
 namespace Vigilance.Logging;
@@ -16,7 +16,7 @@ public static class ObjectPrinter
         Exclude,
     }
 
-    private static readonly Dictionary<Type, PropertyInfo[]> _properties = new();
+    private static ValueDictionary<Type, PropertyInfo[]> _properties = new();
 
     public static string Print<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         in T obj,
@@ -32,7 +32,7 @@ public static class ObjectPrinter
         {
             sb.Append(type.Name);
             sb.Append(" { ");
-            ref var props = ref CollectionsMarshal.GetValueRefOrAddDefault(_properties, type, out var exists)!;
+            ref var props = ref _properties.GetValueRefOrAddDefault(type, out var exists)!;
             if (!exists)
                 props = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy)
                     .AsValueEnumerable()

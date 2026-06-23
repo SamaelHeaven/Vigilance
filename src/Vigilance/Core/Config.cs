@@ -1,18 +1,17 @@
-using System.Runtime.InteropServices;
-using ZLinq;
+using Vigilance.Collections;
 
 namespace Vigilance.Core;
 
 public sealed class Config
 {
-    private readonly Dictionary<Type, Entry> _configs;
+    private ValueDictionary<Type, Entry> _configs;
 
-    internal Config(Dictionary<Type, Entry> configs)
+    internal Config(in ValueDictionary<Type, Entry> configs)
     {
-        _configs = configs.AsValueEnumerable().ToDictionary();
+        _configs = configs.AsValueEnumerable().ToValueDictionary();
     }
 
-    public static Config Empty { get; } = new(new Dictionary<Type, Entry>());
+    public static Config Empty { get; } = new(new ValueDictionary<Type, Entry>());
 
     public static ConfigBuilder Builder()
     {
@@ -35,14 +34,14 @@ public sealed class Config
 
 public sealed class ConfigBuilder
 {
-    private readonly Dictionary<Type, Config.Entry> _configs = new();
+    private ValueDictionary<Type, Config.Entry> _configs = new();
 
     internal ConfigBuilder() { }
 
     public ConfigBuilder Add<T>(Action<T> config)
         where T : new()
     {
-        ref var entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_configs, typeof(T), out var exists);
+        ref var entry = ref _configs.GetValueRefOrAddDefault(typeof(T), out var exists);
         if (!exists)
         {
             entry = new Config.Entry(new T(), config);

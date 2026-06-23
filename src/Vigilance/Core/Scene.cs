@@ -2,7 +2,6 @@
 
 using System.Collections;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Vigilance.Collections;
 using Vigilance.Drawing;
 using Vigilance.Logging;
@@ -13,10 +12,8 @@ namespace Vigilance.Core;
 
 public sealed unsafe partial class Scene
 {
-    private readonly Dictionary<Type, (ICollection Queue, Action EmitAction)> _customEvents = [];
-    private readonly Dictionary<Type, Delegate> _listeners = [];
-    private readonly Dictionary<string, ulong> _nameMap = [];
     private readonly GameSystemsFunc _systemsFunc;
+    private Collections.ValueDictionary<Type, (ICollection Queue, Action EmitAction)> _customEvents = [];
     private Action? _deferredAction;
     private Action<Entity>? _destroyAction;
     private Collections.ValueList<(int Index, int Version)> _entities = [];
@@ -26,6 +23,8 @@ public sealed unsafe partial class Scene
     private Action? _initializeAction;
     private Action<Entity>? _instantiateAction;
     private bool _isEndingDefer;
+    private Collections.ValueDictionary<Type, Delegate> _listeners = [];
+    private Collections.ValueDictionary<string, ulong> _nameMap = [];
     private Action? _onDispose;
     private Action? _postFixedUpdateAction;
     private Action? _postRenderAction;
@@ -178,7 +177,7 @@ public sealed unsafe partial class Scene
 
         if (name is not null)
         {
-            ref var nameId = ref CollectionsMarshal.GetValueRefOrAddDefault(_nameMap, name, out var exists);
+            ref var nameId = ref _nameMap.GetValueRefOrAddDefault(name, out var exists);
             if (exists)
                 throw new InvalidOperationException($"Entity \"{name}\" already exists.");
             nameId = id;
@@ -230,7 +229,7 @@ public sealed unsafe partial class Scene
     public Entity Lookup(string name)
     {
         ThrowIfNotInitialized();
-        ref var id = ref CollectionsMarshal.GetValueRefOrNullRef(_nameMap, name);
+        ref var id = ref _nameMap.GetValueRefOrNullRef(name);
         return Unsafe.IsNullRef(ref id) ? Core.Entity.Null : new Entity(id, this);
     }
 
@@ -238,7 +237,7 @@ public sealed unsafe partial class Scene
     {
         ThrowIfInitialized();
         var type = typeof(T);
-        ref var handlers = ref CollectionsMarshal.GetValueRefOrAddDefault(_listeners, type, out _)!;
+        ref var handlers = ref _listeners.GetValueRefOrAddDefault(type, out _)!;
         var signal = new Signal<T>(ref Unsafe.As<Delegate, Func<T, bool>>(ref handlers)!);
         signal.Subscribe(action);
     }
@@ -247,7 +246,7 @@ public sealed unsafe partial class Scene
     {
         ThrowIfInitialized();
         var type = typeof(T);
-        ref var handlers = ref CollectionsMarshal.GetValueRefOrAddDefault(_listeners, type, out _)!;
+        ref var handlers = ref _listeners.GetValueRefOrAddDefault(type, out _)!;
         var signal = new Signal<T>(ref Unsafe.As<Delegate, Func<T, bool>>(ref handlers)!);
         signal.Subscribe(handler);
     }
@@ -349,7 +348,7 @@ public sealed unsafe partial class Scene
         }
 
         var type = typeof(T);
-        ref var events = ref CollectionsMarshal.GetValueRefOrAddDefault(_customEvents, type, out var exists);
+        ref var events = ref _customEvents.GetValueRefOrAddDefault(type, out var exists);
         if (!exists)
         {
             if (!_listeners.TryGetValue(type, out var handlers))

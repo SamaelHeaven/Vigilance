@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
@@ -10,7 +9,7 @@ namespace Vigilance.Systems;
 
 public sealed class SpriteBatchSystem : GameSystem
 {
-    private readonly Dictionary<SpriteBatch, ValueSparseSet<Entity, SpriteInstance, SpriteBatch>> _batches = new();
+    private ValueDictionary<SpriteBatch, ValueSparseSet<Entity, SpriteInstance, SpriteBatch>> _batches = new();
 
     public override void Configure()
     {
@@ -35,7 +34,7 @@ public sealed class SpriteBatchSystem : GameSystem
 
     private void UpdateSprite(Entity entity, BatchedSprite sprite)
     {
-        ref var instances = ref CollectionsMarshal.GetValueRefOrAddDefault(_batches, sprite.Batch, out var exists)!;
+        ref var instances = ref _batches.GetValueRefOrAddDefault(sprite.Batch, out var exists)!;
         if (!exists)
             instances = new ValueSparseSet<Entity, SpriteInstance, SpriteBatch>(sprite.Batch, e => e.Index);
         instances[entity] = sprite.Instance with { Transform = sprite.Instance.Transform + entity.WorldTransform };
@@ -50,7 +49,7 @@ public sealed class SpriteBatchSystem : GameSystem
 
     private void RemoveSprite(Entity entity, BatchedSprite sprite)
     {
-        ref var instances = ref CollectionsMarshal.GetValueRefOrNullRef(_batches, sprite.Batch);
+        ref var instances = ref _batches.GetValueRefOrNullRef(sprite.Batch);
         if (!Unsafe.IsNullRef(ref instances))
             return;
         instances.Remove(entity);

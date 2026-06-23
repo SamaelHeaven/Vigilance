@@ -1,7 +1,7 @@
 using System.Numerics;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Raylib_cs;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
 using Vector2 = Vigilance.Math.Vector2;
@@ -10,13 +10,13 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe partial class Shader : IDisposable
 {
-    private static readonly Dictionary<string, string> _vertexVersions = new()
+    private static readonly ValueDictionary<string, string> _vertexVersions = new()
     {
         { "vigilance_100", Platform.Web.IsCurrent ? "\n" : "#version 120\n" },
         { "vigilance_300", Platform.Web.IsCurrent ? "#version 300 es\n" : "#version 330 core\n" },
     };
 
-    private static readonly Dictionary<string, string> _fragmentVersions = new()
+    private static readonly ValueDictionary<string, string> _fragmentVersions = new()
     {
         { "vigilance_100", Platform.Web.IsCurrent ? "precision mediump float;\n" : "#version 120\n" },
         {
@@ -25,7 +25,7 @@ public sealed unsafe partial class Shader : IDisposable
         },
     };
 
-    private readonly Dictionary<string, int> _locations = new();
+    private ValueDictionary<string, int> _locations = new();
     internal Raylib_cs.Shader RShader;
 
     internal Shader(in Raylib_cs.Shader shader)
@@ -278,7 +278,7 @@ public sealed unsafe partial class Shader : IDisposable
 
     public int GetLocation(string uniform)
     {
-        ref var location = ref CollectionsMarshal.GetValueRefOrAddDefault(_locations, uniform, out var exists);
+        ref var location = ref _locations.GetValueRefOrAddDefault(uniform, out var exists);
         if (!exists)
             location = Raylib.GetShaderLocation(RShader, uniform);
         return location;
@@ -291,7 +291,7 @@ public sealed unsafe partial class Shader : IDisposable
         Raylib.UnloadShader(RShader);
     }
 
-    private static string FormatShader(string? shader, Dictionary<string, string> versions)
+    private static string FormatShader(string? shader, ValueDictionary<string, string> versions)
     {
         if (shader is null)
             return null!;

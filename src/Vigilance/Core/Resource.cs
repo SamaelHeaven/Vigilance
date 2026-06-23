@@ -1,6 +1,6 @@
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
+using Vigilance.Collections;
 using Vigilance.Logging;
 using ZLinq;
 
@@ -8,7 +8,7 @@ namespace Vigilance.Core;
 
 public static class Resource
 {
-    private static readonly Dictionary<Assembly, HashSet<string>> _resourceNames = new();
+    private static ValueDictionary<Assembly, HashSet<string>> _resourceNames = new();
 
     static Resource()
     {
@@ -40,7 +40,7 @@ public static class Resource
     {
         assembly ??= Assemblies.Game;
         resource = Format(resource, @namespace, assembly);
-        ref var names = ref CollectionsMarshal.GetValueRefOrAddDefault(_resourceNames, assembly, out var exists)!;
+        ref var names = ref _resourceNames.GetValueRefOrAddDefault(assembly, out var exists)!;
         if (exists)
             return names.Contains(resource);
         names = assembly.GetManifestResourceNames().AsValueEnumerable().ToHashSet();

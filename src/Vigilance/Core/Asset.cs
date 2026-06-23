@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Vigilance.Collections;
 using Vigilance.Logging;
 
 namespace Vigilance.Core;
@@ -23,12 +24,12 @@ public static class Asset
         where TKey : notnull
         where TValue : class
     {
-        private readonly Dictionary<TKey, TValue> _strongFiles = new();
-        private readonly Dictionary<TKey, TValue> _strongResources = new();
-        private readonly Dictionary<TKey, TValue> _strongValues = new();
-        private readonly Dictionary<TKey, WeakReference<TValue>> _weakFiles = new();
-        private readonly Dictionary<TKey, WeakReference<TValue>> _weakResources = new();
-        private readonly Dictionary<TKey, WeakReference<TValue>> _weakValues = new();
+        private ValueDictionary<TKey, TValue> _strongFiles = new();
+        private ValueDictionary<TKey, TValue> _strongResources = new();
+        private ValueDictionary<TKey, TValue> _strongValues = new();
+        private ValueDictionary<TKey, WeakReference<TValue>> _weakFiles = new();
+        private ValueDictionary<TKey, WeakReference<TValue>> _weakResources = new();
+        private ValueDictionary<TKey, WeakReference<TValue>> _weakValues = new();
 
         public bool File(
             ref string path,
@@ -56,7 +57,7 @@ public static class Asset
             [MaybeNullWhen(false)] out TValue value
         )
         {
-            return Get(_weakFiles, _strongFiles, keyFunc, valueFunc, cacheType, out value);
+            return Get(ref _weakFiles, ref _strongFiles, keyFunc, valueFunc, cacheType, out value);
         }
 
         public bool Resource(
@@ -90,17 +91,17 @@ public static class Asset
             [MaybeNullWhen(false)] out TValue value
         )
         {
-            return Get(_weakResources, _strongResources, keyFunc, valueFunc, cacheType, out value);
+            return Get(ref _weakResources, ref _strongResources, keyFunc, valueFunc, cacheType, out value);
         }
 
         public bool Raw(TKey key, Func<TValue> valueFunc, CacheType? cacheType, [MaybeNullWhen(false)] out TValue value)
         {
-            return Get(_weakValues, _strongValues, () => key, valueFunc, cacheType, out value);
+            return Get(ref _weakValues, ref _strongValues, () => key, valueFunc, cacheType, out value);
         }
 
         private static bool Get(
-            Dictionary<TKey, WeakReference<TValue>> weakValues,
-            Dictionary<TKey, TValue> strongValues,
+            ref ValueDictionary<TKey, WeakReference<TValue>> weakValues,
+            ref ValueDictionary<TKey, TValue> strongValues,
             Func<TKey> keyFunc,
             Func<TValue?> valueFunc,
             CacheType? cacheType,
