@@ -7,21 +7,21 @@ namespace Vigilance.Collections;
 
 public class EntitySparseSet<TItem> : EntitySparseSet<TItem, ValueList<TItem>>
 {
-    public EntitySparseSet()
-        : base([]) { }
+    public EntitySparseSet(int sparseChunkSize = DefaultSparseChunkSize)
+        : base([], sparseChunkSize) { }
 }
 
 public class EntitySparseSet<TItem, TStorage> : SparseSet<Entity, TItem, TStorage>
     where TStorage : IList<TItem>
 {
-    public EntitySparseSet(TStorage storage)
-        : base(storage, entity => entity.Index) { }
+    public EntitySparseSet(TStorage storage, int sparseChunkSize = DefaultSparseChunkSize)
+        : base(storage, entity => entity.Index, sparseChunkSize) { }
 }
 
 public class SparseSet<TKey, TItem> : SparseSet<TKey, TItem, ValueList<TItem>>
 {
-    public SparseSet(Func<TKey, int> keyIndexFunc)
-        : base([], keyIndexFunc) { }
+    public SparseSet(Func<TKey, int> keyIndexFunc, int sparseChunkSize = DefaultSparseChunkSize)
+        : base([], keyIndexFunc, sparseChunkSize) { }
 }
 
 public class SparseSet<TKey, TValue, TStorage>
@@ -31,18 +31,23 @@ public class SparseSet<TKey, TValue, TStorage>
         IStructEnumerable<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>
     where TStorage : IList<TValue>
 {
-    private const int SparseChunkSize = 2048;
+    public const int DefaultSparseChunkSize = 2048;
+    private readonly ulong _fastModMultiplier;
     private readonly Func<TKey, int> _keyIndexFunc;
+    private readonly int _sparseChunkSize;
     private ValueList<TKey> _keys = [];
     private ValueList<int[]?> _sparseChunks = [];
     private TStorage _values;
 
-    public SparseSet(TStorage storage, Func<TKey, int> keyIndexFunc)
+    public SparseSet(TStorage storage, Func<TKey, int> keyIndexFunc, int sparseChunkSize = DefaultSparseChunkSize)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThan(sparseChunkSize, 1);
         if (storage.Count != 0)
             throw new ArgumentException("Storage must be empty", nameof(storage));
         _values = storage;
         _keyIndexFunc = keyIndexFunc;
+        _sparseChunkSize = sparseChunkSize;
+        _fastModMultiplier = HashHelpers.GetFastModMultiplier((uint)sparseChunkSize);
     }
 
     public FastEnumerable<TValue> Values
@@ -75,8 +80,8 @@ public class SparseSet<TKey, TValue, TStorage>
             AssertValid();
             var keyIndex = _keyIndexFunc.Invoke(key);
             EnsureChunk(keyIndex);
-            var chunkIndex = keyIndex / SparseChunkSize;
-            var withinChunk = keyIndex % SparseChunkSize;
+            var chunkIndex = keyIndex / _sparseChunkSize;
+            var withinChunk = WithinChunk(keyIndex);
             var chunk = _sparseChunks[chunkIndex]!;
             var sparseValue = chunk[withinChunk];
             if (sparseValue == -1)
@@ -258,17 +263,23 @@ public class SparseSet<TKey, TValue, TStorage>
         return new StructEnumerator<Enumerator, KeyValuePair<TKey, TValue>>(GetEnumerator());
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int WithinChunk(int keyIndex)
+    {
+        return (int)HashHelpers.FastMod((uint)keyIndex, (uint)_sparseChunkSize, _fastModMultiplier);
+    }
+
     public bool ContainsKey(in TKey key)
     {
         AssertValid();
         var keyIndex = _keyIndexFunc.Invoke(key);
-        var chunkIndex = keyIndex / SparseChunkSize;
+        var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
         var chunk = _sparseChunks[chunkIndex];
         if (chunk == null)
             return false;
-        var withinChunk = keyIndex % SparseChunkSize;
+        var withinChunk = WithinChunk(keyIndex);
         var sparseValue = chunk[withinChunk];
         return sparseValue != -1;
     }
@@ -277,7 +288,7 @@ public class SparseSet<TKey, TValue, TStorage>
     {
         AssertValid();
         var keyIndex = _keyIndexFunc.Invoke(key);
-        var chunkIndex = keyIndex / SparseChunkSize;
+        var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
         {
             Unsafe.SkipInit(out item);
@@ -291,7 +302,7 @@ public class SparseSet<TKey, TValue, TStorage>
             return false;
         }
 
-        var withinChunk = keyIndex % SparseChunkSize;
+        var withinChunk = WithinChunk(keyIndex);
         var sparseValue = chunk[withinChunk];
         if (sparseValue == -1)
         {
@@ -307,13 +318,13 @@ public class SparseSet<TKey, TValue, TStorage>
     {
         AssertValid();
         var keyIndex = _keyIndexFunc.Invoke(key);
-        var chunkIndex = keyIndex / SparseChunkSize;
+        var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
         var chunk = _sparseChunks[chunkIndex];
         if (chunk == null)
             return false;
-        var withinChunk = keyIndex % SparseChunkSize;
+        var withinChunk = WithinChunk(keyIndex);
         var sparseValue = chunk[withinChunk];
         if (sparseValue == -1)
             return false;
@@ -324,8 +335,8 @@ public class SparseSet<TKey, TValue, TStorage>
             var movedKey = _keys[lastDenseIndex];
             _keys[sparseValue] = movedKey;
             var movedKeyIndex = _keyIndexFunc.Invoke(movedKey);
-            var movedChunkIndex = movedKeyIndex / SparseChunkSize;
-            var movedWithinChunk = movedKeyIndex % SparseChunkSize;
+            var movedChunkIndex = movedKeyIndex / _sparseChunkSize;
+            var movedWithinChunk = WithinChunk(movedKeyIndex);
             var movedChunk = _sparseChunks[movedChunkIndex]!;
             movedChunk[movedWithinChunk] = sparseValue;
         }
@@ -344,12 +355,12 @@ public class SparseSet<TKey, TValue, TStorage>
 
     private void EnsureChunk(int index)
     {
-        var chunkIndex = index / SparseChunkSize;
+        var chunkIndex = index / _sparseChunkSize;
         while (_sparseChunks.Count <= chunkIndex)
             _sparseChunks.Add(null);
         if (_sparseChunks[chunkIndex] != null)
             return;
-        var chunk = new int[SparseChunkSize];
+        var chunk = new int[_sparseChunkSize];
         Array.Fill(chunk, -1);
         _sparseChunks[chunkIndex] = chunk;
     }

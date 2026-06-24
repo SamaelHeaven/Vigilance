@@ -1052,6 +1052,15 @@ public struct ValueDictionary<TKey, TValue>
 
 public static class ValueDictionaryExtensions
 {
+    extension<TKey, TValue>(in ValueDictionary<TKey, TValue> dictionary)
+        where TKey : notnull
+    {
+        public ValueDictionary<TKey, TValue> ToValueDictionary()
+        {
+            return new ValueDictionary<TKey, TValue>(dictionary);
+        }
+    }
+
     extension<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> enumerable)
         where TKey : notnull
     {
@@ -1070,7 +1079,7 @@ public static class ValueDictionaryExtensions
         }
     }
 
-    extension<TEnumerator, TKey, TValue>(ValueEnumerable<TEnumerator, KeyValuePair<TKey, TValue>> enumerable)
+    extension<TEnumerator, TKey, TValue>(in ValueEnumerable<TEnumerator, KeyValuePair<TKey, TValue>> enumerable)
         where TEnumerator : struct, IValueEnumerator<KeyValuePair<TKey, TValue>>, allows ref struct
         where TKey : notnull
     {
@@ -1086,7 +1095,7 @@ public static class ValueDictionaryExtensions
         }
     }
 
-    extension<TEnumerator, TKey, TValue>(ValueEnumerable<TEnumerator, (TKey Key, TValue Value)> enumerable)
+    extension<TEnumerator, TKey, TValue>(in ValueEnumerable<TEnumerator, (TKey Key, TValue Value)> enumerable)
         where TEnumerator : struct, IValueEnumerator<(TKey Key, TValue Value)>, allows ref struct
         where TKey : notnull
     {

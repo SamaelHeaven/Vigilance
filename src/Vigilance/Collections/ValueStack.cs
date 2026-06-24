@@ -22,6 +22,12 @@ public struct ValueStack<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueSta
         _array = new T[capacity];
     }
 
+    public ValueStack(in ValueStack<T> source)
+    {
+        _array = source._array.Length == 0 ? [] : (T[])source._array.Clone();
+        Count = source.Count;
+    }
+
     public ValueStack(IEnumerable<T> collection)
     {
         _array = collection.ToValueList().AsArray(out var length);

@@ -291,7 +291,7 @@ public sealed unsafe class Font : IDisposable
     private static void FtThrowIfError(FT_Error error)
     {
         if (error != FT_Error.FT_Err_Ok)
-            throw new Exception("An error occurred while loading font data.");
+            throw new FreeTypeException(error);
     }
 
     ~Font()

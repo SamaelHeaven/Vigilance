@@ -22,6 +22,14 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
         _array = new T[capacity];
     }
 
+    public ValueQueue(in ValueQueue<T> source)
+    {
+        _array = source._array.Length == 0 ? [] : (T[])source._array.Clone();
+        _head = source._head;
+        _tail = source._tail;
+        Count = source.Count;
+    }
+
     public ValueQueue(IEnumerable<T> collection)
     {
         ArgumentNullException.ThrowIfNull(collection);

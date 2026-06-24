@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
+using Vigilance.Core;
 
-namespace Vigilance.Core;
+namespace Vigilance.Collections;
 
 public static class HashHelpers
 {
