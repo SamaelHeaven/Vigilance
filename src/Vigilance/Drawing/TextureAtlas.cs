@@ -5,7 +5,7 @@ using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class TextureAtlas : IArrayView<Box>, IReadOnlyList<Box>
+public sealed class TextureAtlas : IArrayView<Box>
 {
     private readonly Box[] _boxes;
 
