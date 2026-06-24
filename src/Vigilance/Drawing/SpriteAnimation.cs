@@ -10,7 +10,6 @@ public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
 {
     public const int InfiniteCycleCount = -1;
     private readonly SpriteAnimationFrame[] _frames;
-    private TimeSpan _elapsed;
     private int _index;
     private int? _nextIndex;
     private int _startIndex;
@@ -36,9 +35,10 @@ public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
         StartIndex = startIndex;
     }
 
+    public TimeSpan Elapsed { get; set; }
     public TimeSpan Delay { get; set; }
     public bool IsPaused { get; set; }
-    public bool DidRepeat { get; set; }
+    public bool DidTick { get; set; }
     public int CycleCount { get; set; }
     public int CurrentCycle { get; private set; }
 
@@ -55,7 +55,7 @@ public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
         set
         {
             _index = value.Clamp(0, _frames.Length - 1);
-            _elapsed = TimeSpan.Zero;
+            Elapsed = TimeSpan.Zero;
         }
     }
 
@@ -83,20 +83,20 @@ public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
 
     public void Update(TimeSpan? step = null)
     {
-        DidRepeat = false;
+        DidTick = false;
         if (IsPaused || _frames.Length <= 1 || IsCompleted)
             return;
-        _elapsed += step ?? Time.Delta;
+        Elapsed += step ?? Time.Delta;
         var frameDelay = Delay + _frames[_index].Delay;
-        if (_elapsed < frameDelay)
+        if (Elapsed < frameDelay)
             return;
-        _elapsed -= frameDelay;
+        Elapsed -= frameDelay;
         _index = _nextIndex ?? (_index + 1) % _frames.Length;
         if (_nextIndex.HasValue)
             _nextIndex = null;
         if (_index != _startIndex)
             return;
-        DidRepeat = true;
+        DidTick = true;
         CurrentCycle++;
         if (IsCompleted)
             OnComplete?.Invoke();
@@ -112,7 +112,7 @@ public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
     public void Reset()
     {
         _index = 0;
-        _elapsed = TimeSpan.Zero;
+        Elapsed = TimeSpan.Zero;
         CurrentCycle = 0;
     }
 }
