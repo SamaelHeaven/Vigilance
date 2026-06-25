@@ -4,7 +4,9 @@ using ZLinq;
 
 namespace Vigilance.Drawing;
 
-public sealed class SpriteAnimationController : IValueDictionaryView<string, SpriteAnimation>
+public sealed class SpriteAnimationController
+    : IValueDictionaryView<string, SpriteAnimation>,
+        IReadOnlyDictionary<string, SpriteAnimation>
 {
     private readonly ValueDictionary<string, SpriteAnimation> _animations;
 
@@ -43,8 +45,22 @@ public sealed class SpriteAnimationController : IValueDictionaryView<string, Spr
     }
 
     public SpriteAnimation Animation { get; private set; } = null!;
+    public ValueDictionary<string, SpriteAnimation>.KeyCollection Keys => _animations.Keys;
+    public ValueDictionary<string, SpriteAnimation>.ValueCollection Values => _animations.Values;
+
+    public bool ContainsKey(string key)
+    {
+        return _animations.ContainsKey(key);
+    }
+
+    public bool TryGetValue(string key, [MaybeNullWhen(false)] out SpriteAnimation value)
+    {
+        return _animations.TryGetValue(key, out value);
+    }
 
     public SpriteAnimation this[string animation] => _animations[animation];
+    IEnumerable<string> IReadOnlyDictionary<string, SpriteAnimation>.Keys => _animations.Keys;
+    IEnumerable<SpriteAnimation> IReadOnlyDictionary<string, SpriteAnimation>.Values => _animations.Values;
 
     public ValueDictionary<string, SpriteAnimation>.Enumerator GetEnumerator()
     {
@@ -65,21 +81,6 @@ public sealed class SpriteAnimationController : IValueDictionaryView<string, Spr
     public bool IsUsing(string animation)
     {
         return Current == animation;
-    }
-
-    public bool Has(string animation)
-    {
-        return _animations.ContainsKey(animation);
-    }
-
-    public SpriteAnimation Get(string animation)
-    {
-        return _animations[animation];
-    }
-
-    public bool TryGet(string animation, [MaybeNullWhen(false)] out SpriteAnimation animationOut)
-    {
-        return _animations.TryGetValue(animation, out animationOut!);
     }
 
     public void Use(string animation, bool resetOthers = true)

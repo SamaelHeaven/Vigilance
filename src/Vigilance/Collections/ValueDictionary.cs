@@ -810,7 +810,10 @@ public struct ValueDictionary<TKey, TValue>
         public void Dispose() { }
     }
 
-    public readonly struct KeyCollection : ICollection<TKey>, IReadOnlyCollection<TKey>
+    public readonly struct KeyCollection
+        : ICollection<TKey>,
+            IReadOnlyCollection<TKey>,
+            IStructEnumerable<KeyCollection.Enumerator, TKey>
     {
         private readonly ValueDictionary<TKey, TValue> _dictionary;
 
@@ -826,6 +829,11 @@ public struct ValueDictionary<TKey, TValue>
         public Enumerator GetEnumerator()
         {
             return new Enumerator(_dictionary);
+        }
+
+        public ValueEnumerable<StructEnumerator<Enumerator, TKey>, TKey> AsValueEnumerable()
+        {
+            return new StructEnumerator<Enumerator, TKey>(GetEnumerator());
         }
 
         public void CopyTo(TKey[] array, int index)
@@ -862,18 +870,8 @@ public struct ValueDictionary<TKey, TValue>
             throw new NotSupportedException("Mutating a key collection derived from a dictionary is not allowed.");
         }
 
-        IEnumerator<TKey> IEnumerable<TKey>.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
         // ReSharper disable once MemberHidesStaticFromOuterClass
-        public struct Enumerator : IEnumerator<TKey>
+        public struct Enumerator : IStructEnumerator<TKey>
         {
             private readonly ValueDictionary<TKey, TValue> _dictionary;
             private int _index;
@@ -904,8 +902,6 @@ public struct ValueDictionary<TKey, TValue>
 
             public TKey Current => _currentKey!;
 
-            object? IEnumerator.Current => _currentKey;
-
             public void Reset()
             {
                 _index = 0;
@@ -916,7 +912,10 @@ public struct ValueDictionary<TKey, TValue>
         }
     }
 
-    public readonly struct ValueCollection : ICollection<TValue>, IReadOnlyCollection<TValue>
+    public readonly struct ValueCollection
+        : ICollection<TValue>,
+            IReadOnlyCollection<TValue>,
+            IStructEnumerable<ValueCollection.Enumerator, TValue>
     {
         private readonly ValueDictionary<TKey, TValue> _dictionary;
 
@@ -932,6 +931,11 @@ public struct ValueDictionary<TKey, TValue>
         public Enumerator GetEnumerator()
         {
             return new Enumerator(_dictionary);
+        }
+
+        public ValueEnumerable<StructEnumerator<Enumerator, TValue>, TValue> AsValueEnumerable()
+        {
+            return new StructEnumerator<Enumerator, TValue>(GetEnumerator());
         }
 
         public void CopyTo(TValue[] array, int index)
@@ -969,18 +973,8 @@ public struct ValueDictionary<TKey, TValue>
             throw new NotSupportedException("Mutating a value collection derived from a dictionary is not allowed.");
         }
 
-        IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
         // ReSharper disable once MemberHidesStaticFromOuterClass
-        public struct Enumerator : IEnumerator<TValue>
+        public struct Enumerator : IStructEnumerator<TValue>
         {
             private readonly ValueDictionary<TKey, TValue> _dictionary;
             private int _index;
@@ -1010,8 +1004,6 @@ public struct ValueDictionary<TKey, TValue>
             }
 
             public TValue Current => _currentValue!;
-
-            object? IEnumerator.Current => _currentValue;
 
             public void Reset()
             {
