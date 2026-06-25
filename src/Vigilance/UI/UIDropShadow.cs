@@ -104,7 +104,7 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
 
     private bool BeginRender(UIElement element, Graphics graphics, CameraProvider camera)
     {
-        var offset = 1 + _blur * _blur;
+        var offset = 1 + _blur * 3;
         if (IsTextureDirty)
         {
             IsTextureDirty = false;
