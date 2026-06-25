@@ -19,7 +19,7 @@ public sealed unsafe class Font : IDisposable
     private ValueDictionary<char, GlyphInfo> _glyphInfos = new();
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
-    private ValueDictionary<int, (Texture Atlas, ValueDictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
+    private ValueDictionary<int, StrokeEntry> _strokes = new();
 
     public Font(IEnumerable<byte> bytes, int? quality = null, string? charset = null)
     {
@@ -122,7 +122,7 @@ public sealed unsafe class Font : IDisposable
         return GetStroke(strokeWidth).GlyphInfos[c];
     }
 
-    public ValueDictionaryView<char, GlyphInfo>.Enumerable GetStrokeGlyphInfos(int strokeWidth)
+    public ValueDictionaryView<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
     {
         return GetStroke(strokeWidth).GlyphInfos;
     }
@@ -132,7 +132,7 @@ public sealed unsafe class Font : IDisposable
         float? fontSize = null,
         in Vector2? spacing = null,
         int visibleCharacters = Text.UnlimitedCharacters,
-        in ValueDictionaryView<char, GlyphInfo>.Enumerable? glyphInfos = null
+        ValueDictionaryView<char, GlyphInfo> glyphInfos = default
     )
     {
         return new TextBoundEnumerable(
@@ -140,17 +140,17 @@ public sealed unsafe class Font : IDisposable
             text,
             fontSize ?? DefaultSize,
             spacing ?? DefaultTextSpacing,
-            glyphInfos ?? _glyphInfos.AsView().AsEnumerable(),
+            (glyphInfos == default ? _glyphInfos : glyphInfos).AsEnumerable(),
             visibleCharacters
         );
     }
 
-    public (Texture Atlas, ValueDictionaryView<char, GlyphInfo>.Enumerable GlyphInfos) GetStroke(int strokeWidth)
+    public Stroke GetStroke(int strokeWidth)
     {
         strokeWidth = strokeWidth.Clamp(0, 50);
         ref var stroke = ref _strokes.GetValueRefOrAddDefault(strokeWidth, out var exists);
         if (exists)
-            return (stroke.Atlas, stroke.GlyphInfos.AsView().AsEnumerable());
+            return new Stroke(stroke.Atlas, stroke.GlyphInfos);
         FT.FT_Stroker_Set(
             _stroker,
             strokeWidth * 64,
@@ -166,8 +166,8 @@ public sealed unsafe class Font : IDisposable
             .ToValueList();
         var glyphInfos = new ValueDictionary<char, GlyphInfo>();
         var atlas = DrawAtlas(glyphs, ref glyphInfos);
-        var result = (atlas, glyphInfos.AsView().AsEnumerable());
-        stroke = (atlas, glyphInfos);
+        stroke = new StrokeEntry(atlas, glyphInfos);
+        var result = new Stroke(atlas, stroke.GlyphInfos);
         return result;
     }
 
@@ -201,7 +201,7 @@ public sealed unsafe class Font : IDisposable
             .ToValueList();
     }
 
-    private static Texture DrawAtlas(ValueList<Glyph> glyphs, ref ValueDictionary<char, GlyphInfo> glyphInfos)
+    private static Texture DrawAtlas(in ValueList<Glyph> glyphs, ref ValueDictionary<char, GlyphInfo> glyphInfos)
     {
         var colSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Width).Prepend(0).Max();
         var rowSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Height).Prepend(0).Max();
@@ -311,6 +311,12 @@ public sealed unsafe class Font : IDisposable
         ReleaseUnmanagedResources();
         if (disposing)
             Atlas.Dispose();
+    }
+
+    private struct StrokeEntry(Texture atlas, in ValueDictionary<char, GlyphInfo> glyphInfos)
+    {
+        public readonly Texture Atlas = atlas;
+        public readonly ValueDictionary<char, GlyphInfo> GlyphInfos = glyphInfos;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -445,5 +451,17 @@ public sealed unsafe class Font : IDisposable
         public (Box Source, Box Dest) Current { get; private set; }
 
         public void Dispose() { }
+    }
+
+    public readonly ref struct Stroke(Texture atlas, ValueDictionaryView<char, GlyphInfo> glyphInfos)
+    {
+        public Texture Atlas { get; } = atlas;
+        public ValueDictionaryView<char, GlyphInfo> GlyphInfos { get; } = glyphInfos;
+
+        public void Deconstruct(out Texture atlas, out ValueDictionaryView<char, GlyphInfo> glyphInfos)
+        {
+            atlas = Atlas;
+            glyphInfos = GlyphInfos;
+        }
     }
 }

@@ -20,7 +20,6 @@ public struct ValueDictionary<TKey, TValue>
     private int _count;
     private int _freeList;
     private int _freeCount;
-    private int _version;
     private readonly IEqualityComparer<TKey>? _comparer;
 
     public ValueDictionary()
@@ -108,7 +107,7 @@ public struct ValueDictionary<TKey, TValue>
     {
         // ReSharper disable once RedundantAssignment
         var modified = TryInsert(key, value, InsertionBehavior.ThrowOnExisting);
-        Debug.Assert(modified); // If there was an existing key and the Add failed, an exception will already have been thrown.
+        Debug.Assert(modified);
     }
 
     public bool TryAdd(in TKey key, in TValue value)
@@ -384,7 +383,6 @@ public struct ValueDictionary<TKey, TValue>
         entry.Key = key;
         entry.Value = default!;
         bucket = index + 1;
-        _version++;
         exists = false;
         return ref entry.Value!;
     }
@@ -395,7 +393,6 @@ public struct ValueDictionary<TKey, TValue>
         var currentCapacity = _entries?.Length ?? 0;
         if (currentCapacity >= capacity)
             return currentCapacity;
-        _version++;
         if (_buckets == null)
             return Initialize(capacity);
         var newSize = HashHelpers.GetPrime(capacity);
@@ -417,7 +414,6 @@ public struct ValueDictionary<TKey, TValue>
         if (newSize >= currentCapacity)
             return;
         var oldCount = _count;
-        _version++;
         Initialize(newSize);
         Debug.Assert(oldEntries is not null);
         CopyEntries(oldEntries, oldCount);
@@ -597,7 +593,6 @@ public struct ValueDictionary<TKey, TValue>
         entry.Key = key;
         entry.Value = value;
         bucket = index + 1;
-        _version++;
         return true;
     }
 
@@ -779,21 +774,17 @@ public struct ValueDictionary<TKey, TValue>
     public struct Enumerator : IStructEnumerator<KeyValuePair<TKey, TValue>>
     {
         private readonly ValueDictionary<TKey, TValue> _dictionary;
-        private readonly int _version;
         private int _index;
 
         internal Enumerator(in ValueDictionary<TKey, TValue> dictionary)
         {
             _dictionary = dictionary;
-            _version = dictionary._version;
             _index = 0;
             Current = default;
         }
 
         public bool MoveNext()
         {
-            if (_version != _dictionary._version)
-                ThrowConcurrentOperation();
             while ((uint)_index < (uint)_dictionary._count)
             {
                 ref var entry = ref _dictionary._entries![_index++];
@@ -812,9 +803,6 @@ public struct ValueDictionary<TKey, TValue>
 
         public void Reset()
         {
-            if (_version != _dictionary._version)
-                ThrowConcurrentOperation();
-
             _index = 0;
             Current = default;
         }
@@ -888,22 +876,18 @@ public struct ValueDictionary<TKey, TValue>
         public struct Enumerator : IEnumerator<TKey>
         {
             private readonly ValueDictionary<TKey, TValue> _dictionary;
-            private readonly int _version;
             private int _index;
             private TKey? _currentKey;
 
             internal Enumerator(in ValueDictionary<TKey, TValue> dictionary)
             {
                 _dictionary = dictionary;
-                _version = dictionary._version;
                 _index = 0;
                 _currentKey = default;
             }
 
             public bool MoveNext()
             {
-                if (_version != _dictionary._version)
-                    ThrowConcurrentOperation();
                 while ((uint)_index < (uint)_dictionary._count)
                 {
                     ref var entry = ref _dictionary._entries![_index++];
@@ -924,9 +908,6 @@ public struct ValueDictionary<TKey, TValue>
 
             public void Reset()
             {
-                if (_version != _dictionary._version)
-                    ThrowConcurrentOperation();
-
                 _index = 0;
                 _currentKey = default;
             }
@@ -1002,22 +983,18 @@ public struct ValueDictionary<TKey, TValue>
         public struct Enumerator : IEnumerator<TValue>
         {
             private readonly ValueDictionary<TKey, TValue> _dictionary;
-            private readonly int _version;
             private int _index;
             private TValue? _currentValue;
 
             internal Enumerator(in ValueDictionary<TKey, TValue> dictionary)
             {
                 _dictionary = dictionary;
-                _version = dictionary._version;
                 _index = 0;
                 _currentValue = default;
             }
 
             public bool MoveNext()
             {
-                if (_version != _dictionary._version)
-                    ThrowConcurrentOperation();
                 while ((uint)_index < (uint)_dictionary._count)
                 {
                     ref var entry = ref _dictionary._entries![_index++];
@@ -1038,9 +1015,6 @@ public struct ValueDictionary<TKey, TValue>
 
             public void Reset()
             {
-                if (_version != _dictionary._version)
-                    ThrowConcurrentOperation();
-
                 _index = 0;
                 _currentValue = default;
             }
