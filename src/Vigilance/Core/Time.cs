@@ -9,6 +9,7 @@ namespace Vigilance.Core;
 public static class Time
 {
     public const float FixedDeltaSeconds = 1 / 60f;
+    private const double MaxDeltaSeconds = 1 / 4.0;
     private const int FpsHistorySize = 200;
     private static ValueQueue<float> _fpsHistory;
     private static TimeSpan _delta;
@@ -76,6 +77,8 @@ public static class Time
         var elapsed = Elapsed;
         _delta = elapsed - _last;
         _last = elapsed;
+        if (_delta.TotalSeconds > MaxDeltaSeconds)
+            _delta = TimeSpan.FromSeconds(MaxDeltaSeconds);
         while (_fpsHistory.Count >= FpsHistorySize)
             _fpsHistory.Dequeue();
         _fpsHistory.Enqueue(CurrentFps);
