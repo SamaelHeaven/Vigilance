@@ -70,7 +70,7 @@ public sealed unsafe class Font : IDisposable
 
     public void Dispose()
     {
-        Dispose(true);
+        ReleaseUnmanagedResources();
         GC.SuppressFinalize(this);
         _glyphInfos.Clear();
         _strokes.Clear();
@@ -300,7 +300,7 @@ public sealed unsafe class Font : IDisposable
 
     ~Font()
     {
-        Game.Defer(() => Dispose(false));
+        Game.Defer(Dispose);
     }
 
     private void ReleaseUnmanagedResources()
@@ -308,13 +308,6 @@ public sealed unsafe class Font : IDisposable
         FT.FT_Stroker_Done(_stroker);
         FT.FT_Done_Face(_face);
         Marshal.FreeHGlobal(_buffer);
-    }
-
-    private void Dispose(bool disposing)
-    {
-        ReleaseUnmanagedResources();
-        if (disposing)
-            Atlas.Dispose();
     }
 
     private struct StrokeEntry(Texture atlas, in ValueDictionary<char, GlyphInfo> glyphInfos)

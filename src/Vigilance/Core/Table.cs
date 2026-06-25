@@ -69,21 +69,34 @@ public abstract class Table
 
     internal abstract void DequeueEvent();
 
-    public readonly record struct Event<T>(Entity Entity, EventType Type, T OldValue, T NewValue)
+    public readonly record struct Event<T>
     {
+        public Event(EventType type, in Entity entity, T oldValue, T newValue)
+        {
+            Entity = entity;
+            OldValue = oldValue;
+            NewValue = newValue;
+            Type = type;
+        }
+
+        public Entity Entity { get; }
+        public T OldValue { get; }
+        public T NewValue { get; }
+        public EventType Type { get; }
+
         public static Event<T> Add(in Entity entity, in T value)
         {
-            return new Event<T>(entity, EventType.Add, default!, value);
+            return new Event<T>(EventType.Add, entity, default!, value);
         }
 
         public static Event<T> Set(in Entity entity, in T oldValue, in T newValue)
         {
-            return new Event<T>(entity, EventType.Set, oldValue, newValue);
+            return new Event<T>(EventType.Set, entity, oldValue, newValue);
         }
 
         public static Event<T> Remove(in Entity entity, in T value)
         {
-            return new Event<T>(entity, EventType.Remove, default!, value);
+            return new Event<T>(EventType.Remove, entity, default!, value);
         }
     }
 }

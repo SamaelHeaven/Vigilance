@@ -200,12 +200,20 @@ public sealed unsafe partial class Scene
         if (name is not null)
             NameTable.Set(entity, new Name(name), Core.Table.Flags.ForceMutable);
         ResumeDefer();
-        if (!Scope.IsNull)
-            ChildTable.Set(entity, new Child(Scope.Id));
-        if (IsDeferred)
-            Enqueue(Event.Instantiate(entity));
-        else
-            _instantiateAction?.Invoke(entity);
+        var scope = Scope;
+        try
+        {
+            if (IsDeferred)
+                Enqueue(Event.Instantiate(entity));
+            else
+                _instantiateAction?.Invoke(entity);
+        }
+        finally
+        {
+            if (!scope.IsNull)
+                ChildTable.Set(entity, new Child(scope.Id));
+        }
+
         return entity;
     }
 
@@ -974,8 +982,19 @@ public sealed unsafe partial class Scene
         }
     }
 
-    internal readonly record struct Event(EventType EventType, ulong EntityId, object Data)
+    internal readonly record struct Event
     {
+        public Event(EventType eventType, ulong entityId, object data)
+        {
+            EntityId = entityId;
+            Data = data;
+            EventType = eventType;
+        }
+
+        public ulong EntityId { get; }
+        public object Data { get; }
+        public EventType EventType { get; }
+
         public static Event Instantiate(in Entity entity)
         {
             return new Event(EventType.Instantiate, entity.Id, null!);
@@ -1002,7 +1021,7 @@ public sealed unsafe partial class Scene
         }
     }
 
-    internal enum EventType
+    internal enum EventType : byte
     {
         Instantiate,
         Destroy,
