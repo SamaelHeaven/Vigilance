@@ -89,10 +89,9 @@ public sealed class SpriteAnimationController : IValueDictionaryView<string, Spr
         Current = animation;
         if (!resetOthers)
             return;
-        foreach (var key in _animations.Keys.AsValueEnumerable().Where(key => key != animation))
-        {
-            var value = _animations[key];
+        foreach (
+            var value in _animations.AsValueEnumerable().Where(pair => pair.Key != animation).Select(pair => pair.Value)
+        )
             value.Reset();
-        }
     }
 }
