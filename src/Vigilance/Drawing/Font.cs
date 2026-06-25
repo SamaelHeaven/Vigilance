@@ -150,7 +150,9 @@ public sealed unsafe class Font : IDisposable
         strokeWidth = strokeWidth.Clamp(0, 50);
         ref var stroke = ref _strokes.GetValueRefOrAddDefault(strokeWidth, out var exists);
         if (exists)
-            return new Stroke(stroke.Atlas, stroke.GlyphInfos);
+#pragma warning disable CS9083 // A member is returned by reference but was initialized to a value that cannot be returned by reference
+            return new Stroke(stroke.Atlas, stroke.GlyphInfos.AsView());
+#pragma warning restore CS9083 // A member is returned by reference but was initialized to a value that cannot be returned by reference
         FT.FT_Stroker_Set(
             _stroker,
             strokeWidth * 64,
@@ -167,8 +169,10 @@ public sealed unsafe class Font : IDisposable
         var glyphInfos = new ValueDictionary<char, GlyphInfo>();
         var atlas = DrawAtlas(glyphs, ref glyphInfos);
         stroke = new StrokeEntry(atlas, glyphInfos);
-        var result = new Stroke(atlas, stroke.GlyphInfos);
+        var result = new Stroke(atlas, stroke.GlyphInfos.AsView());
+#pragma warning disable CS9080 // Use of variable in this context may expose referenced variables outside of their declaration scope
         return result;
+#pragma warning restore CS9080 // Use of variable in this context may expose referenced variables outside of their declaration scope
     }
 
     private ValueList<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
