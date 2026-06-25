@@ -16,10 +16,10 @@ public sealed unsafe class Font : IDisposable
     private static FontConfig _config = new();
     private nint _buffer;
     private FT_FaceRec_* _face;
-    private ValueDictionary<char, GlyphInfo> _glyphInfos = new();
+    private ValueDictionary<char, GlyphInfo> _glyphInfos = [];
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
-    private ValueDictionary<int, StrokeEntry> _strokes = new();
+    private ValueDictionary<int, StrokeEntry> _strokes = [];
 
     public Font(IEnumerable<byte> bytes, int? quality = null, string? charset = null)
     {

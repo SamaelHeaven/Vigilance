@@ -16,7 +16,7 @@ public static class ObjectPrinter
         Exclude,
     }
 
-    private static ValueDictionary<Type, PropertyInfo[]> _properties = new();
+    private static ValueDictionary<Type, PropertyInfo[]> _properties = [];
 
     public static string Print<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         in T obj,

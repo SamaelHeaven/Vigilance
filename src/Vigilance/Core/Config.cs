@@ -11,7 +11,7 @@ public sealed class Config
         _configs = configs.AsValueEnumerable().ToValueDictionary();
     }
 
-    public static Config Empty { get; } = new(new ValueDictionary<Type, Entry>());
+    public static Config Empty { get; } = new([]);
 
     public static ConfigBuilder Builder()
     {
@@ -34,7 +34,7 @@ public sealed class Config
 
 public sealed class ConfigBuilder
 {
-    private ValueDictionary<Type, Config.Entry> _configs = new();
+    private ValueDictionary<Type, Config.Entry> _configs = [];
 
     internal ConfigBuilder() { }
 

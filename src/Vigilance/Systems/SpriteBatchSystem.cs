@@ -9,7 +9,7 @@ namespace Vigilance.Systems;
 
 public sealed class SpriteBatchSystem : GameSystem
 {
-    private ValueDictionary<SpriteBatch, ValueSparseSet<Entity, SpriteInstance, SpriteBatch>> _batches = new();
+    private ValueDictionary<SpriteBatch, ValueSparseSet<Entity, SpriteInstance, SpriteBatch>> _batches = [];
 
     public override void Configure()
     {

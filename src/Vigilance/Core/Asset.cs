@@ -24,12 +24,12 @@ public static class Asset
         where TKey : notnull
         where TValue : class
     {
-        private ValueDictionary<TKey, TValue> _strongFiles = new();
-        private ValueDictionary<TKey, TValue> _strongResources = new();
-        private ValueDictionary<TKey, TValue> _strongValues = new();
-        private ValueDictionary<TKey, WeakReference<TValue>> _weakFiles = new();
-        private ValueDictionary<TKey, WeakReference<TValue>> _weakResources = new();
-        private ValueDictionary<TKey, WeakReference<TValue>> _weakValues = new();
+        private ValueDictionary<TKey, TValue> _strongFiles = [];
+        private ValueDictionary<TKey, TValue> _strongResources = [];
+        private ValueDictionary<TKey, TValue> _strongValues = [];
+        private ValueDictionary<TKey, WeakReference<TValue>> _weakFiles = [];
+        private ValueDictionary<TKey, WeakReference<TValue>> _weakResources = [];
+        private ValueDictionary<TKey, WeakReference<TValue>> _weakValues = [];
 
         public bool File(
             ref string path,

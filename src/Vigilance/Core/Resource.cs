@@ -8,7 +8,7 @@ namespace Vigilance.Core;
 
 public static class Resource
 {
-    private static ValueDictionary<Assembly, HashSet<string>> _resourceNames = new();
+    private static ValueDictionary<Assembly, HashSet<string>> _resourceNames = [];
 
     static Resource()
     {

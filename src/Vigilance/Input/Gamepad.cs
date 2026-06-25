@@ -22,7 +22,7 @@ public sealed unsafe class Gamepad
     private Gamepad(int id)
     {
         Id = id;
-        _axes = new ValueDictionary<GamepadAxis, float>();
+        _axes = [];
         foreach (var axis in _axisValues)
             _axes.Add(axis, 0);
     }
