@@ -449,7 +449,15 @@ public static unsafe class Display
             Raylib.MinimizeWindow();
         if (Platform.Web.IsCurrent)
         {
+            var previousFullscreen = _fullscreen;
             _fullscreen = JSEngine.Eval("!!document.fullscreenElement"u8);
+            if (_fullscreen != previousFullscreen)
+                JSEngine.Run(
+                    """
+                    Module.canvas.blur();
+                    Module.canvas.focus();
+                    """u8
+                );
             RefreshRate = 0;
             MonitorWidth = JSEngine.Eval("screen.width"u8);
             MonitorHeight = JSEngine.Eval("screen.height"u8);
