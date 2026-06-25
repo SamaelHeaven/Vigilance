@@ -62,6 +62,8 @@ public sealed class SpriteAnimationController
     IEnumerable<string> IReadOnlyDictionary<string, SpriteAnimation>.Keys => _animations.Keys;
     IEnumerable<SpriteAnimation> IReadOnlyDictionary<string, SpriteAnimation>.Values => _animations.Values;
 
+    public int Count => _animations.Count;
+
     public ValueDictionary<string, SpriteAnimation>.Enumerator GetEnumerator()
     {
         return _animations.GetEnumerator();
