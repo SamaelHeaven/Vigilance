@@ -80,7 +80,7 @@ public static class UISpriteExtensions
 {
     extension(SpriteAnimationFrame frame)
     {
-        public void UpdateSprite(UISprite sprite)
+        public void UpdateUISprite(UISprite sprite)
         {
             if (frame.Texture is not null)
                 sprite.Texture = frame.Texture;
