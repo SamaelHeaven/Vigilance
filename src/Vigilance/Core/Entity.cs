@@ -1088,18 +1088,33 @@ public readonly unsafe partial record struct Entity
         private readonly Entity _parent;
         private ulong _nextChildId;
         private readonly bool _deferred;
+        private bool _initialized;
         private bool _disposed;
 
         internal ChildEnumerator(in Entity parent, bool deferred)
         {
             _parent = parent;
             _deferred = deferred;
+            _initialized = false;
             _disposed = true;
-            Reset();
+        }
+
+        private void Initialize()
+        {
+            _parent.AssertValid();
+            var parentRef = _parent.Scene.ParentTable.GetRef(_parent);
+            _nextChildId = parentRef.IsNull ? 0 : parentRef.Read.FirstChildId;
+            Current = Null;
+            _initialized = true;
+            _disposed = false;
+            if (_deferred)
+                _parent.Scene.BeginDefer();
         }
 
         public bool MoveNext()
         {
+            if (!_initialized)
+                Initialize();
             if (_nextChildId == 0)
             {
                 Current = default;
@@ -1115,13 +1130,7 @@ public readonly unsafe partial record struct Entity
         public void Reset()
         {
             Dispose();
-            _parent.AssertValid();
-            var parentRef = _parent.Scene.ParentTable.GetRef(_parent);
-            _nextChildId = parentRef.IsNull ? 0 : parentRef.Read.FirstChildId;
-            Current = Null;
-            _disposed = false;
-            if (_deferred)
-                _parent.Scene.BeginDefer();
+            _initialized = false;
         }
 
         public Entity Current { get; private set; }

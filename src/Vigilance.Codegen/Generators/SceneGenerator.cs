@@ -327,6 +327,7 @@ public sealed class SceneGenerator : SourceGenerator
                     {{(tables.Count > 1 ? "private int _tableIndex; " : "")}}
                     private readonly bool _withDisabled;
                     private readonly bool _deferred;
+                    private bool _initialized;
                     private bool _disposed;
             {{(noFields ? "" : string.Join("\n", tables.Select((t, i) => $"        private {t} _field{i} = default!;")))}}
 
@@ -335,13 +336,34 @@ public sealed class SceneGenerator : SourceGenerator
                         _scene = scene;
                         _withDisabled = withDisabled;
                         _deferred = deferred;
+                        _initialized = false;
                         _disposed = true;
             {{string.Join("\n", tables.Select((t, i) => $"            _table{i} = _scene.Table<{t}>();"))}}
-                        Reset();
+                    }
+
+                    private void Initialize()
+                    {
+                        _index = 0;
+                        {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
+            {{(noFields ? "" : string.Join("\n", tables.Select((_, i) => $"            _field{i} = default!;")))}}{{(tables.Count > 1 ? "\n            var smallestCount = int.MaxValue;\n" : "")}}
+            {{(tables.Count > 1 ? string.Join("\n", tables.Select((_, i) => $$"""
+                            if (_table{{i}}.Count < smallestCount)
+                            {
+                                smallestCount = _table{{i}}.Count;
+                                _tableIndex = {{i}};
+                            }
+                """)) : "")}}
+                        _initialized = true;
+                        _disposed = false;
+                        if (_deferred)
+                            _scene.BeginDefer();
                     }
 
                     public bool MoveNext()
                     {
+                        if (!_initialized)
+                            Initialize();
+
                         {{(tables.Count > 1 ? "switch (_tableIndex)\n            " : "")}}{
             {{string.Join("\n", tables.Select((_, i) => $$"""
                                 {{(tables.Count > 1 ? $"case {i}:\n                " : "")}}{
@@ -351,7 +373,7 @@ public sealed class SceneGenerator : SourceGenerator
                                         _index = -1;
                                         return false;
                                     }
-                                    
+
                                     var index = _index;
                                     _index++;
                                     {{(noEntity && tables.Count <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds.AsSpan()[index], _scene);")}}
@@ -368,7 +390,7 @@ public sealed class SceneGenerator : SourceGenerator
                                 }
                 """))}}
                         }
-                        
+
             #pragma warning disable CS0162
                         return false;
             #pragma warning restore CS0162
@@ -377,20 +399,7 @@ public sealed class SceneGenerator : SourceGenerator
                     public void Reset()
                     {
                         Dispose();
-                        _index = 0;
-                        {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
-            {{(noFields ? "" : string.Join("\n", tables.Select((_, i) => $"            _field{i} = default!;")))}}{{(tables.Count > 1 ? "\n            var smallestCount = int.MaxValue;\n" : "")}}
-            {{(tables.Count > 1 ? string.Join("\n", tables.Select((_, i) => $$"""
-                            if (_table{{i}}.Count < smallestCount)
-                            {
-                                smallestCount = _table{{i}}.Count;
-                                _tableIndex = {{i}};
-                            }
-                            
-                """)) : "")}}
-                        if (_deferred)
-                            _scene.BeginDefer();
-                        _disposed = false;
+                        _initialized = false;
                     }
 
                     public {{type}} Current => {{current}};
@@ -404,7 +413,7 @@ public sealed class SceneGenerator : SourceGenerator
                         _disposed = true;
                     }
                 }
-                
+
                 public {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
                     ThrowIfNotInitialized();
                     return new {{name}}Enumerable{{typeParams}}(this);
@@ -467,6 +476,7 @@ public sealed class SceneGenerator : SourceGenerator
                     {{(tableCount > 1 ? "private int _tableIndex; " : "")}}
                     private readonly bool _withDisabled;
                     private readonly bool _deferred;
+                    private bool _initialized;
                     private bool _disposed;
             {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private object _field{n} = null!;")))}}
 
@@ -475,13 +485,35 @@ public sealed class SceneGenerator : SourceGenerator
                         _scene = scene;
                         _withDisabled = withDisabled;
                         _deferred = deferred;
+                        _initialized = false;
                         _disposed = true;
             {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _table{n} = table{n};"))}}
-                        Reset();
+                    }
+
+                    private void Initialize()
+                    {
+                        _index = 0;
+                        {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
+            {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _field{n} = default!;")))}}
+            {{(tableCount > 1 ? "            var smallestCount = int.MaxValue;\n" : "")}}
+            {{(tableCount > 1 ? string.Join("\n", Enumerable.Range(0, tableCount).Select(i => $$"""
+                            if (_table{{i}}.Count < smallestCount)
+                            {
+                                smallestCount = _table{{i}}.Count;
+                                _tableIndex = {{i}};
+                            }
+
+                """)) : "")}}
+                        _initialized = true;
+                        _disposed = false;
+                        if (_deferred)
+                            _scene.BeginDefer();
                     }
 
                     public bool MoveNext()
                     {
+                        if (!_initialized)
+                            Initialize();
                         {{(tableCount > 1 ? "switch (_tableIndex)\n            " : "")}}{
             {{string.Join("\n", Enumerable.Range(0, tableCount).Select(i => $$"""
                                 {{(tableCount > 1 ? $"case {i}:\n                " : "")}}{
@@ -491,7 +523,7 @@ public sealed class SceneGenerator : SourceGenerator
                                         _index = -1;
                                         return false;
                                     }
-                                    
+
                                     var index = _index;
                                     _index++;
                                     {{(noEntity && tableCount <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds.AsSpan()[index], _scene);")}}
@@ -506,7 +538,7 @@ public sealed class SceneGenerator : SourceGenerator
                                 }
                 """))}}
                         }
-                        
+
             #pragma warning disable CS0162
                         return false;
             #pragma warning restore CS0162
@@ -515,21 +547,7 @@ public sealed class SceneGenerator : SourceGenerator
                     public void Reset()
                     {
                         Dispose();
-                        _index = 0;
-                        {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
-            {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _field{n} = default!;")))}}
-            {{(tableCount > 1 ? "            var smallestCount = int.MaxValue;\n" : "")}}
-            {{(tableCount > 1 ? string.Join("\n", Enumerable.Range(0, tableCount).Select(i => $$"""
-                            if (_table{{i}}.Count < smallestCount)
-                            {
-                                smallestCount = _table{{i}}.Count;
-                                _tableIndex = {{i}};
-                            }
-                            
-                """)) : "")}}
-                        if (_deferred)
-                            _scene.BeginDefer();
-                        _disposed = false;
+                        _initialized = false;
                     }
 
                     public {{type}} Current => {{current}};
@@ -601,6 +619,7 @@ public sealed class SceneGenerator : SourceGenerator
                     {{(tables.Count > 1 ? "private int _tableIndex;" : "")}}
                     private readonly bool _withDisabled;
                     private readonly bool _deferred;
+                    private bool _initialized;
                     private bool _disposed;
             {{string.Join("\n", tables.Select((t, i) => $"        private ComponentRef<{t}> _field{i};"))}}
 
@@ -609,14 +628,36 @@ public sealed class SceneGenerator : SourceGenerator
                         _scene = scene;
                         _withDisabled = withDisabled;
                         _deferred = deferred;
+                        _initialized = false;
                         _disposed = true;
             {{string.Join("\n", tables.Select((t, i) => $"            _field{i} = ComponentRef<{t}>.Null;"))}}
             {{string.Join("\n", tables.Select((t, i) => $"            _table{i} = _scene.Table<{t}>();"))}}
-                        Reset();
+                    }
+
+                    private void Initialize()
+                    {
+                        _index = 0;
+                        {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
+            {{string.Join("\n", tables.Select((t, i) => $"            _field{i} = ComponentRef<{t}>.Null;"))}}
+            {{(tables.Count > 1 ? "\n            var smallestCount = int.MaxValue;\n" : "")}}
+            {{(tables.Count > 1 ? string.Join("\n", tables.Select((_, i) => $$"""
+                            if (_table{{i}}.Count < smallestCount)
+                            {
+                                smallestCount = _table{{i}}.Count;
+                                _tableIndex = {{i}};
+                            }
+
+                """)) : "")}}
+                        _initialized = true;
+                        _disposed = false;
+                        if (_deferred)
+                            _scene.BeginDefer();
                     }
 
                     public bool MoveNext()
                     {
+                        if (!_initialized)
+                            Initialize();
                         {{(tables.Count > 1 ? "switch (_tableIndex)\n            " : "")}}{
             {{string.Join("\n", tables.Select((_, i) => $$"""
                                 {{(tables.Count > 1 ? $"case {i}:\n                " : "")}}{
@@ -652,21 +693,7 @@ public sealed class SceneGenerator : SourceGenerator
                     public void Reset()
                     {
                         Dispose();
-                        _index = 0;
-                        {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
-            {{string.Join("\n", tables.Select((t, i) => $"            _field{i} = ComponentRef<{t}>.Null;"))}}
-            {{(tables.Count > 1 ? "\n            var smallestCount = int.MaxValue;\n" : "")}}
-            {{(tables.Count > 1 ? string.Join("\n", tables.Select((_, i) => $$"""
-                            if (_table{{i}}.Count < smallestCount)
-                            {
-                                smallestCount = _table{{i}}.Count;
-                                _tableIndex = {{i}};
-                            }
-                            
-                """)) : "")}}
-                        if (_deferred)
-                            _scene.BeginDefer();
-                        _disposed = false;
+                        _initialized = false;
                     }
 
                     public {{type}} Current => {{current}};
@@ -680,7 +707,7 @@ public sealed class SceneGenerator : SourceGenerator
                         _disposed = true;
                     }
                 }
-                
+
             """;
     }
 
@@ -748,6 +775,7 @@ public sealed class SceneGenerator : SourceGenerator
                     private TableEnumerator<T0> _tables;
                     private {{iteratorType}} _items;
                     private bool _hasIterator;
+                    private bool _initialized;
                     private bool _disposed;
                     {{stateFieldDeclarations}}
 
@@ -757,12 +785,26 @@ public sealed class SceneGenerator : SourceGenerator
                         _withDisabled = withDisabled;
                         _withHidden = withHidden;
                         _deferred = deferred;
+                        _initialized = false;
                         _disposed = true;
-                        Reset();
+                    }
+
+                    private void Initialize()
+                    {
+                        _tables = _scene.Tables<T0>().WithHidden(_withHidden).GetEnumerator();
+                        _items = default;
+                        _hasIterator = false;
+                        {{stateResetStatements}}
+                        _initialized = true;
+                        _disposed = false;
+                        if (_deferred)
+                            _scene.BeginDefer();
                     }
 
                     public bool MoveNext()
                     {
+                        if (!_initialized)
+                            Initialize();
                         while (true)
                         {
                             if (_hasIterator && _items.MoveNext())
@@ -795,13 +837,7 @@ public sealed class SceneGenerator : SourceGenerator
                     public void Reset()
                     {
                         Dispose();
-                        _tables = _scene.Tables<T0>().WithHidden(_withHidden).GetEnumerator();
-                        _items = default;
-                        _hasIterator = false;
-                        {{stateResetStatements}}
-                        if (_deferred)
-                            _scene.BeginDefer();
-                        _disposed = false;
+                        _initialized = false;
                     }
 
                     public {{type}} Current => {{current}};

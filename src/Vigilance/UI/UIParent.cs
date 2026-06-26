@@ -242,18 +242,31 @@ public abstract class UIParent : UIElement
         private readonly UIParent _parent;
         private int _index;
         private readonly bool _deferred;
+        private bool _initialized;
         private bool _disposed;
 
         internal ChildEnumerator(UIParent parent, bool deferred)
         {
             _parent = parent;
             _deferred = deferred;
+            _initialized = false;
             _disposed = true;
-            Reset();
+        }
+
+        private void Initialize()
+        {
+            _index = 0;
+            Current = null!;
+            _initialized = true;
+            _disposed = false;
+            if (_deferred)
+                _parent.BeginDefer();
         }
 
         public bool MoveNext()
         {
+            if (!_initialized)
+                Initialize();
             if ((uint)_index < (uint)_parent.ChildrenList.Count)
             {
                 Current = _parent.ChildrenList[_index];
@@ -269,11 +282,7 @@ public abstract class UIParent : UIElement
         public void Reset()
         {
             Dispose();
-            _index = 0;
-            Current = null!;
-            _disposed = false;
-            if (_deferred)
-                _parent.BeginDefer();
+            _initialized = false;
         }
 
         public UIElement Current { get; private set; } = null!;
