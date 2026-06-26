@@ -22,7 +22,7 @@ public interface IFullCloneable : IShallowCloneable, IDeepCloneable;
 
 public static class Cloner
 {
-    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "MemberwiseClone")]
+    [UnsafeAccessor(UnsafeAccessorKind.Method)]
     public static extern object MemberwiseClone(object obj);
 
     public static T CloneOrSelf<T>(T obj)

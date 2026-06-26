@@ -20,6 +20,7 @@ public struct ValueDictionary<TKey, TValue>
     private int _freeList;
     private int _freeCount;
     private readonly IEqualityComparer<TKey>? _comparer;
+    private readonly IEqualityComparer<TKey>? _underlyingComparer;
 
     public ValueDictionary()
         : this(0) { }
@@ -33,14 +34,26 @@ public struct ValueDictionary<TKey, TValue>
         if (capacity > 0)
             Initialize(capacity);
         if (!typeof(TKey).IsValueType)
+        {
             _comparer = comparer ?? EqualityComparer<TKey>.Default;
+            _underlyingComparer = comparer;
+            if (
+                typeof(TKey) == typeof(string)
+                && DictionaryEqualityComparer.GetStringComparer(_comparer!) is { } stringComparer
+            )
+                _comparer = (IEqualityComparer<TKey>)stringComparer;
+        }
         else if (comparer is not null && !ReferenceEquals(comparer, EqualityComparer<TKey>.Default))
+        {
             _comparer = comparer;
+            _underlyingComparer = comparer;
+        }
     }
 
     public ValueDictionary(in ValueDictionary<TKey, TValue> source)
     {
         _comparer = source._comparer;
+        _underlyingComparer = source._underlyingComparer;
         _count = source._count;
         _freeList = source._freeList;
         _freeCount = source._freeCount;
@@ -74,7 +87,7 @@ public struct ValueDictionary<TKey, TValue>
             Add(pair.Key, pair.Value);
     }
 
-    public readonly IEqualityComparer<TKey> Comparer => _comparer ?? EqualityComparer<TKey>.Default;
+    public readonly IEqualityComparer<TKey> Comparer => _underlyingComparer ?? EqualityComparer<TKey>.Default;
 
     public readonly int Count => _count - _freeCount;
 
