@@ -119,13 +119,13 @@ public readonly unsafe struct WritableImage : IDisposable
         Raylib.ImageCrop(ref Image.RImage, new Raylib_cs.Rectangle(position, size));
     }
 
-    public void Resize(int width, int height, Interpolation? interpolation = null)
+    public void Resize(int width, int height, TextureFilter? textureFilter = null)
     {
         if (width == Width && height == Height)
             return;
-        switch (interpolation ?? Interpolation.Nearest)
+        switch (textureFilter ?? TextureFilter.Nearest)
         {
-            case Interpolation.Bilinear:
+            case TextureFilter.Bilinear:
                 Raylib.ImageResize(ref Image.RImage, width, height);
                 break;
             default:
@@ -134,9 +134,9 @@ public readonly unsafe struct WritableImage : IDisposable
         }
     }
 
-    public void Resize(Vector2 size, Interpolation? interpolation = null)
+    public void Resize(Vector2 size, TextureFilter? textureFilter = null)
     {
-        Resize((int)size.X, (int)size.Y, interpolation);
+        Resize((int)size.X, (int)size.Y, textureFilter);
     }
 
     public void FlipHorizontally()
@@ -387,14 +387,14 @@ public readonly unsafe struct WritableImage<T> : ISpanView<T>, IReadOnlyList<T>,
         _image.Crop(position, size);
     }
 
-    public void Resize(int width, int height, Interpolation? interpolation = null)
+    public void Resize(int width, int height, TextureFilter? textureFilter = null)
     {
-        _image.Resize(width, height, interpolation);
+        _image.Resize(width, height, textureFilter);
     }
 
-    public void Resize(Vector2 size, Interpolation? interpolation = null)
+    public void Resize(Vector2 size, TextureFilter? textureFilter = null)
     {
-        _image.Resize(size, interpolation);
+        _image.Resize(size, textureFilter);
     }
 
     public void FlipHorizontally()

@@ -60,7 +60,7 @@ public sealed unsafe class Texture : IDisposable
 
     public bool IsRenderTexture => RenderTexture is not null;
 
-    public Interpolation Interpolation
+    public TextureFilter TextureFilter
     {
         get;
         set
@@ -68,9 +68,9 @@ public sealed unsafe class Texture : IDisposable
             if (field == value)
                 return;
             field = value;
-            Raylib.SetTextureFilter(Texture2D, (TextureFilter)value);
+            Raylib.SetTextureFilter(Texture2D, (Raylib_cs.TextureFilter)value);
         }
-    } = Drawing.DefaultInterpolation;
+    } = Drawing.DefaultTextureFilter;
 
     public TextureWrap TextureWrap
     {

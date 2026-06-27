@@ -44,6 +44,7 @@ public sealed unsafe partial class Scene
     internal Table<Child> ChildTable;
     internal Table<Disabled> DisabledTable;
     internal Table<EntityTag> EntityTagTable;
+    internal Table<Interpolation> InterpolationTable;
     internal Table<Name> NameTable;
     internal Table<Parent> ParentTable;
     internal Table<PivotPoint> PivotPointTable;
@@ -51,7 +52,6 @@ public sealed unsafe partial class Scene
     internal ValueList<RenderCommand> RenderCommands = [];
     internal ValueList<RenderComponents> RenderComponentsList = [];
     internal ValueList<RenderData> RenderDataList = [];
-    internal Table<RenderInterpolation> RenderInterpolationTable;
     internal Table<Rotation> RotationTable;
     internal Table<Scale> ScaleTable;
     internal Table<Transform> TransformTable;
@@ -72,7 +72,7 @@ public sealed unsafe partial class Scene
         DisabledTable = Table<Disabled>();
         ChildTable = Table<Child>();
         ParentTable = Table<Parent>();
-        RenderInterpolationTable = Table<RenderInterpolation>();
+        InterpolationTable = Table<Interpolation>();
         OnSet<Position>(OnSetPosition);
         OnSet<Scale>(OnSetScale);
         OnSet<Rotation>(OnSetRotation);
@@ -595,18 +595,16 @@ public sealed unsafe partial class Scene
 
     private void UpdateInterpolatedEntities()
     {
-        foreach (var entity in AssignableEntities<IRenderInterpolated>())
+        foreach (var entity in AssignableEntities<IInterpolated>())
         {
-            ref var interpolation = ref RenderInterpolationTable.GetRef(entity).Value;
+            ref var interpolation = ref InterpolationTable.GetRef(entity).Value;
             var transform = entity.Transform;
-            RenderInterpolation oldInterpolation;
+            Interpolation oldInterpolation;
             if (Unsafe.IsNullRef(ref interpolation))
             {
                 SuspendDefer();
-                interpolation = ref RenderInterpolationTable
-                    .Set(entity, new RenderInterpolation(transform, transform))
-                    .Value;
-                oldInterpolation = new RenderInterpolation();
+                interpolation = ref InterpolationTable.Set(entity, new Interpolation(transform, transform)).Value;
+                oldInterpolation = new Interpolation();
                 ResumeDefer();
             }
             else
@@ -617,9 +615,7 @@ public sealed unsafe partial class Scene
                     continue;
             }
 
-            RenderInterpolationTable.Enqueue(
-                Core.Table.Event<RenderInterpolation>.Set(entity, oldInterpolation, interpolation)
-            );
+            InterpolationTable.Enqueue(Core.Table.Event<Interpolation>.Set(entity, oldInterpolation, interpolation));
         }
     }
 
@@ -1169,9 +1165,9 @@ public sealed unsafe partial class Scene
         var pivotPointNull = Unsafe.IsNullRef(ref pivotPoint);
         var oldPivotPoint = pivotPointNull ? default : pivotPoint;
         var pivotPointChanged = pivotPointNull || !Precision.AreEqual(transform.PivotPoint, oldPivotPoint);
-        ref var interpolation = ref RenderInterpolationTable.GetRef(entity).Value;
+        ref var interpolation = ref InterpolationTable.GetRef(entity).Value;
         var interpolationNull = Unsafe.IsNullRef(ref interpolation);
-        var oldInterpolation = interpolationNull ? new RenderInterpolation() : interpolation;
+        var oldInterpolation = interpolationNull ? new Interpolation() : interpolation;
         var interpolationChanged = interpolationNull || !Precision.AreEqual(transform, interpolation.End);
         if (!positionChanged && !scaleChanged && !rotationChanged && !pivotPointChanged && !interpolationChanged)
             return;
@@ -1236,9 +1232,7 @@ public sealed unsafe partial class Scene
             if (interpolationNull)
             {
                 SuspendDefer();
-                interpolation = ref RenderInterpolationTable
-                    .Set(entity, new RenderInterpolation(null, transform))
-                    .Value;
+                interpolation = ref InterpolationTable.Set(entity, new Interpolation(null, transform)).Value;
                 ResumeDefer();
             }
             else
@@ -1256,9 +1250,7 @@ public sealed unsafe partial class Scene
         if (pivotPointChanged)
             PivotPointTable.Emit(Core.Table.Event<PivotPoint>.Set(entity, oldPivotPoint, transform.PivotPoint));
         if (interpolationChanged)
-            RenderInterpolationTable.Emit(
-                Core.Table.Event<RenderInterpolation>.Set(entity, oldInterpolation, interpolation)
-            );
+            InterpolationTable.Emit(Core.Table.Event<Interpolation>.Set(entity, oldInterpolation, interpolation));
     }
 
     private void OnAddChild(Entity entity, Child child)

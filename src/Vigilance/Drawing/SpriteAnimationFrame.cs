@@ -13,7 +13,7 @@ public sealed class SpriteAnimationFrame
     public Wrapper<Box?>? Source { get; set; } = null;
     public Color? Tint { get; set; } = null;
     public Wrapper<NPatchInfo?>? NPatchInfo { get; set; } = null;
-    public Interpolation? Interpolation { get; set; } = null;
+    public TextureFilter? TextureFilter { get; set; } = null;
     public Vector2? Position { get; set; } = null;
     public Vector2? Scale { get; set; } = null;
     public float? Rotation { get; set; } = null;
@@ -54,8 +54,8 @@ public sealed class SpriteAnimationFrame
             sprite.Tint = Tint.Value;
         if (NPatchInfo.HasValue)
             sprite.NPatchInfo = NPatchInfo;
-        if (Interpolation.HasValue)
-            sprite.Interpolation = Interpolation.Value;
+        if (TextureFilter.HasValue)
+            sprite.TextureFilter = TextureFilter.Value;
         if (Position.HasValue)
             sprite.Position = Position.Value;
         if (Scale.HasValue)

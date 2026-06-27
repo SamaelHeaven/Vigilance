@@ -15,7 +15,7 @@ public sealed class SpriteBatchSystem : GameSystem
         Scene.OnAdd<BatchedSprite>(UpdateSprite);
         Scene.OnSet<BatchedSprite>(SetSprite);
         Scene.OnRemove<BatchedSprite>(RemoveSprite);
-        Scene.OnSet<RenderInterpolation>(TryUpdateSprite);
+        Scene.OnSet<Interpolation>(TryUpdateSprite);
         Scene.OnAddOrSet<Child>(TryUpdateSprite);
         Scene.OnRemove<Child>(TryUpdateSprite);
     }

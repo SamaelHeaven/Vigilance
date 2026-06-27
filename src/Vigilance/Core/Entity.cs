@@ -99,13 +99,13 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            if (!Scene.RenderInterpolationTable.TryGet(this, out var interpolation))
-                interpolation = new RenderInterpolation(null, new Transform());
+            if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new Interpolation(null, new Transform());
             for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
             {
-                if (!Scene.RenderInterpolationTable.TryGet(entity, out var childInterpolation))
+                if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))
                     continue;
-                interpolation = new RenderInterpolation(
+                interpolation = new Interpolation(
                     interpolation.Start.HasValue || childInterpolation.Start.HasValue
                         ? (interpolation.Start ?? interpolation.End)
                             + (childInterpolation.Start ?? childInterpolation.End)

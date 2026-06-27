@@ -114,12 +114,12 @@ public sealed class RenderTexture : IDisposable
         return renderTexture.Texture;
     }
 
-    public WritableImage<PixelR8G8B8A8> ToImage(Interpolation? interpolation = null)
+    public WritableImage<PixelR8G8B8A8> ToImage(TextureFilter? textureFilter = null)
     {
         var image = new WritableImage<PixelR8G8B8A8>(Texture.ToImage());
         if (Precision.AreEqual(Scale, 1))
             return image;
-        image.Resize(Size, interpolation);
+        image.Resize(Size, textureFilter);
         return image;
     }
 

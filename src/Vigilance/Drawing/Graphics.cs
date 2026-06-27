@@ -331,12 +331,12 @@ public sealed unsafe class Graphics
         float x,
         float y,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
     {
-        DrawTexture(texture, new Vector2(x, y), null, tint, interpolation, textureWrap, camera);
+        DrawTexture(texture, new Vector2(x, y), null, tint, textureFilter, textureWrap, camera);
     }
 
     public void DrawTexture(
@@ -346,24 +346,24 @@ public sealed unsafe class Graphics
         float width,
         float height,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
     {
-        DrawTexture(texture, new Vector2(x, y), new Vector2(width, height), tint, interpolation, textureWrap, camera);
+        DrawTexture(texture, new Vector2(x, y), new Vector2(width, height), tint, textureFilter, textureWrap, camera);
     }
 
     public void DrawTexture(
         Texture texture,
         in Box box,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
     {
-        DrawTexture(texture, box.Position, box.Size, tint, interpolation, textureWrap, camera);
+        DrawTexture(texture, box.Position, box.Size, tint, textureFilter, textureWrap, camera);
     }
 
     public void DrawTexture(
@@ -371,7 +371,7 @@ public sealed unsafe class Graphics
         Vector2 position,
         in Vector2? size = null,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
@@ -381,7 +381,7 @@ public sealed unsafe class Graphics
             new Box(Vector2.Zero, texture.Size),
             new Box(position, size ?? texture.Size),
             tint,
-            interpolation,
+            textureFilter,
             textureWrap,
             camera
         );
@@ -392,7 +392,7 @@ public sealed unsafe class Graphics
         in Box source,
         in Box dest,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
@@ -407,7 +407,7 @@ public sealed unsafe class Graphics
             texture.IsRenderTexture ? -source.Height : source.Height
         );
         var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
-        texture.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
+        texture.TextureFilter = textureFilter ?? Drawing.DefaultTextureFilter;
         texture.TextureWrap = textureWrap ?? Drawing.DefaultTextureWrap;
         BeginDrawing(camera);
         Raylib.DrawTexturePro(texture.Texture2D, rSource, rDest, Vector2.Zero, 0, tintValue.RColor);
@@ -420,12 +420,12 @@ public sealed unsafe class Graphics
         float x,
         float y,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
     {
-        DrawTextureNPatch(texture, nPatchInfo, new Vector2(x, y), null, tint, interpolation, textureWrap, camera);
+        DrawTextureNPatch(texture, nPatchInfo, new Vector2(x, y), null, tint, textureFilter, textureWrap, camera);
     }
 
     public void DrawTextureNPatch(
@@ -436,7 +436,7 @@ public sealed unsafe class Graphics
         float width,
         float height,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
@@ -447,7 +447,7 @@ public sealed unsafe class Graphics
             new Vector2(x, y),
             new Vector2(width, height),
             tint,
-            interpolation,
+            textureFilter,
             textureWrap,
             camera
         );
@@ -458,12 +458,12 @@ public sealed unsafe class Graphics
         in NPatchInfo nPatchInfo,
         in Box box,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
     {
-        DrawTextureNPatch(texture, nPatchInfo, box.Position, box.Size, tint, interpolation, textureWrap, camera);
+        DrawTextureNPatch(texture, nPatchInfo, box.Position, box.Size, tint, textureFilter, textureWrap, camera);
     }
 
     public void DrawTextureNPatch(
@@ -472,7 +472,7 @@ public sealed unsafe class Graphics
         Vector2 position,
         in Vector2? size = null,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
@@ -483,7 +483,7 @@ public sealed unsafe class Graphics
             new Box(Vector2.Zero, texture.Size),
             new Box(position, size ?? texture.Size),
             tint,
-            interpolation,
+            textureFilter,
             textureWrap,
             camera
         );
@@ -495,7 +495,7 @@ public sealed unsafe class Graphics
         in Box source,
         in Box dest,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
@@ -519,7 +519,7 @@ public sealed unsafe class Graphics
             Bottom = nPatchInfo.Bottom,
             Layout = (Raylib_cs.NPatchLayout)nPatchInfo.Layout,
         };
-        texture.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
+        texture.TextureFilter = textureFilter ?? Drawing.DefaultTextureFilter;
         texture.TextureWrap = textureWrap ?? Drawing.DefaultTextureWrap;
         BeginDrawing(camera);
         Raylib.DrawTextureNPatch(texture.Texture2D, rNPatchInfo, rDest, Vector2.Zero, 0, tintValue.RColor);

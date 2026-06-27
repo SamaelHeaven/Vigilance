@@ -52,10 +52,10 @@ public class UISprite : UIContainer
         set => _sprite.NPatchInfo = value;
     }
 
-    public Interpolation Interpolation
+    public TextureFilter TextureFilter
     {
-        get => _sprite.Interpolation;
-        set => _sprite.Interpolation = value;
+        get => _sprite.TextureFilter;
+        set => _sprite.TextureFilter = value;
     }
 
     public TextureWrap TextureWrap
@@ -94,8 +94,8 @@ public static class UISpriteExtensions
                 sprite.Tint = frame.Tint.Value;
             if (frame.NPatchInfo.HasValue)
                 sprite.NPatchInfo = frame.NPatchInfo;
-            if (frame.Interpolation.HasValue)
-                sprite.Interpolation = frame.Interpolation.Value;
+            if (frame.TextureFilter.HasValue)
+                sprite.TextureFilter = frame.TextureFilter.Value;
             if (frame.Position.HasValue)
                 sprite.Translate = frame.Position.Value;
             if (frame.Scale.HasValue)

@@ -105,7 +105,7 @@ public sealed unsafe class SpriteBatch : SpriteBatch<SpriteInstance>
         if (_configuredInstanceBufferVersion != InstanceBuffer.Version)
             ConfigureInstanceAttributes();
         graphics.BeginDrawing(Camera);
-        Texture.Interpolation = Interpolation;
+        Texture.TextureFilter = TextureFilter;
         Texture.TextureWrap = TextureWrap;
         if (Shader is not null)
         {
@@ -146,7 +146,7 @@ public abstract class SpriteBatch<TInstance>
     }
 
     public Texture Texture { get; set; }
-    public Interpolation Interpolation { get; set; } = Drawing.DefaultInterpolation;
+    public TextureFilter TextureFilter { get; set; } = Drawing.DefaultTextureFilter;
     public TextureWrap TextureWrap { get; set; } = Drawing.DefaultTextureWrap;
 
     public int Count => InstanceBuffer.Count;

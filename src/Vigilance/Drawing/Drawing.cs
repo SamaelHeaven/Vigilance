@@ -42,10 +42,10 @@ public static class Drawing
         set => _config.DefaultTextureWrap = value;
     }
 
-    public static Interpolation DefaultInterpolation
+    public static TextureFilter DefaultTextureFilter
     {
-        get => _config.DefaultInterpolation;
-        set => _config.DefaultInterpolation = value;
+        get => _config.DefaultTextureFilter;
+        set => _config.DefaultTextureFilter = value;
     }
 
     public static CameraProvider DefaultCamera
@@ -120,7 +120,7 @@ public sealed class DrawingConfig
     public DrawOrder DefaultOrder { get; set; } = DrawOrder.FillThenStroke;
     public float DefaultRadius { get; set; } = 0;
     public TextureWrap DefaultTextureWrap { get; set; } = TextureWrap.Repeat;
-    public Interpolation DefaultInterpolation { get; set; } = Interpolation.Nearest;
+    public TextureFilter DefaultTextureFilter { get; set; } = TextureFilter.Nearest;
     public CameraProvider DefaultCamera { get; set; } = Camera.Scene;
     public Func<Texture> DefaultTexture { get; set; } = () => Texture.Empty;
     public bool DefaultCulling { get; set; } = false;

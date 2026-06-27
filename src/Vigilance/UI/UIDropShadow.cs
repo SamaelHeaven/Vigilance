@@ -134,7 +134,7 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
         silhouette.Graphics.DrawTexture(
             elementTexture,
             new Vector2(offset, offset),
-            interpolation: Interpolation.Nearest
+            textureFilter: TextureFilter.Nearest
         );
         RenderTexture result;
         if (_blur > 0)
@@ -167,7 +167,7 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
         _blurShader.SetFloat("sigma", sigma);
         target.Graphics.SetBlendMode(BlendMode.Replace);
         target.Graphics.SetShader(_blurShader);
-        target.Graphics.DrawTexture(source, Vector2.Zero, interpolation: Interpolation.Nearest);
+        target.Graphics.DrawTexture(source, Vector2.Zero, textureFilter: TextureFilter.Nearest);
         return target;
     }
 }

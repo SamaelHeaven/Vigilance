@@ -34,7 +34,7 @@ public sealed class Text : Drawable<Text>
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
     public int VisibleCharacters { get; set; } = UnlimitedCharacters;
-    public Interpolation Interpolation { get; set; } = Drawing.DefaultInterpolation;
+    public TextureFilter TextureFilter { get; set; } = Drawing.DefaultTextureFilter;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
 
     public string Value
@@ -123,7 +123,7 @@ public static class TextExtensions
             float? fontSize = null,
             in Vector2? spacing = null,
             int visibleCharacters = Text.UnlimitedCharacters,
-            Interpolation? interpolation = null,
+            TextureFilter? textureFilter = null,
             Camera? camera = null
         )
         {
@@ -135,7 +135,7 @@ public static class TextExtensions
                 fontSize,
                 spacing,
                 visibleCharacters,
-                interpolation,
+                textureFilter,
                 camera
             );
         }
@@ -148,7 +148,7 @@ public static class TextExtensions
             float? fontSize = null,
             in Vector2? spacing = null,
             int visibleCharacters = Text.UnlimitedCharacters,
-            Interpolation? interpolation = null,
+            TextureFilter? textureFilter = null,
             Camera? camera = null
         )
         {
@@ -156,7 +156,7 @@ public static class TextExtensions
             if (text.IsEmpty || colorValue == Color.Transparent)
                 return;
             font ??= Font.Default;
-            font.Atlas.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
+            font.Atlas.TextureFilter = textureFilter ?? Drawing.DefaultTextureFilter;
             graphics.BeginDrawing(camera);
             foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, visibleCharacters))
             {
@@ -196,7 +196,7 @@ public static class TextExtensions
             float? strokeWidth = null,
             in Vector2? spacing = null,
             int visibleCharacters = Text.UnlimitedCharacters,
-            Interpolation? interpolation = null,
+            TextureFilter? textureFilter = null,
             Camera? camera = null
         )
         {
@@ -209,7 +209,7 @@ public static class TextExtensions
                 strokeWidth,
                 spacing,
                 visibleCharacters,
-                interpolation,
+                textureFilter,
                 camera
             );
         }
@@ -223,7 +223,7 @@ public static class TextExtensions
             float? strokeWidth = null,
             in Vector2? spacing = null,
             int visibleCharacters = Text.UnlimitedCharacters,
-            Interpolation? interpolation = null,
+            TextureFilter? textureFilter = null,
             Camera? camera = null
         )
         {
@@ -233,7 +233,7 @@ public static class TextExtensions
                 return;
             font ??= Font.Default;
             var (atlas, glyphInfos) = font.GetStroke((int)strokeWidthValue.Round());
-            atlas.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
+            atlas.TextureFilter = textureFilter ?? Drawing.DefaultTextureFilter;
             graphics.BeginDrawing(camera);
             foreach (var (source, dest) in font.GetTextBounds(text, fontSize, spacing, visibleCharacters, glyphInfos))
             {
@@ -290,7 +290,7 @@ public static class TextExtensions
             var strokeWidth = text.StrokeWidth;
             var spacing = text.Spacing;
             var visibleCharacters = text.VisibleCharacters;
-            var interpolation = text.Interpolation;
+            var textureFilter = text.TextureFilter;
             var order = text.DrawOrder;
             var position = transform.Position;
             var scale = (transform.Scale.X.Abs() + transform.Scale.Y.Abs()) * 0.5f;
@@ -312,7 +312,7 @@ public static class TextExtensions
                         strokeWidth,
                         spacing,
                         visibleCharacters,
-                        interpolation,
+                        textureFilter,
                         camera
                     );
                     graphics.FillText(
@@ -323,7 +323,7 @@ public static class TextExtensions
                         fontSize,
                         spacing,
                         visibleCharacters,
-                        interpolation,
+                        textureFilter,
                         camera
                     );
                 }
@@ -337,7 +337,7 @@ public static class TextExtensions
                         fontSize,
                         spacing,
                         visibleCharacters,
-                        interpolation,
+                        textureFilter,
                         camera
                     );
                     graphics.StrokeText(
@@ -349,7 +349,7 @@ public static class TextExtensions
                         strokeWidth,
                         spacing,
                         visibleCharacters,
-                        interpolation,
+                        textureFilter,
                         camera
                     );
                 }

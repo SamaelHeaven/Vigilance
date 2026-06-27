@@ -123,10 +123,10 @@ public class UIText : UIElement
         }
     }
 
-    public Interpolation Interpolation
+    public TextureFilter TextureFilter
     {
-        get => _text.Interpolation;
-        set => _text.Interpolation = value;
+        get => _text.TextureFilter;
+        set => _text.TextureFilter = value;
     }
 
     public TextOverflow TextOverflow

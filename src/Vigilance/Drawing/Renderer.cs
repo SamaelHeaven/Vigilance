@@ -117,7 +117,7 @@ public static class Renderer
             var texture = _buffer.Texture;
             var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
             var dest = new Raylib_cs.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
-            texture.Interpolation = mode.Interpolation;
+            texture.TextureFilter = mode.TextureFilter;
             Raylib.DrawTexturePro(texture.Texture2D, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
         }
 
