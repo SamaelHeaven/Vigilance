@@ -94,6 +94,36 @@ public readonly unsafe partial record struct Entity
         }
     }
 
+    public Transform RenderTransform
+    {
+        get
+        {
+            AssertValid();
+            if (!Scene.RenderInterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new RenderInterpolation(null, new Transform());
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
+            {
+                if (!Scene.RenderInterpolationTable.TryGet(entity, out var childInterpolation))
+                    continue;
+                interpolation = new RenderInterpolation(
+                    interpolation.Start.HasValue || childInterpolation.Start.HasValue
+                        ? (interpolation.Start ?? interpolation.End)
+                            + (childInterpolation.Start ?? childInterpolation.End)
+                        : null,
+                    interpolation.End + childInterpolation.End
+                );
+            }
+
+            return !interpolation.Start.HasValue
+                ? interpolation.End
+                : Transform.Lerp(
+                    interpolation.Start.Value,
+                    interpolation.End,
+                    Time.FixedAccumulatorSeconds / Time.FixedDeltaSeconds
+                );
+        }
+    }
+
     public Transform WorldTransform
     {
         get

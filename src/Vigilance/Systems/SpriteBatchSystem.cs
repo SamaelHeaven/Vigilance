@@ -2,7 +2,6 @@ using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
-using Vigilance.Math;
 using ZLinq;
 
 namespace Vigilance.Systems;
@@ -16,7 +15,7 @@ public sealed class SpriteBatchSystem : GameSystem
         Scene.OnAdd<BatchedSprite>(UpdateSprite);
         Scene.OnSet<BatchedSprite>(SetSprite);
         Scene.OnRemove<BatchedSprite>(RemoveSprite);
-        Scene.OnSet<Transform>(TryUpdateSprite);
+        Scene.OnSet<RenderInterpolation>(TryUpdateSprite);
         Scene.OnAddOrSet<Child>(TryUpdateSprite);
         Scene.OnRemove<Child>(TryUpdateSprite);
     }
@@ -37,7 +36,7 @@ public sealed class SpriteBatchSystem : GameSystem
         ref var instances = ref _batches.GetValueRefOrAddDefault(sprite.Batch, out var exists)!;
         if (!exists)
             instances = new ValueSparseSet<Entity, SpriteInstance, SpriteBatch>(sprite.Batch, e => e.Index);
-        instances[entity] = sprite.Instance with { Transform = sprite.Instance.Transform + entity.WorldTransform };
+        instances[entity] = sprite.Instance with { Transform = sprite.Instance.Transform + entity.RenderTransform };
     }
 
     private void SetSprite(Entity entity, BatchedSprite oldSprite, BatchedSprite newSprite)

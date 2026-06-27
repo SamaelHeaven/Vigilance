@@ -23,7 +23,7 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
     {
         commands.AddAssignableEntries<UISystem, UIElement>(
             this,
-            (system, entity, element) => element.Render(entity.WorldTransform, system.Graphics)
+            (system, entity, element) => element.Render(entity.RenderTransform, system.Graphics)
         );
     }
 }

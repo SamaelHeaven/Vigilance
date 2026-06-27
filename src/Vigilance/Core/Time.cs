@@ -27,6 +27,10 @@ public static class Time
         _scale = 1;
     }
 
+    public static TimeSpan FixedAccumulator { get; internal set; } = TimeSpan.Zero;
+
+    public static float FixedAccumulatorSeconds => (float)FixedAccumulator.TotalSeconds;
+
     public static TimeSpan FixedDelta { get; } = TimeSpan.FromSeconds(FixedDeltaSeconds);
 
     public static float DeltaSeconds => (float)_delta.TotalSeconds * _scale;
@@ -87,6 +91,7 @@ public static class Time
 
     internal static void Restart()
     {
+        FixedAccumulator = TimeSpan.Zero;
         _delta = TimeSpan.Zero;
         _last = Elapsed;
         _fpsHistory.Clear();

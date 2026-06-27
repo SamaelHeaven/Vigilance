@@ -40,7 +40,6 @@ public sealed unsafe partial class Scene
     private Action? _stopAction;
     private ValueList<IGameSystem> _systems = [];
     private ValueList<Table> _tables = [];
-    private float _time;
     private Action? _updateAction;
     internal Table<Child> ChildTable;
     internal Table<Disabled> DisabledTable;
@@ -52,6 +51,7 @@ public sealed unsafe partial class Scene
     internal ValueList<RenderCommand> RenderCommands = [];
     internal ValueList<RenderComponents> RenderComponentsList = [];
     internal ValueList<RenderData> RenderDataList = [];
+    internal Table<RenderInterpolation> RenderInterpolationTable;
     internal Table<Rotation> RotationTable;
     internal Table<Scale> ScaleTable;
     internal Table<Transform> TransformTable;
@@ -72,6 +72,7 @@ public sealed unsafe partial class Scene
         DisabledTable = Table<Disabled>();
         ChildTable = Table<Child>();
         ParentTable = Table<Parent>();
+        RenderInterpolationTable = Table<RenderInterpolation>();
         OnSet<Position>(OnSetPosition);
         OnSet<Scale>(OnSetScale);
         OnSet<Rotation>(OnSetRotation);
@@ -151,7 +152,6 @@ public sealed unsafe partial class Scene
         {
             if (current && _started)
                 Stop();
-            _time = 0;
             foreach (var entity in Entities())
                 entity.Destroy();
             _initializeAction?.Invoke();
@@ -505,7 +505,11 @@ public sealed unsafe partial class Scene
         _preUpdateAction?.Invoke();
         _updateAction?.Invoke();
         _postUpdateAction?.Invoke();
-        for (_time += Time.DeltaSeconds; _time >= Time.FixedDeltaSeconds; _time -= Time.FixedDeltaSeconds)
+        for (
+            Time.FixedAccumulator += Time.Delta;
+            Time.FixedAccumulator >= Time.FixedDelta;
+            Time.FixedAccumulator -= Time.FixedDelta
+        )
             FixedUpdate();
         Render();
     }
@@ -567,6 +571,7 @@ public sealed unsafe partial class Scene
 
     private void FixedUpdate()
     {
+        UpdateInterpolatedEntities();
         _preFixedUpdateAction?.Invoke();
         _fixedUpdateAction?.Invoke();
         _postFixedUpdateAction?.Invoke();
@@ -586,6 +591,36 @@ public sealed unsafe partial class Scene
         }
 
         _postRenderAction?.Invoke();
+    }
+
+    private void UpdateInterpolatedEntities()
+    {
+        foreach (var entity in AssignableEntities<IRenderInterpolated>())
+        {
+            ref var interpolation = ref RenderInterpolationTable.GetRef(entity).Value;
+            var transform = entity.Transform;
+            RenderInterpolation oldInterpolation;
+            if (Unsafe.IsNullRef(ref interpolation))
+            {
+                SuspendDefer();
+                interpolation = ref RenderInterpolationTable
+                    .Set(entity, new RenderInterpolation(transform, transform))
+                    .Value;
+                oldInterpolation = new RenderInterpolation();
+                ResumeDefer();
+            }
+            else
+            {
+                oldInterpolation = interpolation;
+                interpolation.Start = transform;
+                if (Precision.AreEqual(interpolation.Start, oldInterpolation.Start))
+                    continue;
+            }
+
+            RenderInterpolationTable.Enqueue(
+                Core.Table.Event<RenderInterpolation>.Set(entity, oldInterpolation, interpolation)
+            );
+        }
     }
 
     ~Scene()
@@ -1134,7 +1169,11 @@ public sealed unsafe partial class Scene
         var pivotPointNull = Unsafe.IsNullRef(ref pivotPoint);
         var oldPivotPoint = pivotPointNull ? default : pivotPoint;
         var pivotPointChanged = pivotPointNull || !Precision.AreEqual(transform.PivotPoint, oldPivotPoint);
-        if (!positionChanged && !scaleChanged && !rotationChanged && !pivotPointChanged)
+        ref var interpolation = ref RenderInterpolationTable.GetRef(entity).Value;
+        var interpolationNull = Unsafe.IsNullRef(ref interpolation);
+        var oldInterpolation = interpolationNull ? new RenderInterpolation() : interpolation;
+        var interpolationChanged = interpolationNull || !Precision.AreEqual(transform, interpolation.End);
+        if (!positionChanged && !scaleChanged && !rotationChanged && !pivotPointChanged && !interpolationChanged)
             return;
         if (positionChanged)
         {
@@ -1192,6 +1231,22 @@ public sealed unsafe partial class Scene
             }
         }
 
+        if (interpolationChanged)
+        {
+            if (interpolationNull)
+            {
+                SuspendDefer();
+                interpolation = ref RenderInterpolationTable
+                    .Set(entity, new RenderInterpolation(null, transform))
+                    .Value;
+                ResumeDefer();
+            }
+            else
+            {
+                interpolation.End = transform;
+            }
+        }
+
         if (positionChanged)
             PositionTable.Emit(Core.Table.Event<Position>.Set(entity, oldPosition, transform.Position));
         if (scaleChanged)
@@ -1200,6 +1255,10 @@ public sealed unsafe partial class Scene
             RotationTable.Emit(Core.Table.Event<Rotation>.Set(entity, oldRotation, transform.Rotation));
         if (pivotPointChanged)
             PivotPointTable.Emit(Core.Table.Event<PivotPoint>.Set(entity, oldPivotPoint, transform.PivotPoint));
+        if (interpolationChanged)
+            RenderInterpolationTable.Emit(
+                Core.Table.Event<RenderInterpolation>.Set(entity, oldInterpolation, interpolation)
+            );
     }
 
     private void OnAddChild(Entity entity, Child child)

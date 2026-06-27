@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Vigilance.Core;
 
 namespace Vigilance.Math;
@@ -58,6 +59,17 @@ public record struct Transform
         a.Rotation -= b.Rotation;
         a.PivotPoint -= b.PivotPoint;
         return a;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Transform Lerp(Transform start, Transform end, float t)
+    {
+        return new Transform(
+            Vector2.Lerp(start.Position, end.Position, t),
+            Vector2.Lerp(start.Scale, end.Scale, t),
+            float.LerpAngle(start.Rotation, end.Rotation, t),
+            Vector2.Lerp(start.PivotPoint, end.PivotPoint, t)
+        );
     }
 
     // ReSharper disable once InconsistentNaming
