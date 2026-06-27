@@ -200,7 +200,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
     private void SetCapacity(int capacity)
     {
         Debug.Assert(capacity >= Count);
-        var newArray = new T[capacity];
+        var newArray = capacity == 0 ? [] : new T[capacity];
         if (Count > 0)
         {
             if (_head < _tail)

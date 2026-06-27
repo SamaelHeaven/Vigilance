@@ -6,7 +6,7 @@ using BindingFlags = System.Reflection.BindingFlags;
 namespace Vigilance.Core;
 
 [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
-public static unsafe class ObjectPool<
+public sealed unsafe class ObjectPool<
     [DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors
     )]
@@ -16,18 +16,20 @@ public static unsafe class ObjectPool<
 {
     private static readonly T _uninitialized = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
     private static readonly nuint _size = GetRawObjectDataSize(null, _uninitialized);
-    private static readonly delegate* <object?, void> _constructor;
-    private static ValueStack<T> _pool = [];
+    private static readonly delegate* <T, void> _constructor;
+    private ValueStack<T> _pool = [];
 
     static ObjectPool()
     {
         var constructor = typeof(T).GetConstructor(BindingFlags.Instance | BindingFlags.Public, [])!;
-        _constructor = (delegate* <object?, void>)constructor.MethodHandle.GetFunctionPointer();
+        _constructor = (delegate* <T, void>)constructor.MethodHandle.GetFunctionPointer();
     }
 
-    public static int Count => _pool.Count;
+    public static ObjectPool<T> Shared => field ??= new ObjectPool<T>();
 
-    public static int Capacity
+    public int Count => _pool.Count;
+
+    public int Capacity
     {
         get => _pool.Capacity;
         set => _pool.Capacity = value;
@@ -35,39 +37,38 @@ public static unsafe class ObjectPool<
 
     [UnsafeAccessor(UnsafeAccessorKind.StaticMethod)]
     private static extern ref byte GetRawData(
-        [UnsafeAccessorType("System.Runtime.CompilerServices.RuntimeHelpers")] object? type,
+        [UnsafeAccessorType("System.Runtime.CompilerServices.RuntimeHelpers")] object? clazz,
         object obj
     );
 
     [UnsafeAccessor(UnsafeAccessorKind.StaticMethod)]
     private static extern nuint GetRawObjectDataSize(
-        [UnsafeAccessorType("System.Runtime.CompilerServices.RuntimeHelpers")] object? type,
+        [UnsafeAccessorType("System.Runtime.CompilerServices.RuntimeHelpers")] object? clazz,
         object obj
     );
 
     [UnsafeAccessor(UnsafeAccessorKind.StaticMethod)]
     private static extern void BulkMoveWithWriteBarrier(
-        [UnsafeAccessorType("System.Buffer")] object? type,
+        [UnsafeAccessorType("System.Buffer")] object? clazz,
         ref byte destination,
         ref byte source,
         nuint byteCount
     );
 
-    public static T Rent()
+    public T Rent()
     {
-        if (_pool.Count == 0)
+        if (!_pool.TryPop(out var item))
             return new T();
-        var item = _pool.Pop();
         _constructor(item);
         return item;
     }
 
-    public static Handle Borrow()
+    public Handle Borrow()
     {
-        return new Handle(Rent());
+        return new Handle(this, Rent());
     }
 
-    public static void Return(T item)
+    public void Return(T item)
     {
         Debug.Assert(item is not null);
         if ((T?)item is null)
@@ -78,29 +79,25 @@ public static unsafe class ObjectPool<
         _pool.Push(item);
     }
 
-    public static void Clear()
+    public void Clear()
     {
         _pool.Clear();
         _pool.Capacity = 0;
     }
 
-    public static void TrimExcess()
+    public void TrimExcess()
     {
         _pool.TrimExcess();
     }
 
-    public readonly ref struct Handle : IDisposable
+    public readonly ref struct Handle(ObjectPool<T> pool, T value) : IDisposable
     {
-        public T Value { get; }
-
-        internal Handle(T value)
-        {
-            Value = value;
-        }
+        public ObjectPool<T> Pool { get; } = pool;
+        public T Value { get; } = value;
 
         public void Dispose()
         {
-            Return(Value);
+            Pool.Return(Value);
         }
 
         public static implicit operator T(Handle handle)

@@ -19,9 +19,9 @@ internal static class DictionaryEqualityComparer
         get
         {
             if (field.HasValue)
-                return field.Value;
+                return field;
             var type = typeof(Dictionary<string, bool>);
-            return field = type.GetField("_comparer", BindingFlags.NonPublic | BindingFlags.Instance);
+            return field = type.GetField("_comparer", BindingFlags.Instance | BindingFlags.NonPublic);
         }
     }
 
