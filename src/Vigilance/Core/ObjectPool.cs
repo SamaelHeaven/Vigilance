@@ -25,7 +25,7 @@ public sealed unsafe class ObjectPool<
         _constructor = (delegate* <T, void>)constructor.MethodHandle.GetFunctionPointer();
     }
 
-    public static ObjectPool<T> Shared => field ??= new ObjectPool<T>();
+    public static ObjectPool<T> Shared { get; } = new();
 
     public int Count => _pool.Count;
 
