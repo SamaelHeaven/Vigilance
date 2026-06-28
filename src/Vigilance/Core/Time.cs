@@ -8,14 +8,13 @@ namespace Vigilance.Core;
 
 public static class Time
 {
-    public const float FixedDeltaSeconds = 1 / 60f;
-    private const double MaxDeltaSeconds = 1 / 4.0;
     private const int FpsHistorySize = 200;
     private static ValueQueue<float> _fpsHistory;
     private static TimeSpan _delta;
     private static TimeSpan _last;
     private static float _scale;
     private static readonly Stopwatch _stopwatch;
+    private static TimeConfig _config = new();
 
     static Time()
     {
@@ -25,13 +24,20 @@ public static class Time
         _delta = TimeSpan.Zero;
         _last = Elapsed;
         _scale = 1;
+        FixedDeltaSeconds = _config.FixedDeltaSeconds;
+        MaxDeltaSeconds = _config.MaxDeltaSeconds;
+        FixedDelta = TimeSpan.FromSeconds(_config.FixedDeltaSeconds);
     }
 
     public static TimeSpan FixedAccumulator { get; internal set; } = TimeSpan.Zero;
 
     public static float FixedAccumulatorSeconds => (float)FixedAccumulator.TotalSeconds;
 
-    public static TimeSpan FixedDelta { get; } = TimeSpan.FromSeconds(FixedDeltaSeconds);
+    public static float FixedDeltaSeconds { get; private set; }
+
+    public static TimeSpan FixedDelta { get; private set; }
+
+    public static float MaxDeltaSeconds { get; private set; }
 
     public static float DeltaSeconds => (float)_delta.TotalSeconds * _scale;
 
@@ -70,6 +76,14 @@ public static class Time
         Raylib.WaitTime(seconds);
     }
 
+    internal static void Initialize()
+    {
+        _config = Game.Config.Take<TimeConfig>() ?? _config;
+        MaxDeltaSeconds = _config.MaxDeltaSeconds;
+        FixedDeltaSeconds = _config.FixedDeltaSeconds;
+        FixedDelta = TimeSpan.FromSeconds(_config.FixedDeltaSeconds);
+    }
+
     internal static void Update()
     {
         var fpsTarget =
@@ -95,5 +109,19 @@ public static class Time
         _delta = TimeSpan.Zero;
         _last = Elapsed;
         _fpsHistory.Clear();
+    }
+}
+
+public sealed class TimeConfig
+{
+    public float MaxDeltaSeconds { get; set; } = 1 / 4f;
+    public float FixedDeltaSeconds { get; set; } = 1 / 60f;
+}
+
+public static class TimeConfigExtensions
+{
+    public static ConfigBuilder Time(this ConfigBuilder configs, Action<TimeConfig> config)
+    {
+        return configs.Add(config);
     }
 }
