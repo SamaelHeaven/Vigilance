@@ -415,7 +415,7 @@ public sealed class SceneGenerator : SourceGenerator
                 }
 
                 public {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
-                    ThrowIfNotInitialized();
+                    ThrowIfNotConfigured();
                     return new {{name}}Enumerable{{typeParams}}(this);
                 }
                 
@@ -563,7 +563,7 @@ public sealed class SceneGenerator : SourceGenerator
                 }
                 
                 public {{namePrefix}}{{tableCount}}Enumerable {{methodName}}({{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}}) {
-                    ThrowIfNotInitialized();
+                    ThrowIfNotConfigured();
                     return new {{namePrefix}}{{tableCount}}Enumerable(this, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"table{n}"))}});
                 }
                 
@@ -860,7 +860,7 @@ public sealed class SceneGenerator : SourceGenerator
                 
                 public {{name}}Enumerable<T0> {{methodName}}<T0>()
                 {
-                    ThrowIfNotInitialized();
+                    ThrowIfNotConfigured();
                     return new {{name}}Enumerable<T0>(this);
                 }
                 

@@ -9,11 +9,13 @@ namespace Vigilance.UI;
 
 public abstract class UIParent : UIElement
 {
-    internal ValueList<UIElement> ChildrenList = [];
-    internal ValueQueue<ChildrenOperation> ChildrenOperations = [];
-    public bool IsDeferred => DeferredCount != 0 && SuspendedCount == 0;
-    public int DeferredCount { get; internal set; }
-    public int SuspendedCount { get; private set; }
+    private ValueList<UIElement> _childrenList = [];
+    private ValueQueue<ChildrenOperation> _childrenOperations = [];
+    private int _deferredCount;
+    private bool _isFlushing;
+    private ValueStack<int> _suspendStack = [];
+
+    public bool IsDeferred => _deferredCount != 0;
 
     public UIParent this[UIElement? element]
     {
@@ -54,12 +56,12 @@ public abstract class UIParent : UIElement
             return;
         if (IsDeferred)
         {
-            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Add, element));
+            _childrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Add, element));
             return;
         }
 
         element.Remove();
-        ChildrenList.Add(element);
+        _childrenList.Add(element);
         element.Parent = this;
         element.ApplyDeclaredMargin();
         if (!IsLayoutCustom)
@@ -77,11 +79,11 @@ public abstract class UIParent : UIElement
     {
         if (IsDeferred)
         {
-            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Insert, element, index));
+            _childrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Insert, element, index));
             return;
         }
 
-        ChildrenList.Insert(index, element);
+        _childrenList.Insert(index, element);
         element.Remove();
         element.Parent = this;
         element.ApplyDeclaredMargin();
@@ -92,22 +94,22 @@ public abstract class UIParent : UIElement
 
     public int IndexOf(UIElement element)
     {
-        return ChildrenList.IndexOf(element);
+        return _childrenList.IndexOf(element);
     }
 
     public void Replace(int index, UIElement element)
     {
         if (IsDeferred)
         {
-            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Replace, element, index));
+            _childrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Replace, element, index));
             return;
         }
 
-        ChildrenList[index].Remove();
+        _childrenList[index].Remove();
         element.Remove();
         element.Parent = this;
         element.ApplyDeclaredMargin();
-        ChildrenList[index] = element;
+        _childrenList[index] = element;
         if (!IsLayoutCustom)
             Node.ReplaceChild(index, element.Node);
         MarkDirty();
@@ -121,40 +123,59 @@ public abstract class UIParent : UIElement
 
     public void BeginDefer()
     {
-        DeferredCount++;
+        _deferredCount++;
     }
 
     public void EndDefer()
     {
-        if (DeferredCount == 0)
+        if (_deferredCount == 0)
             throw new InvalidOperationException("Element is not in a deferred state.");
-        if (--DeferredCount != 0)
-            return;
-        while (ChildrenOperations.TryDequeue(out var operation))
-            operation.Execute(this);
+        _deferredCount--;
+        TryFlush();
     }
 
     public void SuspendDefer()
     {
-        SuspendedCount++;
+        _suspendStack.Push(_deferredCount);
+        _deferredCount = 0;
     }
 
     public void ResumeDefer()
     {
-        if (SuspendedCount == 0)
+        if (_suspendStack.Count == 0)
             throw new InvalidOperationException("Element is not in a suspended state.");
-        SuspendedCount--;
+        _deferredCount += _suspendStack.Pop();
+        TryFlush();
+    }
+
+    internal void Clone(CloneOptions options)
+    {
+        _childrenList = options.HasFlag(CloneOptions.SkipChildren) ? [] : new ValueList<UIElement>(_childrenList.Count);
+        _childrenOperations = [];
+        _deferredCount = 0;
+        _suspendStack = [];
+        _isFlushing = false;
+    }
+
+    private void TryFlush()
+    {
+        if (_deferredCount != 0 || _isFlushing)
+            return;
+        _isFlushing = true;
+        while (_childrenOperations.TryDequeue(out var operation))
+            operation.Execute(this);
+        _isFlushing = false;
     }
 
     internal void Remove(UIElement element)
     {
         if (IsDeferred)
         {
-            ChildrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Remove, element));
+            _childrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Remove, element));
             return;
         }
 
-        ChildrenList.Remove(element);
+        _childrenList.Remove(element);
         element.Parent = null;
         if (!IsLayoutCustom)
             Node.RemoveChild(element.Node);
@@ -226,9 +247,9 @@ public abstract class UIParent : UIElement
             return new StructEnumerator<ChildEnumerator, UIElement>(GetEnumerator());
         }
 
-        public int Count => _parent.ChildrenList.Count;
+        public int Count => _parent._childrenList.Count;
 
-        public UIElement this[int index] => _parent.ChildrenList[index];
+        public UIElement this[int index] => _parent._childrenList[index];
 
         public ref ChildEnumerable Deferred(bool deferred = true)
         {
@@ -267,9 +288,9 @@ public abstract class UIParent : UIElement
         {
             if (!_initialized)
                 Initialize();
-            if ((uint)_index < (uint)_parent.ChildrenList.Count)
+            if ((uint)_index < (uint)_parent._childrenList.Count)
             {
-                Current = _parent.ChildrenList[_index];
+                Current = _parent._childrenList[_index];
                 _index++;
                 return true;
             }
@@ -310,19 +331,19 @@ public abstract class UIParent : UIElement
 
         public bool TryGetNonEnumeratedCount(out int count)
         {
-            count = _parent.ChildrenList.Count;
+            count = _parent._childrenList.Count;
             return true;
         }
 
         public bool TryGetSpan(out ReadOnlySpan<UIElement> span)
         {
-            span = _parent.ChildrenList.AsSpan();
+            span = _parent._childrenList.AsSpan();
             return true;
         }
 
         public bool TryCopyTo(scoped Span<UIElement> destination, Index offset)
         {
-            return _parent.ChildrenList.AsSpan().TryCopyTo(destination, offset);
+            return _parent._childrenList.AsSpan().TryCopyTo(destination, offset);
         }
     }
 }

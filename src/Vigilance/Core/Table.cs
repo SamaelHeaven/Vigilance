@@ -206,7 +206,7 @@ public sealed class Table<T>
 
     public void Enqueue(in Event<T> tableEvent)
     {
-        Scene.ThrowIfNotInitialized();
+        Scene.ThrowIfNotConfigured();
         if (Scene.IsDeferred)
         {
             switch (tableEvent.Type)
@@ -227,7 +227,7 @@ public sealed class Table<T>
 
     public void Emit(in Event<T> tableEvent)
     {
-        Scene.ThrowIfNotInitialized();
+        Scene.ThrowIfNotConfigured();
         Scene.BeginDefer();
         try
         {

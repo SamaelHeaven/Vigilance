@@ -1282,11 +1282,7 @@ public abstract class UIElement : IFullCloneable
             );
         if (result is not UIParent parent)
             return result;
-        parent.ChildrenList = options.HasFlag(CloneOptions.SkipChildren)
-            ? []
-            : new ValueList<UIElement>(parent.ChildrenList.Count);
-        parent.ChildrenOperations = [];
-        parent.DeferredCount = 0;
+        parent.Clone(options);
         return result;
     }
 
