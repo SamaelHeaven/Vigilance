@@ -9,33 +9,32 @@ public static class Renderer
 {
     private static RenderTexture? _buffer;
     private static Vector2 _offset;
-    private static Vector2 _scale;
 
     static Renderer()
     {
         Game.ThrowIfNotRunning();
         var mode = Display.RenderingMode;
         if (mode.Type == RenderingModeType.Buffer)
-            _buffer = new RenderTexture(Display.Size, mode.Scale);
-        Graphics = new Graphics(_buffer);
+            _buffer = new RenderTexture(Display.ScreenSize, mode.Scale);
+        Graphics = new Graphics(_buffer, true);
     }
 
     public static Graphics Graphics { get; }
 
     public static Vector2 Offset => _offset;
 
-    public static Vector2 Scale => _scale;
+    public static Vector2 Scale { get; private set; }
 
     internal static void BeginDrawing()
     {
         var mode = Display.RenderingMode;
         if (
             mode.Type == RenderingModeType.Buffer
-            && (_buffer is null || _buffer.ScaledSize != (Display.Size * mode.Scale).Floor())
+            && (_buffer is null || _buffer.ScaledSize != (Display.ScreenSize * mode.Scale).Floor())
         )
         {
             _buffer?.Dispose();
-            _buffer = new RenderTexture(Display.Size, mode.Scale);
+            _buffer = new RenderTexture(Display.ScreenSize, mode.Scale);
             Graphics.Buffer = _buffer;
         }
         else if (mode.Type != RenderingModeType.Buffer)
@@ -58,7 +57,7 @@ public static class Renderer
         var minScale = scaleX.Min(scaleY);
         var maxScale = scaleX.Max(scaleY);
         var viewport = Display.Viewport;
-        _scale = viewport switch
+        Scale = viewport switch
         {
             Viewport.Fit => new Vector2(minScale),
             Viewport.Stretch => new Vector2(scaleX, scaleY),
@@ -96,10 +95,6 @@ public static class Renderer
     {
         var screenWidth = Display.ScreenWidth;
         var screenHeight = Display.ScreenHeight;
-        var width = Display.Width;
-        var height = Display.Height;
-        var scaleX = _scale.X;
-        var scaleY = _scale.Y;
         var offsetX = (int)_offset.X;
         var offsetY = (int)_offset.Y;
         var background = Display.Background.RColor;
@@ -116,7 +111,7 @@ public static class Renderer
         {
             var texture = _buffer.Texture;
             var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
-            var dest = new Raylib_cs.Rectangle(offsetX, offsetY, width * scaleX, height * scaleY);
+            var dest = new Raylib_cs.Rectangle(0, 0, screenWidth, screenHeight);
             texture.TextureFilter = mode.TextureFilter;
             Raylib.DrawTexturePro(texture.Texture2D, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
         }

@@ -14,6 +14,7 @@ public sealed unsafe class Graphics
     private static RenderTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
     private static BlendMode? _currentBlendMode = null;
+    private readonly bool _primary;
     private BlendMode _blendMode = Drawing.DefaultBlendMode;
     private Box? _clip = null;
     private bool _culling = Drawing.DefaultCulling;
@@ -23,9 +24,10 @@ public sealed unsafe class Graphics
     private Shader _shader = Drawing.DefaultShader;
     internal RenderTexture? Buffer;
 
-    internal Graphics(RenderTexture? buffer)
+    internal Graphics(RenderTexture? buffer, bool primary = false)
     {
         Buffer = buffer;
+        _primary = primary;
     }
 
     private static Shader CurrentShader
@@ -52,7 +54,7 @@ public sealed unsafe class Graphics
         var clip = GetClip();
         return new Box(
             (clip?.Position ?? Vector2.Zero) - offset,
-            (clip?.Size ?? Buffer?.Size ?? Display.Size) + offset * 2
+            (clip?.Size ?? (_primary ? Display.Size : Buffer?.Size) ?? Display.Size) + offset * 2
         );
     }
 
@@ -601,8 +603,20 @@ public sealed unsafe class Graphics
         if (_drawing)
             throw new InvalidOperationException("Cannot begin drawing while already drawing.");
         _drawing = true;
-        var offset = Buffer is null ? Renderer.Offset : 0;
-        var scale = Buffer?.Scale ?? Renderer.Scale;
+        Vector2 offset;
+        Vector2 scale;
+        if (_primary)
+        {
+            var bufferScale = Buffer?.Scale ?? 1f;
+            offset = Renderer.Offset * bufferScale;
+            scale = Renderer.Scale * bufferScale;
+        }
+        else
+        {
+            offset = Vector2.Zero;
+            scale = Buffer!.Scale;
+        }
+
         if (_currentBuffer != Buffer)
         {
             if (_currentBuffer is null)
