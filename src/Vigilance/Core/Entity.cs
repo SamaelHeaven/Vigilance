@@ -320,7 +320,8 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.TransformTable.GetRef(this).GetOrDefault(new Transform());
+            var transform = Scene.TransformTable.GetRef(this);
+            return transform.IsNull ? new Transform() : transform;
         }
         set
         {
@@ -482,7 +483,8 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.ScaleTable.GetRef(this).GetOrDefault(new Scale());
+            var scale = Scene.ScaleTable.GetRef(this);
+            return scale.IsNull ? new Scale() : scale;
         }
         set
         {
