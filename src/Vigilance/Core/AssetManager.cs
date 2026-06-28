@@ -7,7 +7,7 @@ namespace Vigilance.Core;
 
 public static class TextureAssetManager
 {
-    private static readonly Asset.Container<string, Texture> _container = new();
+    private static Asset.Container<string, Texture> _container = new();
 
     extension(Texture)
     {
@@ -66,7 +66,7 @@ public static class TextureAssetManager
 
 public static class ImageAssetManager
 {
-    private static readonly Asset.Container<string, Image> _container = new();
+    private static Asset.Container<string, Image> _container = new();
 
     extension(Image)
     {
@@ -125,7 +125,7 @@ public static class ImageAssetManager
 
 public static class FontAssetManager
 {
-    private static readonly Asset.Container<(string Key, int Quality, string Charset), Font> _container = new();
+    private static Asset.Container<(string Key, int Quality, string Charset), Font> _container = new();
 
     extension(Font)
     {
@@ -194,7 +194,7 @@ public static class FontAssetManager
 
 public static class MusicAssetManager
 {
-    private static readonly Asset.Container<string, Music> _container = new();
+    private static Asset.Container<string, Music> _container = new();
 
     extension(Music)
     {
@@ -253,7 +253,7 @@ public static class MusicAssetManager
 
 public static class SoundAssetManager
 {
-    private static readonly Asset.Container<(string Key, int MaxAliases), Sound> _container = new();
+    private static Asset.Container<(string Key, int MaxAliases), Sound> _container = new();
 
     extension(Sound)
     {
@@ -323,7 +323,7 @@ public static class SoundAssetManager
 
 public static class ShaderAssetManager
 {
-    private static readonly Asset.Container<(string? VertexKey, string? FragmentKey), Shader> _container = new();
+    private static Asset.Container<(string? VertexKey, string? FragmentKey), Shader> _container = new();
 
     extension(Shader)
     {

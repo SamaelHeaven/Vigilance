@@ -17,7 +17,7 @@ public static class Asset
         DefaultCacheType = _config.DefaultCacheType;
     }
 
-    public sealed class Container<TKey, TValue>
+    public struct Container<TKey, TValue>
         where TKey : notnull
         where TValue : class
     {
@@ -27,6 +27,8 @@ public static class Asset
         private ValueDictionary<TKey, WeakReference<TValue>> _weakFiles = [];
         private ValueDictionary<TKey, WeakReference<TValue>> _weakResources = [];
         private ValueDictionary<TKey, WeakReference<TValue>> _weakValues = [];
+
+        public Container() { }
 
         public bool File(
             ref string path,
