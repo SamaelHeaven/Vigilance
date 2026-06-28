@@ -32,35 +32,15 @@ public sealed unsafe class Font : IDisposable
 
     public static Font Default { get; set; } = null!;
 
-    public static int DefaultQuality
-    {
-        get => _config.DefaultQuality;
-        set => _config.DefaultQuality = value;
-    }
+    public static int DefaultQuality { get; set; } = _config.DefaultQuality;
 
-    public static int DefaultSize
-    {
-        get => _config.DefaultSize;
-        set => _config.DefaultSize = value;
-    }
+    public static int DefaultSize { get; set; } = _config.DefaultSize;
 
-    public static TextHeightMode DefaultTextHeightMode
-    {
-        get => _config.DefaultTextHeightMode;
-        set => _config.DefaultTextHeightMode = value;
-    }
+    public static TextHeightMode DefaultTextHeightMode { get; set; } = _config.DefaultTextHeightMode;
 
-    public static Vector2 DefaultTextSpacing
-    {
-        get => _config.DefaultTextSpacing;
-        set => _config.DefaultTextSpacing = value;
-    }
+    public static Vector2 DefaultTextSpacing { get; set; } = _config.DefaultTextSpacing;
 
-    public static string DefaultCharset
-    {
-        get => _config.DefaultCharset;
-        set => _config.DefaultCharset = value;
-    }
+    public static string DefaultCharset { get; set; } = _config.DefaultCharset;
 
     public string Charset { get; private set; }
     public int Quality { get; private set; }
@@ -86,6 +66,11 @@ public sealed unsafe class Font : IDisposable
     internal static void Initialize()
     {
         _config = Game.Config.Take<FontConfig>() ?? _config;
+        DefaultQuality = _config.DefaultQuality;
+        DefaultSize = _config.DefaultSize;
+        DefaultTextHeightMode = _config.DefaultTextHeightMode;
+        DefaultTextSpacing = _config.DefaultTextSpacing;
+        DefaultCharset = _config.DefaultCharset;
         Default = _config.Default.Invoke();
     }
 

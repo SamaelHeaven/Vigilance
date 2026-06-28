@@ -8,29 +8,13 @@ public static class Input
 {
     private static InputConfig _config = new();
 
-    public static InputButton? ExitButton
-    {
-        get => _config.ExitButton;
-        set => _config.ExitButton = value;
-    }
+    public static InputButton? ExitButton { get; set; } = _config.ExitButton;
 
-    public static InputButton? FullscreenButton
-    {
-        get => _config.FullscreenButton;
-        set => _config.FullscreenButton = value;
-    }
+    public static InputButton? FullscreenButton { get; set; } = _config.FullscreenButton;
 
-    public static InputAxis HorizontalAxis
-    {
-        get => _config.HorizontalAxis;
-        set => _config.HorizontalAxis = value;
-    }
+    public static InputAxis HorizontalAxis { get; set; } = _config.HorizontalAxis;
 
-    public static InputAxis VerticalAxis
-    {
-        get => _config.VerticalAxis;
-        set => _config.VerticalAxis = value;
-    }
+    public static InputAxis VerticalAxis { get; set; } = _config.VerticalAxis;
 
     public static Vector2 Direction => new(HorizontalAxis.Direction, VerticalAxis.Direction);
 
@@ -41,6 +25,10 @@ public static class Input
     internal static void Initialize()
     {
         _config = Game.Config.Take<InputConfig>() ?? _config;
+        ExitButton = _config.ExitButton;
+        FullscreenButton = _config.FullscreenButton;
+        HorizontalAxis = _config.HorizontalAxis;
+        VerticalAxis = _config.VerticalAxis;
         Raylib.SetExitKey(KeyboardKey.Null);
     }
 }

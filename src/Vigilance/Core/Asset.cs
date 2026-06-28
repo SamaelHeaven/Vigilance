@@ -9,15 +9,12 @@ public static class Asset
 {
     private static AssetConfig _config = new();
 
-    public static CacheType DefaultCacheType
-    {
-        get => _config.DefaultCacheType;
-        set => _config.DefaultCacheType = value;
-    }
+    public static CacheType DefaultCacheType { get; set; } = _config.DefaultCacheType;
 
     internal static void Initialize()
     {
         _config = Game.Config.Take<AssetConfig>() ?? _config;
+        DefaultCacheType = _config.DefaultCacheType;
     }
 
     public sealed class Container<TKey, TValue>

@@ -11,23 +11,19 @@ public static unsafe partial class Log
     private const uint EnableVirtualTerminalProcessing = 0x0004;
     private static readonly Lock _logLock = new();
     private static LoggingConfig _config = new();
-
-    static Log()
-    {
-        _config.Logger = null;
-    }
+    private static ILogger? _logger;
 
     public static LogLevel LogLevel
     {
-        get => _config.LogLevel;
+        get => field;
         set
         {
-            if (value == LogLevel)
+            if (value == field)
                 return;
-            _config.LogLevel = value;
-            Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
+            field = value;
+            Raylib.SetTraceLogLevel((TraceLogLevel)field);
         }
-    }
+    } = _config.LogLevel;
 
     public static LogLevel SetLogLevel(LogLevel level)
     {
@@ -38,8 +34,10 @@ public static unsafe partial class Log
 
     internal static void Initialize()
     {
-        _config = Game.Config.Take<LoggingConfig>() ?? new LoggingConfig();
-        Raylib.SetTraceLogLevel((TraceLogLevel)_config.LogLevel);
+        _config = Game.Config.Take<LoggingConfig>() ?? _config;
+        LogLevel = _config.LogLevel;
+        _logger = _config.Logger;
+        Raylib.SetTraceLogLevel((TraceLogLevel)LogLevel);
         var engine = Assemblies.Engine.GetName();
         var message = $"Initializing {engine.Name} {engine.Version}";
         try
@@ -58,7 +56,7 @@ public static unsafe partial class Log
         return;
 
         ERROR:
-        _config.Logger = null;
+        _logger = null;
         Raylib.SetTraceLogCallback(null);
         Warning("Failed to initialize custom logging");
         Info(message);
@@ -83,7 +81,7 @@ public static unsafe partial class Log
             var message = value is Exception e
                 ? $"{e.GetType()}: {e.Message}{(e.StackTrace is null ? "" : $"\n{e.StackTrace}")}"
                 : value?.ToString() ?? "";
-            if (_config.Logger is null)
+            if (_logger is null)
             {
                 if (level is > LogLevel.All and < LogLevel.None)
                 {
@@ -95,7 +93,7 @@ public static unsafe partial class Log
             }
             else
             {
-                _config.Logger.Log(level, message);
+                _logger.Log(level, message);
             }
 
             if (level == LogLevel.Fatal)

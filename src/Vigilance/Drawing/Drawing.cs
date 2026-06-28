@@ -6,87 +6,35 @@ public static class Drawing
 {
     private static DrawingConfig _config = new();
 
-    public static Color DefaultFill
-    {
-        get => _config.DefaultFill;
-        set => _config.DefaultFill = value;
-    }
+    public static Color DefaultFill { get; set; } = _config.DefaultFill;
 
-    public static Color DefaultStroke
-    {
-        get => _config.DefaultStroke;
-        set => _config.DefaultStroke = value;
-    }
+    public static Color DefaultStroke { get; set; } = _config.DefaultStroke;
 
-    public static float DefaultStrokeWidth
-    {
-        get => _config.DefaultStrokeWidth;
-        set => _config.DefaultStrokeWidth = value;
-    }
+    public static float DefaultStrokeWidth { get; set; } = _config.DefaultStrokeWidth;
 
-    public static DrawOrder DefaultOrder
-    {
-        get => _config.DefaultOrder;
-        set => _config.DefaultOrder = value;
-    }
+    public static DrawOrder DefaultOrder { get; set; } = _config.DefaultOrder;
 
-    public static float DefaultRadius
-    {
-        get => _config.DefaultRadius;
-        set => _config.DefaultRadius = value;
-    }
+    public static float DefaultRadius { get; set; } = _config.DefaultRadius;
 
-    public static TextureWrap DefaultTextureWrap
-    {
-        get => _config.DefaultTextureWrap;
-        set => _config.DefaultTextureWrap = value;
-    }
+    public static TextureWrap DefaultTextureWrap { get; set; } = _config.DefaultTextureWrap;
 
-    public static TextureFilter DefaultTextureFilter
-    {
-        get => _config.DefaultTextureFilter;
-        set => _config.DefaultTextureFilter = value;
-    }
+    public static TextureFilter DefaultTextureFilter { get; set; } = _config.DefaultTextureFilter;
 
-    public static CameraProvider DefaultCamera
-    {
-        get => _config.DefaultCamera;
-        set => _config.DefaultCamera = value;
-    }
+    public static CameraProvider DefaultCamera { get; set; } = _config.DefaultCamera;
 
     public static Texture DefaultTexture { get; set; } = null!;
 
-    public static bool DefaultCulling
-    {
-        get => _config.DefaultCulling;
-        set => _config.DefaultCulling = value;
-    }
+    public static bool DefaultCulling { get; set; } = _config.DefaultCulling;
 
-    public static BlendMode DefaultBlendMode
-    {
-        get => _config.DefaultBlendMode;
-        set => _config.DefaultBlendMode = value;
-    }
+    public static BlendMode DefaultBlendMode { get; set; } = _config.DefaultBlendMode;
 
     public static Shader DefaultShader { get; set; } = null!;
 
-    public static float SegmentsErrorRate
-    {
-        get => _config.SegmentsErrorRate;
-        set => _config.SegmentsErrorRate = value;
-    }
+    public static float SegmentsErrorRate { get; set; } = _config.SegmentsErrorRate;
 
-    public static TimeSpan RenderTexturePoolLifetime
-    {
-        get => _config.RenderTexturePoolLifetime;
-        set => _config.RenderTexturePoolLifetime = value;
-    }
+    public static TimeSpan RenderTexturePoolLifetime { get; set; } = _config.RenderTexturePoolLifetime;
 
-    public static int RenderTexturePoolRoundUpToMultipleOf
-    {
-        get => _config.RenderTexturePoolRoundUpToMultipleOf;
-        set => _config.RenderTexturePoolRoundUpToMultipleOf = value;
-    }
+    public static int RenderTexturePoolRoundUpToMultipleOf { get; set; } = _config.RenderTexturePoolRoundUpToMultipleOf;
 
     public static int CalculateSegments(float radius, float startAngle, float endAngle, int segments)
     {
@@ -107,6 +55,19 @@ public static class Drawing
     internal static void Initialize()
     {
         _config = Game.Config.Take<DrawingConfig>() ?? _config;
+        DefaultFill = _config.DefaultFill;
+        DefaultStroke = _config.DefaultStroke;
+        DefaultStrokeWidth = _config.DefaultStrokeWidth;
+        DefaultOrder = _config.DefaultOrder;
+        DefaultRadius = _config.DefaultRadius;
+        DefaultTextureWrap = _config.DefaultTextureWrap;
+        DefaultTextureFilter = _config.DefaultTextureFilter;
+        DefaultCamera = _config.DefaultCamera;
+        DefaultCulling = _config.DefaultCulling;
+        DefaultBlendMode = _config.DefaultBlendMode;
+        SegmentsErrorRate = _config.SegmentsErrorRate;
+        RenderTexturePoolLifetime = _config.RenderTexturePoolLifetime;
+        RenderTexturePoolRoundUpToMultipleOf = _config.RenderTexturePoolRoundUpToMultipleOf;
         DefaultTexture = _config.DefaultTexture.Invoke();
         DefaultShader = _config.DefaultShader.Invoke();
     }

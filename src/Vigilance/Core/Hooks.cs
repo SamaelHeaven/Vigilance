@@ -10,27 +10,18 @@ public static class Hooks
 
     private static HooksConfig _config = new();
 
-    public static Exit? OnExit
-    {
-        get => _config.OnExit;
-        set => _config.OnExit = value;
-    }
+    public static Exit? OnExit { get; set; } = _config.OnExit;
 
-    public static Exception? OnException
-    {
-        get => _config.OnException;
-        set => _config.OnException = value;
-    }
+    public static Exception? OnException { get; set; } = _config.OnException;
 
-    public static SetScene? OnSetScene
-    {
-        get => _config.OnSetScene;
-        set => _config.OnSetScene = value;
-    }
+    public static SetScene? OnSetScene { get; set; } = _config.OnSetScene;
 
     internal static void Initialize()
     {
         _config = Game.Config.Take<HooksConfig>() ?? _config;
+        OnExit = _config.OnExit;
+        OnException = _config.OnException;
+        OnSetScene = _config.OnSetScene;
     }
 }
 

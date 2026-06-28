@@ -10,7 +10,12 @@ namespace Vigilance.Core;
 
 public static unsafe class Display
 {
-    private static DisplayConfig _config = null!;
+    private static DisplayConfig _config = new();
+    private static Vector2 _size = _config.Size;
+    private static Vector2 _screenSize = _config.ScreenSize;
+    private static Vector2? _position = _config.Position;
+    private static Viewport _viewport = _config.Viewport;
+    private static RenderingMode _renderingMode = _config.RenderingMode;
     private static Image? _icon;
     private static Box _previousScreen;
     private static bool _resetScreen;
@@ -23,15 +28,15 @@ public static unsafe class Display
 
     public static string Title
     {
-        get => _config.Title;
+        get => field;
         set
         {
-            if (value == Title)
+            if (value == field)
                 return;
-            _config.Title = value;
+            field = value;
             Raylib.SetWindowTitle(value);
         }
-    }
+    } = _config.Title;
 
     public static Image? Icon
     {
@@ -55,7 +60,7 @@ public static unsafe class Display
 
     public static Vector2 Size
     {
-        get => Viewport == Viewport.Native ? ScreenSize : _config.Size;
+        get => Viewport == Viewport.Native ? ScreenSize : _size;
         set
         {
             if (Viewport == Viewport.Native)
@@ -64,13 +69,13 @@ public static unsafe class Display
                 return;
             }
 
-            _config.Size = value;
+            _size = value;
         }
     }
 
     public static float Width
     {
-        get => Viewport == Viewport.Native ? ScreenWidth : _config.Size.X;
+        get => Viewport == Viewport.Native ? ScreenWidth : _size.X;
         set
         {
             if (Viewport == Viewport.Native)
@@ -79,13 +84,13 @@ public static unsafe class Display
                 return;
             }
 
-            _config.Size = new Vector2(value, _config.Size.Y);
+            _size = new Vector2(value, _size.Y);
         }
     }
 
     public static float Height
     {
-        get => Viewport == Viewport.Native ? ScreenHeight : _config.Size.Y;
+        get => Viewport == Viewport.Native ? ScreenHeight : _size.Y;
         set
         {
             if (Viewport == Viewport.Native)
@@ -94,7 +99,7 @@ public static unsafe class Display
                 return;
             }
 
-            _config.Size = new Vector2(_config.Size.X, value);
+            _size = new Vector2(_size.X, value);
         }
     }
 
@@ -116,76 +121,76 @@ public static unsafe class Display
             var size = value.Floor();
             if (ScreenSize == size)
                 return;
-            _config.ScreenSize = size;
+            _screenSize = size;
             Raylib.SetWindowSize((int)size.X, (int)size.Y);
         }
     }
 
     public static int ScreenWidth
     {
-        get => (int)_config.ScreenSize.X;
+        get => (int)_screenSize.X;
         set
         {
             if (!Platform.Desktop.IsCurrent)
                 return;
             if (ScreenWidth == value)
                 return;
-            _config.ScreenSize = new Vector2(value, ScreenHeight);
+            _screenSize = new Vector2(value, ScreenHeight);
             Raylib.SetWindowSize(value, ScreenHeight);
         }
     }
 
     public static int ScreenHeight
     {
-        get => (int)_config.ScreenSize.Y;
+        get => (int)_screenSize.Y;
         set
         {
             if (!Platform.Desktop.IsCurrent)
                 return;
             if (ScreenHeight == value)
                 return;
-            _config.ScreenSize = new Vector2(ScreenWidth, value);
+            _screenSize = new Vector2(ScreenWidth, value);
             Raylib.SetWindowSize(ScreenWidth, value);
         }
     }
 
     public static Vector2? MinScreenSize
     {
-        get => _config.MinScreenSize;
+        get => field;
         set
         {
             value = value?.Floor();
-            if (value == _config.MinScreenSize)
+            if (value == field)
                 return;
-            _config.MinScreenSize = value;
+            field = value;
             if (Platform.Desktop.IsCurrent)
                 Raylib.SetWindowMinSize((int)(value?.X ?? 0), (int)(value?.Y ?? 0));
         }
-    }
+    } = _config.MinScreenSize;
 
     public static Vector2? MaxScreenSize
     {
-        get => _config.MaxScreenSize;
+        get => field;
         set
         {
             value = value?.Floor();
-            if (value == _config.MaxScreenSize)
+            if (value == field)
                 return;
-            _config.MaxScreenSize = value;
+            field = value;
             if (Platform.Desktop.IsCurrent)
                 Raylib.SetWindowMaxSize((int)(value?.X ?? 0), (int)(value?.Y ?? 0));
         }
-    }
+    } = _config.MaxScreenSize;
 
     public static Vector2 Position
     {
-        get => _config.Position ?? Vector2.Zero;
+        get => _position ?? Vector2.Zero;
         set
         {
             if (!Platform.Desktop.IsCurrent)
                 return;
             value = value.Floor();
-            if (value == _config.Position)
+            if (value == _position)
                 return;
             if (Fullscreen)
             {
@@ -200,41 +205,37 @@ public static unsafe class Display
                 Raylib.SetWindowPosition((int)value.X, (int)value.Y);
             }
 
-            _config.Position = Raylib.GetWindowPosition();
+            _position = Raylib.GetWindowPosition();
         }
     }
 
     public static Viewport Viewport
     {
-        get => _config.Viewport;
-        set { Game.Defer(() => _config.Viewport = value); }
+        get => _viewport;
+        set { Game.Defer(() => _viewport = value); }
     }
 
     public static RenderingMode RenderingMode
     {
-        get => _config.RenderingMode;
-        set { Game.Defer(() => _config.RenderingMode = value); }
+        get => _renderingMode;
+        set { Game.Defer(() => _renderingMode = value); }
     }
 
-    public static Color Background
-    {
-        get => _config.Background;
-        set => _config.Background = value;
-    }
+    public static Color Background { get; set; } = _config.Background;
 
     public static int FpsTarget
     {
-        get => _config.FpsTarget;
+        get => field;
         set
         {
             if (value < 1)
                 value = 0;
-            if (value == FpsTarget)
+            if (value == field)
                 return;
-            _config.FpsTarget = value;
+            field = value;
             Raylib.SetTargetFPS(value);
         }
-    }
+    } = _config.FpsTarget;
 
     public static bool Fullscreen
     {
@@ -246,11 +247,7 @@ public static unsafe class Display
         }
     }
 
-    public static bool DefaultFullscreenBorderless
-    {
-        get => _config.DefaultFullscreenBorderless;
-        set => _config.DefaultFullscreenBorderless = value;
-    }
+    public static bool DefaultFullscreenBorderless { get; set; } = _config.DefaultFullscreenBorderless;
 
     public static bool Hidden { get; private set; }
 
@@ -260,79 +257,79 @@ public static unsafe class Display
 
     public static bool Decorated
     {
-        get => _config.Decorated;
+        get => field;
         set
         {
-            if (value == _config.Decorated)
+            if (value == field)
                 return;
-            _config.Decorated = value;
+            field = value;
             ToggleWindowState(ConfigFlags.UndecoratedWindow, !value);
         }
-    }
+    } = _config.Decorated;
 
     public static bool Vsync
     {
-        get => _config.Vsync;
+        get => field;
         set
         {
-            if (value == _config.Vsync)
+            if (value == field)
                 return;
-            _config.Vsync = value;
+            field = value;
             ToggleWindowState(ConfigFlags.VSyncHint, value);
         }
-    }
+    } = _config.Vsync;
 
     public static bool Resizable
     {
-        get => _config.Resizable;
+        get => field;
         set
         {
-            if (value == _config.Resizable)
+            if (value == field)
                 return;
-            _config.Resizable = value;
+            field = value;
             ToggleWindowState(ConfigFlags.ResizableWindow, value);
         }
-    }
+    } = _config.Resizable;
 
     public static bool TopMost
     {
-        get => _config.TopMost;
+        get => field;
         set
         {
-            if (value == _config.TopMost)
+            if (value == field)
                 return;
-            _config.TopMost = value;
+            field = value;
             ToggleWindowState(ConfigFlags.TopmostWindow, value);
         }
-    }
+    } = _config.TopMost;
 
     public static bool Transparent
     {
-        get => _config.Transparent;
+        get => field;
         set
         {
-            if (value == _config.Transparent)
+            if (value == field)
                 return;
-            _config.Transparent = value;
+            field = value;
             ToggleWindowState(ConfigFlags.TransparentWindow, value);
         }
-    }
+    } = _config.Transparent;
 
     public static bool Passthrough
     {
-        get => _config.Passthrough;
+        get => field;
         set
         {
-            if (value == _config.Passthrough)
+            if (value == field)
                 return;
-            _config.Passthrough = value;
+            field = value;
             ToggleWindowState(ConfigFlags.MousePassthroughWindow, value);
         }
-    }
+    } = _config.Passthrough;
 
-    public static bool RunMinimized => _config.RunMinimized;
+    public static bool RunMinimized { get; private set; } = _config.RunMinimized;
 
-    public static bool Msaa4X => _config.Msaa4X;
+    public static bool Msaa4X { get; private set; } = _config.Msaa4X;
 
     public static bool Focused { get; private set; }
 
@@ -439,8 +436,28 @@ public static unsafe class Display
 
     internal static void Initialize()
     {
-        _config = Game.Config.Take<DisplayConfig>() ?? new DisplayConfig();
+        _config = Game.Config.Take<DisplayConfig>() ?? _config;
+        _size = _config.Size;
+        _screenSize = _config.ScreenSize;
+        _position = _config.Position;
+        _viewport = _config.Viewport;
+        _renderingMode = _config.RenderingMode;
+        Background = _config.Background;
+        DefaultFullscreenBorderless = _config.DefaultFullscreenBorderless;
+        RunMinimized = _config.RunMinimized;
+        Msaa4X = _config.Msaa4X;
         InitializeWindow();
+        // Apply the remaining settings through their setters now that the window exists.
+        Title = _config.Title;
+        MinScreenSize = _config.MinScreenSize;
+        MaxScreenSize = _config.MaxScreenSize;
+        FpsTarget = _config.FpsTarget;
+        Decorated = _config.Decorated;
+        Vsync = _config.Vsync;
+        Resizable = _config.Resizable;
+        TopMost = _config.TopMost;
+        Transparent = _config.Transparent;
+        Passthrough = _config.Passthrough;
     }
 
     internal static void Update()
@@ -472,11 +489,11 @@ public static unsafe class Display
             Focused = Raylib.IsWindowFocused();
         }
 
-        _config.Position = Raylib.GetWindowPosition();
+        _position = Raylib.GetWindowPosition();
         Hidden = Raylib.IsWindowHidden();
         Maximized = Raylib.IsWindowMaximized();
         Minimized = Raylib.IsWindowMinimized();
-        _config.ScreenSize =
+        _screenSize =
             Platform.Desktop.IsCurrent && Fullscreen
                 ? new Vector2(MonitorWidth, MonitorHeight)
                 : new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
@@ -514,18 +531,14 @@ public static unsafe class Display
     private static void InitializeWindow()
     {
         Raylib.SetConfigFlags(GetConfigFlags());
-        var width = (int)(
-            _config.ScreenSize.X <= 0 || !Platform.Desktop.IsCurrent ? _config.Size.X : _config.ScreenSize.X
-        );
-        var height = (int)(
-            _config.ScreenSize.Y <= 0 || !Platform.Desktop.IsCurrent ? _config.Size.Y : _config.ScreenSize.Y
-        );
+        var width = (int)(_screenSize.X <= 0 || !Platform.Desktop.IsCurrent ? _size.X : _screenSize.X);
+        var height = (int)(_screenSize.Y <= 0 || !Platform.Desktop.IsCurrent ? _size.Y : _screenSize.Y);
         var logLevel = Log.SetLogLevel(Log.LogLevel.Max(LogLevel.Info));
         Raylib.InitWindow(width, height, _config.Title);
         Log.LogLevel = logLevel;
         if (OperatingSystem.IsWindows())
         {
-            if (!_config.Position.HasValue)
+            if (!_position.HasValue)
             {
                 var monitor = Raylib.GetCurrentMonitor();
                 var monitorSize = new Vector2(Raylib.GetMonitorWidth(monitor), Raylib.GetMonitorHeight(monitor));
@@ -540,18 +553,12 @@ public static unsafe class Display
                 Raylib.ClearWindowState(ConfigFlags.HiddenWindow);
         }
 
-        if (Platform.Desktop.IsCurrent && _config.Position.HasValue)
-            Raylib.SetWindowPosition((int)_config.Position.Value.X, (int)_config.Position.Value.Y);
-        if (Platform.Desktop.IsCurrent && _config.MinScreenSize.HasValue)
-            Raylib.SetWindowMinSize((int)_config.MinScreenSize.Value.X, (int)_config.MinScreenSize.Value.Y);
-        if (Platform.Desktop.IsCurrent && _config.MaxScreenSize.HasValue)
-            Raylib.SetWindowMaxSize((int)_config.MaxScreenSize.Value.X, (int)_config.MaxScreenSize.Value.Y);
+        if (Platform.Desktop.IsCurrent && _position.HasValue)
+            Raylib.SetWindowPosition((int)_position.Value.X, (int)_position.Value.Y);
         if (_config.Maximized)
             Maximize();
         if (_config.Fullscreen)
             ToggleFullscreen();
-        if (_config.FpsTarget > 0)
-            Raylib.SetTargetFPS(_config.FpsTarget);
         if (!Platform.Desktop.IsCurrent || OperatingSystem.IsMacOS() || _config.Icon is null)
             return;
         _icon = _config.Icon.Copy<PixelR8G8B8A8>();
@@ -569,9 +576,9 @@ public static unsafe class Display
             flags |= ConfigFlags.UnfocusedWindow;
         if (_config.Vsync)
             flags |= ConfigFlags.VSyncHint;
-        if (_config.RunMinimized)
+        if (RunMinimized)
             flags |= ConfigFlags.AlwaysRunWindow;
-        if (_config.Msaa4X)
+        if (Msaa4X)
             flags |= ConfigFlags.Msaa4xHint;
         if (_config.Hidden || OperatingSystem.IsWindows())
             flags |= ConfigFlags.HiddenWindow;
