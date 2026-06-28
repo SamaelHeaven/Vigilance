@@ -946,7 +946,7 @@ public readonly record struct SparseSetView<TKey, TValue, TStorage>
         _sparseSet = sparseSet;
     }
 
-    public FastEnumerable<TValue> Values => _sparseSet.Values;
+    public SparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
 
     public ValueListView<TKey> Keys => _sparseSet.Keys;
 
@@ -1019,7 +1019,7 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
         _sparseSet = ref sparseSet;
     }
 
-    public FastEnumerable<TValue> Values => _sparseSet.Values;
+    public ValueSparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
 
     public ValueListView<TKey> Keys => _sparseSet.Keys;
 
@@ -1140,7 +1140,7 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
             _sparseSet = sparseSet;
         }
 
-        public FastEnumerable<TValue> Values => _sparseSet.Values;
+        public ValueSparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
 
         public ValueListView<TKey> Keys => _sparseSet.Keys;
 

@@ -100,7 +100,7 @@ public readonly unsafe partial record struct Entity
         {
             AssertValid();
             if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
-                interpolation = new Interpolation(null, new Transform());
+                interpolation = new Interpolation();
             for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
             {
                 if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))

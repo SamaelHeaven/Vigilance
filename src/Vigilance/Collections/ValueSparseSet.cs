@@ -33,12 +33,12 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         _fastModMultiplier = HashHelpers.GetFastModMultiplier((uint)sparseChunkSize);
     }
 
-    public readonly FastEnumerable<TValue> Values
+    public readonly ValueEnumerable Values
     {
         get
         {
             AssertValid();
-            return _values.AsFastEnumerable();
+            return new ValueEnumerable(_values);
         }
     }
 
@@ -389,5 +389,98 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         }
 
         public void Dispose() { }
+    }
+
+    public readonly struct ValueEnumerable : IStructEnumerable<ValueEnumerable.Enumerator, TValue>
+    {
+        private readonly TStorage _values;
+
+        internal ValueEnumerable(TStorage values)
+        {
+            _values = values;
+        }
+
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(_values);
+        }
+
+        public ValueEnumerable<Enumerator, TValue> AsValueEnumerable()
+        {
+            return new ValueEnumerable<Enumerator, TValue>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<Enumerator, TValue>, TValue> IStructEnumerable<
+            Enumerator,
+            TValue
+        >.AsValueEnumerable()
+        {
+            return new StructEnumerator<Enumerator, TValue>(GetEnumerator());
+        }
+
+        public struct Enumerator : IStructEnumerator<TValue>, IValueEnumerator<TValue>
+        {
+            private readonly TStorage _values;
+            private int _index;
+
+            internal Enumerator(TStorage values)
+            {
+                _values = values;
+                Reset();
+            }
+
+            public bool MoveNext()
+            {
+                if ((uint)_index < (uint)_values.Count)
+                {
+                    Current = _values[_index];
+                    _index++;
+                    return true;
+                }
+
+                Current = default!;
+                _index = -1;
+                return false;
+            }
+
+            public TValue Current { get; private set; } = default!;
+
+            public bool TryGetNext(out TValue current)
+            {
+                if (MoveNext())
+                {
+                    current = Current;
+                    return true;
+                }
+
+                Unsafe.SkipInit(out current);
+                return false;
+            }
+
+            public bool TryGetNonEnumeratedCount(out int count)
+            {
+                count = _values.Count;
+                return true;
+            }
+
+            public bool TryGetSpan(out ReadOnlySpan<TValue> span)
+            {
+                span = default;
+                return false;
+            }
+
+            public bool TryCopyTo(scoped Span<TValue> destination, Index offset)
+            {
+                return false;
+            }
+
+            public void Reset()
+            {
+                _index = 0;
+                Current = default!;
+            }
+
+            public void Dispose() { }
+        }
     }
 }
