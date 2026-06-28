@@ -1,3 +1,3 @@
 namespace Vigilance.Core;
 
-internal readonly struct EntityTag : IHiddenComponent;
+public readonly struct EntityTag : IHiddenComponent, IImmutableComponent;

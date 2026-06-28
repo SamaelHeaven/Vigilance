@@ -1,6 +1,5 @@
 ﻿#pragma warning disable CS9084
 
-using System.Collections;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Drawing;
@@ -13,7 +12,7 @@ namespace Vigilance.Core;
 public sealed unsafe partial class Scene
 {
     private readonly GameSystemsFunc _systemsFunc;
-    private Collections.ValueDictionary<Type, (ICollection Queue, Action EmitAction)> _customEvents = [];
+    private Collections.ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
     private Action<Entity>? _destroyAction;
     private Collections.ValueList<(int Index, int Version)> _entities = [];
@@ -196,7 +195,7 @@ public sealed unsafe partial class Scene
 
         var entity = new Entity(id, this);
         SuspendDefer();
-        EntityTagTable.Set(entity, new EntityTag());
+        EntityTagTable.Set(entity, new EntityTag(), Core.Table.Flags.ForceMutable);
         if (name is not null)
             NameTable.Set(entity, new Name(name), Core.Table.Flags.ForceMutable);
         ResumeDefer();
@@ -361,9 +360,9 @@ public sealed unsafe partial class Scene
         {
             if (!_listeners.TryGetValue(type, out var handlers))
                 return;
-            var queue = new Queue<T>();
+            var queue = new ValueQueue<T>();
             events = (
-                queue,
+                (T value) => queue.Enqueue(value),
                 () =>
                 {
                     if (queue.TryDequeue(out var @event))
@@ -372,7 +371,7 @@ public sealed unsafe partial class Scene
             );
         }
 
-        ((Queue<T>)events.Queue).Enqueue(@event);
+        ((Action<T>)events.EnqueueAction).Invoke(@event);
         Enqueue(Event.Custom(type));
     }
 
@@ -423,7 +422,7 @@ public sealed unsafe partial class Scene
                         Destroy(new Entity(@event.EntityId, this));
                         break;
                     case EventType.Custom:
-                        _customEvents[(Type)@event.Data].EmitAction.Invoke();
+                        _customEvents[(Type)@event.Data].DequeueAction.Invoke();
                         break;
                     case EventType.TableOperation:
                         ((Table)@event.Data).DequeueOperation();
