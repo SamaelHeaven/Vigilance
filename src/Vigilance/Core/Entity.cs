@@ -94,6 +94,125 @@ public readonly unsafe partial record struct Entity
         }
     }
 
+    public Vector2 RenderPosition
+    {
+        get
+        {
+            AssertValid();
+            if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new Interpolation();
+            (Vector2? Start, Vector2 End) position = (interpolation.Start?.Position, interpolation.End.Position);
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
+            {
+                if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))
+                    continue;
+                position = (
+                    position.Start.HasValue || childInterpolation.Start.HasValue
+                        ? (position.Start ?? position.End)
+                            + (childInterpolation.Start ?? childInterpolation.End).Position
+                        : null,
+                    position.End + childInterpolation.End.Position
+                );
+            }
+
+            return !position.Start.HasValue
+                ? position.End
+                : Vector2.Lerp(
+                    position.Start.Value,
+                    position.End,
+                    Time.FixedAccumulatorSeconds / Time.FixedDeltaSeconds
+                );
+        }
+    }
+
+    public Vector2 RenderScale
+    {
+        get
+        {
+            AssertValid();
+            if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new Interpolation();
+            (Vector2? Start, Vector2 End) scale = (interpolation.Start?.Scale, interpolation.End.Scale);
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
+            {
+                if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))
+                    continue;
+                scale = (
+                    scale.Start.HasValue || childInterpolation.Start.HasValue
+                        ? (scale.Start ?? scale.End) * (childInterpolation.Start ?? childInterpolation.End).Scale
+                        : null,
+                    scale.End * childInterpolation.End.Scale
+                );
+            }
+
+            return !scale.Start.HasValue
+                ? scale.End
+                : Vector2.Lerp(scale.Start.Value, scale.End, Time.FixedAccumulatorSeconds / Time.FixedDeltaSeconds);
+        }
+    }
+
+    public float RenderRotation
+    {
+        get
+        {
+            AssertValid();
+            if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new Interpolation();
+            (float? Start, float End) rotation = (interpolation.Start?.Rotation, interpolation.End.Rotation);
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
+            {
+                if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))
+                    continue;
+                rotation = (
+                    rotation.Start.HasValue || childInterpolation.Start.HasValue
+                        ? (rotation.Start ?? rotation.End)
+                            + (childInterpolation.Start ?? childInterpolation.End).Rotation
+                        : null,
+                    rotation.End + childInterpolation.End.Rotation
+                );
+            }
+
+            return !rotation.Start.HasValue
+                ? rotation.End
+                : float.LerpAngle(
+                    rotation.Start.Value,
+                    rotation.End,
+                    Time.FixedAccumulatorSeconds / Time.FixedDeltaSeconds
+                );
+        }
+    }
+
+    public Vector2 RenderPivotPoint
+    {
+        get
+        {
+            AssertValid();
+            if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new Interpolation();
+            (Vector2? Start, Vector2 End) pivotPoint = (interpolation.Start?.PivotPoint, interpolation.End.PivotPoint);
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
+            {
+                if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))
+                    continue;
+                pivotPoint = (
+                    pivotPoint.Start.HasValue || childInterpolation.Start.HasValue
+                        ? (pivotPoint.Start ?? pivotPoint.End)
+                            + (childInterpolation.Start ?? childInterpolation.End).PivotPoint
+                        : null,
+                    pivotPoint.End + childInterpolation.End.PivotPoint
+                );
+            }
+
+            return !pivotPoint.Start.HasValue
+                ? pivotPoint.End
+                : Vector2.Lerp(
+                    pivotPoint.Start.Value,
+                    pivotPoint.End,
+                    Time.FixedAccumulatorSeconds / Time.FixedDeltaSeconds
+                );
+        }
+    }
+
     public Transform RenderTransform
     {
         get
