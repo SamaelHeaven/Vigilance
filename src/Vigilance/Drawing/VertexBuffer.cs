@@ -1,40 +1,44 @@
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
+using Vigilance.Math;
 using ZLinq;
 
 namespace Vigilance.Drawing;
 
 public static class VertexBuffer
 {
-    public static VertexBuffer<float> Quad()
+    public static VertexBuffer<float> Quad(bool isDynamic = false)
     {
-        var quad = new VertexBuffer<float>([
-            -0.5f,
-            -0.5f,
-            0f,
-            0f,
-            0.5f,
-            0.5f,
-            1f,
-            1f,
-            0.5f,
-            -0.5f,
-            1f,
-            0f,
-            -0.5f,
-            -0.5f,
-            0f,
-            0f,
-            -0.5f,
-            0.5f,
-            0f,
-            1f,
-            0.5f,
-            0.5f,
-            1f,
-            1f,
-        ]);
+        var quad = new VertexBuffer<float>(
+            [
+                -0.5f,
+                -0.5f,
+                0f,
+                0f,
+                0.5f,
+                0.5f,
+                1f,
+                1f,
+                0.5f,
+                -0.5f,
+                1f,
+                0f,
+                -0.5f,
+                -0.5f,
+                0f,
+                0f,
+                -0.5f,
+                0.5f,
+                0f,
+                1f,
+                0.5f,
+                0.5f,
+                1f,
+                1f,
+            ],
+            isDynamic
+        );
         quad.Sync();
         return quad;
     }
@@ -43,41 +47,42 @@ public static class VertexBuffer
 public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDisposable
     where T : unmanaged
 {
-    private ValueList<bool> _dirtyValues;
+    private int _dirtyEnd = 0;
+    private int _dirtyStart = int.MaxValue;
     private ValueList<T> _values;
     private int _vboCapacity = 0;
 
-    public VertexBuffer()
+    public VertexBuffer(bool isDynamic = true)
     {
         Game.ThrowIfNotRunning();
         _values = [];
-        _dirtyValues = [];
+        IsDynamic = isDynamic;
     }
 
-    public VertexBuffer(int capacity)
+    public VertexBuffer(int capacity, bool isDynamic = true)
     {
         Game.ThrowIfNotRunning();
         _values = new ValueList<T>(capacity);
-        _dirtyValues = new ValueList<bool>(capacity);
+        IsDynamic = isDynamic;
     }
 
-    public VertexBuffer(in ReadOnlySpan<T> values)
+    public VertexBuffer(in ReadOnlySpan<T> values, bool isDynamic = true)
     {
         Game.ThrowIfNotRunning();
         _values = values.AsValueEnumerable().ToValueList();
-        _dirtyValues = new ValueList<bool>(_values.Count) { Count = _values.Count };
+        IsDynamic = isDynamic;
     }
 
-    public VertexBuffer(in IEnumerable<T> values)
+    public VertexBuffer(in IEnumerable<T> values, bool isDynamic = true)
     {
         Game.ThrowIfNotRunning();
         _values = values.AsValueEnumerable().ToValueList();
-        _dirtyValues = new ValueList<bool>(_values.Count) { Count = _values.Count };
+        IsDynamic = isDynamic;
     }
 
     public uint Id { get; private set; } = 0;
-
     public int Version { get; private set; } = 0;
+    public bool IsDynamic { get; }
 
     public bool IsValid => Id != 0;
 
@@ -98,7 +103,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
         set
         {
             _values[index] = value;
-            _dirtyValues[index] = true;
+            MarkDirty(index, index + 1);
         }
     }
 
@@ -110,7 +115,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     public void Clear()
     {
         _values.Clear();
-        _dirtyValues.Clear();
+        ClearDirty();
     }
 
     bool ICollection<T>.Contains(T item)
@@ -136,8 +141,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     public void RemoveAt(int index)
     {
         _values.RemoveAt(index);
-        _dirtyValues.Count--;
-        _dirtyValues.AsSpan().Slice(index, _dirtyValues.Count - index).Fill(true);
+        MarkDirty(index, _values.Count);
     }
 
     bool ICollection<T>.Remove(T item)
@@ -163,7 +167,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     public void Add(in T item)
     {
         _values.Add(item);
-        _dirtyValues.Add(true);
+        MarkDirty(_values.Count - 1, _values.Count);
     }
 
     public bool Contains(in T item)
@@ -179,8 +183,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     public void Insert(int index, in T item)
     {
         _values.Insert(index, item);
-        _dirtyValues.Count++;
-        _dirtyValues.AsSpan().Slice(index, _dirtyValues.Count - index).Fill(true);
+        MarkDirty(index, _values.Count);
     }
 
     public bool Remove(in T item)
@@ -205,38 +208,44 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
             _vboCapacity = _values.Capacity;
             fixed (void* buffer = _values.AsSpan())
             {
-                Id = Rlgl.LoadVertexBuffer(buffer, _vboCapacity * sizeof(T), true);
+                Id = Rlgl.LoadVertexBuffer(buffer, _vboCapacity * sizeof(T), IsDynamic);
             }
 
             Version++;
-            _dirtyValues.AsSpan().Clear();
+            ClearDirty();
             return;
         }
 
         var span = _values.AsSpan();
-        var dirty = _dirtyValues.AsSpan();
-        var i = 0;
-        var count = span.Length;
-        var isDirty = false;
-        while (i < count)
+        var start = _dirtyStart;
+        var end = _dirtyEnd.Min(span.Length);
+        if (start >= end)
         {
-            while (i < count && !dirty[i])
-                i++;
-            if (i >= count)
-                break;
-            isDirty = true;
-            var start = i;
-            while (i < count && dirty[i])
-                i++;
-            var length = i - start;
-            fixed (T* ptr = &span[start])
-            {
-                Rlgl.UpdateVertexBuffer(Id, ptr, length * sizeof(T), start * sizeof(T));
-            }
+            ClearDirty();
+            return;
         }
 
-        if (isDirty)
-            dirty.Clear();
+        var length = end - start;
+        fixed (T* ptr = &span[start])
+        {
+            Rlgl.UpdateVertexBuffer(Id, ptr, length * sizeof(T), start * sizeof(T));
+        }
+
+        ClearDirty();
+    }
+
+    private void MarkDirty(int start, int end)
+    {
+        if (start < _dirtyStart)
+            _dirtyStart = start;
+        if (end > _dirtyEnd)
+            _dirtyEnd = end;
+    }
+
+    private void ClearDirty()
+    {
+        _dirtyStart = int.MaxValue;
+        _dirtyEnd = 0;
     }
 
     private void ReleaseUnmanagedResources()

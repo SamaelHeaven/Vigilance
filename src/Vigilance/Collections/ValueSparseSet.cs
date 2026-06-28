@@ -1,3 +1,5 @@
+#pragma warning disable CS9084
+
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Vigilance.Core;
@@ -5,41 +7,22 @@ using ZLinq;
 
 namespace Vigilance.Collections;
 
-public class EntitySparseSet<TItem> : EntitySparseSet<TItem, ValueList<TItem>>
-{
-    public EntitySparseSet(int sparseChunkSize = DefaultSparseChunkSize)
-        : base([], sparseChunkSize) { }
-}
-
-public class EntitySparseSet<TItem, TStorage> : SparseSet<Entity, TItem, TStorage>
-    where TStorage : IList<TItem>
-{
-    public EntitySparseSet(TStorage storage, int sparseChunkSize = DefaultSparseChunkSize)
-        : base(storage, entity => entity.Index, sparseChunkSize) { }
-}
-
-public class SparseSet<TKey, TItem> : SparseSet<TKey, TItem, ValueList<TItem>>
-{
-    public SparseSet(Func<TKey, int> keyIndexFunc, int sparseChunkSize = DefaultSparseChunkSize)
-        : base([], keyIndexFunc, sparseChunkSize) { }
-}
-
-public class SparseSet<TKey, TValue, TStorage>
+public struct ValueSparseSet<TKey, TValue, TStorage>
     : IDictionary<TKey, TValue>,
         IReadOnlyDictionary<TKey, TValue>,
         IReadOnlyList<KeyValuePair<TKey, TValue>>,
-        IStructEnumerable<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>
+        IStructEnumerable<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>
     where TStorage : IList<TValue>
 {
     public const int DefaultSparseChunkSize = 2048;
+    private readonly int _sparseChunkSize;
     private readonly ulong _fastModMultiplier;
     private readonly Func<TKey, int> _keyIndexFunc;
-    private readonly int _sparseChunkSize;
     private ValueList<TKey> _keys = [];
     private ValueList<int[]?> _sparseChunks = [];
     private TStorage _values;
 
-    public SparseSet(TStorage storage, Func<TKey, int> keyIndexFunc, int sparseChunkSize = DefaultSparseChunkSize)
+    public ValueSparseSet(TStorage storage, Func<TKey, int> keyIndexFunc, int sparseChunkSize = DefaultSparseChunkSize)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(sparseChunkSize, 1);
         if (storage.Count != 0)
@@ -50,7 +33,7 @@ public class SparseSet<TKey, TValue, TStorage>
         _fastModMultiplier = HashHelpers.GetFastModMultiplier((uint)sparseChunkSize);
     }
 
-    public ValueEnumerable Values
+    public readonly ValueEnumerable Values
     {
         get
         {
@@ -59,18 +42,18 @@ public class SparseSet<TKey, TValue, TStorage>
         }
     }
 
-    public ValueListView<TKey> Keys
+    public readonly ValueListView<TKey> Keys
     {
         get
         {
             AssertValid();
-            return _keys;
+            return new ValueListView<TKey>(ref Unsafe.AsRef(in _keys));
         }
     }
 
     public TValue this[in TKey key]
     {
-        get
+        readonly get
         {
             AssertValid();
             return !TryGetValue(key, out var item) ? throw new KeyNotFoundException(key?.ToString()) : item;
@@ -156,7 +139,7 @@ public class SparseSet<TKey, TValue, TStorage>
             && Remove(item.Key);
     }
 
-    public int Count
+    public readonly int Count
     {
         get
         {
@@ -239,7 +222,7 @@ public class SparseSet<TKey, TValue, TStorage>
         return ContainsKey(key);
     }
 
-    public KeyValuePair<TKey, TValue> this[int index]
+    public readonly KeyValuePair<TKey, TValue> this[int index]
     {
         get
         {
@@ -248,13 +231,13 @@ public class SparseSet<TKey, TValue, TStorage>
         }
     }
 
-    public Enumerator GetEnumerator()
+    public readonly Enumerator GetEnumerator()
     {
         AssertValid();
         return new Enumerator(this);
     }
 
-    public ValueEnumerable<
+    public readonly ValueEnumerable<
         StructEnumerator<Enumerator, KeyValuePair<TKey, TValue>>,
         KeyValuePair<TKey, TValue>
     > AsValueEnumerable()
@@ -264,12 +247,12 @@ public class SparseSet<TKey, TValue, TStorage>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int WithinChunk(int keyIndex)
+    private readonly int WithinChunk(int keyIndex)
     {
         return (int)HashHelpers.FastMod((uint)keyIndex, (uint)_sparseChunkSize, _fastModMultiplier);
     }
 
-    public bool ContainsKey(in TKey key)
+    public readonly bool ContainsKey(in TKey key)
     {
         AssertValid();
         var keyIndex = _keyIndexFunc.Invoke(key);
@@ -284,7 +267,7 @@ public class SparseSet<TKey, TValue, TStorage>
         return sparseValue != -1;
     }
 
-    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue item)
+    public readonly bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue item)
     {
         AssertValid();
         var keyIndex = _keyIndexFunc.Invoke(key);
@@ -347,7 +330,7 @@ public class SparseSet<TKey, TValue, TStorage>
         return true;
     }
 
-    public int GetKeyIndex(in TKey key)
+    public readonly int GetKeyIndex(in TKey key)
     {
         AssertValid();
         return _keyIndexFunc.Invoke(key);
@@ -366,17 +349,17 @@ public class SparseSet<TKey, TValue, TStorage>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AssertValid()
+    private readonly void AssertValid()
     {
         Debug.Assert(_values.Count == _keys.Count);
     }
 
     public struct Enumerator : IStructEnumerator<KeyValuePair<TKey, TValue>>
     {
-        private readonly SparseSet<TKey, TValue, TStorage> _sparseSet;
+        private readonly ValueSparseSet<TKey, TValue, TStorage> _sparseSet;
         private int _index;
 
-        internal Enumerator(SparseSet<TKey, TValue, TStorage> sparseSet)
+        internal Enumerator(in ValueSparseSet<TKey, TValue, TStorage> sparseSet)
         {
             _sparseSet = sparseSet;
             Reset();
@@ -435,7 +418,6 @@ public class SparseSet<TKey, TValue, TStorage>
             return new StructEnumerator<Enumerator, TValue>(GetEnumerator());
         }
 
-        [SuppressMessage("ReSharper", "MemberHidesStaticFromOuterClass")]
         public struct Enumerator : IStructEnumerator<TValue>, IValueEnumerator<TValue>
         {
             private readonly TStorage _values;

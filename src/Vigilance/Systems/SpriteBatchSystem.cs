@@ -1,39 +1,42 @@
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
-using Vigilance.Math;
 using ZLinq;
 
 namespace Vigilance.Systems;
 
 public sealed class SpriteBatchSystem : GameSystem
 {
-    private readonly Dictionary<SpriteBatch, EntitySparseSet<SpriteInstance, SpriteBatch>> _batches = new();
+    private ValueDictionary<SpriteBatch, ValueSparseSet<Entity, SpriteInstance, SpriteBatch>> _batches = [];
 
     public override void Configure()
     {
         Scene.OnAdd<BatchedSprite>(UpdateSprite);
         Scene.OnSet<BatchedSprite>(SetSprite);
         Scene.OnRemove<BatchedSprite>(RemoveSprite);
-        Scene.OnSet<Transform>(TryUpdateSprite);
+        Scene.OnSet<Interpolation>(TryUpdateSprite);
         Scene.OnAddOrSet<Child>(TryUpdateSprite);
         Scene.OnRemove<Child>(TryUpdateSprite);
     }
 
     private void TryUpdateSprite(Entity entity)
     {
-        foreach (var child in entity.DescendantsAndSelf())
-            if (child.TryGet(out BatchedSprite sprite))
+        if (entity.TryGet(out BatchedSprite sprite))
+            UpdateSprite(entity, sprite);
+        if (!entity.IsParent)
+            return;
+        foreach (var child in entity.Descendants())
+            if (child.TryGet(out sprite))
                 UpdateSprite(child, sprite);
     }
 
     private void UpdateSprite(Entity entity, BatchedSprite sprite)
     {
-        ref var instances = ref CollectionsMarshal.GetValueRefOrAddDefault(_batches, sprite.Batch, out var exists)!;
+        ref var instances = ref _batches.GetValueRefOrAddDefault(sprite.Batch, out var exists)!;
         if (!exists)
-            instances = new EntitySparseSet<SpriteInstance, SpriteBatch>(sprite.Batch);
-        instances[entity] = sprite.Instance with { Transform = sprite.Instance.Transform + entity.WorldTransform };
+            instances = new ValueSparseSet<Entity, SpriteInstance, SpriteBatch>(sprite.Batch, e => e.Index);
+        instances[entity] = sprite.Instance with { Transform = sprite.Instance.Transform + entity.RenderTransform };
     }
 
     private void SetSprite(Entity entity, BatchedSprite oldSprite, BatchedSprite newSprite)
@@ -45,7 +48,8 @@ public sealed class SpriteBatchSystem : GameSystem
 
     private void RemoveSprite(Entity entity, BatchedSprite sprite)
     {
-        if (!_batches.TryGetValue(sprite.Batch, out var instances))
+        ref var instances = ref _batches.GetValueRefOrNullRef(sprite.Batch);
+        if (!Unsafe.IsNullRef(ref instances))
             return;
         instances.Remove(entity);
         if (instances.Count == 0)

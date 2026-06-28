@@ -61,6 +61,11 @@ public sealed class Tween
         return Interpolate(start, end, Vector2.Lerp, ease);
     }
 
+    public Transform Interpolate(in Transform start, in Transform end, Func<float, float>? ease = null)
+    {
+        return Interpolate(start, end, Transform.Lerp, ease);
+    }
+
     public Color Interpolate(Color start, Color end, Func<float, float>? ease = null)
     {
         return Interpolate(start, end, Color.Lerp, ease);

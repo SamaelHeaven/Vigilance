@@ -7,31 +7,49 @@ namespace Vigilance.Collections;
 
 public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQueue<T>.Enumerator, T>
 {
-    private T[] _array;
+    private T[] _items;
     private int _head;
     private int _tail;
 
     public ValueQueue()
     {
-        _array = [];
+        _items = [];
     }
 
     public ValueQueue(int capacity)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(capacity);
-        _array = new T[capacity];
+        _items = new T[capacity];
+    }
+
+    public ValueQueue(in ValueQueue<T> source)
+    {
+        _items = source._items.Length == 0 ? [] : (T[])source._items.Clone();
+        _head = source._head;
+        _tail = source._tail;
+        Count = source.Count;
     }
 
     public ValueQueue(IEnumerable<T> collection)
     {
         ArgumentNullException.ThrowIfNull(collection);
-        _array = collection.ToValueList().AsArray(out var length);
+        _items = collection.ToValueList().AsArray(out var length);
         Count = length;
-        if (Count != _array.Length)
+        if (Count != _items.Length)
             _tail = Count;
     }
 
-    public readonly int Capacity => _array.Length;
+    public int Capacity
+    {
+        readonly get => _items.Length;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, Count);
+            if (value == _items.Length)
+                return;
+            SetCapacity(value);
+        }
+    }
 
     public int Count { get; private set; }
 
@@ -58,12 +76,12 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
             {
                 if (_head < _tail)
                 {
-                    Array.Clear(_array, _head, Count);
+                    Array.Clear(_items, _head, Count);
                 }
                 else
                 {
-                    Array.Clear(_array, _head, _array.Length - _head);
-                    Array.Clear(_array, 0, _tail);
+                    Array.Clear(_items, _head, _items.Length - _head);
+                    Array.Clear(_items, 0, _tail);
                 }
             }
 
@@ -84,18 +102,18 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
         var numToCopy = Count;
         if (numToCopy == 0)
             return;
-        var firstPart = System.Math.Min(_array.Length - _head, numToCopy);
-        Array.Copy(_array, _head, array, arrayIndex, firstPart);
+        var firstPart = System.Math.Min(_items.Length - _head, numToCopy);
+        Array.Copy(_items, _head, array, arrayIndex, firstPart);
         numToCopy -= firstPart;
         if (numToCopy > 0)
-            Array.Copy(_array, 0, array, arrayIndex + _array.Length - _head, numToCopy);
+            Array.Copy(_items, 0, array, arrayIndex + _items.Length - _head, numToCopy);
     }
 
     public void Enqueue(in T item)
     {
-        if (Count == _array.Length)
+        if (Count == _items.Length)
             Grow(Count + 1);
-        _array[_tail] = item;
+        _items[_tail] = item;
         MoveNext(ref _tail);
         Count++;
     }
@@ -103,7 +121,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
     public T Dequeue()
     {
         var head = _head;
-        var array = _array;
+        var array = _items;
         if (Count == 0)
             ThrowForEmptyQueue();
         var removed = array[head];
@@ -117,7 +135,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
     public bool TryDequeue([MaybeNullWhen(false)] out T result)
     {
         var head = _head;
-        var array = _array;
+        var array = _items;
         if (Count == 0)
         {
             result = default;
@@ -136,7 +154,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
     {
         if (Count == 0)
             ThrowForEmptyQueue();
-        return ref _array[_head];
+        return ref _items[_head];
     }
 
     public readonly bool TryPeek([MaybeNullWhen(false)] out T result)
@@ -147,7 +165,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
             return false;
         }
 
-        result = _array[_head];
+        result = _items[_head];
         return true;
     }
 
@@ -156,9 +174,9 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
         if (Count == 0)
             return false;
         if (_head < _tail)
-            return Array.IndexOf(_array, item, _head, Count) >= 0;
-        return Array.IndexOf(_array, item, _head, _array.Length - _head) >= 0
-            || Array.IndexOf(_array, item, 0, _tail) >= 0;
+            return Array.IndexOf(_items, item, _head, Count) >= 0;
+        return Array.IndexOf(_items, item, _head, _items.Length - _head) >= 0
+            || Array.IndexOf(_items, item, 0, _tail) >= 0;
     }
 
     public readonly T[] ToArray()
@@ -168,12 +186,12 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
         var arr = new T[Count];
         if (_head < _tail)
         {
-            Array.Copy(_array, _head, arr, 0, Count);
+            Array.Copy(_items, _head, arr, 0, Count);
         }
         else
         {
-            Array.Copy(_array, _head, arr, 0, _array.Length - _head);
-            Array.Copy(_array, 0, arr, _array.Length - _head, _tail);
+            Array.Copy(_items, _head, arr, 0, _items.Length - _head);
+            Array.Copy(_items, 0, arr, _items.Length - _head, _tail);
         }
 
         return arr;
@@ -182,21 +200,21 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
     private void SetCapacity(int capacity)
     {
         Debug.Assert(capacity >= Count);
-        var newArray = new T[capacity];
+        var newArray = capacity == 0 ? [] : new T[capacity];
         if (Count > 0)
         {
             if (_head < _tail)
             {
-                Array.Copy(_array, _head, newArray, 0, Count);
+                Array.Copy(_items, _head, newArray, 0, Count);
             }
             else
             {
-                Array.Copy(_array, _head, newArray, 0, _array.Length - _head);
-                Array.Copy(_array, 0, newArray, _array.Length - _head, _tail);
+                Array.Copy(_items, _head, newArray, 0, _items.Length - _head);
+                Array.Copy(_items, 0, newArray, _items.Length - _head, _tail);
             }
         }
 
-        _array = newArray;
+        _items = newArray;
         _head = 0;
         _tail = Count == capacity ? 0 : Count;
     }
@@ -204,7 +222,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
     private readonly void MoveNext(ref int index)
     {
         var tmp = index + 1;
-        if (tmp == _array.Length)
+        if (tmp == _items.Length)
             tmp = 0;
         index = tmp;
     }
@@ -217,7 +235,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
 
     public void TrimExcess()
     {
-        var threshold = (int)(_array.Length * 0.9);
+        var threshold = (int)(_items.Length * 0.9);
         if (Count < threshold)
             SetCapacity(Count);
     }
@@ -226,7 +244,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
     {
         ArgumentOutOfRangeException.ThrowIfNegative(capacity);
         ArgumentOutOfRangeException.ThrowIfLessThan(capacity, Count);
-        if (capacity == _array.Length)
+        if (capacity == _items.Length)
             return;
         SetCapacity(capacity);
     }
@@ -234,20 +252,20 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
     public int EnsureCapacity(int capacity)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(capacity);
-        if (_array.Length < capacity)
+        if (_items.Length < capacity)
             Grow(capacity);
-        return _array.Length;
+        return _items.Length;
     }
 
     private void Grow(int capacity)
     {
-        Debug.Assert(_array.Length < capacity);
+        Debug.Assert(_items.Length < capacity);
         const int growFactor = 2;
         const int minimumGrow = 4;
-        var newCapacity = growFactor * _array.Length;
+        var newCapacity = growFactor * _items.Length;
         if ((uint)newCapacity > Array.MaxLength)
             newCapacity = Array.MaxLength;
-        newCapacity = System.Math.Max(newCapacity, _array.Length + minimumGrow);
+        newCapacity = System.Math.Max(newCapacity, _items.Length + minimumGrow);
         if (newCapacity < capacity)
             newCapacity = capacity;
         SetCapacity(newCapacity);
@@ -274,7 +292,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
             if ((uint)offset < (uint)size)
             {
                 _i = offset;
-                var array = q._array;
+                var array = q._items;
                 var index = q._head + offset;
                 if (!((uint)index < (uint)array.Length))
                     index -= array.Length;
@@ -332,7 +350,7 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
                 return false;
             if (destination.IsEmpty)
                 return true;
-            var array = _queue._array;
+            var array = _queue._items;
             var index = _queue._head + start;
             if (index >= array.Length)
                 index -= array.Length;

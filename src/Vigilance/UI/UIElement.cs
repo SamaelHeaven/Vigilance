@@ -702,7 +702,8 @@ public abstract class UIElement : IFullCloneable
 
     internal object DeepClone(CloneOptions options)
     {
-        Dictionary<UIElement, UIElement>? cloneMap = null;
+        ValueDictionary<UIElement, UIElement> cloneMap = default;
+        var hasCloneMap = false;
         UIElement clone = null!;
         foreach (var node in this.DescendantsPostOrderAndSelf())
         {
@@ -710,19 +711,26 @@ public abstract class UIElement : IFullCloneable
             DeepCloneComponents(clone);
             if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
                 foreach (var child in node.Children())
-                    parent.Add(
-                        (cloneMap ??= new Dictionary<UIElement, UIElement>(this.DescendantsAndSelf().Count()))[child]
-                    );
+                {
+                    if (!hasCloneMap)
+                    {
+                        cloneMap = new ValueDictionary<UIElement, UIElement>(this.DescendantsAndSelf().Count());
+                        hasCloneMap = true;
+                    }
+
+                    parent.Add(cloneMap[child]);
+                }
+
             if ((options & CloneOptions.ClearSignals) != 0)
                 clone.ClearSignals();
             clone.OnClone();
             OnCloneSignal.Invoke(clone);
             if ((options & CloneOptions.SkipChildren) == 0)
                 break;
-            cloneMap?[node] = clone;
+            cloneMap[node] = clone;
         }
 
-        return cloneMap is null ? clone : cloneMap[this];
+        return hasCloneMap ? cloneMap[this] : clone;
     }
 
     internal object ShallowClone(CloneOptions options)
@@ -1274,11 +1282,7 @@ public abstract class UIElement : IFullCloneable
             );
         if (result is not UIParent parent)
             return result;
-        parent.ChildrenList = options.HasFlag(CloneOptions.SkipChildren)
-            ? []
-            : new ValueList<UIElement>(parent.ChildrenList.Count);
-        parent.ChildrenOperations = [];
-        parent.DeferredCount = 0;
+        parent.Clone(options);
         return result;
     }
 

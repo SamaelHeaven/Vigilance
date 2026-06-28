@@ -70,6 +70,23 @@ public static class FloatingPointExtensions
         {
             return new Vector2(MathF.Cos(value), MathF.Sin(value));
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float LerpAngle(float startDegrees, float endDegrees, float t)
+        {
+            var delta = (endDegrees - startDegrees) % 360f;
+            switch (delta)
+            {
+                case > 180f:
+                    delta -= 360f;
+                    break;
+                case < -180f:
+                    delta += 360f;
+                    break;
+            }
+
+            return startDegrees + delta * t;
+        }
     }
 
     extension(double value)
@@ -96,6 +113,23 @@ public static class FloatingPointExtensions
         public Vector2 RadToDirection()
         {
             return new Vector2((float)System.Math.Cos(value), (float)System.Math.Sin(value));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static double LerpAngle(double startDegrees, double endDegrees, double t)
+        {
+            var delta = (endDegrees - startDegrees) % 360;
+            switch (delta)
+            {
+                case > 180:
+                    delta -= 360;
+                    break;
+                case < -180:
+                    delta += 360;
+                    break;
+            }
+
+            return startDegrees + delta * t;
         }
     }
 }

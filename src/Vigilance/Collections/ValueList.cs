@@ -24,6 +24,12 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         _items = capacity == 0 ? [] : new T[capacity];
     }
 
+    public ValueList(in ValueList<T> source)
+    {
+        _items = source._size == 0 ? [] : (T[])source._items.Clone();
+        _size = source._size;
+    }
+
     public ValueList(IEnumerable<T> enumerable)
     {
         if (enumerable is ICollection<T> collection)
@@ -695,6 +701,14 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
 public static class ValueListExtensions
 {
+    extension<T>(in ValueList<T> list)
+    {
+        public ValueList<T> ToValueList()
+        {
+            return new ValueList<T>(list);
+        }
+    }
+
     extension<T>(IEnumerable<T> enumerable)
     {
         public ValueList<T> ToValueList()
@@ -703,7 +717,7 @@ public static class ValueListExtensions
         }
     }
 
-    extension<TEnumerator, T>(ValueEnumerable<TEnumerator, T> enumerable)
+    extension<TEnumerator, T>(in ValueEnumerable<TEnumerator, T> enumerable)
         where TEnumerator : struct, IValueEnumerator<T>, allows ref struct
     {
         public ValueList<T> ToValueList()

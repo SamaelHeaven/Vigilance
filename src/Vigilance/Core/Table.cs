@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Logging;
 using ZLinq;
@@ -68,21 +69,34 @@ public abstract class Table
 
     internal abstract void DequeueEvent();
 
-    public readonly record struct Event<T>(Entity Entity, EventType Type, T OldValue, T NewValue)
+    public readonly record struct Event<T>
     {
+        public Event(EventType type, in Entity entity, T oldValue, T newValue)
+        {
+            Entity = entity;
+            OldValue = oldValue;
+            NewValue = newValue;
+            Type = type;
+        }
+
+        public Entity Entity { get; }
+        public T OldValue { get; }
+        public T NewValue { get; }
+        public EventType Type { get; }
+
         public static Event<T> Add(in Entity entity, in T value)
         {
-            return new Event<T>(entity, EventType.Add, default!, value);
+            return new Event<T>(EventType.Add, entity, default!, value);
         }
 
         public static Event<T> Set(in Entity entity, in T oldValue, in T newValue)
         {
-            return new Event<T>(entity, EventType.Set, oldValue, newValue);
+            return new Event<T>(EventType.Set, entity, oldValue, newValue);
         }
 
         public static Event<T> Remove(in Entity entity, in T value)
         {
-            return new Event<T>(entity, EventType.Remove, default!, value);
+            return new Event<T>(EventType.Remove, entity, default!, value);
         }
     }
 }
@@ -90,6 +104,7 @@ public abstract class Table
 [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
 public sealed class Table<T>
     : Table,
+        IReadOnlyDictionary<Entity, T>,
         IReadOnlyList<KeyValuePair<Entity, T>>,
         IStructEnumerable<Table<T>.Enumerator, KeyValuePair<Entity, T>>
 {
@@ -149,6 +164,31 @@ public sealed class Table<T>
 
     public override int Count => _components.Count;
 
+    bool IReadOnlyDictionary<Entity, T>.ContainsKey(Entity key)
+    {
+        return Has(key);
+    }
+
+    bool IReadOnlyDictionary<Entity, T>.TryGetValue(Entity key, [MaybeNullWhen(false)] out T value)
+    {
+        var component = GetRef(key);
+        if (component.IsNull)
+        {
+            Unsafe.SkipInit(out value);
+            return false;
+        }
+
+        value = component.Read;
+        return true;
+    }
+
+    T IReadOnlyDictionary<Entity, T>.this[Entity key] => GetRef(key);
+
+    IEnumerable<Entity> IReadOnlyDictionary<Entity, T>.Keys =>
+        _entityIds.Select(entityId => new Entity(entityId, Scene));
+
+    IEnumerable<T> IReadOnlyDictionary<Entity, T>.Values => _components.AsReadOnly();
+
     public KeyValuePair<Entity, T> this[int index] => new(new Entity(_entityIds[index], Scene), _components[index]);
 
     public Enumerator GetEnumerator()
@@ -166,7 +206,7 @@ public sealed class Table<T>
 
     public void Enqueue(in Event<T> tableEvent)
     {
-        Scene.ThrowIfNotInitialized();
+        Scene.ThrowIfNotConfigured();
         if (Scene.IsDeferred)
         {
             switch (tableEvent.Type)
@@ -187,7 +227,7 @@ public sealed class Table<T>
 
     public void Emit(in Event<T> tableEvent)
     {
-        Scene.ThrowIfNotInitialized();
+        Scene.ThrowIfNotConfigured();
         Scene.BeginDefer();
         try
         {
@@ -253,6 +293,19 @@ public sealed class Table<T>
         var value = GetRef(in entity);
         component = (value.IsNull ? null : value.Read)!;
         return !value.IsNull;
+    }
+
+    public bool TryGet(in Entity entity, out T component)
+    {
+        var value = GetRef(in entity);
+        if (value.IsNull)
+        {
+            Unsafe.SkipInit(out component);
+            return false;
+        }
+
+        component = value.Read;
+        return true;
     }
 
     public override void Set(in Entity entity, object component, Flags flags = Flags.Default)

@@ -2,14 +2,44 @@ using JetBrains.Annotations;
 
 namespace Vigilance.Core;
 
-public static class JSEngine
+public static unsafe class JSEngine
 {
+    [MustUseReturnValue]
     public static JSResult Eval([LanguageInjection(InjectedLanguage.JAVASCRIPT)] string script)
     {
         if (!Platform.Web.IsCurrent)
             throw new PlatformNotSupportedException();
-        var ptr = Emscripten.RunScriptString(script);
-        return new JSResult(Utf8Ptr.GetString(ptr));
+        var result = Emscripten.RunScriptString(script);
+        return new JSResult(Utf8Ptr.GetString(result));
+    }
+
+    [MustUseReturnValue]
+    public static JSResult Eval([LanguageInjection(InjectedLanguage.JAVASCRIPT)] ReadOnlySpan<byte> script)
+    {
+        if (!Platform.Web.IsCurrent)
+            throw new PlatformNotSupportedException();
+        fixed (byte* ptr = script)
+        {
+            var result = Emscripten.RunScriptString(ptr);
+            return new JSResult(Utf8Ptr.GetString(result));
+        }
+    }
+
+    public static void Run([LanguageInjection(InjectedLanguage.JAVASCRIPT)] string script)
+    {
+        if (!Platform.Web.IsCurrent)
+            throw new PlatformNotSupportedException();
+        Emscripten.RunScript(script);
+    }
+
+    public static void Run([LanguageInjection(InjectedLanguage.JAVASCRIPT)] ReadOnlySpan<byte> script)
+    {
+        if (!Platform.Web.IsCurrent)
+            throw new PlatformNotSupportedException();
+        fixed (byte* ptr = script)
+        {
+            Emscripten.RunScript(ptr);
+        }
     }
 }
 

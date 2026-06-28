@@ -11,7 +11,7 @@ public sealed class DrawableSystem(Graphics? graphics = null) : GameSystem(query
     {
         commands.AddAssignableEntries<DrawableSystem, IDrawable>(
             this,
-            (system, entity, drawable) => drawable.Draw(entity.WorldTransform, system.Graphics)
+            (system, entity, drawable) => drawable.Draw(entity.RenderTransform, system.Graphics)
         );
     }
 }

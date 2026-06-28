@@ -14,6 +14,7 @@ public sealed unsafe class Graphics
     private static RenderTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
     private static BlendMode? _currentBlendMode = null;
+    private readonly bool _primary;
     private BlendMode _blendMode = Drawing.DefaultBlendMode;
     private Box? _clip = null;
     private bool _culling = Drawing.DefaultCulling;
@@ -23,9 +24,10 @@ public sealed unsafe class Graphics
     private Shader _shader = Drawing.DefaultShader;
     internal RenderTexture? Buffer;
 
-    internal Graphics(RenderTexture? buffer)
+    internal Graphics(RenderTexture? buffer, bool primary = false)
     {
         Buffer = buffer;
+        _primary = primary;
     }
 
     private static Shader CurrentShader
@@ -52,7 +54,7 @@ public sealed unsafe class Graphics
         var clip = GetClip();
         return new Box(
             (clip?.Position ?? Vector2.Zero) - offset,
-            (clip?.Size ?? Buffer?.Size ?? Display.Size) + offset * 2
+            (clip?.Size ?? (_primary ? Display.Size : Buffer?.Size) ?? Display.Size) + offset * 2
         );
     }
 
@@ -331,12 +333,12 @@ public sealed unsafe class Graphics
         float x,
         float y,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
     {
-        DrawTexture(texture, new Vector2(x, y), null, tint, interpolation, textureWrap, camera);
+        DrawTexture(texture, new Vector2(x, y), null, tint, textureFilter, textureWrap, camera);
     }
 
     public void DrawTexture(
@@ -346,24 +348,24 @@ public sealed unsafe class Graphics
         float width,
         float height,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
     {
-        DrawTexture(texture, new Vector2(x, y), new Vector2(width, height), tint, interpolation, textureWrap, camera);
+        DrawTexture(texture, new Vector2(x, y), new Vector2(width, height), tint, textureFilter, textureWrap, camera);
     }
 
     public void DrawTexture(
         Texture texture,
         in Box box,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
     {
-        DrawTexture(texture, box.Position, box.Size, tint, interpolation, textureWrap, camera);
+        DrawTexture(texture, box.Position, box.Size, tint, textureFilter, textureWrap, camera);
     }
 
     public void DrawTexture(
@@ -371,7 +373,7 @@ public sealed unsafe class Graphics
         Vector2 position,
         in Vector2? size = null,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
@@ -381,7 +383,7 @@ public sealed unsafe class Graphics
             new Box(Vector2.Zero, texture.Size),
             new Box(position, size ?? texture.Size),
             tint,
-            interpolation,
+            textureFilter,
             textureWrap,
             camera
         );
@@ -392,7 +394,7 @@ public sealed unsafe class Graphics
         in Box source,
         in Box dest,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
@@ -407,7 +409,7 @@ public sealed unsafe class Graphics
             texture.IsRenderTexture ? -source.Height : source.Height
         );
         var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
-        texture.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
+        texture.TextureFilter = textureFilter ?? Drawing.DefaultTextureFilter;
         texture.TextureWrap = textureWrap ?? Drawing.DefaultTextureWrap;
         BeginDrawing(camera);
         Raylib.DrawTexturePro(texture.Texture2D, rSource, rDest, Vector2.Zero, 0, tintValue.RColor);
@@ -420,12 +422,12 @@ public sealed unsafe class Graphics
         float x,
         float y,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
     {
-        DrawTextureNPatch(texture, nPatchInfo, new Vector2(x, y), null, tint, interpolation, textureWrap, camera);
+        DrawTextureNPatch(texture, nPatchInfo, new Vector2(x, y), null, tint, textureFilter, textureWrap, camera);
     }
 
     public void DrawTextureNPatch(
@@ -436,7 +438,7 @@ public sealed unsafe class Graphics
         float width,
         float height,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
@@ -447,7 +449,7 @@ public sealed unsafe class Graphics
             new Vector2(x, y),
             new Vector2(width, height),
             tint,
-            interpolation,
+            textureFilter,
             textureWrap,
             camera
         );
@@ -458,12 +460,12 @@ public sealed unsafe class Graphics
         in NPatchInfo nPatchInfo,
         in Box box,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
     {
-        DrawTextureNPatch(texture, nPatchInfo, box.Position, box.Size, tint, interpolation, textureWrap, camera);
+        DrawTextureNPatch(texture, nPatchInfo, box.Position, box.Size, tint, textureFilter, textureWrap, camera);
     }
 
     public void DrawTextureNPatch(
@@ -472,7 +474,7 @@ public sealed unsafe class Graphics
         Vector2 position,
         in Vector2? size = null,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
@@ -483,7 +485,7 @@ public sealed unsafe class Graphics
             new Box(Vector2.Zero, texture.Size),
             new Box(position, size ?? texture.Size),
             tint,
-            interpolation,
+            textureFilter,
             textureWrap,
             camera
         );
@@ -495,7 +497,7 @@ public sealed unsafe class Graphics
         in Box source,
         in Box dest,
         Color? tint = null,
-        Interpolation? interpolation = null,
+        TextureFilter? textureFilter = null,
         TextureWrap? textureWrap = null,
         Camera? camera = null
     )
@@ -519,7 +521,7 @@ public sealed unsafe class Graphics
             Bottom = nPatchInfo.Bottom,
             Layout = (Raylib_cs.NPatchLayout)nPatchInfo.Layout,
         };
-        texture.Interpolation = interpolation ?? Drawing.DefaultInterpolation;
+        texture.TextureFilter = textureFilter ?? Drawing.DefaultTextureFilter;
         texture.TextureWrap = textureWrap ?? Drawing.DefaultTextureWrap;
         BeginDrawing(camera);
         Raylib.DrawTextureNPatch(texture.Texture2D, rNPatchInfo, rDest, Vector2.Zero, 0, tintValue.RColor);
@@ -533,8 +535,6 @@ public sealed unsafe class Graphics
     public void ClearBackground(Color? color = null)
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
-        if (colorValue == Color.Transparent)
-            return;
         BeginDrawing();
         Raylib.ClearBackground(colorValue.RColor);
         EndDrawing();
@@ -603,8 +603,20 @@ public sealed unsafe class Graphics
         if (_drawing)
             throw new InvalidOperationException("Cannot begin drawing while already drawing.");
         _drawing = true;
-        var offset = Buffer is null ? Renderer.Offset : 0;
-        var scale = Buffer?.Scale ?? Renderer.Scale;
+        Vector2 offset;
+        Vector2 scale;
+        if (_primary)
+        {
+            var bufferScale = Buffer?.Scale ?? 1f;
+            offset = Renderer.Offset * bufferScale;
+            scale = Renderer.Scale * bufferScale;
+        }
+        else
+        {
+            offset = Vector2.Zero;
+            scale = Buffer!.Scale;
+        }
+
         if (_currentBuffer != Buffer)
         {
             if (_currentBuffer is null)

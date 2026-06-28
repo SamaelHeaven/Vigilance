@@ -2,13 +2,14 @@ namespace Vigilance.Core;
 
 public static class Ecs
 {
-    private static EcsConfig _config = null!;
+    private static EcsConfig _config = new();
 
-    public static GameSystemsFunc Systems => _config.Systems;
+    public static GameSystemsFunc Systems { get; private set; } = _config.Systems;
 
     internal static void Initialize()
     {
-        _config = Game.Config.Take<EcsConfig>() ?? new EcsConfig();
+        _config = Game.Config.Take<EcsConfig>() ?? _config;
+        Systems = _config.Systems;
     }
 }
 

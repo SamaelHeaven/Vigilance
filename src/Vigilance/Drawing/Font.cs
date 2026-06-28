@@ -14,12 +14,12 @@ public sealed unsafe class Font : IDisposable
     private const int AtlasNbCols = 10;
     private static readonly FreeTypeLibrary _ftLibrary = new();
     private static FontConfig _config = new();
-    private readonly Dictionary<char, GlyphInfo> _glyphInfos = new();
-    private readonly Dictionary<int, (Texture Atlas, Dictionary<char, GlyphInfo> GlyphInfos)> _strokes = new();
     private nint _buffer;
     private FT_FaceRec_* _face;
+    private ValueDictionary<char, GlyphInfo> _glyphInfos = [];
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
+    private ValueDictionary<int, StrokeEntry> _strokes = [];
 
     public Font(IEnumerable<byte> bytes, int? quality = null, string? charset = null)
     {
@@ -27,50 +27,30 @@ public sealed unsafe class Font : IDisposable
         Quality = quality ?? DefaultQuality;
         Charset = string.Concat((charset ?? DefaultCharset).Distinct());
         var glyphs = LoadGlyphs(bytes);
-        Atlas = DrawAtlas(glyphs);
+        Atlas = DrawAtlas(glyphs, ref _glyphInfos);
     }
 
     public static Font Default { get; set; } = null!;
 
-    public static int DefaultQuality
-    {
-        get => _config.DefaultQuality;
-        set => _config.DefaultQuality = value;
-    }
+    public static int DefaultQuality { get; set; } = _config.DefaultQuality;
 
-    public static int DefaultSize
-    {
-        get => _config.DefaultSize;
-        set => _config.DefaultSize = value;
-    }
+    public static int DefaultSize { get; set; } = _config.DefaultSize;
 
-    public static TextHeightMode DefaultTextHeightMode
-    {
-        get => _config.DefaultTextHeightMode;
-        set => _config.DefaultTextHeightMode = value;
-    }
+    public static TextHeightMode DefaultTextHeightMode { get; set; } = _config.DefaultTextHeightMode;
 
-    public static Vector2 DefaultTextSpacing
-    {
-        get => _config.DefaultTextSpacing;
-        set => _config.DefaultTextSpacing = value;
-    }
+    public static Vector2 DefaultTextSpacing { get; set; } = _config.DefaultTextSpacing;
 
-    public static string DefaultCharset
-    {
-        get => _config.DefaultCharset;
-        set => _config.DefaultCharset = value;
-    }
+    public static string DefaultCharset { get; set; } = _config.DefaultCharset;
 
     public string Charset { get; private set; }
     public int Quality { get; private set; }
-    public DictionaryView<char, GlyphInfo> GlyphInfos => _glyphInfos;
+    public ValueDictionaryView<char, GlyphInfo> GlyphInfos => _glyphInfos;
     public Texture Atlas { get; private set; }
     public bool IsValid => _buffer != 0;
 
     public void Dispose()
     {
-        Dispose(true);
+        ReleaseUnmanagedResources();
         GC.SuppressFinalize(this);
         _glyphInfos.Clear();
         _strokes.Clear();
@@ -86,6 +66,11 @@ public sealed unsafe class Font : IDisposable
     internal static void Initialize()
     {
         _config = Game.Config.Take<FontConfig>() ?? _config;
+        DefaultQuality = _config.DefaultQuality;
+        DefaultSize = _config.DefaultSize;
+        DefaultTextHeightMode = _config.DefaultTextHeightMode;
+        DefaultTextSpacing = _config.DefaultTextSpacing;
+        DefaultCharset = _config.DefaultCharset;
         Default = _config.Default.Invoke();
     }
 
@@ -122,7 +107,7 @@ public sealed unsafe class Font : IDisposable
         return GetStroke(strokeWidth).GlyphInfos[c];
     }
 
-    public DictionaryView<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
+    public ValueDictionaryView<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
     {
         return GetStroke(strokeWidth).GlyphInfos;
     }
@@ -132,7 +117,7 @@ public sealed unsafe class Font : IDisposable
         float? fontSize = null,
         in Vector2? spacing = null,
         int visibleCharacters = Text.UnlimitedCharacters,
-        DictionaryView<char, GlyphInfo>? glyphInfos = null
+        ValueDictionaryView<char, GlyphInfo> glyphInfos = default
     )
     {
         return new TextBoundEnumerable(
@@ -140,16 +125,19 @@ public sealed unsafe class Font : IDisposable
             text,
             fontSize ?? DefaultSize,
             spacing ?? DefaultTextSpacing,
-            glyphInfos,
+            (glyphInfos == default ? _glyphInfos : glyphInfos).AsEnumerable(),
             visibleCharacters
         );
     }
 
-    public (Texture Atlas, DictionaryView<char, GlyphInfo> GlyphInfos) GetStroke(int strokeWidth)
+    public Stroke GetStroke(int strokeWidth)
     {
         strokeWidth = strokeWidth.Clamp(0, 50);
-        if (_strokes.TryGetValue(strokeWidth, out var stroke))
-            return stroke;
+        ref var stroke = ref _strokes.GetValueRefOrAddDefault(strokeWidth, out var exists);
+        if (exists)
+#pragma warning disable CS9083 // A member is returned by reference but was initialized to a value that cannot be returned by reference
+            return new Stroke(stroke.Atlas, stroke.GlyphInfos.AsView());
+#pragma warning restore CS9083 // A member is returned by reference but was initialized to a value that cannot be returned by reference
         FT.FT_Stroker_Set(
             _stroker,
             strokeWidth * 64,
@@ -163,11 +151,13 @@ public sealed unsafe class Font : IDisposable
             .Where(g => g.HasValue)
             .Select(g => g!.Value)
             .ToValueList();
-        var glyphInfos = new Dictionary<char, GlyphInfo>();
-        var atlas = DrawAtlas(glyphs, glyphInfos);
-        var result = (atlas, glyphInfos);
-        _strokes[strokeWidth] = result;
+        var glyphInfos = new ValueDictionary<char, GlyphInfo>();
+        var atlas = DrawAtlas(glyphs, ref glyphInfos);
+        stroke = new StrokeEntry(atlas, glyphInfos);
+        var result = new Stroke(atlas, stroke.GlyphInfos.AsView());
+#pragma warning disable CS9080 // Use of variable in this context may expose referenced variables outside of their declaration scope
         return result;
+#pragma warning restore CS9080 // Use of variable in this context may expose referenced variables outside of their declaration scope
     }
 
     private ValueList<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
@@ -200,7 +190,7 @@ public sealed unsafe class Font : IDisposable
             .ToValueList();
     }
 
-    private Texture DrawAtlas(ValueList<Glyph> glyphs, Dictionary<char, GlyphInfo>? glyphInfos = null)
+    private static Texture DrawAtlas(in ValueList<Glyph> glyphs, ref ValueDictionary<char, GlyphInfo> glyphInfos)
     {
         var colSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Width).Prepend(0).Max();
         var rowSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Height).Prepend(0).Max();
@@ -212,7 +202,6 @@ public sealed unsafe class Font : IDisposable
         var x = AtlasSpacing;
         var y = AtlasSpacing;
         var offset = 0;
-        glyphInfos ??= _glyphInfos;
         foreach (var (bitmap, character, glyphWidth, glyphHeight, advance, bearerX, bearerY, stroke) in glyphs)
         {
             for (var i = 0; i < glyphWidth * glyphHeight; i++)
@@ -291,12 +280,12 @@ public sealed unsafe class Font : IDisposable
     private static void FtThrowIfError(FT_Error error)
     {
         if (error != FT_Error.FT_Err_Ok)
-            throw new Exception("An error occurred while loading font data.");
+            throw new FreeTypeException(error);
     }
 
     ~Font()
     {
-        Game.Defer(() => Dispose(false));
+        Game.Defer(Dispose);
     }
 
     private void ReleaseUnmanagedResources()
@@ -306,11 +295,10 @@ public sealed unsafe class Font : IDisposable
         Marshal.FreeHGlobal(_buffer);
     }
 
-    private void Dispose(bool disposing)
+    private struct StrokeEntry(Texture atlas, in ValueDictionary<char, GlyphInfo> glyphInfos)
     {
-        ReleaseUnmanagedResources();
-        if (disposing)
-            Atlas.Dispose();
+        public readonly Texture Atlas = atlas;
+        public readonly ValueDictionary<char, GlyphInfo> GlyphInfos = glyphInfos;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -328,7 +316,7 @@ public sealed unsafe class Font : IDisposable
         private readonly string _text;
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
-        private readonly DictionaryView<char, GlyphInfo> _glyphInfos;
+        private readonly ValueDictionaryView<char, GlyphInfo>.Enumerable _glyphInfos;
         private readonly int _visibleCharacters;
 
         internal TextBoundEnumerable(
@@ -336,7 +324,7 @@ public sealed unsafe class Font : IDisposable
             string text,
             float fontSize,
             Vector2 spacing,
-            DictionaryView<char, GlyphInfo>? glyphInfos,
+            in ValueDictionaryView<char, GlyphInfo>.Enumerable glyphInfos,
             int visibleCharacters
         )
         {
@@ -344,7 +332,7 @@ public sealed unsafe class Font : IDisposable
             _text = text;
             _fontSize = fontSize;
             _spacing = spacing;
-            _glyphInfos = glyphInfos ?? font.GlyphInfos;
+            _glyphInfos = glyphInfos;
             _visibleCharacters = visibleCharacters;
         }
 
@@ -368,7 +356,7 @@ public sealed unsafe class Font : IDisposable
         private readonly string _text;
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
-        private readonly DictionaryView<char, GlyphInfo> _glyphInfos;
+        private readonly ValueDictionaryView<char, GlyphInfo>.Enumerable _glyphInfos;
         private readonly int _visibleCharacters;
         private readonly float _aspectRatio;
         private int _index;
@@ -379,7 +367,7 @@ public sealed unsafe class Font : IDisposable
             string text,
             float fontSize,
             Vector2 spacing,
-            in DictionaryView<char, GlyphInfo>? glyphInfos,
+            in ValueDictionaryView<char, GlyphInfo>.Enumerable glyphInfos,
             int visibleCharacters
         )
         {
@@ -387,7 +375,7 @@ public sealed unsafe class Font : IDisposable
             _text = text;
             _fontSize = fontSize;
             _spacing = spacing;
-            _glyphInfos = glyphInfos ?? font.GlyphInfos;
+            _glyphInfos = glyphInfos;
             _visibleCharacters = visibleCharacters;
             _aspectRatio = _font.Quality / fontSize;
             Reset();
@@ -445,5 +433,17 @@ public sealed unsafe class Font : IDisposable
         public (Box Source, Box Dest) Current { get; private set; }
 
         public void Dispose() { }
+    }
+
+    public readonly ref struct Stroke(Texture atlas, ValueDictionaryView<char, GlyphInfo> glyphInfos)
+    {
+        public Texture Atlas { get; } = atlas;
+        public ValueDictionaryView<char, GlyphInfo> GlyphInfos { get; } = glyphInfos;
+
+        public void Deconstruct(out Texture atlas, out ValueDictionaryView<char, GlyphInfo> glyphInfos)
+        {
+            atlas = Atlas;
+            glyphInfos = GlyphInfos;
+        }
     }
 }

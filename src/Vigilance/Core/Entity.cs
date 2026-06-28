@@ -94,6 +94,155 @@ public readonly unsafe partial record struct Entity
         }
     }
 
+    public Vector2 RenderPosition
+    {
+        get
+        {
+            AssertValid();
+            if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new Interpolation();
+            (Vector2? Start, Vector2 End) position = (interpolation.Start?.Position, interpolation.End.Position);
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
+            {
+                if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))
+                    continue;
+                position = (
+                    position.Start.HasValue || childInterpolation.Start.HasValue
+                        ? (position.Start ?? position.End)
+                            + (childInterpolation.Start ?? childInterpolation.End).Position
+                        : null,
+                    position.End + childInterpolation.End.Position
+                );
+            }
+
+            return !position.Start.HasValue
+                ? position.End
+                : Vector2.Lerp(
+                    position.Start.Value,
+                    position.End,
+                    Time.FixedAccumulatorSeconds / Time.FixedDeltaSeconds
+                );
+        }
+    }
+
+    public Vector2 RenderScale
+    {
+        get
+        {
+            AssertValid();
+            if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new Interpolation();
+            (Vector2? Start, Vector2 End) scale = (interpolation.Start?.Scale, interpolation.End.Scale);
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
+            {
+                if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))
+                    continue;
+                scale = (
+                    scale.Start.HasValue || childInterpolation.Start.HasValue
+                        ? (scale.Start ?? scale.End) * (childInterpolation.Start ?? childInterpolation.End).Scale
+                        : null,
+                    scale.End * childInterpolation.End.Scale
+                );
+            }
+
+            return !scale.Start.HasValue
+                ? scale.End
+                : Vector2.Lerp(scale.Start.Value, scale.End, Time.FixedAccumulatorSeconds / Time.FixedDeltaSeconds);
+        }
+    }
+
+    public float RenderRotation
+    {
+        get
+        {
+            AssertValid();
+            if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new Interpolation();
+            (float? Start, float End) rotation = (interpolation.Start?.Rotation, interpolation.End.Rotation);
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
+            {
+                if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))
+                    continue;
+                rotation = (
+                    rotation.Start.HasValue || childInterpolation.Start.HasValue
+                        ? (rotation.Start ?? rotation.End)
+                            + (childInterpolation.Start ?? childInterpolation.End).Rotation
+                        : null,
+                    rotation.End + childInterpolation.End.Rotation
+                );
+            }
+
+            return !rotation.Start.HasValue
+                ? rotation.End
+                : float.LerpAngle(
+                    rotation.Start.Value,
+                    rotation.End,
+                    Time.FixedAccumulatorSeconds / Time.FixedDeltaSeconds
+                );
+        }
+    }
+
+    public Vector2 RenderPivotPoint
+    {
+        get
+        {
+            AssertValid();
+            if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new Interpolation();
+            (Vector2? Start, Vector2 End) pivotPoint = (interpolation.Start?.PivotPoint, interpolation.End.PivotPoint);
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
+            {
+                if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))
+                    continue;
+                pivotPoint = (
+                    pivotPoint.Start.HasValue || childInterpolation.Start.HasValue
+                        ? (pivotPoint.Start ?? pivotPoint.End)
+                            + (childInterpolation.Start ?? childInterpolation.End).PivotPoint
+                        : null,
+                    pivotPoint.End + childInterpolation.End.PivotPoint
+                );
+            }
+
+            return !pivotPoint.Start.HasValue
+                ? pivotPoint.End
+                : Vector2.Lerp(
+                    pivotPoint.Start.Value,
+                    pivotPoint.End,
+                    Time.FixedAccumulatorSeconds / Time.FixedDeltaSeconds
+                );
+        }
+    }
+
+    public Transform RenderTransform
+    {
+        get
+        {
+            AssertValid();
+            if (!Scene.InterpolationTable.TryGet(this, out var interpolation))
+                interpolation = new Interpolation();
+            for (var entity = Parent; !entity.IsNull; entity = entity.Parent)
+            {
+                if (!Scene.InterpolationTable.TryGet(entity, out var childInterpolation))
+                    continue;
+                interpolation = new Interpolation(
+                    interpolation.Start.HasValue || childInterpolation.Start.HasValue
+                        ? (interpolation.Start ?? interpolation.End)
+                            + (childInterpolation.Start ?? childInterpolation.End)
+                        : null,
+                    interpolation.End + childInterpolation.End
+                );
+            }
+
+            return !interpolation.Start.HasValue
+                ? interpolation.End
+                : Transform.Lerp(
+                    interpolation.Start.Value,
+                    interpolation.End,
+                    Time.FixedAccumulatorSeconds / Time.FixedDeltaSeconds
+                );
+        }
+    }
+
     public Transform WorldTransform
     {
         get
@@ -171,7 +320,8 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.TransformTable.GetRef(this).GetOrDefault(new Transform());
+            var transform = Scene.TransformTable.GetRef(this);
+            return transform.IsNull ? new Transform() : transform;
         }
         set
         {
@@ -333,7 +483,8 @@ public readonly unsafe partial record struct Entity
         get
         {
             AssertValid();
-            return Scene.ScaleTable.GetRef(this).GetOrDefault(new Scale());
+            var scale = Scene.ScaleTable.GetRef(this);
+            return scale.IsNull ? new Scale() : scale;
         }
         set
         {
@@ -1088,18 +1239,33 @@ public readonly unsafe partial record struct Entity
         private readonly Entity _parent;
         private ulong _nextChildId;
         private readonly bool _deferred;
+        private bool _initialized;
         private bool _disposed;
 
         internal ChildEnumerator(in Entity parent, bool deferred)
         {
             _parent = parent;
             _deferred = deferred;
+            _initialized = false;
             _disposed = true;
-            Reset();
+        }
+
+        private void Initialize()
+        {
+            _parent.AssertValid();
+            var parentRef = _parent.Scene.ParentTable.GetRef(_parent);
+            _nextChildId = parentRef.IsNull ? 0 : parentRef.Read.FirstChildId;
+            Current = Null;
+            _initialized = true;
+            _disposed = false;
+            if (_deferred)
+                _parent.Scene.BeginDefer();
         }
 
         public bool MoveNext()
         {
+            if (!_initialized)
+                Initialize();
             if (_nextChildId == 0)
             {
                 Current = default;
@@ -1115,13 +1281,7 @@ public readonly unsafe partial record struct Entity
         public void Reset()
         {
             Dispose();
-            _parent.AssertValid();
-            var parentRef = _parent.Scene.ParentTable.GetRef(_parent);
-            _nextChildId = parentRef.IsNull ? 0 : parentRef.Read.FirstChildId;
-            Current = Null;
-            _disposed = false;
-            if (_deferred)
-                _parent.Scene.BeginDefer();
+            _initialized = false;
         }
 
         public Entity Current { get; private set; }

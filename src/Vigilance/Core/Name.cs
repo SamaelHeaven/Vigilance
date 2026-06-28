@@ -1,6 +1,6 @@
 namespace Vigilance.Core;
 
-public readonly record struct Name(string Value) : IImmutableComponent, ISkipEventsComponent
+public readonly record struct Name(string Value) : IImmutableComponent, ISkipAddEventComponent, ISkipSetEventComponent
 {
     public static implicit operator string(Name name)
     {

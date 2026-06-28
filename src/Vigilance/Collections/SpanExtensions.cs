@@ -4,6 +4,11 @@ using ZLinq.Internal;
 
 namespace Vigilance.Collections;
 
+public interface IReadOnlySpan<TValue>
+{
+    ReadOnlySpan<TValue> AsSpan();
+}
+
 public static class SpanExtensions
 {
     [OverloadResolutionPriority(-1)]
@@ -28,9 +33,9 @@ public static class SpanExtensions
         return CollectionsMarshal.AsSpan(list);
     }
 
-    public static ReadOnlySpan<T> AsSpan<T>(this IReadOnlySpan<T> view)
+    public static ReadOnlySpan<T> AsSpan<T>(this IReadOnlySpan<T> span)
     {
-        return view.AsSpan();
+        return span.AsSpan();
     }
 
     public static bool TryCopyTo<T>(in this ReadOnlySpan<T> span, scoped Span<T> destination, Index offset)

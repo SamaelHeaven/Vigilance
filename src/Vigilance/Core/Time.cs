@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Math;
@@ -7,23 +8,36 @@ namespace Vigilance.Core;
 
 public static class Time
 {
-    public const float FixedDeltaSeconds = 1 / 60f;
     private const int FpsHistorySize = 200;
     private static ValueQueue<float> _fpsHistory;
     private static TimeSpan _delta;
     private static TimeSpan _last;
     private static float _scale;
+    private static readonly Stopwatch _stopwatch;
+    private static TimeConfig _config = new();
 
     static Time()
     {
         Game.ThrowIfNotRunning();
+        _stopwatch = Stopwatch.StartNew();
         _fpsHistory = new ValueQueue<float>(FpsHistorySize);
         _delta = TimeSpan.Zero;
         _last = Elapsed;
         _scale = 1;
+        FixedDeltaSeconds = _config.FixedDeltaSeconds;
+        MaxDeltaSeconds = _config.MaxDeltaSeconds;
+        FixedDelta = TimeSpan.FromSeconds(_config.FixedDeltaSeconds);
     }
 
-    public static TimeSpan FixedDelta { get; } = TimeSpan.FromSeconds(FixedDeltaSeconds);
+    public static TimeSpan FixedAccumulator { get; internal set; } = TimeSpan.Zero;
+
+    public static float FixedAccumulatorSeconds => (float)FixedAccumulator.TotalSeconds;
+
+    public static float FixedDeltaSeconds { get; private set; }
+
+    public static TimeSpan FixedDelta { get; private set; }
+
+    public static float MaxDeltaSeconds { get; private set; }
 
     public static float DeltaSeconds => (float)_delta.TotalSeconds * _scale;
 
@@ -50,7 +64,7 @@ public static class Time
 
     public static float AverageFps { get; private set; }
 
-    public static TimeSpan Elapsed => TimeSpan.FromSeconds(Raylib.GetTime());
+    public static TimeSpan Elapsed => _stopwatch.Elapsed;
 
     public static void Sleep(TimeSpan duration)
     {
@@ -60,6 +74,14 @@ public static class Time
     public static void Sleep(double seconds)
     {
         Raylib.WaitTime(seconds);
+    }
+
+    internal static void Initialize()
+    {
+        _config = Game.Config.Take<TimeConfig>() ?? _config;
+        MaxDeltaSeconds = _config.MaxDeltaSeconds;
+        FixedDeltaSeconds = _config.FixedDeltaSeconds;
+        FixedDelta = TimeSpan.FromSeconds(_config.FixedDeltaSeconds);
     }
 
     internal static void Update()
@@ -73,6 +95,8 @@ public static class Time
         var elapsed = Elapsed;
         _delta = elapsed - _last;
         _last = elapsed;
+        if (_delta.TotalSeconds > MaxDeltaSeconds)
+            _delta = TimeSpan.FromSeconds(MaxDeltaSeconds);
         while (_fpsHistory.Count >= FpsHistorySize)
             _fpsHistory.Dequeue();
         _fpsHistory.Enqueue(CurrentFps);
@@ -81,8 +105,23 @@ public static class Time
 
     internal static void Restart()
     {
+        FixedAccumulator = TimeSpan.Zero;
         _delta = TimeSpan.Zero;
         _last = Elapsed;
         _fpsHistory.Clear();
+    }
+}
+
+public sealed class TimeConfig
+{
+    public float MaxDeltaSeconds { get; set; } = 1 / 4f;
+    public float FixedDeltaSeconds { get; set; } = 1 / 60f;
+}
+
+public static class TimeConfigExtensions
+{
+    public static ConfigBuilder Time(this ConfigBuilder configs, Action<TimeConfig> config)
+    {
+        return configs.Add(config);
     }
 }

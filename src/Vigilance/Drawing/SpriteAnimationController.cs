@@ -1,19 +1,20 @@
 using System.Diagnostics.CodeAnalysis;
 using Vigilance.Collections;
 using ZLinq;
-using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class SpriteAnimationController : IDictionaryView<string, SpriteAnimation>
+public sealed class SpriteAnimationController
+    : IValueDictionaryView<string, SpriteAnimation>,
+        IReadOnlyDictionary<string, SpriteAnimation>
 {
-    private readonly Dictionary<string, SpriteAnimation> _animations;
+    private readonly ValueDictionary<string, SpriteAnimation> _animations;
 
     public SpriteAnimationController(params ReadOnlySpan<(string, SpriteAnimation)> animations)
     {
         if (animations.Length == 0)
             throw new ArgumentException($"{nameof(SpriteAnimationController)} must have at least one animation.");
-        _animations = animations.AsValueEnumerable().ToDictionary();
+        _animations = animations.AsValueEnumerable().ToValueDictionary();
         Current = animations[0].Item1;
     }
 
@@ -21,7 +22,7 @@ public sealed class SpriteAnimationController : IDictionaryView<string, SpriteAn
     {
         if (animations.Length == 0)
             throw new ArgumentException($"{nameof(SpriteAnimationController)} must have at least one animation.");
-        _animations = animations.AsValueEnumerable().ToDictionary();
+        _animations = animations.AsValueEnumerable().ToValueDictionary();
         Current = animations[0].Key;
     }
 
@@ -44,40 +45,44 @@ public sealed class SpriteAnimationController : IDictionaryView<string, SpriteAn
     }
 
     public SpriteAnimation Animation { get; private set; } = null!;
+    public ValueDictionary<string, SpriteAnimation>.KeyCollection Keys => _animations.Keys;
+    public ValueDictionary<string, SpriteAnimation>.ValueCollection Values => _animations.Values;
+
+    public bool ContainsKey(string key)
+    {
+        return _animations.ContainsKey(key);
+    }
+
+    public bool TryGetValue(string key, [MaybeNullWhen(false)] out SpriteAnimation value)
+    {
+        return _animations.TryGetValue(key, out value);
+    }
 
     public SpriteAnimation this[string animation] => _animations[animation];
+    IEnumerable<string> IReadOnlyDictionary<string, SpriteAnimation>.Keys => _animations.Keys;
+    IEnumerable<SpriteAnimation> IReadOnlyDictionary<string, SpriteAnimation>.Values => _animations.Values;
 
-    public Dictionary<string, SpriteAnimation>.Enumerator GetEnumerator()
+    public int Count => _animations.Count;
+
+    public ValueDictionary<string, SpriteAnimation>.Enumerator GetEnumerator()
     {
         return _animations.GetEnumerator();
     }
 
     public ValueEnumerable<
-        FromDictionary<string, SpriteAnimation>,
+        StructEnumerator<ValueDictionary<string, SpriteAnimation>.Enumerator, KeyValuePair<string, SpriteAnimation>>,
         KeyValuePair<string, SpriteAnimation>
     > AsValueEnumerable()
     {
-        return _animations.AsValueEnumerable();
+        return new StructEnumerator<
+            ValueDictionary<string, SpriteAnimation>.Enumerator,
+            KeyValuePair<string, SpriteAnimation>
+        >(GetEnumerator());
     }
 
     public bool IsUsing(string animation)
     {
         return Current == animation;
-    }
-
-    public bool Has(string animation)
-    {
-        return _animations.ContainsKey(animation);
-    }
-
-    public SpriteAnimation Get(string animation)
-    {
-        return _animations[animation];
-    }
-
-    public bool TryGet(string animation, [MaybeNullWhen(false)] out SpriteAnimation animationOut)
-    {
-        return _animations.TryGetValue(animation, out animationOut!);
     }
 
     public void Use(string animation, bool resetOthers = true)
@@ -87,10 +92,9 @@ public sealed class SpriteAnimationController : IDictionaryView<string, SpriteAn
         Current = animation;
         if (!resetOthers)
             return;
-        foreach (var key in _animations.Keys.AsValueEnumerable().Where(key => key != animation))
-        {
-            var value = _animations[key];
+        foreach (
+            var value in _animations.AsValueEnumerable().Where(pair => pair.Key != animation).Select(pair => pair.Value)
+        )
             value.Reset();
-        }
     }
 }

@@ -6,11 +6,6 @@ using ZLinq.Linq;
 
 namespace Vigilance.Collections;
 
-public interface IReadOnlySpan<TValue>
-{
-    ReadOnlySpan<TValue> AsSpan();
-}
-
 public interface ISpanView<TValue>
     : IStructEnumerable<SpanViewEnumerator<TValue>, TValue>,
         IReadOnlyCollection<TValue>,
@@ -270,6 +265,30 @@ public interface IArrayView<TValue>
     new ValueEnumerable<FromArray<TValue>, TValue> AsValueEnumerable();
 }
 
+public interface ISparseSetView<TKey, TValue, TStorage>
+    : IStructEnumerable<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+        IReadOnlyCollection<KeyValuePair<TKey, TValue>>
+    where TStorage : IList<TValue>
+{
+    int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+}
+
+public interface IValueSparseSetView<TKey, TValue, TStorage>
+    : IStructEnumerable<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+        IReadOnlyCollection<KeyValuePair<TKey, TValue>>
+    where TStorage : IList<TValue>
+{
+    int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+}
+
+public interface IValueDictionaryView<TKey, TValue>
+    : IStructEnumerable<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
+        IReadOnlyCollection<KeyValuePair<TKey, TValue>>
+    where TKey : notnull
+{
+    int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+}
+
 public readonly record struct ListView<TValue> : IListView<TValue>
 {
     private readonly List<TValue> _list;
@@ -304,7 +323,7 @@ public readonly record struct ListView<TValue> : IListView<TValue>
     }
 }
 
-public readonly ref struct ValueListView<TValue>
+public readonly ref struct ValueListView<TValue> : IValueListView<TValue>
 {
     private readonly ref ValueList<TValue> _list;
 
@@ -318,7 +337,7 @@ public readonly ref struct ValueListView<TValue>
         return _list.GetEnumerator();
     }
 
-    public IEnumerable<TValue> AsEnumerable()
+    public Enumerable AsEnumerable()
     {
         return new Enumerable(_list);
     }
@@ -326,6 +345,24 @@ public readonly ref struct ValueListView<TValue>
     public ValueEnumerable<ValueList<TValue>.Enumerator, TValue> AsValueEnumerable()
     {
         return _list.AsValueEnumerable();
+    }
+
+    IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    ValueEnumerable<StructEnumerator<ValueList<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
+        ValueList<TValue>.Enumerator,
+        TValue
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueList<TValue>.Enumerator, TValue>(GetEnumerator());
     }
 
     public int Count => _list.Count;
@@ -342,7 +379,32 @@ public readonly ref struct ValueListView<TValue>
         return new ValueListView<TValue>(ref Unsafe.AsRef(in list));
     }
 
-    public readonly struct Enumerable : IValueListView<TValue>
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueListView<>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueListView<>)} is not supported.");
+    }
+
+    public bool Equals(ValueListView<TValue> other)
+    {
+        return Unsafe.AreSame(ref _list, ref other._list);
+    }
+
+    public static bool operator ==(ValueListView<TValue> left, ValueListView<TValue> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ValueListView<TValue> left, ValueListView<TValue> right)
+    {
+        return !left.Equals(right);
+    }
+
+    public readonly record struct Enumerable : IValueListView<TValue>
     {
         private readonly ValueList<TValue> _list;
 
@@ -650,7 +712,7 @@ public readonly record struct QueueView<TValue> : IQueueView<TValue>
     }
 }
 
-public readonly ref struct ValueQueueView<TValue>
+public readonly ref struct ValueQueueView<TValue> : IValueQueueView<TValue>
 {
     private readonly ref ValueQueue<TValue> _queue;
 
@@ -664,7 +726,7 @@ public readonly ref struct ValueQueueView<TValue>
         return _queue.GetEnumerator();
     }
 
-    public IEnumerable<TValue> AsEnumerable()
+    public Enumerable AsEnumerable()
     {
         return new Enumerable(_queue);
     }
@@ -674,6 +736,24 @@ public readonly ref struct ValueQueueView<TValue>
         return _queue.AsValueEnumerable();
     }
 
+    IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    ValueEnumerable<StructEnumerator<ValueQueue<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
+        ValueQueue<TValue>.Enumerator,
+        TValue
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueQueue<TValue>.Enumerator, TValue>(GetEnumerator());
+    }
+
     public int Count => _queue.Count;
 
     public static implicit operator ValueQueueView<TValue>(in ValueQueue<TValue> queue)
@@ -681,7 +761,32 @@ public readonly ref struct ValueQueueView<TValue>
         return new ValueQueueView<TValue>(ref Unsafe.AsRef(in queue));
     }
 
-    public readonly struct Enumerable : IValueQueueView<TValue>
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueQueueView<>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueQueueView<>)} is not supported.");
+    }
+
+    public bool Equals(ValueQueueView<TValue> other)
+    {
+        return Unsafe.AreSame(ref _queue, ref other._queue);
+    }
+
+    public static bool operator ==(ValueQueueView<TValue> left, ValueQueueView<TValue> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ValueQueueView<TValue> left, ValueQueueView<TValue> right)
+    {
+        return !left.Equals(right);
+    }
+
+    public readonly record struct Enumerable : IValueQueueView<TValue>
     {
         private readonly ValueQueue<TValue> _queue;
 
@@ -731,7 +836,7 @@ public readonly record struct StackView<TValue> : IStackView<TValue>
     }
 }
 
-public readonly ref struct ValueStackView<TValue>
+public readonly ref struct ValueStackView<TValue> : IValueStackView<TValue>
 {
     private readonly ref ValueStack<TValue> _stack;
 
@@ -745,7 +850,7 @@ public readonly ref struct ValueStackView<TValue>
         return _stack.GetEnumerator();
     }
 
-    public IEnumerable<TValue> AsEnumerable()
+    public Enumerable AsEnumerable()
     {
         return new Enumerable(_stack);
     }
@@ -755,6 +860,24 @@ public readonly ref struct ValueStackView<TValue>
         return _stack.AsValueEnumerable();
     }
 
+    IEnumerator<TValue> IEnumerable<TValue>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    ValueEnumerable<StructEnumerator<ValueStack<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
+        ValueStack<TValue>.Enumerator,
+        TValue
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueStack<TValue>.Enumerator, TValue>(GetEnumerator());
+    }
+
     public int Count => _stack.Count;
 
     public static implicit operator ValueStackView<TValue>(in ValueStack<TValue> stack)
@@ -762,7 +885,32 @@ public readonly ref struct ValueStackView<TValue>
         return new ValueStackView<TValue>(ref Unsafe.AsRef(in stack));
     }
 
-    public readonly struct Enumerable : IValueStackView<TValue>
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueStackView<>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueStackView<>)} is not supported.");
+    }
+
+    public bool Equals(ValueStackView<TValue> other)
+    {
+        return Unsafe.AreSame(ref _stack, ref other._stack);
+    }
+
+    public static bool operator ==(ValueStackView<TValue> left, ValueStackView<TValue> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ValueStackView<TValue> left, ValueStackView<TValue> right)
+    {
+        return !left.Equals(right);
+    }
+
+    public readonly record struct Enumerable : IValueStackView<TValue>
     {
         private readonly ValueStack<TValue> _stack;
 
@@ -782,6 +930,438 @@ public readonly ref struct ValueStackView<TValue>
         }
 
         public int Count => _stack.Count;
+    }
+}
+
+public readonly record struct SparseSetView<TKey, TValue, TStorage>
+    : ISparseSetView<TKey, TValue, TStorage>,
+        IReadOnlyDictionary<TKey, TValue>,
+        IReadOnlyList<KeyValuePair<TKey, TValue>>
+    where TStorage : IList<TValue>
+{
+    private readonly SparseSet<TKey, TValue, TStorage> _sparseSet;
+
+    public SparseSetView(SparseSet<TKey, TValue, TStorage> sparseSet)
+    {
+        _sparseSet = sparseSet;
+    }
+
+    public SparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+
+    public ValueListView<TKey> Keys => _sparseSet.Keys;
+
+    public TValue this[in TKey key] => _sparseSet[key];
+
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys.AsEnumerable();
+
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+
+    bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
+    {
+        return ContainsKey(key);
+    }
+
+    bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return TryGetValue(key, out value);
+    }
+
+    TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
+
+    public KeyValuePair<TKey, TValue> this[int index] => _sparseSet[index];
+
+    public int Count => _sparseSet.Count;
+
+    public SparseSet<TKey, TValue, TStorage>.Enumerator GetEnumerator()
+    {
+        return _sparseSet.GetEnumerator();
+    }
+
+    public ValueEnumerable<
+        StructEnumerator<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+        KeyValuePair<TKey, TValue>
+    > AsValueEnumerable()
+    {
+        return _sparseSet.AsValueEnumerable();
+    }
+
+    public bool ContainsKey(in TKey key)
+    {
+        return _sparseSet.ContainsKey(key);
+    }
+
+    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return _sparseSet.TryGetValue(key, out value);
+    }
+
+    public int GetKeyIndex(in TKey key)
+    {
+        return _sparseSet.GetKeyIndex(key);
+    }
+
+    public static implicit operator SparseSetView<TKey, TValue, TStorage>(SparseSet<TKey, TValue, TStorage> sparseSet)
+    {
+        return new SparseSetView<TKey, TValue, TStorage>(sparseSet);
+    }
+}
+
+public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
+    : IValueSparseSetView<TKey, TValue, TStorage>,
+        IReadOnlyDictionary<TKey, TValue>,
+        IReadOnlyList<KeyValuePair<TKey, TValue>>
+    where TStorage : IList<TValue>
+{
+    private readonly ref ValueSparseSet<TKey, TValue, TStorage> _sparseSet;
+
+    public ValueSparseSetView(ref ValueSparseSet<TKey, TValue, TStorage> sparseSet)
+    {
+        _sparseSet = ref sparseSet;
+    }
+
+    public ValueSparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+
+    public ValueListView<TKey> Keys => _sparseSet.Keys;
+
+    public TValue this[in TKey key] => _sparseSet[key];
+
+    public KeyValuePair<TKey, TValue> this[int index] => _sparseSet[index];
+
+    public int Count => _sparseSet.Count;
+
+    public bool ContainsKey(in TKey key)
+    {
+        return _sparseSet.ContainsKey(key);
+    }
+
+    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return _sparseSet.TryGetValue(key, out value);
+    }
+
+    public int GetKeyIndex(in TKey key)
+    {
+        return _sparseSet.GetKeyIndex(key);
+    }
+
+    public ValueSparseSet<TKey, TValue, TStorage>.Enumerator GetEnumerator()
+    {
+        return _sparseSet.GetEnumerator();
+    }
+
+    public Enumerable AsEnumerable()
+    {
+        return new Enumerable(_sparseSet);
+    }
+
+    IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public ValueEnumerable<
+        StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+        KeyValuePair<TKey, TValue>
+    > AsValueEnumerable()
+    {
+        return _sparseSet.AsValueEnumerable();
+    }
+
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys.AsEnumerable();
+
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+
+    bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
+    {
+        return ContainsKey(key);
+    }
+
+    bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return TryGetValue(key, out value);
+    }
+
+    TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
+
+    public static implicit operator ValueSparseSetView<TKey, TValue, TStorage>(
+        in ValueSparseSet<TKey, TValue, TStorage> sparseSet
+    )
+    {
+        return new ValueSparseSetView<TKey, TValue, TStorage>(ref Unsafe.AsRef(in sparseSet));
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueSparseSetView<,,>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException(
+            $"{nameof(GetHashCode)}() on {nameof(ValueSparseSetView<,,>)} is not supported."
+        );
+    }
+
+    public bool Equals(ValueSparseSetView<TKey, TValue, TStorage> other)
+    {
+        return Unsafe.AreSame(ref _sparseSet, ref other._sparseSet);
+    }
+
+    public static bool operator ==(
+        ValueSparseSetView<TKey, TValue, TStorage> left,
+        ValueSparseSetView<TKey, TValue, TStorage> right
+    )
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(
+        ValueSparseSetView<TKey, TValue, TStorage> left,
+        ValueSparseSetView<TKey, TValue, TStorage> right
+    )
+    {
+        return !left.Equals(right);
+    }
+
+    public readonly record struct Enumerable
+        : IValueSparseSetView<TKey, TValue, TStorage>,
+            IReadOnlyDictionary<TKey, TValue>,
+            IReadOnlyList<KeyValuePair<TKey, TValue>>
+    {
+        private readonly ValueSparseSet<TKey, TValue, TStorage> _sparseSet;
+
+        public Enumerable(ValueSparseSet<TKey, TValue, TStorage> sparseSet)
+        {
+            _sparseSet = sparseSet;
+        }
+
+        public ValueSparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+
+        public ValueListView<TKey> Keys => _sparseSet.Keys;
+
+        public TValue this[in TKey key] => _sparseSet[key];
+
+        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys.AsEnumerable();
+
+        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+
+        bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
+        {
+            return ContainsKey(key);
+        }
+
+        bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+        {
+            return TryGetValue(key, out value);
+        }
+
+        TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
+
+        public KeyValuePair<TKey, TValue> this[int index] => _sparseSet[index];
+
+        public int Count => _sparseSet.Count;
+
+        public ValueSparseSet<TKey, TValue, TStorage>.Enumerator GetEnumerator()
+        {
+            return _sparseSet.GetEnumerator();
+        }
+
+        public ValueEnumerable<
+            StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+            KeyValuePair<TKey, TValue>
+        > AsValueEnumerable()
+        {
+            return _sparseSet.AsValueEnumerable();
+        }
+
+        public bool ContainsKey(in TKey key)
+        {
+            return _sparseSet.ContainsKey(key);
+        }
+
+        public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
+        {
+            return _sparseSet.TryGetValue(key, out value);
+        }
+    }
+}
+
+public readonly ref struct ValueDictionaryView<TKey, TValue>
+    : IValueDictionaryView<TKey, TValue>,
+        IReadOnlyDictionary<TKey, TValue>
+    where TKey : notnull
+{
+    private readonly ref ValueDictionary<TKey, TValue> _dictionary;
+
+    public ValueDictionaryView(ref ValueDictionary<TKey, TValue> dictionary)
+    {
+        _dictionary = ref dictionary;
+    }
+
+    public ValueDictionary<TKey, TValue>.KeyCollection Keys => _dictionary.Keys;
+
+    public ValueDictionary<TKey, TValue>.ValueCollection Values => _dictionary.Values;
+
+    public TValue this[in TKey key] => _dictionary[key];
+
+    public int Count => _dictionary.Count;
+
+    public bool ContainsKey(in TKey key)
+    {
+        return _dictionary.ContainsKey(key);
+    }
+
+    public bool ContainsValue(in TValue value)
+    {
+        return _dictionary.ContainsValue(value);
+    }
+
+    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return _dictionary.TryGetValue(key, out value);
+    }
+
+    public ValueDictionary<TKey, TValue>.Enumerator GetEnumerator()
+    {
+        return _dictionary.GetEnumerator();
+    }
+
+    public Enumerable AsEnumerable()
+    {
+        return new Enumerable(_dictionary);
+    }
+
+    public ValueEnumerable<
+        StructEnumerator<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
+        KeyValuePair<TKey, TValue>
+    > AsValueEnumerable()
+    {
+        return _dictionary.AsValueEnumerable();
+    }
+
+    IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
+
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+
+    bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
+    {
+        return ContainsKey(key);
+    }
+
+    bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return TryGetValue(key, out value);
+    }
+
+    TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
+
+    public static implicit operator ValueDictionaryView<TKey, TValue>(in ValueDictionary<TKey, TValue> dictionary)
+    {
+        return new ValueDictionaryView<TKey, TValue>(ref Unsafe.AsRef(in dictionary));
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueDictionaryView<,>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException(
+            $"{nameof(GetHashCode)}() on {nameof(ValueDictionaryView<,>)} is not supported."
+        );
+    }
+
+    public bool Equals(ValueDictionaryView<TKey, TValue> other)
+    {
+        return Unsafe.AreSame(ref _dictionary, ref other._dictionary);
+    }
+
+    public static bool operator ==(ValueDictionaryView<TKey, TValue> left, ValueDictionaryView<TKey, TValue> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(ValueDictionaryView<TKey, TValue> left, ValueDictionaryView<TKey, TValue> right)
+    {
+        return !left.Equals(right);
+    }
+
+    public readonly record struct Enumerable : IValueDictionaryView<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>
+    {
+        private readonly ValueDictionary<TKey, TValue> _dictionary;
+
+        public Enumerable(ValueDictionary<TKey, TValue> dictionary)
+        {
+            _dictionary = dictionary;
+        }
+
+        public ValueDictionary<TKey, TValue>.KeyCollection Keys => _dictionary.Keys;
+
+        public ValueDictionary<TKey, TValue>.ValueCollection Values => _dictionary.Values;
+
+        public TValue this[in TKey key] => _dictionary[key];
+
+        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
+
+        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+
+        bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
+        {
+            return ContainsKey(key);
+        }
+
+        bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+        {
+            return TryGetValue(key, out value);
+        }
+
+        TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
+
+        public int Count => _dictionary.Count;
+
+        public ValueDictionary<TKey, TValue>.Enumerator GetEnumerator()
+        {
+            return _dictionary.GetEnumerator();
+        }
+
+        public ValueEnumerable<
+            StructEnumerator<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
+            KeyValuePair<TKey, TValue>
+        > AsValueEnumerable()
+        {
+            return _dictionary.AsValueEnumerable();
+        }
+
+        public bool ContainsKey(in TKey key)
+        {
+            return _dictionary.ContainsKey(key);
+        }
+
+        public bool ContainsValue(in TValue value)
+        {
+            return _dictionary.ContainsValue(value);
+        }
+
+        public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
+        {
+            return _dictionary.TryGetValue(key, out value);
+        }
     }
 }
 
@@ -991,5 +1571,29 @@ public static class ViewExtensions
     public static ArrayView<TValue> AsView<TValue>(this TValue[] array)
     {
         return array;
+    }
+
+    public static SparseSetView<TKey, TValue, TStorage> AsView<TKey, TValue, TStorage>(
+        this SparseSet<TKey, TValue, TStorage> sparseSet
+    )
+        where TStorage : IList<TValue>
+    {
+        return sparseSet;
+    }
+
+    public static ValueSparseSetView<TKey, TValue, TStorage> AsView<TKey, TValue, TStorage>(
+        in this ValueSparseSet<TKey, TValue, TStorage> sparseSet
+    )
+        where TStorage : IList<TValue>
+    {
+        return sparseSet;
+    }
+
+    public static ValueDictionaryView<TKey, TValue> AsView<TKey, TValue>(
+        in this ValueDictionary<TKey, TValue> dictionary
+    )
+        where TKey : notnull
+    {
+        return dictionary;
     }
 }

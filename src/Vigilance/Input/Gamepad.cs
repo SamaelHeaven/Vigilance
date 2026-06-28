@@ -12,7 +12,7 @@ public sealed unsafe class Gamepad
     private static readonly GamepadButton[] _buttonValues = Enum.GetValues<GamepadButton>();
     private static readonly GamepadAxis[] _axisValues = Enum.GetValues<GamepadAxis>();
     private static readonly Gamepad[] _gamepads = GetGamepads();
-    private readonly Dictionary<GamepadAxis, float> _axes;
+    private ValueDictionary<GamepadAxis, float> _axes;
     private ValueList<GamepadButton> _currentButtons = [];
     private ValueList<GamepadButton> _downButtons = [];
     private ValueList<GamepadButton> _pressedButtons = [];
@@ -22,7 +22,7 @@ public sealed unsafe class Gamepad
     private Gamepad(int id)
     {
         Id = id;
-        _axes = new Dictionary<GamepadAxis, float>();
+        _axes = [];
         foreach (var axis in _axisValues)
             _axes.Add(axis, 0);
     }
@@ -39,7 +39,7 @@ public sealed unsafe class Gamepad
     public ValueListView<GamepadButton> UpButtons => _upButtons;
     public ValueListView<GamepadButton> PressedButtons => _pressedButtons;
     public ValueListView<GamepadButton> ReleasedButtons => _releasedButtons;
-    public DictionaryView<GamepadAxis, float> Axes => _axes;
+    public ValueDictionaryView<GamepadAxis, float> Axes => _axes;
     public string Name { get; private set; } = DefaultName;
     public bool IsConnected { get; private set; } = false;
 
