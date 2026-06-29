@@ -820,10 +820,22 @@ public readonly unsafe partial record struct Entity
         return Scene.Table<T>().Remove(this);
     }
 
+    public bool Remove<T>(out T component)
+    {
+        AssertValid();
+        return Scene.Table<T>().Remove(this, out component);
+    }
+
     public bool Remove(Table table)
     {
         AssertValid();
         return table.Remove(this);
+    }
+
+    public bool Remove(Table table, out object component)
+    {
+        AssertValid();
+        return table.Remove(this, out component);
     }
 
     public void Clear()

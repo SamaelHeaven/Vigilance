@@ -11,20 +11,21 @@ namespace Vigilance.Core;
 
 public sealed unsafe partial class Scene
 {
-    private readonly GameSystemsFunc _systemsFunc;
-    private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
+    private readonly HashSet<ulong> _destroyedEntities = [];
+    private Collections.ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
     private int _deferredCount;
     private Action<Entity>? _destroyAction;
-    private ValueList<(int Index, int Version)> _entities = [];
-    private ValueQueue<Event> _events = [];
+    private Collections.ValueList<(int Index, int Version)> _entities = [];
+    private Collections.ValueQueue<Event> _events = [];
     private Action? _fixedUpdateAction;
-    private ValueQueue<int> _freeIndices = [];
+    private Collections.ValueQueue<int> _freeIndices = [];
     private Action? _initializeAction;
     private Action<Entity>? _instantiateAction;
+    private bool _isClearing;
     private bool _isFlushing;
-    private ValueDictionary<Type, Delegate> _listeners = [];
-    private ValueDictionary<string, ulong> _nameMap = [];
+    private Collections.ValueDictionary<Type, Delegate> _listeners = [];
+    private Collections.ValueDictionary<string, ulong> _nameMap = [];
     private Action? _onDispose;
     private Action? _postFixedUpdateAction;
     private Action? _postRenderAction;
@@ -33,11 +34,11 @@ public sealed unsafe partial class Scene
     private Action? _preRenderAction;
     private Action? _preUpdateAction;
     private Action<RenderCommands>? _renderAction;
-    private ValueList<RenderComponents?> _sparseRenderComponentsList = [];
-    private ValueList<Table?> _sparseTables = [];
+    private Collections.ValueList<RenderComponents?> _sparseRenderComponentsList = [];
+    private Collections.ValueList<Table?> _sparseTables = [];
     private Action? _startAction;
     private Action? _stopAction;
-    private ValueStack<int> _suspendStack = [];
+    private Collections.ValueStack<int> _suspendStack = [];
     private ValueList<IGameSystem> _systems = [];
     private ValueList<Table> _tables = [];
     private Action? _updateAction;
@@ -60,7 +61,7 @@ public sealed unsafe partial class Scene
     public Scene(GameSystemsFunc? systems = null)
     {
         _entities.Add((0, 0));
-        _systemsFunc = systems ?? Array.Empty<IGameSystem>;
+        SystemsFunc = systems ?? Array.Empty<IGameSystem>;
         EntityTagTable = Table<EntityTag>();
         NameTable = Table<Name>();
         ZIndexTable = Table<ZIndex>();
@@ -82,10 +83,15 @@ public sealed unsafe partial class Scene
         OnSet<Child>(OnSetChild);
         OnRemove<Child>(OnRemoveChild);
         OnRemove<Parent>(OnRemoveParent);
-        OnRemove<Name>(OnRemoveName);
     }
 
+    public GameSystemsFunc SystemsFunc { get; }
     public Camera Camera { get; } = new();
+    public bool IsConfigured { get; private set; }
+    public bool IsInitialized { get; private set; }
+    public bool IsStarted { get; private set; }
+
+    public bool IsDeferred => _deferredCount != 0;
 
     public Entity Scope
     {
@@ -98,14 +104,6 @@ public sealed unsafe partial class Scene
             field = value;
         }
     }
-
-    public bool IsConfigured { get; private set; }
-
-    public bool IsInitialized { get; private set; }
-
-    public bool IsStarted { get; private set; }
-
-    public bool IsDeferred => _deferredCount != 0;
 
     public TableEnumerable Tables()
     {
@@ -443,18 +441,62 @@ public sealed unsafe partial class Scene
     public void Clear()
     {
         ThrowIfNotConfigured();
+        if (_isClearing)
+            return;
         if (IsDeferred)
         {
             Enqueue(Event.Clear());
             return;
         }
 
-        var entities = Entities().WithDisabled().Deferred();
+        _isClearing = true;
+        var entities = Entities().WithDisabled();
+        var tables = Tables()
+            .WithHidden()
+            .AsValueEnumerable()
+            .Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
+        var flag = Core.Table.Flags.SilentOnImmutable;
         do
         {
-            foreach (var entity in entities)
-                entity.Destroy();
-        } while (entities.AsValueEnumerable().Any());
+            BeginDefer();
+            {
+                // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
+                foreach (var entity in entities)
+                    if (_destroyedEntities.Add(entity.Id))
+                        Enqueue(Event.Destroyed(entity));
+                foreach (var table in tables)
+                {
+                    var entityIds = table.EntityIds.AsSpan();
+                    for (var i = entityIds.Length - 1; i >= 0; i--)
+                        table.Remove(new Entity(entityIds[i], this), flag);
+                }
+
+                flag = Core.Table.Flags.ForceMutable;
+            }
+            EndDefer();
+        } while (tables.Any(t => t.Count != 0));
+
+        Debug.Assert(!IsDeferred);
+        _destroyedEntities.Clear();
+        var nameEntityIds = NameTable.EntityIds.AsSpan();
+        var nameComponents = NameTable.Components.AsSpan();
+        for (var i = nameEntityIds.Length - 1; i >= 0; i--)
+        {
+            _nameMap.Remove(nameComponents[i]);
+            NameTable.Remove(new Entity(nameEntityIds[i], this), Core.Table.Flags.ForceMutable);
+        }
+
+        foreach (var entity in entities)
+        {
+            EntityTagTable.Remove(entity, Core.Table.Flags.ForceMutable);
+            if (Scope == entity)
+                Scope = Core.Entity.Null;
+            ref var info = ref _entities[entity.Index];
+            info.Index = 0;
+            _freeIndices.Enqueue(entity.Index);
+        }
+
+        _isClearing = false;
     }
 
     internal RenderComponents<T> RenderComponents<T>()
@@ -496,6 +538,8 @@ public sealed unsafe partial class Scene
 
     internal void Destroy(in Entity entity)
     {
+        if (_isClearing)
+            return;
         if (IsDeferred)
         {
             Enqueue(Event.Destroy(entity));
@@ -503,8 +547,15 @@ public sealed unsafe partial class Scene
         }
 
         _destroyAction?.Invoke(entity);
-        var tables = Tables().WithHidden().AsValueEnumerable().Where(t => t.Type != typeof(EntityTag));
-        var entityTables = entity.Tables().WithHidden().AsValueEnumerable().Where(t => t.Type != typeof(EntityTag));
+        var tables = Tables()
+            .WithHidden()
+            .AsValueEnumerable()
+            .Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
+        var entityTables = entity
+            .Tables()
+            .WithHidden()
+            .AsValueEnumerable()
+            .Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
         var flag = Core.Table.Flags.SilentOnImmutable;
         do
         {
@@ -513,6 +564,9 @@ public sealed unsafe partial class Scene
             flag = Core.Table.Flags.ForceMutable;
         } while (entityTables.Any());
 
+        Debug.Assert(!IsDeferred);
+        if (NameTable.Remove(entity, out var name, Core.Table.Flags.ForceMutable))
+            _nameMap.Remove(name);
         EntityTagTable.Remove(entity, Core.Table.Flags.ForceMutable);
         if (Scope == entity)
             Scope = Core.Entity.Null;
@@ -538,7 +592,7 @@ public sealed unsafe partial class Scene
     {
         if (!IsConfigured)
         {
-            _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(_systemsFunc.Invoke()).ToValueList();
+            _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).ToValueList();
             _systems.Sort();
             foreach (var system in _systems)
                 system.Configure(this);
@@ -589,6 +643,9 @@ public sealed unsafe partial class Scene
                     case EventType.Destroy:
                         Destroy(new Entity(@event.EntityId, this));
                         break;
+                    case EventType.Destroyed:
+                        _destroyAction?.Invoke(new Entity(@event.EntityId, this));
+                        break;
                     case EventType.Clear:
                         Clear();
                         break;
@@ -611,7 +668,14 @@ public sealed unsafe partial class Scene
         _isFlushing = false;
         var action = _deferredAction;
         _deferredAction = null;
-        action?.Invoke();
+        try
+        {
+            action?.Invoke();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
     }
 
     private void Render()
@@ -1073,6 +1137,11 @@ public sealed unsafe partial class Scene
             return new Event(EventType.Destroy, entity.Id, null!);
         }
 
+        public static Event Destroyed(in Entity entity)
+        {
+            return new Event(EventType.Destroyed, entity.Id, null!);
+        }
+
         public static Event Clear()
         {
             return new Event(EventType.Clear, 0, null!);
@@ -1098,6 +1167,7 @@ public sealed unsafe partial class Scene
     {
         Instantiate,
         Destroy,
+        Destroyed,
         Clear,
         Custom,
         TableOperation,
@@ -1390,11 +1460,6 @@ public sealed unsafe partial class Scene
             childId = childRef.NextSiblingId;
             ChildTable.Remove(child);
         }
-    }
-
-    private void OnRemoveName(Name name)
-    {
-        _nameMap.Remove(name);
     }
 
     #endregion
