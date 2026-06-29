@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Vigilance.Core;
 
@@ -9,6 +10,15 @@ public readonly unsafe ref struct Utf8Ptr : IDisposable
     public Utf8Ptr(string str)
     {
         _data = Marshal.StringToCoTaskMemUTF8(str);
+    }
+
+    public Utf8Ptr(scoped in ReadOnlySpan<char> str)
+    {
+        var byteCount = Encoding.UTF8.GetByteCount(str);
+        var ptr = (byte*)Marshal.AllocCoTaskMem(byteCount + 1);
+        var written = Encoding.UTF8.GetBytes(str, new Span<byte>(ptr, byteCount));
+        ptr[written] = 0;
+        _data = (nint)ptr;
     }
 
     public void Dispose()

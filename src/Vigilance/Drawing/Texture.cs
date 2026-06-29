@@ -1,5 +1,4 @@
 using Raylib_cs;
-using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Logging;
 using Vigilance.Math;
@@ -21,14 +20,13 @@ public sealed unsafe class Texture : IDisposable
         RenderTexture = renderTexture;
     }
 
-    public Texture(string fileType, IEnumerable<byte> bytes)
+    public Texture(in ReadOnlySpan<char> fileType, in ReadOnlySpan<byte> bytes)
     {
         Game.ThrowIfNotRunning();
         using var fileTypeBuffer = fileType.ToUtf8Ptr();
-        var span = bytes.AsSpan();
-        fixed (byte* bytesBuffer = span)
+        fixed (byte* bytesBuffer = bytes)
         {
-            var image = Raylib.LoadImageFromMemory(fileTypeBuffer, bytesBuffer, span.Length);
+            var image = Raylib.LoadImageFromMemory(fileTypeBuffer, bytesBuffer, bytes.Length);
             var logLevel = Log.SetLogLevel(Log.LogLevel.Max(LogLevel.Info));
             Texture2D = Raylib.LoadTextureFromImage(image);
             Log.LogLevel = logLevel;

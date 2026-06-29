@@ -21,7 +21,7 @@ public sealed unsafe class Font : IDisposable
     private FT_StrokerRec_* _stroker;
     private ValueDictionary<int, StrokeEntry> _strokes = [];
 
-    public Font(IEnumerable<byte> bytes, int? quality = null, string? charset = null)
+    public Font(in ReadOnlySpan<byte> bytes, int? quality = null, string? charset = null)
     {
         Game.ThrowIfNotRunning();
         Quality = quality ?? DefaultQuality;
@@ -160,18 +160,17 @@ public sealed unsafe class Font : IDisposable
 #pragma warning restore CS9080 // Use of variable in this context may expose referenced variables outside of their declaration scope
     }
 
-    private ValueList<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
+    private ValueList<Glyph> LoadGlyphs(in ReadOnlySpan<byte> bytes)
     {
-        var span = bytes.AsSpan();
-        _buffer = Marshal.AllocHGlobal(span.Length);
-        fixed (byte* bytesBuffer = span)
+        _buffer = Marshal.AllocHGlobal(bytes.Length);
+        fixed (byte* bytesBuffer = bytes)
         {
-            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, span.Length, span.Length);
+            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, bytes.Length, bytes.Length);
         }
 
         fixed (FT_FaceRec_** face = &_face)
         {
-            FtThrowIfError(FT.FT_New_Memory_Face(_ftLibrary.Native, (byte*)_buffer, span.Length, 0, face));
+            FtThrowIfError(FT.FT_New_Memory_Face(_ftLibrary.Native, (byte*)_buffer, bytes.Length, 0, face));
         }
 
         FtThrowIfError(FT.FT_Set_Char_Size(_face, 0, Quality * 64, 0, 0));

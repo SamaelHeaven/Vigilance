@@ -16,7 +16,7 @@ public readonly unsafe struct WritableImage : IDisposable
         Image = image;
     }
 
-    public WritableImage(string fileType, IEnumerable<byte> bytes)
+    public WritableImage(in ReadOnlySpan<char> fileType, in ReadOnlySpan<byte> bytes)
     {
         Image = new Image(fileType, bytes);
     }
@@ -222,7 +222,7 @@ public readonly unsafe struct WritableImage<T> : ISpanView<T>, IReadOnlyList<T>,
         _image = image;
     }
 
-    public WritableImage(string fileType, IEnumerable<byte> bytes)
+    public WritableImage(in ReadOnlySpan<char> fileType, in ReadOnlySpan<byte> bytes)
         : this(new WritableImage(fileType, bytes)) { }
 
     public WritableImage(Vector2 size)

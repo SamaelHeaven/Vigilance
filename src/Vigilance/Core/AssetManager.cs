@@ -23,7 +23,7 @@ public static class TextureAssetManager
             return _container.File(
                 ref path,
                 () => path,
-                bytes => new Texture(Path.GetExtension(path), bytes),
+                bytes => new Texture(Path.GetExtension(path.AsSpan()), bytes),
                 cacheType,
                 out texture
             );
@@ -56,7 +56,7 @@ public static class TextureAssetManager
                 @namespace,
                 assembly,
                 () => resource,
-                bytes => new Texture(Path.GetExtension(resource), bytes),
+                bytes => new Texture(Path.GetExtension(resource.AsSpan()), bytes),
                 cacheType,
                 out texture
             );
@@ -82,7 +82,7 @@ public static class ImageAssetManager
             return _container.File(
                 ref path,
                 () => path,
-                bytes => new Image(Path.GetExtension(path), bytes),
+                bytes => new Image(Path.GetExtension(path.AsSpan()), bytes),
                 cacheType,
                 out image
             );
@@ -115,7 +115,7 @@ public static class ImageAssetManager
                 @namespace,
                 assembly,
                 () => resource,
-                bytes => new Image(Path.GetExtension(resource), bytes),
+                bytes => new Image(Path.GetExtension(resource.AsSpan()), bytes),
                 cacheType,
                 out image
             );
@@ -210,7 +210,7 @@ public static class MusicAssetManager
             return _container.File(
                 ref path,
                 () => path,
-                bytes => new Music(Path.GetExtension(path), bytes),
+                bytes => new Music(Path.GetExtension(path.AsSpan()), bytes),
                 cacheType,
                 out music
             );
@@ -243,7 +243,7 @@ public static class MusicAssetManager
                 @namespace,
                 assembly,
                 () => resource,
-                bytes => new Music(Path.GetExtension(resource), bytes),
+                bytes => new Music(Path.GetExtension(resource.AsSpan()), bytes),
                 cacheType,
                 out music
             );
@@ -274,7 +274,11 @@ public static class SoundAssetManager
             return _container.File(
                 ref path,
                 () => (path, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
-                bytes => new Sound(Path.GetExtension(path), bytes, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
+                bytes => new Sound(
+                    Path.GetExtension(path.AsSpan()),
+                    bytes,
+                    maxAliases ?? Audio.Audio.DefaultSoundMaxAliases
+                ),
                 cacheType,
                 out sound
             );
@@ -310,7 +314,7 @@ public static class SoundAssetManager
                 assembly,
                 () => (resource, maxAliases ?? Audio.Audio.DefaultSoundMaxAliases),
                 bytes => new Sound(
-                    Path.GetExtension(resource),
+                    Path.GetExtension(resource.AsSpan()),
                     bytes,
                     maxAliases ?? Audio.Audio.DefaultSoundMaxAliases
                 ),

@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using Raylib_cs;
-using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Logging;
 using Vigilance.Math;
@@ -16,13 +15,12 @@ public sealed unsafe class Image : IDisposable
         RImage = image;
     }
 
-    public Image(string fileType, IEnumerable<byte> bytes)
+    public Image(in ReadOnlySpan<char> fileType, in ReadOnlySpan<byte> bytes)
     {
         using var fileTypeBuffer = fileType.ToUtf8Ptr();
-        var span = bytes.AsSpan();
-        fixed (byte* bytesBuffer = span)
+        fixed (byte* bytesBuffer = bytes)
         {
-            RImage = Raylib.LoadImageFromMemory(fileTypeBuffer, bytesBuffer, span.Length);
+            RImage = Raylib.LoadImageFromMemory(fileTypeBuffer, bytesBuffer, bytes.Length);
         }
     }
 
