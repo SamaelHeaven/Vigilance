@@ -814,24 +814,22 @@ public readonly unsafe partial record struct Entity
         return ref this;
     }
 
-    public ref readonly Entity Remove<T>()
+    public bool Remove<T>()
     {
         AssertValid();
-        Scene.Table<T>().Remove(this);
-        return ref this;
+        return Scene.Table<T>().Remove(this);
     }
 
-    public ref readonly Entity Remove(Table table)
+    public bool Remove(Table table)
     {
         AssertValid();
-        table.Remove(this);
-        return ref this;
+        return table.Remove(this);
     }
 
     public void Clear()
     {
         AssertValid();
-        foreach (var table in Tables().WithHidden())
+        foreach (var table in Scene.Tables().WithHidden())
             table.Remove(this, Table.Flags.SilentOnImmutable);
     }
 

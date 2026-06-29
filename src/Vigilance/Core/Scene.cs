@@ -12,19 +12,19 @@ namespace Vigilance.Core;
 public sealed unsafe partial class Scene
 {
     private readonly GameSystemsFunc _systemsFunc;
-    private Collections.ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
+    private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
     private int _deferredCount;
     private Action<Entity>? _destroyAction;
-    private Collections.ValueList<(int Index, int Version)> _entities = [];
-    private Collections.ValueQueue<Event> _events = [];
+    private ValueList<(int Index, int Version)> _entities = [];
+    private ValueQueue<Event> _events = [];
     private Action? _fixedUpdateAction;
-    private Collections.ValueQueue<int> _freeIndices = [];
+    private ValueQueue<int> _freeIndices = [];
     private Action? _initializeAction;
     private Action<Entity>? _instantiateAction;
     private bool _isFlushing;
-    private Collections.ValueDictionary<Type, Delegate> _listeners = [];
-    private Collections.ValueDictionary<string, ulong> _nameMap = [];
+    private ValueDictionary<Type, Delegate> _listeners = [];
+    private ValueDictionary<string, ulong> _nameMap = [];
     private Action? _onDispose;
     private Action? _postFixedUpdateAction;
     private Action? _postRenderAction;
@@ -33,11 +33,11 @@ public sealed unsafe partial class Scene
     private Action? _preRenderAction;
     private Action? _preUpdateAction;
     private Action<RenderCommands>? _renderAction;
-    private Collections.ValueList<RenderComponents?> _sparseRenderComponentsList = [];
-    private Collections.ValueList<Table?> _sparseTables = [];
+    private ValueList<RenderComponents?> _sparseRenderComponentsList = [];
+    private ValueList<Table?> _sparseTables = [];
     private Action? _startAction;
     private Action? _stopAction;
-    private Collections.ValueStack<int> _suspendStack = [];
+    private ValueStack<int> _suspendStack = [];
     private ValueList<IGameSystem> _systems = [];
     private ValueList<Table> _tables = [];
     private Action? _updateAction;
@@ -417,7 +417,6 @@ public sealed unsafe partial class Scene
         if (_suspendStack.Count == 0)
             throw new InvalidOperationException("Scene is not in a suspended state.");
         _deferredCount += _suspendStack.Pop();
-        TryFlush();
     }
 
     public Entity SetScope(in Entity entity)
@@ -505,15 +504,17 @@ public sealed unsafe partial class Scene
         }
 
         _destroyAction?.Invoke(entity);
-        var tables = entity.Tables().WithHidden();
+        var tables = Tables().WithHidden().AsValueEnumerable().Where(t => t.Type != typeof(EntityTag));
+        var entityTables = entity.Tables().WithHidden().AsValueEnumerable().Where(t => t.Type != typeof(EntityTag));
         var flag = Core.Table.Flags.SilentOnImmutable;
         do
         {
             foreach (var table in tables)
                 table.Remove(entity, flag);
             flag = Core.Table.Flags.ForceMutable;
-        } while (tables.AsValueEnumerable().Any());
+        } while (entityTables.Any());
 
+        EntityTagTable.Remove(entity, Core.Table.Flags.ForceMutable);
         if (Scope == entity)
             Scope = Core.Entity.Null;
         ref var info = ref _entities[entity.Index];

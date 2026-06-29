@@ -63,7 +63,7 @@ public abstract class Table
 
     public abstract void Set(in Entity entity, object component, Flags flags = Flags.Default);
 
-    public abstract void Remove(in Entity entity, Flags flags = Flags.Default);
+    public abstract bool Remove(in Entity entity, Flags flags = Flags.Default);
 
     internal abstract void DequeueOperation();
 
@@ -313,29 +313,29 @@ public sealed class Table<T>
         Set(entity, (T)component, flags);
     }
 
-    public override void Remove(in Entity entity, Flags flags = Flags.Default)
+    public override bool Remove(in Entity entity, Flags flags = Flags.Default)
     {
         if (Scene.IsDeferred)
         {
             _operations.Enqueue(new Operation(OperationType.Remove, entity, default!));
             Scene.Enqueue(Scene.Event.TableOperation(this));
-            return;
+            return false;
         }
 
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
-            return;
+            return false;
         var chunk = _sparseChunks[chunkIndex];
         if (chunk == null)
-            return;
+            return false;
         var withinChunk = entity.Index % SparseChunkSize;
         var sparseValue = chunk[withinChunk];
         if (sparseValue == 0)
-            return;
+            return false;
         var denseIndex = sparseValue - 1;
         if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
             if ((flags & Flags.SilentOnImmutable) != 0)
-                return;
+                return false;
             else
                 throw new InvalidOperationException(
                     $"Cannot remove {Type} because it implements {nameof(IRemoveImmutableComponent)}."
@@ -358,6 +358,7 @@ public sealed class Table<T>
         _entityIds.RemoveAt(lastDenseIndex);
         chunk[withinChunk] = 0;
         Emit(Event<T>.Remove(entity, component));
+        return true;
     }
 
     public ComponentRef<T> GetRef(int index)

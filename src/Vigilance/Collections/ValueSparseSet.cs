@@ -418,6 +418,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
             return new StructEnumerator<Enumerator, TValue>(GetEnumerator());
         }
 
+        [SuppressMessage("ReSharper", "MemberHidesStaticFromOuterClass")]
         public struct Enumerator : IStructEnumerator<TValue>, IValueEnumerator<TValue>
         {
             private readonly TStorage _values;
