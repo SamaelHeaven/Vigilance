@@ -35,7 +35,7 @@ public static unsafe partial class FileSystem
         {
             char? lastChar = null;
             FormatPathAppend(ref sb, ref lastChar, trimmedPath);
-            return sb.AsSpan().TrimEnd('/').ToString();
+            return sb.ToString();
         }
         finally
         {
@@ -58,7 +58,7 @@ public static unsafe partial class FileSystem
             char? lastChar = null;
             FormatPathAppend(ref sb, ref lastChar, trimmedPath);
 #pragma warning disable CS9080 // Use of variable in this context may expose referenced variables outside of their declaration scope
-            return sb.AsSpan().TrimEnd('/').ToUtf8Ptr();
+            return sb.AsSpan().ToUtf8Ptr();
 #pragma warning restore CS9080 // Use of variable in this context may expose referenced variables outside of their declaration scope
         }
         finally
@@ -72,8 +72,6 @@ public static unsafe partial class FileSystem
         foreach (var c in span)
         {
             var normalized = c == '\\' ? '/' : c;
-            if (normalized == '/' && lastChar == '/')
-                continue;
             sb.Append(normalized);
             lastChar = normalized;
         }
@@ -81,7 +79,9 @@ public static unsafe partial class FileSystem
 
     public static string NormalizePath(string path)
     {
-        return FormatPath(Path.Combine(WorkingDirectory, path));
+        return Path.IsPathFullyQualified(path)
+            ? FormatPath(path)
+            : FormatPath(Path.Combine(Utf8Ptr.GetString(Raylib.GetWorkingDirectory()), path));
     }
 
     public static bool ChangeDirectory(in ReadOnlySpan<char> path)
