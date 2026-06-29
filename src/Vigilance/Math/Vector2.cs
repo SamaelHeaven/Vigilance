@@ -19,7 +19,7 @@ public record struct Vector2
 {
     public float X { get; set; }
     public float Y { get; set; }
-    public static Vector2 Zero => new(0);
+    public static Vector2 Zero => default;
     public static Vector2 One => new(1);
     public static Vector2 Up => new(0, -1);
     public static Vector2 Down => new(0, 1);

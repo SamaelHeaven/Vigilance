@@ -128,7 +128,13 @@ public sealed unsafe partial class Scene
         return new SystemEnumerable<T>(this);
     }
 
-    public T? System<T>()
+    public T System<T>()
+        where T : IGameSystem
+    {
+        return SystemOrDefault<T>() ?? throw new InvalidOperationException($"Cannot find system of type {typeof(T)}");
+    }
+
+    public T? SystemOrDefault<T>()
         where T : IGameSystem
     {
         return _systems.AsValueEnumerable().OfType<T>().FirstOrDefault();
