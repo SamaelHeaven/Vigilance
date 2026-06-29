@@ -13,7 +13,20 @@ public static unsafe partial class FileSystem
 
     public static string WorkingDirectory => FormatPath(Utf8Ptr.GetString(Raylib.GetWorkingDirectory()));
 
-    public static string[] DroppedFiles => !Raylib.IsFileDropped() ? [] : Raylib.GetDroppedFiles();
+    public static string[] DroppedFiles
+    {
+        get
+        {
+            if (!Raylib.IsFileDropped())
+                return [];
+            var filePathList = Raylib.LoadDroppedFiles();
+            var files = new string[filePathList.Count];
+            for (uint i = 0; i < filePathList.Count; i++)
+                files[i] = FormatPath(filePathList[i]);
+            Raylib.UnloadDroppedFiles(filePathList);
+            return files;
+        }
+    }
 
     internal static void Initialize()
     {
