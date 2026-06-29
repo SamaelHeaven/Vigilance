@@ -442,6 +442,7 @@ public sealed unsafe partial class Scene
 
     public void Clear()
     {
+        ThrowIfNotConfigured();
         if (IsDeferred)
         {
             Enqueue(Event.Clear());
@@ -567,7 +568,8 @@ public sealed unsafe partial class Scene
     {
         if (IsStarted)
             Stop();
-        Clear();
+        if (IsInitialized)
+            Clear();
         IsInitialized = false;
     }
 
