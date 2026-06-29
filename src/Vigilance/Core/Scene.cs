@@ -11,11 +11,11 @@ namespace Vigilance.Core;
 
 public sealed unsafe partial class Scene
 {
-    private readonly HashSet<ulong> _destroyedEntities = [];
     private Collections.ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
     private int _deferredCount;
     private Action<Entity>? _destroyAction;
+    private Collections.ValueList<bool> _destroyedEntities = [];
     private Collections.ValueList<(int Index, int Version)> _entities = [];
     private Collections.ValueQueue<Event> _events = [];
     private Action? _fixedUpdateAction;
@@ -462,8 +462,15 @@ public sealed unsafe partial class Scene
             {
                 // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
                 foreach (var entity in entities)
-                    if (_destroyedEntities.Add(entity.Id))
-                        Enqueue(Event.Destroyed(entity));
+                {
+                    _destroyedEntities.Count = _destroyedEntities.Count.Max(entity.Index + 1);
+                    ref var destroyed = ref _destroyedEntities[entity.Index];
+                    if (destroyed)
+                        continue;
+                    destroyed = true;
+                    Enqueue(Event.Destroyed(entity));
+                }
+
                 foreach (var table in tables)
                 {
                     var entityIds = table.EntityIds.AsSpan();
@@ -477,6 +484,7 @@ public sealed unsafe partial class Scene
         } while (tables.Any(t => t.Count != 0));
 
         Debug.Assert(!IsDeferred);
+        _destroyedEntities.AsSpan().Clear();
         _destroyedEntities.Clear();
         var nameEntityIds = NameTable.EntityIds.AsSpan();
         var nameComponents = NameTable.Components.AsSpan();
