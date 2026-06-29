@@ -442,20 +442,18 @@ public sealed unsafe partial class Scene
 
     public void Clear()
     {
-        SuspendDefer();
-        try
+        if (IsDeferred)
         {
-            var entities = Entities().WithDisabled();
-            do
-            {
-                foreach (var entity in entities)
-                    entity.Destroy();
-            } while (entities.AsValueEnumerable().Any());
+            Enqueue(Event.Clear());
+            return;
         }
-        finally
+
+        var entities = Entities().WithDisabled().Deferred();
+        do
         {
-            ResumeDefer();
-        }
+            foreach (var entity in entities)
+                entity.Destroy();
+        } while (entities.AsValueEnumerable().Any());
     }
 
     internal RenderComponents<T> RenderComponents<T>()
@@ -588,6 +586,9 @@ public sealed unsafe partial class Scene
                         break;
                     case EventType.Destroy:
                         Destroy(new Entity(@event.EntityId, this));
+                        break;
+                    case EventType.Clear:
+                        Clear();
                         break;
                     case EventType.Custom:
                         _customEvents[(Type)@event.Data].DequeueAction.Invoke();
@@ -1070,6 +1071,11 @@ public sealed unsafe partial class Scene
             return new Event(EventType.Destroy, entity.Id, null!);
         }
 
+        public static Event Clear()
+        {
+            return new Event(EventType.Clear, 0, null!);
+        }
+
         public static Event Custom(Type type)
         {
             return new Event(EventType.Custom, 0, type);
@@ -1090,6 +1096,7 @@ public sealed unsafe partial class Scene
     {
         Instantiate,
         Destroy,
+        Clear,
         Custom,
         TableOperation,
         TableEvent,
