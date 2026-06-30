@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using ZLinq;
 
@@ -10,6 +11,7 @@ public sealed class SpriteAnimationController
 {
     private readonly ValueDictionary<string, SpriteAnimation> _animations;
 
+    [OverloadResolutionPriority(1)]
     public SpriteAnimationController(params ReadOnlySpan<(string, SpriteAnimation)> animations)
     {
         if (animations.Length == 0)
@@ -18,6 +20,7 @@ public sealed class SpriteAnimationController
         Current = animations[0].Item1;
     }
 
+    [OverloadResolutionPriority(1)]
     public SpriteAnimationController(params ReadOnlySpan<KeyValuePair<string, SpriteAnimation>> animations)
     {
         if (animations.Length == 0)

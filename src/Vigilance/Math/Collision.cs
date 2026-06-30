@@ -124,10 +124,11 @@ public static class Collision
 
     public static bool CheckPointPolygon(Vector2 point, IEnumerable<Vector2> polygon)
     {
-        return CheckPointPolygonSpan(point, polygon.AsSpan());
+        return CheckPointPolygon(point, polygon.AsSpan());
     }
 
-    public static bool CheckPointPolygonSpan(Vector2 point, in ReadOnlySpan<Vector2> span)
+    [OverloadResolutionPriority(1)]
+    public static bool CheckPointPolygon(Vector2 point, in ReadOnlySpan<Vector2> span)
     {
         var collision = false;
         if (span.Length <= 2)
@@ -143,15 +144,16 @@ public static class Collision
 
     public static bool CheckPointQuad(Vector2 point, in Quad quad)
     {
-        return CheckPointPolygonSpan(point, quad);
+        return CheckPointPolygon(point, quad);
     }
 
     public static bool CheckPolygons(IEnumerable<Vector2> polygon1, IEnumerable<Vector2> polygon2)
     {
-        return CheckPolygonsSpan(polygon1.AsSpan(), polygon2.AsSpan());
+        return CheckPolygons(polygon1.AsSpan(), polygon2.AsSpan());
     }
 
-    public static bool CheckPolygonsSpan(in ReadOnlySpan<Vector2> polygon1, in ReadOnlySpan<Vector2> polygon2)
+    [OverloadResolutionPriority(1)]
+    public static bool CheckPolygons(in ReadOnlySpan<Vector2> polygon1, in ReadOnlySpan<Vector2> polygon2)
     {
         if (polygon1.Length < 3 || polygon2.Length < 3)
             return false;
@@ -192,7 +194,7 @@ public static class Collision
 
     public static bool CheckQuads(in Quad a, in Quad b)
     {
-        return CheckPolygonsSpan(a, b);
+        return CheckPolygons(a, b);
     }
 
     public static bool CheckLines(Vector2 start1, Vector2 end1, Vector2 start2, Vector2 end2)

@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using ZLinq;
 
 namespace Vigilance.Collections;
@@ -334,11 +333,6 @@ public readonly ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueLi
         return _list.TrueForAll(match);
     }
 
-    public static implicit operator ValueListRef<T>(in ValueList<T> list)
-    {
-        return new ValueListRef<T>(ref Unsafe.AsRef(in list));
-    }
-
     public static implicit operator ValueListView<T>(ValueListRef<T> list)
     {
         return new ValueListView<T>(ref list._list);
@@ -455,11 +449,6 @@ public readonly ref struct ValueQueueRef<T> : IReadOnlyCollection<T>, IStructEnu
         return _queue.EnsureCapacity(capacity);
     }
 
-    public static implicit operator ValueQueueRef<T>(in ValueQueue<T> queue)
-    {
-        return new ValueQueueRef<T>(ref Unsafe.AsRef(in queue));
-    }
-
     public static implicit operator ValueQueueView<T>(ValueQueueRef<T> queue)
     {
         return new ValueQueueView<T>(ref queue._queue);
@@ -574,11 +563,6 @@ public readonly ref struct ValueStackRef<T> : IReadOnlyCollection<T>, IStructEnu
     public T[] ToArray()
     {
         return _stack.ToArray();
-    }
-
-    public static implicit operator ValueStackRef<T>(in ValueStack<T> stack)
-    {
-        return new ValueStackRef<T>(ref Unsafe.AsRef(in stack));
     }
 
     public static implicit operator ValueStackView<T>(ValueStackRef<T> stack)
@@ -786,11 +770,6 @@ public readonly ref struct ValueDictionaryRef<TKey, TValue>
         return _dictionary.TryGetValue(key, out value);
     }
 
-    public static implicit operator ValueDictionaryRef<TKey, TValue>(in ValueDictionary<TKey, TValue> dictionary)
-    {
-        return new ValueDictionaryRef<TKey, TValue>(ref Unsafe.AsRef(in dictionary));
-    }
-
     public static implicit operator ValueDictionaryView<TKey, TValue>(ValueDictionaryRef<TKey, TValue> dictionary)
     {
         return new ValueDictionaryView<TKey, TValue>(ref dictionary._dictionary);
@@ -958,17 +937,44 @@ public readonly ref struct ValueSparseSetRef<TKey, TValue, TStorage>
         return _sparseSet.TryGetValue(key, out value);
     }
 
-    public static implicit operator ValueSparseSetRef<TKey, TValue, TStorage>(
-        in ValueSparseSet<TKey, TValue, TStorage> sparseSet
-    )
-    {
-        return new ValueSparseSetRef<TKey, TValue, TStorage>(ref Unsafe.AsRef(in sparseSet));
-    }
-
     public static implicit operator ValueSparseSetView<TKey, TValue, TStorage>(
         ValueSparseSetRef<TKey, TValue, TStorage> sparseSet
     )
     {
         return new ValueSparseSetView<TKey, TValue, TStorage>(ref sparseSet._sparseSet);
+    }
+}
+
+public static class CollectionRefExtensions
+{
+    public static ValueListRef<T> AsRef<T>(this ref ValueList<T> list)
+    {
+        return new ValueListRef<T>(ref list);
+    }
+
+    public static ValueQueueRef<T> AsRef<T>(this ref ValueQueue<T> queue)
+    {
+        return new ValueQueueRef<T>(ref queue);
+    }
+
+    public static ValueStackRef<T> AsRef<T>(this ref ValueStack<T> stack)
+    {
+        return new ValueStackRef<T>(ref stack);
+    }
+
+    public static ValueDictionaryRef<TKey, TValue> AsRef<TKey, TValue>(
+        this ref ValueDictionary<TKey, TValue> dictionary
+    )
+        where TKey : notnull
+    {
+        return new ValueDictionaryRef<TKey, TValue>(ref dictionary);
+    }
+
+    public static ValueSparseSetRef<TKey, TValue, TStorage> AsRef<TKey, TValue, TStorage>(
+        this ref ValueSparseSet<TKey, TValue, TStorage> sparseSet
+    )
+        where TStorage : IList<TValue>
+    {
+        return new ValueSparseSetRef<TKey, TValue, TStorage>(ref sparseSet);
     }
 }

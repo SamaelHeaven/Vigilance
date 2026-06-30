@@ -35,14 +35,14 @@ public static class Input
 
 public sealed class InputConfig
 {
-    public InputButton? ExitButton { get; set; } = null;
-    public InputButton? FullscreenButton { get; set; } = null;
+    public InputButton ExitButton { get; set; } = new();
+    public InputButton FullscreenButton { get; set; } = new();
 
     public InputAxis HorizontalAxis { get; set; } =
-        new(negativeKeys: [Key.Left, Key.A], positiveKeys: [Key.Right, Key.D], gamepadAxes: [GamepadAxis.LeftX]);
+        new([Key.Left, Key.A], [Key.Right, Key.D], gamepadAxes: [GamepadAxis.LeftX]);
 
     public InputAxis VerticalAxis { get; set; } =
-        new(negativeKeys: [Key.Up, Key.W], positiveKeys: [Key.Down, Key.S], gamepadAxes: [GamepadAxis.LeftY]);
+        new([Key.Up, Key.W], [Key.Down, Key.S], gamepadAxes: [GamepadAxis.LeftY]);
 }
 
 public static class InputConfigExtensions

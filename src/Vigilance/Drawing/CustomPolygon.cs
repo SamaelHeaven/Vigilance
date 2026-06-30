@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -10,9 +11,15 @@ namespace Vigilance.Drawing;
 
 public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
 {
-    public CustomPolygon() { }
+    private ValueList<Vector2> _points;
+
+    public CustomPolygon()
+    {
+        _points = [];
+    }
 
     public CustomPolygon(Color fill)
+        : this()
     {
         Fill = fill;
     }
@@ -28,20 +35,20 @@ public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
         Fill = fill;
     }
 
+    [OverloadResolutionPriority(1)]
     public CustomPolygon(in ReadOnlySpan<Vector2> points)
     {
         _points = points.AsValueEnumerable().ToValueList();
     }
 
+    [OverloadResolutionPriority(1)]
     public CustomPolygon(in ReadOnlySpan<Vector2> points, Color fill)
         : this(points)
     {
         Fill = fill;
     }
 
-    private ValueList<Vector2> _points = [];
-
-    public ValueListRef<Vector2> Points => _points;
+    public ValueListRef<Vector2> Points => _points.AsRef();
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
@@ -71,10 +78,11 @@ public static class CustomPolygonExtensions
     {
         public void FillCustomPolygon(IEnumerable<Vector2> points, Color? color = null, Camera? camera = null)
         {
-            graphics.FillCustomPolygonSpan(points.AsSpan(), color, camera);
+            graphics.FillCustomPolygon(points.AsSpan(), color, camera);
         }
 
-        public unsafe void FillCustomPolygonSpan(
+        [OverloadResolutionPriority(1)]
+        public unsafe void FillCustomPolygon(
             in ReadOnlySpan<Vector2> points,
             Color? color = null,
             Camera? camera = null
@@ -84,7 +92,7 @@ public static class CustomPolygonExtensions
             if (
                 colorValue == Color.Transparent
                 || points.Length < 3
-                || (graphics.Culling() && !graphics.IsPolygonInBoundsSpan(points, camera))
+                || (graphics.Culling() && !graphics.IsPolygonInBounds(points, camera))
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -103,10 +111,11 @@ public static class CustomPolygonExtensions
             Camera? camera = null
         )
         {
-            graphics.StrokeCustomPolygonSpan(points.AsSpan(), color, strokeWidth, camera);
+            graphics.StrokeCustomPolygon(points.AsSpan(), color, strokeWidth, camera);
         }
 
-        public void StrokeCustomPolygonSpan(
+        [OverloadResolutionPriority(1)]
+        public void StrokeCustomPolygon(
             in ReadOnlySpan<Vector2> points,
             Color? color = null,
             float? strokeWidth = null,
@@ -119,7 +128,7 @@ public static class CustomPolygonExtensions
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
                 || points.Length < 3
-                || (graphics.Culling() && !graphics.IsPolygonInBoundsSpan(points, camera, strokeWidthValue * 0.5f))
+                || (graphics.Culling() && !graphics.IsPolygonInBounds(points, camera, strokeWidthValue * 0.5f))
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -171,13 +180,13 @@ public static class CustomPolygonExtensions
                 Coordinates.Scale(span, scale, position);
                 if (order == DrawOrder.StrokeThenFill)
                 {
-                    graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
-                    graphics.FillCustomPolygonSpan(span, fill, camera);
+                    graphics.StrokeCustomPolygon(span, stroke, strokeWidth, camera);
+                    graphics.FillCustomPolygon(span, fill, camera);
                 }
                 else
                 {
-                    graphics.FillCustomPolygonSpan(span, fill, camera);
-                    graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+                    graphics.FillCustomPolygon(span, fill, camera);
+                    graphics.StrokeCustomPolygon(span, stroke, strokeWidth, camera);
                 }
             }
             finally

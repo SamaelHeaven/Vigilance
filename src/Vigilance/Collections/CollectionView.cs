@@ -1507,7 +1507,7 @@ public struct SpanViewEnumerator<TValue> : IStructEnumerator<TValue>, ISpanView<
     }
 }
 
-public static class ViewExtensions
+public static class CollectionViewExtensions
 {
     public static ListView<T> AsView<T>(this List<T> list)
     {
@@ -1612,7 +1612,9 @@ public static class ViewExtensions
         return stack;
     }
 
-    public static ValueDictionaryView<TKey, TValue> AsView<TKey, TValue>(this ValueDictionaryRef<TKey, TValue> dictionary)
+    public static ValueDictionaryView<TKey, TValue> AsView<TKey, TValue>(
+        this ValueDictionaryRef<TKey, TValue> dictionary
+    )
         where TKey : notnull
     {
         return dictionary;
