@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using LinkDotNet.StringBuilder;
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -13,7 +13,6 @@ public static class Keyboard
     private static ValueList<Key> _downKeys = [];
     private static ValueList<Key> _pressedKeys = [];
     private static ValueList<Key> _releasedKeys = [];
-    private static readonly StringBuilder _typedString = new();
     private static ValueList<Key> _upKeys = [];
 
     static Keyboard()
@@ -61,7 +60,6 @@ public static class Keyboard
 
     private static void Reset()
     {
-        _typedString.Clear();
         _downKeys.Clear();
         _upKeys.Clear();
         _upKeys.AddRange(_keyValues);
@@ -71,24 +69,24 @@ public static class Keyboard
 
     private static void UpdateState()
     {
-        _typedString.Clear();
+        using var typedString = new ValueStringBuilder(stackalloc char[32]);
         for (var c = (char)Raylib.GetCharPressed(); c != 0; c = (char)Raylib.GetCharPressed())
-            _typedString.Append(c);
-        TypedString = _typedString.ToString();
+            typedString.Append(c);
+        TypedString = typedString.ToString();
         _currentKeys.Clear();
         foreach (var key in _keyValues)
             if (Raylib.IsKeyDown((KeyboardKey)key))
                 _currentKeys.Add(key);
         _pressedKeys.Clear();
         _pressedKeys.AddRange(_currentKeys);
-        _pressedKeys.RemoveAll(_downKeys.Contains);
+        _pressedKeys.RemoveAll(_downKeys);
         _releasedKeys.Clear();
         _releasedKeys.AddRange(_downKeys);
-        _releasedKeys.RemoveAll(_currentKeys.Contains);
+        _releasedKeys.RemoveAll(_currentKeys);
         _downKeys.Clear();
         _downKeys.AddRange(_currentKeys);
         _upKeys.Clear();
         _upKeys.AddRange(_keyValues);
-        _upKeys.RemoveAll(_currentKeys.Contains);
+        _upKeys.RemoveAll(_currentKeys);
     }
 }

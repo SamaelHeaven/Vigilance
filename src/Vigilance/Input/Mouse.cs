@@ -142,14 +142,14 @@ public static class Mouse
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
         _pressedButtons.AddRange(_currentButtons);
-        _pressedButtons.RemoveAll(_downButtons.Contains);
+        _pressedButtons.RemoveAll(_downButtons);
         _releasedButtons.Clear();
         _releasedButtons.AddRange(_downButtons);
-        _releasedButtons.RemoveAll(_currentButtons.Contains);
+        _releasedButtons.RemoveAll(_currentButtons);
         _downButtons.Clear();
         _downButtons.AddRange(_currentButtons);
         _upButtons.Clear();
         _upButtons.AddRange(_buttonValues);
-        _upButtons.RemoveAll(_currentButtons.Contains);
+        _upButtons.RemoveAll(_currentButtons);
     }
 }

@@ -109,6 +109,17 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
         _ref.AddRange(collection);
     }
 
+    public void AddRange(in ValueList<T> list)
+    {
+        _ref.AddRange(list);
+    }
+
+    [OverloadResolutionPriority(1)]
+    public void AddRange(in ReadOnlySpan<T> span)
+    {
+        _ref.AddRange(span);
+    }
+
     public readonly int BinarySearch(int index, int count, in T item, IComparer<T>? comparer)
     {
         return _ref.BinarySearch(index, count, item, comparer);
@@ -299,6 +310,16 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
         return _ref.RemoveAll(match);
     }
 
+    public int RemoveAll(in ValueList<T> list)
+    {
+        return _ref.RemoveAll(list);
+    }
+
+    public int RemoveAll(in ReadOnlySpan<T> span)
+    {
+        return _ref.RemoveAll(span);
+    }
+
     public void RemoveAt(int index)
     {
         _ref.RemoveAt(index);
@@ -357,6 +378,31 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
     public static implicit operator ValueListView<T>(in ValueListRef<T> list)
     {
         return new ValueListView<T>(ref list._ref);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueListRef<>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueListRef<>)} is not supported.");
+    }
+
+    public readonly bool Equals(in ValueListRef<T> other)
+    {
+        return Unsafe.AreSame(ref _ref, ref other._ref);
+    }
+
+    public static bool operator ==(in ValueListRef<T> left, in ValueListRef<T> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(in ValueListRef<T> left, in ValueListRef<T> right)
+    {
+        return !left.Equals(right);
     }
 }
 
@@ -494,6 +540,31 @@ public ref struct ValueQueueRef<T> : IReadOnlyCollection<T>, IStructEnumerable<V
     {
         return new ValueQueueView<T>(ref queue._ref);
     }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueQueueRef<>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueQueueRef<>)} is not supported.");
+    }
+
+    public readonly bool Equals(in ValueQueueRef<T> other)
+    {
+        return Unsafe.AreSame(ref _ref, ref other._ref);
+    }
+
+    public static bool operator ==(in ValueQueueRef<T> left, in ValueQueueRef<T> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(in ValueQueueRef<T> left, in ValueQueueRef<T> right)
+    {
+        return !left.Equals(right);
+    }
 }
 
 public ref struct ValueStackRef<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueStack<T>.Enumerator, T>
@@ -629,6 +700,31 @@ public ref struct ValueStackRef<T> : IReadOnlyCollection<T>, IStructEnumerable<V
     public static implicit operator ValueStackView<T>(ValueStackRef<T> stack)
     {
         return new ValueStackView<T>(ref stack._ref);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueStackRef<>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueStackRef<>)} is not supported.");
+    }
+
+    public readonly bool Equals(in ValueStackRef<T> other)
+    {
+        return Unsafe.AreSame(ref _ref, ref other._ref);
+    }
+
+    public static bool operator ==(in ValueStackRef<T> left, in ValueStackRef<T> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(in ValueStackRef<T> left, in ValueStackRef<T> right)
+    {
+        return !left.Equals(right);
     }
 }
 
@@ -855,6 +951,33 @@ public ref struct ValueDictionaryRef<TKey, TValue>
     {
         return new ValueDictionaryView<TKey, TValue>(ref dictionary._ref);
     }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueDictionaryRef<,>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException(
+            $"{nameof(GetHashCode)}() on {nameof(ValueDictionaryRef<,>)} is not supported."
+        );
+    }
+
+    public readonly bool Equals(in ValueDictionaryRef<TKey, TValue> other)
+    {
+        return Unsafe.AreSame(ref _ref, ref other._ref);
+    }
+
+    public static bool operator ==(in ValueDictionaryRef<TKey, TValue> left, in ValueDictionaryRef<TKey, TValue> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(in ValueDictionaryRef<TKey, TValue> left, in ValueDictionaryRef<TKey, TValue> right)
+    {
+        return !left.Equals(right);
+    }
 }
 
 public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
@@ -1046,6 +1169,39 @@ public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
     )
     {
         return new ValueSparseSetView<TKey, TValue, TStorage>(ref sparseSet._ref);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueSparseSetRef<,,>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException(
+            $"{nameof(GetHashCode)}() on {nameof(ValueSparseSetRef<,,>)} is not supported."
+        );
+    }
+
+    public readonly bool Equals(in ValueSparseSetRef<TKey, TValue, TStorage> other)
+    {
+        return Unsafe.AreSame(ref _ref, ref other._ref);
+    }
+
+    public static bool operator ==(
+        in ValueSparseSetRef<TKey, TValue, TStorage> left,
+        in ValueSparseSetRef<TKey, TValue, TStorage> right
+    )
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(
+        in ValueSparseSetRef<TKey, TValue, TStorage> left,
+        in ValueSparseSetRef<TKey, TValue, TStorage> right
+    )
+    {
+        return !left.Equals(right);
     }
 }
 
