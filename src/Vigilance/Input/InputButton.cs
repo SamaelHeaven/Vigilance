@@ -5,35 +5,34 @@ namespace Vigilance.Input;
 
 public sealed class InputButton
 {
-    private ValueList<GamepadButton> _gamepadButtons;
-    private ValueList<Gamepad> _gamepads;
-    private ValueList<Key> _keys;
-    private ValueList<MouseButton> _mouseButtons;
+    private ValueList<GamepadButton> _gamepadButtons = [];
+    private ValueList<Gamepad> _gamepads = Gamepad.Gamepads.AsValueEnumerable().ToValueList();
+    private ValueList<Key> _keys = [];
+    private ValueList<MouseButton> _mouseButtons = [];
 
-    public InputButton(
-        in ReadOnlySpan<Key> keys = default,
-        in ReadOnlySpan<MouseButton> mouseButtons = default,
-        in ReadOnlySpan<GamepadButton> gamepadButtons = default
-    )
-        : this(Gamepad.Gamepads, keys, mouseButtons, gamepadButtons) { }
-
-    public InputButton(
-        in ReadOnlySpan<Gamepad> gamepads,
-        in ReadOnlySpan<Key> keys = default,
-        in ReadOnlySpan<MouseButton> mouseButtons = default,
-        in ReadOnlySpan<GamepadButton> gamepadButtons = default
-    )
+    public ValueListRef<GamepadButton> GamepadButtons
     {
-        _gamepads = gamepads.AsValueEnumerable().ToValueList();
-        _keys = keys.AsValueEnumerable().ToValueList();
-        _mouseButtons = mouseButtons.AsValueEnumerable().ToValueList();
-        _gamepadButtons = gamepadButtons.AsValueEnumerable().ToValueList();
+        get => _gamepadButtons.AsRef();
+        set => value.CopyTo(ref _gamepadButtons);
     }
 
-    public ValueListRef<Gamepad> Gamepads => _gamepads.AsRef();
-    public ValueListRef<Key> Keys => _keys.AsRef();
-    public ValueListRef<MouseButton> MouseButtons => _mouseButtons.AsRef();
-    public ValueListRef<GamepadButton> GamepadButtons => _gamepadButtons.AsRef();
+    public ValueListRef<Gamepad> Gamepads
+    {
+        get => _gamepads.AsRef();
+        set => value.CopyTo(ref _gamepads);
+    }
+
+    public ValueListRef<Key> Keys
+    {
+        get => _keys.AsRef();
+        set => value.CopyTo(ref _keys);
+    }
+
+    public ValueListRef<MouseButton> MouseButtons
+    {
+        get => _mouseButtons.AsRef();
+        set => value.CopyTo(ref _mouseButtons);
+    }
 
     public bool IsDown => IsKeyDown || IsMouseDown || IsGamepadDown;
 
@@ -76,8 +75,18 @@ public sealed class InputButton
             .Cross(_gamepadButtons.AsValueEnumerable())
             .Any(x => x.Left.IsButtonReleased(x.Right));
 
+    public static implicit operator InputButton(GamepadButton button)
+    {
+        return new InputButton { GamepadButtons = [button] };
+    }
+
     public static implicit operator InputButton(Key key)
     {
-        return new InputButton([key]);
+        return new InputButton { Keys = [key] };
+    }
+
+    public static implicit operator InputButton(MouseButton button)
+    {
+        return new InputButton { MouseButtons = [button] };
     }
 }

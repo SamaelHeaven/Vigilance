@@ -39,10 +39,20 @@ public sealed class InputConfig
     public InputButton FullscreenButton { get; set; } = new();
 
     public InputAxis HorizontalAxis { get; set; } =
-        new([Key.Left, Key.A], [Key.Right, Key.D], gamepadAxes: [GamepadAxis.LeftX]);
+        new()
+        {
+            NegativeKeys = [Key.Left, Key.A],
+            PositiveKeys = [Key.Right, Key.D],
+            GamepadAxes = [GamepadAxis.LeftX],
+        };
 
     public InputAxis VerticalAxis { get; set; } =
-        new([Key.Up, Key.W], [Key.Down, Key.S], gamepadAxes: [GamepadAxis.LeftY]);
+        new()
+        {
+            NegativeKeys = [Key.Up, Key.W],
+            PositiveKeys = [Key.Down, Key.S],
+            GamepadAxes = [GamepadAxis.LeftY],
+        };
 }
 
 public static class InputConfigExtensions

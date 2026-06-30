@@ -7,52 +7,48 @@ namespace Vigilance.Input;
 
 public sealed class InputAxis
 {
-    private ValueList<GamepadAxis> _gamepadAxes;
-    private ValueList<Gamepad> _gamepads;
-    private ValueList<GamepadButton> _negativeGamepadButtons;
-    private ValueList<Key> _negativeKeys;
-    private ValueList<GamepadButton> _positiveGamepadButtons;
-    private ValueList<Key> _positiveKeys;
+    private ValueList<GamepadAxis> _gamepadAxes = [];
+    private ValueList<Gamepad> _gamepads = Gamepad.Gamepads.AsValueEnumerable().ToValueList();
+    private ValueList<GamepadButton> _negativeGamepadButtons = [];
+    private ValueList<Key> _negativeKeys = [];
+    private ValueList<GamepadButton> _positiveGamepadButtons = [];
+    private ValueList<Key> _positiveKeys = [];
 
-    public InputAxis(
-        in ReadOnlySpan<Key> negativeKeys = default,
-        in ReadOnlySpan<Key> positiveKeys = default,
-        in ReadOnlySpan<GamepadButton> negativeGamepadButtons = default,
-        in ReadOnlySpan<GamepadButton> positiveGamepadButtons = default,
-        in ReadOnlySpan<GamepadAxis> gamepadAxes = default
-    )
-        : this(
-            Gamepad.Gamepads,
-            negativeKeys,
-            positiveKeys,
-            negativeGamepadButtons,
-            positiveGamepadButtons,
-            gamepadAxes
-        ) { }
-
-    public InputAxis(
-        in ReadOnlySpan<Gamepad> gamepads,
-        in ReadOnlySpan<Key> negativeKeys = default,
-        in ReadOnlySpan<Key> positiveKeys = default,
-        in ReadOnlySpan<GamepadButton> negativeGamepadButtons = default,
-        in ReadOnlySpan<GamepadButton> positiveGamepadButtons = default,
-        in ReadOnlySpan<GamepadAxis> gamepadAxes = default
-    )
+    public ValueListRef<GamepadAxis> GamepadAxes
     {
-        _gamepads = gamepads.AsValueEnumerable().ToValueList();
-        _negativeKeys = negativeKeys.AsValueEnumerable().ToValueList();
-        _positiveKeys = positiveKeys.AsValueEnumerable().ToValueList();
-        _negativeGamepadButtons = negativeGamepadButtons.AsValueEnumerable().ToValueList();
-        _positiveGamepadButtons = positiveGamepadButtons.AsValueEnumerable().ToValueList();
-        _gamepadAxes = gamepadAxes.AsValueEnumerable().ToValueList();
+        get => _gamepadAxes.AsRef();
+        set => value.CopyTo(ref _gamepadAxes);
     }
 
-    public ValueListRef<GamepadAxis> GamepadAxes => _gamepadAxes.AsRef();
-    public ValueListRef<Gamepad> Gamepads => _gamepads.AsRef();
-    public ValueListRef<GamepadButton> NegativeGamepadButtons => _negativeGamepadButtons.AsRef();
-    public ValueListRef<Key> NegativeKeys => _negativeKeys.AsRef();
-    public ValueListRef<GamepadButton> PositiveGamepadButtons => _positiveGamepadButtons.AsRef();
-    public ValueListRef<Key> PositiveKeys => _positiveKeys.AsRef();
+    public ValueListRef<Gamepad> Gamepads
+    {
+        get => _gamepads.AsRef();
+        set => value.CopyTo(ref _gamepads);
+    }
+
+    public ValueListRef<GamepadButton> NegativeGamepadButtons
+    {
+        get => _negativeGamepadButtons.AsRef();
+        set => value.CopyTo(ref _negativeGamepadButtons);
+    }
+
+    public ValueListRef<Key> NegativeKeys
+    {
+        get => _negativeKeys.AsRef();
+        set => value.CopyTo(ref _negativeKeys);
+    }
+
+    public ValueListRef<GamepadButton> PositiveGamepadButtons
+    {
+        get => _positiveGamepadButtons.AsRef();
+        set => value.CopyTo(ref _positiveGamepadButtons);
+    }
+
+    public ValueListRef<Key> PositiveKeys
+    {
+        get => _positiveKeys.AsRef();
+        set => value.CopyTo(ref _positiveKeys);
+    }
 
     public float DeadZone { get; set; } = 0;
 

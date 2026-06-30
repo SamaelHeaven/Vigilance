@@ -57,7 +57,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public int Count
     {
-        get => _size;
+        readonly get => _size;
         set
         {
             ArgumentOutOfRangeException.ThrowIfNegative(value);
@@ -262,7 +262,23 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly void CopyTo(T[] array, int arrayIndex = 0)
     {
-        Array.Copy(_items, 0, array, arrayIndex, _size);
+        CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    public readonly void CopyTo(in Span<T> span, int arrayIndex = 0)
+    {
+        if (arrayIndex < 0 || arrayIndex > span.Length)
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        if (span.Length - arrayIndex < _size)
+            throw new ArgumentException("Destination array was not long enough.");
+        AsSpan().CopyTo(span[arrayIndex..]);
+    }
+
+    public readonly void CopyTo(ref ValueList<T> list)
+    {
+        list.Clear();
+        list.Count = _size;
+        CopyTo(list.AsSpan());
     }
 
     public int EnsureCapacity(int capacity)

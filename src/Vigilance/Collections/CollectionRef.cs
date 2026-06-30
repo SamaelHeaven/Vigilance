@@ -1,76 +1,87 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using ZLinq;
 
 namespace Vigilance.Collections;
 
-public readonly ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator, T>, IReadOnlySpan<T>
+public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator, T>, IReadOnlySpan<T>
 {
-    private readonly ref ValueList<T> _list;
+    private readonly ref ValueList<T> _ref;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    private ValueList<T> _list;
+
+    public ValueListRef()
+    {
+        _list = [];
+        _ref = ref Unsafe.AsRef(ref _list);
+    }
 
     public ValueListRef(ref ValueList<T> list)
     {
-        _list = ref list;
+        _ref = ref list;
     }
 
     public int Count
     {
-        get => _list.Count;
-        set => _list.Count = value;
+        readonly get => _ref.Count;
+        set => _ref.Count = value;
     }
 
-    public bool IsReadOnly => _list.IsReadOnly;
+    public readonly bool IsReadOnly => _ref.IsReadOnly;
 
     public int Capacity
     {
-        get => _list.Capacity;
-        set => _list.Capacity = value;
+        readonly get => _ref.Capacity;
+        set => _ref.Capacity = value;
     }
 
-    public ref T this[int index] => ref _list[index];
+    public readonly ref T this[int index] => ref _ref[index];
 
     T IList<T>.this[int index]
     {
-        get => _list[index];
-        set => _list[index] = value;
+        get => _ref[index];
+        set => _ref[index] = value;
     }
 
-    public ValueList<T>.Enumerator GetEnumerator()
+    public readonly ValueList<T>.Enumerator GetEnumerator()
     {
-        return _list.GetEnumerator();
+        return _ref.GetEnumerator();
     }
 
-    public ValueEnumerable<ValueList<T>.Enumerator, T> AsValueEnumerable()
+    public readonly ValueEnumerable<ValueList<T>.Enumerator, T> AsValueEnumerable()
     {
-        return _list.AsValueEnumerable();
+        return _ref.AsValueEnumerable();
     }
 
-    public Span<T> AsSpan()
+    public readonly Span<T> AsSpan()
     {
-        return _list.AsSpan();
+        return _ref.AsSpan();
     }
 
-    public T[] AsArray(out int length)
+    public readonly T[] AsArray(out int length)
     {
-        return _list.AsArray(out length);
+        return _ref.AsArray(out length);
     }
 
-    public ValueListView<T>.Enumerable AsEnumerable()
+    public readonly ValueListView<T>.Enumerable AsEnumerable()
     {
-        return new ValueListView<T>.Enumerable(_list);
+        return new ValueListView<T>.Enumerable(_ref);
     }
 
-    IEnumerator<T> IEnumerable<T>.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
+    readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
     {
         return GetEnumerator();
     }
 
-    ValueEnumerable<StructEnumerator<ValueList<T>.Enumerator, T>, T> IStructEnumerable<
+    readonly IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    readonly ValueEnumerable<StructEnumerator<ValueList<T>.Enumerator, T>, T> IStructEnumerable<
         ValueList<T>.Enumerator,
         T
     >.AsValueEnumerable()
@@ -78,310 +89,330 @@ public readonly ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueLi
         return new StructEnumerator<ValueList<T>.Enumerator, T>(GetEnumerator());
     }
 
-    ReadOnlySpan<T> IReadOnlySpan<T>.AsSpan()
+    readonly ReadOnlySpan<T> IReadOnlySpan<T>.AsSpan()
     {
         return AsSpan();
     }
 
     public void Add(in T item)
     {
-        _list.Add(item);
+        _ref.Add(item);
     }
 
     void ICollection<T>.Add(T item)
     {
-        _list.Add(item);
+        _ref.Add(item);
     }
 
     public void AddRange(IEnumerable<T> collection)
     {
-        _list.AddRange(collection);
+        _ref.AddRange(collection);
     }
 
-    public int BinarySearch(int index, int count, in T item, IComparer<T>? comparer)
+    public readonly int BinarySearch(int index, int count, in T item, IComparer<T>? comparer)
     {
-        return _list.BinarySearch(index, count, item, comparer);
+        return _ref.BinarySearch(index, count, item, comparer);
     }
 
-    public int BinarySearch(in T item)
+    public readonly int BinarySearch(in T item)
     {
-        return _list.BinarySearch(item);
+        return _ref.BinarySearch(item);
     }
 
-    public int BinarySearch(in T item, IComparer<T>? comparer)
+    public readonly int BinarySearch(in T item, IComparer<T>? comparer)
     {
-        return _list.BinarySearch(item, comparer);
+        return _ref.BinarySearch(item, comparer);
     }
 
     public void Clear()
     {
-        _list.Clear();
+        _ref.Clear();
     }
 
-    public bool Contains(in T item)
+    public readonly bool Contains(in T item)
     {
-        return _list.Contains(item);
+        return _ref.Contains(item);
     }
 
-    bool ICollection<T>.Contains(T item)
+    readonly bool ICollection<T>.Contains(T item)
     {
-        return _list.Contains(item);
+        return _ref.Contains(item);
     }
 
-    public ValueList<TOutput> ConvertAll<TOutput>(Converter<T, TOutput> converter)
+    public readonly ValueList<TOutput> ConvertAll<TOutput>(Converter<T, TOutput> converter)
     {
-        return _list.ConvertAll(converter);
+        return _ref.ConvertAll(converter);
     }
 
-    public void CopyTo(int index, T[] array, int arrayIndex, int count)
+    public readonly void CopyTo(int index, T[] array, int arrayIndex, int count)
     {
-        _list.CopyTo(index, array, arrayIndex, count);
+        _ref.CopyTo(index, array, arrayIndex, count);
     }
 
-    public void CopyTo(T[] array, int arrayIndex = 0)
+    public readonly void CopyTo(T[] array, int arrayIndex = 0)
     {
-        _list.CopyTo(array, arrayIndex);
+        _ref.CopyTo(array, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped in Span<T> span, int arrayIndex = 0)
+    {
+        _ref.CopyTo(span, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped ref ValueList<T> list)
+    {
+        _ref.CopyTo(ref list);
     }
 
     public int EnsureCapacity(int capacity)
     {
-        return _list.EnsureCapacity(capacity);
+        return _ref.EnsureCapacity(capacity);
     }
 
-    public bool Exists(Predicate<T> match)
+    public readonly bool Exists(Predicate<T> match)
     {
-        return _list.Exists(match);
+        return _ref.Exists(match);
     }
 
-    public T? Find(Predicate<T> match)
+    public readonly T? Find(Predicate<T> match)
     {
-        return _list.Find(match);
+        return _ref.Find(match);
     }
 
-    public ValueList<T> FindAll(Predicate<T> match)
+    public readonly ValueList<T> FindAll(Predicate<T> match)
     {
-        return _list.FindAll(match);
+        return _ref.FindAll(match);
     }
 
-    public int FindIndex(Predicate<T> match)
+    public readonly int FindIndex(Predicate<T> match)
     {
-        return _list.FindIndex(match);
+        return _ref.FindIndex(match);
     }
 
-    public int FindIndex(int startIndex, Predicate<T> match)
+    public readonly int FindIndex(int startIndex, Predicate<T> match)
     {
-        return _list.FindIndex(startIndex, match);
+        return _ref.FindIndex(startIndex, match);
     }
 
-    public int FindIndex(int startIndex, int count, Predicate<T> match)
+    public readonly int FindIndex(int startIndex, int count, Predicate<T> match)
     {
-        return _list.FindIndex(startIndex, count, match);
+        return _ref.FindIndex(startIndex, count, match);
     }
 
-    public T? FindLast(Predicate<T> match)
+    public readonly T? FindLast(Predicate<T> match)
     {
-        return _list.FindLast(match);
+        return _ref.FindLast(match);
     }
 
-    public int FindLastIndex(Predicate<T> match)
+    public readonly int FindLastIndex(Predicate<T> match)
     {
-        return _list.FindLastIndex(match);
+        return _ref.FindLastIndex(match);
     }
 
-    public int FindLastIndex(int startIndex, Predicate<T> match)
+    public readonly int FindLastIndex(int startIndex, Predicate<T> match)
     {
-        return _list.FindLastIndex(startIndex, match);
+        return _ref.FindLastIndex(startIndex, match);
     }
 
-    public int FindLastIndex(int startIndex, int count, Predicate<T> match)
+    public readonly int FindLastIndex(int startIndex, int count, Predicate<T> match)
     {
-        return _list.FindLastIndex(startIndex, count, match);
+        return _ref.FindLastIndex(startIndex, count, match);
     }
 
-    public void ForEach(Action<T> action)
+    public readonly void ForEach(Action<T> action)
     {
-        _list.ForEach(action);
+        _ref.ForEach(action);
     }
 
-    public ValueList<T> GetRange(int index, int count)
+    public readonly ValueList<T> GetRange(int index, int count)
     {
-        return _list.GetRange(index, count);
+        return _ref.GetRange(index, count);
     }
 
-    public ValueList<T> Slice(int start, int length)
+    public readonly ValueList<T> Slice(int start, int length)
     {
-        return _list.Slice(start, length);
+        return _ref.Slice(start, length);
     }
 
-    public int IndexOf(in T item)
+    public readonly int IndexOf(in T item)
     {
-        return _list.IndexOf(item);
+        return _ref.IndexOf(item);
     }
 
-    int IList<T>.IndexOf(T item)
+    readonly int IList<T>.IndexOf(T item)
     {
-        return _list.IndexOf(item);
+        return _ref.IndexOf(item);
     }
 
-    public int IndexOf(in T item, int index)
+    public readonly int IndexOf(in T item, int index)
     {
-        return _list.IndexOf(item, index);
+        return _ref.IndexOf(item, index);
     }
 
-    public int IndexOf(in T item, int index, int count)
+    public readonly int IndexOf(in T item, int index, int count)
     {
-        return _list.IndexOf(item, index, count);
+        return _ref.IndexOf(item, index, count);
     }
 
     public void Insert(int index, in T item)
     {
-        _list.Insert(index, item);
+        _ref.Insert(index, item);
     }
 
     void IList<T>.Insert(int index, T item)
     {
-        _list.Insert(index, item);
+        _ref.Insert(index, item);
     }
 
     public void InsertRange(int index, IEnumerable<T> collection)
     {
-        _list.InsertRange(index, collection);
+        _ref.InsertRange(index, collection);
     }
 
-    public int LastIndexOf(in T item)
+    public readonly int LastIndexOf(in T item)
     {
-        return _list.LastIndexOf(item);
+        return _ref.LastIndexOf(item);
     }
 
-    public int LastIndexOf(in T item, int index)
+    public readonly int LastIndexOf(in T item, int index)
     {
-        return _list.LastIndexOf(item, index);
+        return _ref.LastIndexOf(item, index);
     }
 
-    public int LastIndexOf(in T item, int index, int count)
+    public readonly int LastIndexOf(in T item, int index, int count)
     {
-        return _list.LastIndexOf(item, index, count);
+        return _ref.LastIndexOf(item, index, count);
     }
 
     public bool Remove(in T item)
     {
-        return _list.Remove(item);
+        return _ref.Remove(item);
     }
 
     bool ICollection<T>.Remove(T item)
     {
-        return _list.Remove(item);
+        return _ref.Remove(item);
     }
 
     public int RemoveAll(Predicate<T> match)
     {
-        return _list.RemoveAll(match);
+        return _ref.RemoveAll(match);
     }
 
     public void RemoveAt(int index)
     {
-        _list.RemoveAt(index);
+        _ref.RemoveAt(index);
     }
 
     public void RemoveRange(int index, int count)
     {
-        _list.RemoveRange(index, count);
+        _ref.RemoveRange(index, count);
     }
 
     public void Reverse()
     {
-        _list.Reverse();
+        _ref.Reverse();
     }
 
     public void Reverse(int index, int count)
     {
-        _list.Reverse(index, count);
+        _ref.Reverse(index, count);
     }
 
     public void Sort()
     {
-        _list.Sort();
+        _ref.Sort();
     }
 
     public void Sort(IComparer<T>? comparer)
     {
-        _list.Sort(comparer);
+        _ref.Sort(comparer);
     }
 
     public void Sort(int index, int count, IComparer<T>? comparer)
     {
-        _list.Sort(index, count, comparer);
+        _ref.Sort(index, count, comparer);
     }
 
     public void Sort(Comparison<T> comparison)
     {
-        _list.Sort(comparison);
+        _ref.Sort(comparison);
     }
 
-    public T[] ToArray()
+    public readonly T[] ToArray()
     {
-        return _list.ToArray();
+        return _ref.ToArray();
     }
 
     public void TrimExcess()
     {
-        _list.TrimExcess();
+        _ref.TrimExcess();
     }
 
-    public bool TrueForAll(Predicate<T> match)
+    public readonly bool TrueForAll(Predicate<T> match)
     {
-        return _list.TrueForAll(match);
+        return _ref.TrueForAll(match);
     }
 
-    public static implicit operator ValueListView<T>(ValueListRef<T> list)
+    public static implicit operator ValueListView<T>(in ValueListRef<T> list)
     {
-        return new ValueListView<T>(ref list._list);
+        return new ValueListView<T>(ref list._ref);
     }
 }
 
-public readonly ref struct ValueQueueRef<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQueue<T>.Enumerator, T>
+public ref struct ValueQueueRef<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQueue<T>.Enumerator, T>
 {
-    private readonly ref ValueQueue<T> _queue;
+    private readonly ref ValueQueue<T> _ref;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    private ValueQueue<T> _queue;
+
+    public ValueQueueRef()
+    {
+        _queue = [];
+        _ref = ref Unsafe.AsRef(ref _queue);
+    }
 
     public ValueQueueRef(ref ValueQueue<T> queue)
     {
-        _queue = ref queue;
+        _ref = ref queue;
     }
 
     public int Capacity
     {
-        get => _queue.Capacity;
-        set => _queue.Capacity = value;
+        readonly get => _ref.Capacity;
+        set => _ref.Capacity = value;
     }
 
-    public int Count => _queue.Count;
+    public readonly int Count => _ref.Count;
 
-    public ValueQueue<T>.Enumerator GetEnumerator()
+    public readonly ValueQueue<T>.Enumerator GetEnumerator()
     {
-        return _queue.GetEnumerator();
+        return _ref.GetEnumerator();
     }
 
-    public ValueEnumerable<ValueQueue<T>.Enumerator, T> AsValueEnumerable()
+    public readonly ValueEnumerable<ValueQueue<T>.Enumerator, T> AsValueEnumerable()
     {
-        return _queue.AsValueEnumerable();
+        return _ref.AsValueEnumerable();
     }
 
-    public ValueQueueView<T>.Enumerable AsEnumerable()
+    public readonly ValueQueueView<T>.Enumerable AsEnumerable()
     {
-        return new ValueQueueView<T>.Enumerable(_queue);
+        return new ValueQueueView<T>.Enumerable(_ref);
     }
 
-    IEnumerator<T> IEnumerable<T>.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
+    readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
     {
         return GetEnumerator();
     }
 
-    ValueEnumerable<StructEnumerator<ValueQueue<T>.Enumerator, T>, T> IStructEnumerable<
+    readonly IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    readonly ValueEnumerable<StructEnumerator<ValueQueue<T>.Enumerator, T>, T> IStructEnumerable<
         ValueQueue<T>.Enumerator,
         T
     >.AsValueEnumerable()
@@ -391,113 +422,133 @@ public readonly ref struct ValueQueueRef<T> : IReadOnlyCollection<T>, IStructEnu
 
     public void Clear()
     {
-        _queue.Clear();
+        _ref.Clear();
     }
 
-    public void CopyTo(T[] array, int arrayIndex)
+    public readonly void CopyTo(T[] array, int arrayIndex)
     {
-        _queue.CopyTo(array, arrayIndex);
+        _ref.CopyTo(array, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped in Span<T> span, int arrayIndex = 0)
+    {
+        _ref.CopyTo(span, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped ref ValueQueue<T> queue)
+    {
+        _ref.CopyTo(ref queue);
     }
 
     public void Enqueue(in T item)
     {
-        _queue.Enqueue(item);
+        _ref.Enqueue(item);
     }
 
     public T Dequeue()
     {
-        return _queue.Dequeue();
+        return _ref.Dequeue();
     }
 
     public bool TryDequeue([MaybeNullWhen(false)] out T result)
     {
-        return _queue.TryDequeue(out result);
+        return _ref.TryDequeue(out result);
     }
 
-    public ref T Peek()
+    public readonly ref T Peek()
     {
-        return ref _queue.Peek();
+        return ref _ref.Peek();
     }
 
-    public bool TryPeek([MaybeNullWhen(false)] out T result)
+    public readonly bool TryPeek([MaybeNullWhen(false)] out T result)
     {
-        return _queue.TryPeek(out result);
+        return _ref.TryPeek(out result);
     }
 
-    public bool Contains(in T item)
+    public readonly bool Contains(in T item)
     {
-        return _queue.Contains(item);
+        return _ref.Contains(item);
     }
 
-    public T[] ToArray()
+    public readonly T[] ToArray()
     {
-        return _queue.ToArray();
+        return _ref.ToArray();
     }
 
     public void TrimExcess()
     {
-        _queue.TrimExcess();
+        _ref.TrimExcess();
     }
 
     public void TrimExcess(int capacity)
     {
-        _queue.TrimExcess(capacity);
+        _ref.TrimExcess(capacity);
     }
 
     public int EnsureCapacity(int capacity)
     {
-        return _queue.EnsureCapacity(capacity);
+        return _ref.EnsureCapacity(capacity);
     }
 
     public static implicit operator ValueQueueView<T>(ValueQueueRef<T> queue)
     {
-        return new ValueQueueView<T>(ref queue._queue);
+        return new ValueQueueView<T>(ref queue._ref);
     }
 }
 
-public readonly ref struct ValueStackRef<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueStack<T>.Enumerator, T>
+public ref struct ValueStackRef<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueStack<T>.Enumerator, T>
 {
-    private readonly ref ValueStack<T> _stack;
+    private readonly ref ValueStack<T> _ref;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    private ValueStack<T> _stack;
+
+    public ValueStackRef()
+    {
+        _stack = [];
+        _ref = ref Unsafe.AsRef(ref _stack);
+    }
 
     public ValueStackRef(ref ValueStack<T> stack)
     {
-        _stack = ref stack;
+        _ref = ref stack;
     }
 
     public int Capacity
     {
-        get => _stack.Capacity;
-        set => _stack.Capacity = value;
+        readonly get => _ref.Capacity;
+        set => _ref.Capacity = value;
     }
 
-    public int Count => _stack.Count;
+    public readonly int Count => _ref.Count;
 
-    public ValueStack<T>.Enumerator GetEnumerator()
+    public readonly ValueStack<T>.Enumerator GetEnumerator()
     {
-        return _stack.GetEnumerator();
+        return _ref.GetEnumerator();
     }
 
-    public ValueEnumerable<ValueStack<T>.Enumerator, T> AsValueEnumerable()
+    public readonly ValueEnumerable<ValueStack<T>.Enumerator, T> AsValueEnumerable()
     {
-        return _stack.AsValueEnumerable();
+        return _ref.AsValueEnumerable();
     }
 
-    public ValueStackView<T>.Enumerable AsEnumerable()
+    public readonly ValueStackView<T>.Enumerable AsEnumerable()
     {
-        return new ValueStackView<T>.Enumerable(_stack);
+        return new ValueStackView<T>.Enumerable(_ref);
     }
 
-    IEnumerator<T> IEnumerable<T>.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
+    readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
     {
         return GetEnumerator();
     }
 
-    ValueEnumerable<StructEnumerator<ValueStack<T>.Enumerator, T>, T> IStructEnumerable<
+    readonly IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    readonly ValueEnumerable<StructEnumerator<ValueStack<T>.Enumerator, T>, T> IStructEnumerable<
         ValueStack<T>.Enumerator,
         T
     >.AsValueEnumerable()
@@ -507,441 +558,494 @@ public readonly ref struct ValueStackRef<T> : IReadOnlyCollection<T>, IStructEnu
 
     public void Clear()
     {
-        _stack.Clear();
+        _ref.Clear();
     }
 
-    public bool Contains(in T item)
+    public readonly bool Contains(in T item)
     {
-        return _stack.Contains(item);
+        return _ref.Contains(item);
     }
 
-    public void CopyTo(T[] array, int arrayIndex)
+    public readonly void CopyTo(T[] array, int arrayIndex)
     {
-        _stack.CopyTo(array, arrayIndex);
+        _ref.CopyTo(array, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped in Span<T> span, int arrayIndex = 0)
+    {
+        _ref.CopyTo(span, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped ref ValueStack<T> stack)
+    {
+        _ref.CopyTo(ref stack);
     }
 
     public void TrimExcess()
     {
-        _stack.TrimExcess();
+        _ref.TrimExcess();
     }
 
     public void TrimExcess(int capacity)
     {
-        _stack.TrimExcess(capacity);
+        _ref.TrimExcess(capacity);
     }
 
-    public ref T Peek()
+    public readonly ref T Peek()
     {
-        return ref _stack.Peek();
+        return ref _ref.Peek();
     }
 
-    public bool TryPeek([MaybeNullWhen(false)] out T result)
+    public readonly bool TryPeek([MaybeNullWhen(false)] out T result)
     {
-        return _stack.TryPeek(out result);
+        return _ref.TryPeek(out result);
     }
 
     public T Pop()
     {
-        return _stack.Pop();
+        return _ref.Pop();
     }
 
     public bool TryPop([MaybeNullWhen(false)] out T result)
     {
-        return _stack.TryPop(out result);
+        return _ref.TryPop(out result);
     }
 
     public void Push(in T item)
     {
-        _stack.Push(item);
+        _ref.Push(item);
     }
 
     public int EnsureCapacity(int capacity)
     {
-        return _stack.EnsureCapacity(capacity);
+        return _ref.EnsureCapacity(capacity);
     }
 
-    public T[] ToArray()
+    public readonly T[] ToArray()
     {
-        return _stack.ToArray();
+        return _ref.ToArray();
     }
 
     public static implicit operator ValueStackView<T>(ValueStackRef<T> stack)
     {
-        return new ValueStackView<T>(ref stack._stack);
+        return new ValueStackView<T>(ref stack._ref);
     }
 }
 
-public readonly ref struct ValueDictionaryRef<TKey, TValue>
+public ref struct ValueDictionaryRef<TKey, TValue>
     : IDictionary<TKey, TValue>,
         IReadOnlyDictionary<TKey, TValue>,
         IStructEnumerable<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>
     where TKey : notnull
 {
-    private readonly ref ValueDictionary<TKey, TValue> _dictionary;
+    private readonly ref ValueDictionary<TKey, TValue> _ref;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    private ValueDictionary<TKey, TValue> _dictionary;
+
+    public ValueDictionaryRef()
+    {
+        _dictionary = [];
+        _ref = ref Unsafe.AsRef(ref _dictionary);
+    }
 
     public ValueDictionaryRef(ref ValueDictionary<TKey, TValue> dictionary)
     {
-        _dictionary = ref dictionary;
+        _ref = ref dictionary;
     }
 
-    public IEqualityComparer<TKey> Comparer => _dictionary.Comparer;
+    public readonly IEqualityComparer<TKey> Comparer => _ref.Comparer;
 
-    public int Count => _dictionary.Count;
+    public readonly int Count => _ref.Count;
 
-    public int Capacity => _dictionary.Capacity;
+    public readonly int Capacity => _ref.Capacity;
 
-    public ValueDictionary<TKey, TValue>.KeyCollection Keys => _dictionary.Keys;
+    public readonly ValueDictionary<TKey, TValue>.KeyCollection Keys => _ref.Keys;
 
-    public ValueDictionary<TKey, TValue>.ValueCollection Values => _dictionary.Values;
+    public readonly ValueDictionary<TKey, TValue>.ValueCollection Values => _ref.Values;
 
     public TValue this[in TKey key]
     {
-        get => _dictionary[key];
-        set => _dictionary[key] = value;
+        readonly get => _ref[key];
+        set => _ref[key] = value;
     }
 
     public void Add(in TKey key, in TValue value)
     {
-        _dictionary.Add(key, value);
+        _ref.Add(key, value);
     }
 
     public bool TryAdd(in TKey key, in TValue value)
     {
-        return _dictionary.TryAdd(key, value);
+        return _ref.TryAdd(key, value);
     }
 
     public void Clear()
     {
-        _dictionary.Clear();
+        _ref.Clear();
     }
 
-    public bool ContainsKey(in TKey key)
+    public readonly bool ContainsKey(in TKey key)
     {
-        return _dictionary.ContainsKey(key);
+        return _ref.ContainsKey(key);
     }
 
-    public bool ContainsValue(in TValue value)
+    public readonly bool ContainsValue(in TValue value)
     {
-        return _dictionary.ContainsValue(value);
+        return _ref.ContainsValue(value);
     }
 
-    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
+    public readonly bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        return _dictionary.TryGetValue(key, out value);
+        return _ref.TryGetValue(key, out value);
     }
 
     public bool Remove(in TKey key)
     {
-        return _dictionary.Remove(key);
+        return _ref.Remove(key);
     }
 
     public bool Remove(in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        return _dictionary.Remove(key, out value);
+        return _ref.Remove(key, out value);
     }
 
-    public ValueDictionary<TKey, TValue>.Enumerator GetEnumerator()
+    public readonly ValueDictionary<TKey, TValue>.Enumerator GetEnumerator()
     {
-        return _dictionary.GetEnumerator();
+        return _ref.GetEnumerator();
     }
 
-    public ValueEnumerable<
+    public readonly ValueEnumerable<
         StructEnumerator<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
         KeyValuePair<TKey, TValue>
     > AsValueEnumerable()
     {
-        return _dictionary.AsValueEnumerable();
+        return _ref.AsValueEnumerable();
     }
 
-    public ValueDictionaryView<TKey, TValue>.Enumerable AsEnumerable()
+    public readonly ValueDictionaryView<TKey, TValue>.Enumerable AsEnumerable()
     {
-        return new ValueDictionaryView<TKey, TValue>.Enumerable(_dictionary);
+        return new ValueDictionaryView<TKey, TValue>.Enumerable(_ref);
+    }
+
+    public readonly void CopyTo(scoped in Span<KeyValuePair<TKey, TValue>> span, int arrayIndex = 0)
+    {
+        _ref.CopyTo(span, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped ref ValueDictionary<TKey, TValue> dictionary)
+    {
+        _ref.CopyTo(ref dictionary);
     }
 
     public ref TValue GetValueRefOrNullRef(in TKey key)
     {
-        return ref _dictionary.GetValueRefOrNullRef(key);
+        return ref _ref.GetValueRefOrNullRef(key);
     }
 
     public ref TValue? GetValueRefOrAddDefault(in TKey key, out bool exists)
     {
-        return ref _dictionary.GetValueRefOrAddDefault(key, out exists);
+        return ref _ref.GetValueRefOrAddDefault(key, out exists);
     }
 
     public int EnsureCapacity(int capacity)
     {
-        return _dictionary.EnsureCapacity(capacity);
+        return _ref.EnsureCapacity(capacity);
     }
 
     public void TrimExcess()
     {
-        _dictionary.TrimExcess();
+        _ref.TrimExcess();
     }
 
     public void TrimExcess(int capacity)
     {
-        _dictionary.TrimExcess(capacity);
+        _ref.TrimExcess(capacity);
     }
 
-    IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
+    readonly IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
     {
         return GetEnumerator();
     }
 
-    IEnumerator IEnumerable.GetEnumerator()
+    readonly IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
     }
 
     TValue IDictionary<TKey, TValue>.this[TKey key]
     {
-        get => this[key];
+        readonly get => this[key];
         set => this[key] = value;
     }
 
-    TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
+    readonly TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
 
-    ICollection<TKey> IDictionary<TKey, TValue>.Keys => Keys;
+    readonly ICollection<TKey> IDictionary<TKey, TValue>.Keys => Keys;
 
-    ICollection<TValue> IDictionary<TKey, TValue>.Values => Values;
+    readonly ICollection<TValue> IDictionary<TKey, TValue>.Values => Values;
 
-    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
+    readonly IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys;
 
-    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+    readonly IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
 
-    bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
+    readonly bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
 
     void IDictionary<TKey, TValue>.Add(TKey key, TValue value)
     {
-        _dictionary.Add(key, value);
+        _ref.Add(key, value);
     }
 
     void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> keyValuePair)
     {
-        _dictionary.Add(keyValuePair.Key, keyValuePair.Value);
+        _ref.Add(keyValuePair.Key, keyValuePair.Value);
     }
 
-    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> keyValuePair)
+    readonly bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> keyValuePair)
     {
-        return _dictionary.TryGetValue(keyValuePair.Key, out var value)
+        return _ref.TryGetValue(keyValuePair.Key, out var value)
             && EqualityComparer<TValue>.Default.Equals(value, keyValuePair.Value);
     }
 
     bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> keyValuePair)
     {
-        return _dictionary.TryGetValue(keyValuePair.Key, out var value)
+        return _ref.TryGetValue(keyValuePair.Key, out var value)
             && EqualityComparer<TValue>.Default.Equals(value, keyValuePair.Value)
-            && _dictionary.Remove(keyValuePair.Key);
+            && _ref.Remove(keyValuePair.Key);
     }
 
-    void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int index)
+    readonly void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int index)
     {
         ArgumentNullException.ThrowIfNull(array);
         if ((uint)index > (uint)array.Length)
             throw new ArgumentOutOfRangeException(nameof(index));
         if (array.Length - index < Count)
             throw new ArgumentException("Destination array is not long enough.", nameof(array));
-        foreach (var pair in _dictionary)
+        foreach (var pair in _ref)
             array[index++] = pair;
     }
 
-    bool IDictionary<TKey, TValue>.ContainsKey(TKey key)
+    readonly bool IDictionary<TKey, TValue>.ContainsKey(TKey key)
     {
-        return _dictionary.ContainsKey(key);
+        return _ref.ContainsKey(key);
     }
 
-    bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
+    readonly bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
     {
-        return _dictionary.ContainsKey(key);
+        return _ref.ContainsKey(key);
     }
 
     bool IDictionary<TKey, TValue>.Remove(TKey key)
     {
-        return _dictionary.Remove(key);
+        return _ref.Remove(key);
     }
 
-    bool IDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    readonly bool IDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        return _dictionary.TryGetValue(key, out value);
+        return _ref.TryGetValue(key, out value);
     }
 
-    bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    readonly bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        return _dictionary.TryGetValue(key, out value);
+        return _ref.TryGetValue(key, out value);
     }
 
     public static implicit operator ValueDictionaryView<TKey, TValue>(ValueDictionaryRef<TKey, TValue> dictionary)
     {
-        return new ValueDictionaryView<TKey, TValue>(ref dictionary._dictionary);
+        return new ValueDictionaryView<TKey, TValue>(ref dictionary._ref);
     }
 }
 
-public readonly ref struct ValueSparseSetRef<TKey, TValue, TStorage>
+public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
     : IDictionary<TKey, TValue>,
         IReadOnlyDictionary<TKey, TValue>,
         IReadOnlyList<KeyValuePair<TKey, TValue>>,
         IStructEnumerable<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>
     where TStorage : IList<TValue>
 {
-    private readonly ref ValueSparseSet<TKey, TValue, TStorage> _sparseSet;
+    private readonly ref ValueSparseSet<TKey, TValue, TStorage> _ref;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    private ValueSparseSet<TKey, TValue, TStorage> _sparseSet;
+
+    public ValueSparseSetRef(
+        in TStorage storage,
+        Func<TKey, int> keyIndexFunc,
+        int sparseChunkSize = ValueSparseSet<TKey, TValue, TStorage>.DefaultSparseChunkSize
+    )
+    {
+        _sparseSet = new ValueSparseSet<TKey, TValue, TStorage>(storage, keyIndexFunc, sparseChunkSize);
+        _ref = ref Unsafe.AsRef(ref _sparseSet);
+    }
 
     public ValueSparseSetRef(ref ValueSparseSet<TKey, TValue, TStorage> sparseSet)
     {
-        _sparseSet = ref sparseSet;
+        _ref = ref sparseSet;
     }
 
-    public ValueSparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+    public readonly ValueSparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _ref.Values;
 
-    public ValueListView<TKey> Keys => _sparseSet.Keys;
+    public readonly ValueListView<TKey> Keys => _ref.Keys;
 
-    public int Count => _sparseSet.Count;
+    public readonly int Count => _ref.Count;
 
     public TValue this[in TKey key]
     {
-        get => _sparseSet[key];
-        set => _sparseSet[key] = value;
+        readonly get => _ref[key];
+        set => _ref[key] = value;
     }
 
-    public KeyValuePair<TKey, TValue> this[int index] => _sparseSet[index];
+    public readonly KeyValuePair<TKey, TValue> this[int index] => _ref[index];
 
     public void Clear()
     {
-        _sparseSet.Clear();
+        _ref.Clear();
     }
 
-    public bool ContainsKey(in TKey key)
+    public readonly bool ContainsKey(in TKey key)
     {
-        return _sparseSet.ContainsKey(key);
+        return _ref.ContainsKey(key);
     }
 
-    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
+    public readonly bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        return _sparseSet.TryGetValue(key, out value);
+        return _ref.TryGetValue(key, out value);
     }
 
     public bool Remove(in TKey key)
     {
-        return _sparseSet.Remove(key);
+        return _ref.Remove(key);
     }
 
-    public int GetKeyIndex(in TKey key)
+    public readonly int GetKeyIndex(in TKey key)
     {
-        return _sparseSet.GetKeyIndex(key);
+        return _ref.GetKeyIndex(key);
     }
 
-    public ValueSparseSet<TKey, TValue, TStorage>.Enumerator GetEnumerator()
+    public readonly ValueSparseSet<TKey, TValue, TStorage>.Enumerator GetEnumerator()
     {
-        return _sparseSet.GetEnumerator();
+        return _ref.GetEnumerator();
     }
 
-    public ValueEnumerable<
+    public readonly ValueEnumerable<
         StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
         KeyValuePair<TKey, TValue>
     > AsValueEnumerable()
     {
-        return _sparseSet.AsValueEnumerable();
+        return _ref.AsValueEnumerable();
     }
 
-    public ValueSparseSetView<TKey, TValue, TStorage>.Enumerable AsEnumerable()
+    public readonly ValueSparseSetView<TKey, TValue, TStorage>.Enumerable AsEnumerable()
     {
-        return new ValueSparseSetView<TKey, TValue, TStorage>.Enumerable(_sparseSet);
+        return new ValueSparseSetView<TKey, TValue, TStorage>.Enumerable(_ref);
     }
 
-    IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
+    public readonly void CopyTo(scoped in Span<KeyValuePair<TKey, TValue>> span, int arrayIndex = 0)
+    {
+        _ref.CopyTo(span, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped ref ValueSparseSet<TKey, TValue, TStorage> sparseSet)
+    {
+        _ref.CopyTo(ref sparseSet);
+    }
+
+    readonly IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
     {
         return GetEnumerator();
     }
 
-    IEnumerator IEnumerable.GetEnumerator()
+    readonly IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
     }
 
-    ICollection<TValue> IDictionary<TKey, TValue>.Values => ((IDictionary<TKey, TValue>)_sparseSet).Values;
+    readonly ICollection<TValue> IDictionary<TKey, TValue>.Values => ((IDictionary<TKey, TValue>)_ref).Values;
 
-    ICollection<TKey> IDictionary<TKey, TValue>.Keys => ((IDictionary<TKey, TValue>)_sparseSet).Keys;
+    readonly ICollection<TKey> IDictionary<TKey, TValue>.Keys => ((IDictionary<TKey, TValue>)_ref).Keys;
 
-    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys.AsEnumerable();
+    readonly IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys.AsEnumerable();
 
-    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
+    readonly IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
 
-    bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
+    readonly bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
 
     TValue IDictionary<TKey, TValue>.this[TKey key]
     {
-        get => this[key];
+        readonly get => this[key];
         set => this[key] = value;
     }
 
-    TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
+    readonly TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
 
     void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
     {
-        if (_sparseSet.ContainsKey(item.Key))
+        if (_ref.ContainsKey(item.Key))
             throw new ArgumentException("Duplicate key", nameof(item));
-        _sparseSet[item.Key] = item.Value;
+        _ref[item.Key] = item.Value;
     }
 
-    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+    readonly bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
     {
-        return _sparseSet.TryGetValue(item.Key, out var value)
-            && EqualityComparer<TValue>.Default.Equals(value, item.Value);
+        return _ref.TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
     }
 
-    void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    readonly void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
     {
         if ((uint)arrayIndex > (uint)array.Length)
             throw new ArgumentOutOfRangeException(nameof(arrayIndex));
         if (array.Length - arrayIndex < Count)
             throw new ArgumentException("The destination array is not large enough.", nameof(array));
         for (var i = 0; i < Count; i++)
-            array[arrayIndex + i] = _sparseSet[i];
+            array[arrayIndex + i] = _ref[i];
     }
 
     bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
     {
-        return _sparseSet.TryGetValue(item.Key, out var value)
+        return _ref.TryGetValue(item.Key, out var value)
             && EqualityComparer<TValue>.Default.Equals(value, item.Value)
-            && _sparseSet.Remove(item.Key);
+            && _ref.Remove(item.Key);
     }
 
     void IDictionary<TKey, TValue>.Add(TKey key, TValue value)
     {
-        if (_sparseSet.ContainsKey(key))
+        if (_ref.ContainsKey(key))
             throw new ArgumentException("Duplicate key", nameof(key));
-        _sparseSet[key] = value;
+        _ref[key] = value;
     }
 
-    bool IDictionary<TKey, TValue>.ContainsKey(TKey key)
+    readonly bool IDictionary<TKey, TValue>.ContainsKey(TKey key)
     {
-        return _sparseSet.ContainsKey(key);
+        return _ref.ContainsKey(key);
     }
 
     bool IDictionary<TKey, TValue>.Remove(TKey key)
     {
-        return _sparseSet.Remove(key);
+        return _ref.Remove(key);
     }
 
-    bool IDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    readonly bool IDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        return _sparseSet.TryGetValue(key, out value);
+        return _ref.TryGetValue(key, out value);
     }
 
-    bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
+    readonly bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
     {
-        return _sparseSet.ContainsKey(key);
+        return _ref.ContainsKey(key);
     }
 
-    bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
+    readonly bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        return _sparseSet.TryGetValue(key, out value);
+        return _ref.TryGetValue(key, out value);
     }
 
     public static implicit operator ValueSparseSetView<TKey, TValue, TStorage>(
         ValueSparseSetRef<TKey, TValue, TStorage> sparseSet
     )
     {
-        return new ValueSparseSetView<TKey, TValue, TStorage>(ref sparseSet._sparseSet);
+        return new ValueSparseSetView<TKey, TValue, TStorage>(ref sparseSet._ref);
     }
 }
 
