@@ -30,7 +30,7 @@ public readonly ref struct NullableRef<T>
         return new NullableRef<T>(value);
     }
 
-    public static explicit operator T(NullableRef<T> value)
+    public static explicit operator T(scoped in NullableRef<T> value)
     {
         return value.Value;
     }
