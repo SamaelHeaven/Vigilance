@@ -5,10 +5,32 @@ namespace Vigilance.Input;
 
 public sealed class InputButton
 {
-    public List<GamepadButton> GamepadButtons { get; set; } = [];
-    public List<Gamepad> Gamepads { get; set; } = Gamepad.Gamepads.AsValueEnumerable().ToList();
-    public List<Key> Keys { get; set; } = [];
-    public List<MouseButton> MouseButtons { get; set; } = [];
+    private ValueList<GamepadButton> _gamepadButtons = [];
+    private ValueList<Gamepad> _gamepads = Gamepad.Gamepads.AsValueEnumerable().ToValueList();
+    private ValueList<Key> _keys = [];
+    private ValueList<MouseButton> _mouseButtons = [];
+
+    public InputButton(
+        in ReadOnlySpan<Key> keys = default,
+        in ReadOnlySpan<MouseButton> mouseButtons = default,
+        in ReadOnlySpan<GamepadButton> gamepadButtons = default,
+        in ReadOnlySpan<Gamepad> gamepads = default
+    )
+    {
+        if (!keys.IsEmpty)
+            _keys = keys.AsValueEnumerable().ToValueList();
+        if (!mouseButtons.IsEmpty)
+            _mouseButtons = mouseButtons.AsValueEnumerable().ToValueList();
+        if (!gamepadButtons.IsEmpty)
+            _gamepadButtons = gamepadButtons.AsValueEnumerable().ToValueList();
+        if (!gamepads.IsEmpty)
+            _gamepads = gamepads.AsValueEnumerable().ToValueList();
+    }
+
+    public ValueListRef<GamepadButton> GamepadButtons => _gamepadButtons;
+    public ValueListRef<Gamepad> Gamepads => _gamepads;
+    public ValueListRef<Key> Keys => _keys;
+    public ValueListRef<MouseButton> MouseButtons => _mouseButtons;
 
     public bool IsDown => IsKeyDown || IsMouseDown || IsGamepadDown;
 
@@ -53,6 +75,6 @@ public sealed class InputButton
 
     public static implicit operator InputButton(Key key)
     {
-        return new InputButton { Keys = [key] };
+        return new InputButton(keys: [key]);
     }
 }

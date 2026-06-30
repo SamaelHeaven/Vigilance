@@ -19,7 +19,7 @@ public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
 
     public CustomPolygon(IEnumerable<Vector2> points)
     {
-        Points = points.ToList();
+        _points = new ValueList<Vector2>(points);
     }
 
     public CustomPolygon(IEnumerable<Vector2> points, Color fill)
@@ -28,18 +28,20 @@ public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
         Fill = fill;
     }
 
-    public CustomPolygon(List<Vector2> points)
+    public CustomPolygon(in ReadOnlySpan<Vector2> points)
     {
-        Points = points;
+        _points = points.AsValueEnumerable().ToValueList();
     }
 
-    public CustomPolygon(List<Vector2> points, Color fill)
+    public CustomPolygon(in ReadOnlySpan<Vector2> points, Color fill)
         : this(points)
     {
         Fill = fill;
     }
 
-    public List<Vector2> Points { get; set; } = [];
+    private ValueList<Vector2> _points = [];
+
+    public ValueListRef<Vector2> Points => _points;
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
@@ -48,7 +50,7 @@ public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
     object IDeepCloneable.DeepClone()
     {
         var result = this.ShallowClone();
-        result.Points = Points.AsValueEnumerable().ToList();
+        result._points = new ValueList<Vector2>(_points);
         return result;
     }
 

@@ -7,12 +7,42 @@ namespace Vigilance.Input;
 
 public sealed class InputAxis
 {
-    public List<GamepadAxis> GamepadAxes { get; set; } = [];
-    public List<Gamepad> Gamepads { get; set; } = Gamepad.Gamepads.AsValueEnumerable().ToList();
-    public List<GamepadButton> NegativeGamepadButtons { get; set; } = [];
-    public List<Key> NegativeKeys { get; set; } = [];
-    public List<GamepadButton> PositiveGamepadButtons { get; set; } = [];
-    public List<Key> PositiveKeys { get; set; } = [];
+    private ValueList<GamepadAxis> _gamepadAxes = [];
+    private ValueList<Gamepad> _gamepads = Gamepad.Gamepads.AsValueEnumerable().ToValueList();
+    private ValueList<GamepadButton> _negativeGamepadButtons = [];
+    private ValueList<Key> _negativeKeys = [];
+    private ValueList<GamepadButton> _positiveGamepadButtons = [];
+    private ValueList<Key> _positiveKeys = [];
+
+    public InputAxis(
+        in ReadOnlySpan<Key> negativeKeys = default,
+        in ReadOnlySpan<Key> positiveKeys = default,
+        in ReadOnlySpan<GamepadButton> negativeGamepadButtons = default,
+        in ReadOnlySpan<GamepadButton> positiveGamepadButtons = default,
+        in ReadOnlySpan<GamepadAxis> gamepadAxes = default,
+        in ReadOnlySpan<Gamepad> gamepads = default
+    )
+    {
+        if (!negativeKeys.IsEmpty)
+            _negativeKeys = negativeKeys.AsValueEnumerable().ToValueList();
+        if (!positiveKeys.IsEmpty)
+            _positiveKeys = positiveKeys.AsValueEnumerable().ToValueList();
+        if (!negativeGamepadButtons.IsEmpty)
+            _negativeGamepadButtons = negativeGamepadButtons.AsValueEnumerable().ToValueList();
+        if (!positiveGamepadButtons.IsEmpty)
+            _positiveGamepadButtons = positiveGamepadButtons.AsValueEnumerable().ToValueList();
+        if (!gamepadAxes.IsEmpty)
+            _gamepadAxes = gamepadAxes.AsValueEnumerable().ToValueList();
+        if (!gamepads.IsEmpty)
+            _gamepads = gamepads.AsValueEnumerable().ToValueList();
+    }
+
+    public ValueListRef<GamepadAxis> GamepadAxes => _gamepadAxes;
+    public ValueListRef<Gamepad> Gamepads => _gamepads;
+    public ValueListRef<GamepadButton> NegativeGamepadButtons => _negativeGamepadButtons;
+    public ValueListRef<Key> NegativeKeys => _negativeKeys;
+    public ValueListRef<GamepadButton> PositiveGamepadButtons => _positiveGamepadButtons;
+    public ValueListRef<Key> PositiveKeys => _positiveKeys;
 
     public float DeadZone { get; set; } = 0;
 
