@@ -1596,4 +1596,33 @@ public static class ViewExtensions
     {
         return dictionary;
     }
+
+    public static ValueListView<T> AsView<T>(this ValueListRef<T> list)
+    {
+        return list;
+    }
+
+    public static ValueQueueView<TValue> AsView<TValue>(this ValueQueueRef<TValue> queue)
+    {
+        return queue;
+    }
+
+    public static ValueStackView<TValue> AsView<TValue>(this ValueStackRef<TValue> stack)
+    {
+        return stack;
+    }
+
+    public static ValueDictionaryView<TKey, TValue> AsView<TKey, TValue>(this ValueDictionaryRef<TKey, TValue> dictionary)
+        where TKey : notnull
+    {
+        return dictionary;
+    }
+
+    public static ValueSparseSetView<TKey, TValue, TStorage> AsView<TKey, TValue, TStorage>(
+        this ValueSparseSetRef<TKey, TValue, TStorage> sparseSet
+    )
+        where TStorage : IList<TValue>
+    {
+        return sparseSet;
+    }
 }
