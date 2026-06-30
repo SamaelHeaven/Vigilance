@@ -1507,7 +1507,7 @@ public struct SpanViewEnumerator<TValue> : IStructEnumerator<TValue>, ISpanView<
     }
 }
 
-public static class ViewExtensions
+public static class CollectionViewExtensions
 {
     public static ListView<T> AsView<T>(this List<T> list)
     {
@@ -1595,5 +1595,36 @@ public static class ViewExtensions
         where TKey : notnull
     {
         return dictionary;
+    }
+
+    public static ValueListView<T> AsView<T>(in this ValueListRef<T> list)
+    {
+        return list;
+    }
+
+    public static ValueQueueView<TValue> AsView<TValue>(in this ValueQueueRef<TValue> queue)
+    {
+        return queue;
+    }
+
+    public static ValueStackView<TValue> AsView<TValue>(in this ValueStackRef<TValue> stack)
+    {
+        return stack;
+    }
+
+    public static ValueDictionaryView<TKey, TValue> AsView<TKey, TValue>(
+        in this ValueDictionaryRef<TKey, TValue> dictionary
+    )
+        where TKey : notnull
+    {
+        return dictionary;
+    }
+
+    public static ValueSparseSetView<TKey, TValue, TStorage> AsView<TKey, TValue, TStorage>(
+        in this ValueSparseSetRef<TKey, TValue, TStorage> sparseSet
+    )
+        where TStorage : IList<TValue>
+    {
+        return sparseSet;
     }
 }

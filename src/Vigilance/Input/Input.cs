@@ -35,8 +35,8 @@ public static class Input
 
 public sealed class InputConfig
 {
-    public InputButton? ExitButton { get; set; } = null;
-    public InputButton? FullscreenButton { get; set; } = null;
+    public InputButton ExitButton { get; set; } = new();
+    public InputButton FullscreenButton { get; set; } = new();
 
     public InputAxis HorizontalAxis { get; set; } =
         new()

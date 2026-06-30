@@ -95,18 +95,32 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
     public readonly void CopyTo(T[] array, int arrayIndex)
     {
         ArgumentNullException.ThrowIfNull(array);
-        if (arrayIndex < 0 || arrayIndex > array.Length)
+        CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    public readonly void CopyTo(in Span<T> span, int arrayIndex = 0)
+    {
+        if (arrayIndex < 0 || arrayIndex > span.Length)
             throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-        if (array.Length - arrayIndex < Count)
+        if (span.Length - arrayIndex < Count)
             throw new ArgumentException("Destination array was not long enough.");
-        var numToCopy = Count;
-        if (numToCopy == 0)
+        if (Count == 0)
             return;
-        var firstPart = System.Math.Min(_items.Length - _head, numToCopy);
-        Array.Copy(_items, _head, array, arrayIndex, firstPart);
-        numToCopy -= firstPart;
-        if (numToCopy > 0)
-            Array.Copy(_items, 0, array, arrayIndex + _items.Length - _head, numToCopy);
+        var firstPart = System.Math.Min(_items.Length - _head, Count);
+        _items.AsSpan(_head, firstPart).CopyTo(span[arrayIndex..]);
+        var remaining = Count - firstPart;
+        if (remaining > 0)
+            _items.AsSpan(0, remaining).CopyTo(span[(arrayIndex + firstPart)..]);
+    }
+
+    public readonly void CopyTo(ref ValueQueue<T> queue)
+    {
+        queue.Clear();
+        queue.EnsureCapacity(Count);
+        CopyTo(queue._items);
+        queue._head = 0;
+        queue._tail = queue._items.Length == Count ? 0 : Count;
+        queue.Count = Count;
     }
 
     public void Enqueue(in T item)

@@ -76,7 +76,7 @@ public static class LineExtensions
                 || thickValue <= 0
                 || (
                     graphics.Culling()
-                    && !graphics.IsPolygonInBoundsSpan(new Quad(start, start, end, end), camera, thickValue * 0.5f)
+                    && !graphics.IsPolygonInBounds(new Quad(start, start, end, end), camera, thickValue * 0.5f)
                 )
             )
                 return;

@@ -7,12 +7,48 @@ namespace Vigilance.Input;
 
 public sealed class InputAxis
 {
-    public List<GamepadAxis> GamepadAxes { get; set; } = [];
-    public List<Gamepad> Gamepads { get; set; } = Gamepad.Gamepads.AsValueEnumerable().ToList();
-    public List<GamepadButton> NegativeGamepadButtons { get; set; } = [];
-    public List<Key> NegativeKeys { get; set; } = [];
-    public List<GamepadButton> PositiveGamepadButtons { get; set; } = [];
-    public List<Key> PositiveKeys { get; set; } = [];
+    private ValueList<GamepadAxis> _gamepadAxes = [];
+    private ValueList<Gamepad> _gamepads = Gamepad.Gamepads.AsValueEnumerable().ToValueList();
+    private ValueList<GamepadButton> _negativeGamepadButtons = [];
+    private ValueList<Key> _negativeKeys = [];
+    private ValueList<GamepadButton> _positiveGamepadButtons = [];
+    private ValueList<Key> _positiveKeys = [];
+
+    public ValueListRef<GamepadAxis> GamepadAxes
+    {
+        get => _gamepadAxes.AsRef();
+        set => value.CopyTo(ref _gamepadAxes);
+    }
+
+    public ValueListRef<Gamepad> Gamepads
+    {
+        get => _gamepads.AsRef();
+        set => value.CopyTo(ref _gamepads);
+    }
+
+    public ValueListRef<GamepadButton> NegativeGamepadButtons
+    {
+        get => _negativeGamepadButtons.AsRef();
+        set => value.CopyTo(ref _negativeGamepadButtons);
+    }
+
+    public ValueListRef<Key> NegativeKeys
+    {
+        get => _negativeKeys.AsRef();
+        set => value.CopyTo(ref _negativeKeys);
+    }
+
+    public ValueListRef<GamepadButton> PositiveGamepadButtons
+    {
+        get => _positiveGamepadButtons.AsRef();
+        set => value.CopyTo(ref _positiveGamepadButtons);
+    }
+
+    public ValueListRef<Key> PositiveKeys
+    {
+        get => _positiveKeys.AsRef();
+        set => value.CopyTo(ref _positiveKeys);
+    }
 
     public float DeadZone { get; set; } = 0;
 
@@ -21,27 +57,27 @@ public sealed class InputAxis
         get
         {
             var negative =
-                NegativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
-                || Gamepads
+                _negativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
+                || _gamepads
                     .AsValueEnumerable()
-                    .Cross(NegativeGamepadButtons.AsValueEnumerable())
+                    .Cross(_negativeGamepadButtons.AsValueEnumerable())
                     .Any(pair => pair.Left.IsButtonDown(pair.Right))
-                || Gamepads
+                || _gamepads
                     .AsValueEnumerable()
-                    .Cross(GamepadAxes.AsValueEnumerable())
+                    .Cross(_gamepadAxes.AsValueEnumerable())
                     .Cross(DeadZone.AsSingleton().AsValueEnumerable())
                     .Any(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) - x.Right).Round(MidpointRounding.AwayFromZero) <= -1
                     );
             var positive =
-                PositiveKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
-                || Gamepads
+                _positiveKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown)
+                || _gamepads
                     .AsValueEnumerable()
-                    .Cross(PositiveGamepadButtons.AsValueEnumerable())
+                    .Cross(_positiveGamepadButtons.AsValueEnumerable())
                     .Any(pair => pair.Left.IsButtonDown(pair.Right))
-                || Gamepads
+                || _gamepads
                     .AsValueEnumerable()
-                    .Cross(GamepadAxes.AsValueEnumerable())
+                    .Cross(_gamepadAxes.AsValueEnumerable())
                     .Cross(DeadZone.AsSingleton().AsValueEnumerable())
                     .Any(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) + x.Right).Round(MidpointRounding.AwayFromZero) >= 1
@@ -59,21 +95,21 @@ public sealed class InputAxis
         get
         {
             float negative = 0;
-            if (NegativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown))
+            if (_negativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown))
                 negative = -1;
             if (negative == 0)
                 if (
-                    Gamepads
+                    _gamepads
                         .AsValueEnumerable()
-                        .Cross(NegativeGamepadButtons.AsValueEnumerable())
+                        .Cross(_negativeGamepadButtons.AsValueEnumerable())
                         .Any(x => x.Left.IsButtonDown(x.Right))
                 )
                     negative = -1;
             if (negative == 0)
             {
-                var pair = Gamepads
+                var pair = _gamepads
                     .AsValueEnumerable()
-                    .Cross(GamepadAxes.AsValueEnumerable())
+                    .Cross(_gamepadAxes.AsValueEnumerable())
                     .Cross(DeadZone.AsSingleton().AsValueEnumerable())
                     .Where(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) - x.Right).Round(MidpointRounding.AwayFromZero) <= -1
@@ -85,21 +121,21 @@ public sealed class InputAxis
             }
 
             float positive = 0;
-            if (PositiveKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown))
+            if (_positiveKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown))
                 positive = 1;
             if (positive == 0)
                 if (
-                    Gamepads
+                    _gamepads
                         .AsValueEnumerable()
-                        .Cross(PositiveGamepadButtons.AsValueEnumerable())
+                        .Cross(_positiveGamepadButtons.AsValueEnumerable())
                         .Any(x => x.Left.IsButtonDown(x.Right))
                 )
                     positive = 1;
             if (positive == 0)
             {
-                var cross = Gamepads
+                var cross = _gamepads
                     .AsValueEnumerable()
-                    .Cross(GamepadAxes.AsValueEnumerable())
+                    .Cross(_gamepadAxes.AsValueEnumerable())
                     .Cross(DeadZone.AsSingleton().AsValueEnumerable())
                     .Where(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) - x.Right).Round(MidpointRounding.AwayFromZero) >= 1
@@ -123,42 +159,42 @@ public sealed class InputAxis
         get
         {
             float negative = 0;
-            if (NegativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown))
+            if (_negativeKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown))
                 negative = -1;
             if (negative == 0)
                 if (
-                    Gamepads
+                    _gamepads
                         .AsValueEnumerable()
-                        .Cross(NegativeGamepadButtons.AsValueEnumerable())
+                        .Cross(_negativeGamepadButtons.AsValueEnumerable())
                         .Any(x => x.Left.IsButtonDown(x.Right))
                 )
                     negative = -1;
             if (negative == 0)
             {
-                var cross = Gamepads
+                var cross = _gamepads
                     .AsValueEnumerable()
-                    .Cross(GamepadAxes.AsValueEnumerable())
+                    .Cross(_gamepadAxes.AsValueEnumerable())
                     .FirstOrDefault(x => x.Left.GetAxis(x.Right) < 0);
                 if (cross != default)
                     negative = cross.Left.GetAxis(cross.Right);
             }
 
             float positive = 0;
-            if (PositiveKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown))
+            if (_positiveKeys.AsValueEnumerable().Any(Keyboard.IsKeyDown))
                 positive = 1;
             if (positive == 0)
                 if (
-                    Gamepads
+                    _gamepads
                         .AsValueEnumerable()
-                        .Cross(PositiveGamepadButtons.AsValueEnumerable())
+                        .Cross(_positiveGamepadButtons.AsValueEnumerable())
                         .Any(x => x.Left.IsButtonDown(x.Right))
                 )
                     positive = 1;
             if (positive == 0)
             {
-                var cross = Gamepads
+                var cross = _gamepads
                     .AsValueEnumerable()
-                    .Cross(GamepadAxes.AsValueEnumerable())
+                    .Cross(_gamepadAxes.AsValueEnumerable())
                     .FirstOrDefault(x => x.Left.GetAxis(x.Right) > 0);
                 if (cross != default)
                     positive = cross.Left.GetAxis(cross.Right);

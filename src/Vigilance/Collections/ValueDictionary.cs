@@ -658,15 +658,26 @@ public struct ValueDictionary<TKey, TValue>
     private readonly void CopyTo(KeyValuePair<TKey, TValue>[] array, int index)
     {
         ArgumentNullException.ThrowIfNull(array);
-        if ((uint)index > (uint)array.Length)
-            throw new ArgumentOutOfRangeException(nameof(index));
-        if (array.Length - index < Count)
-            throw new ArgumentException("Destination array is not long enough.", nameof(array));
+        CopyTo(array.AsSpan(), index);
+    }
+
+    public readonly void CopyTo(in Span<KeyValuePair<TKey, TValue>> span, int arrayIndex = 0)
+    {
+        if ((uint)arrayIndex > (uint)span.Length)
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        if (span.Length - arrayIndex < Count)
+            throw new ArgumentException("Destination array is not long enough.", nameof(span));
         var count = _count;
         var entries = _entries;
+        var index = arrayIndex;
         for (var i = 0; i < count; i++)
             if (entries![i].Next >= -1)
-                array[index++] = new KeyValuePair<TKey, TValue>(entries[i].Key, entries[i].Value);
+                span[index++] = new KeyValuePair<TKey, TValue>(entries[i].Key, entries[i].Value);
+    }
+
+    public readonly void CopyTo(ref ValueDictionary<TKey, TValue> dictionary)
+    {
+        dictionary = new ValueDictionary<TKey, TValue>(in this);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

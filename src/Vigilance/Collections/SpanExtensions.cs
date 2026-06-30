@@ -28,6 +28,11 @@ public static class SpanExtensions
         };
     }
 
+    public static Span<T> AsSpan<T>(this T[] array)
+    {
+        return array;
+    }
+
     public static Span<T> AsSpan<T>(this List<T> list)
     {
         return CollectionsMarshal.AsSpan(list);

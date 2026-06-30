@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -17,10 +18,11 @@ public static class SplineExtensions
             Camera? camera = null
         )
         {
-            graphics.DrawSplineLinearSpan(points.AsSpan(), color, thick, camera);
+            graphics.DrawSplineLinear(points.AsSpan(), color, thick, camera);
         }
 
-        public unsafe void DrawSplineLinearSpan(
+        [OverloadResolutionPriority(1)]
+        public unsafe void DrawSplineLinear(
             in ReadOnlySpan<Vector2> points,
             Color? color = null,
             float? thick = null,
@@ -52,10 +54,11 @@ public static class SplineExtensions
             Camera? camera = null
         )
         {
-            graphics.DrawSplineBasisSpan(points.AsSpan(), color, thick, camera);
+            graphics.DrawSplineBasis(points.AsSpan(), color, thick, camera);
         }
 
-        public unsafe void DrawSplineBasisSpan(
+        [OverloadResolutionPriority(1)]
+        public unsafe void DrawSplineBasis(
             in ReadOnlySpan<Vector2> points,
             Color? color = null,
             float? thick = null,
@@ -87,10 +90,11 @@ public static class SplineExtensions
             Camera? camera = null
         )
         {
-            graphics.DrawSplineCatmullRomSpan(points.AsSpan(), color, thick, camera);
+            graphics.DrawSplineCatmullRom(points.AsSpan(), color, thick, camera);
         }
 
-        public unsafe void DrawSplineCatmullRomSpan(
+        [OverloadResolutionPriority(1)]
+        public unsafe void DrawSplineCatmullRom(
             in ReadOnlySpan<Vector2> points,
             Color? color = null,
             float? thick = null,
@@ -122,10 +126,11 @@ public static class SplineExtensions
             Camera? camera = null
         )
         {
-            graphics.DrawSplineBezierQuadraticSpan(points.AsSpan(), color, thick, camera);
+            graphics.DrawSplineBezierQuadratic(points.AsSpan(), color, thick, camera);
         }
 
-        public unsafe void DrawSplineBezierQuadraticSpan(
+        [OverloadResolutionPriority(1)]
+        public unsafe void DrawSplineBezierQuadratic(
             in ReadOnlySpan<Vector2> points,
             Color? color = null,
             float? thick = null,
@@ -157,10 +162,11 @@ public static class SplineExtensions
             Camera? camera = null
         )
         {
-            graphics.DrawSplineBezierCubicSpan(points.AsSpan(), color, thick, camera);
+            graphics.DrawSplineBezierCubic(points.AsSpan(), color, thick, camera);
         }
 
-        public unsafe void DrawSplineBezierCubicSpan(
+        [OverloadResolutionPriority(1)]
+        public unsafe void DrawSplineBezierCubic(
             in ReadOnlySpan<Vector2> points,
             Color? color = null,
             float? thick = null,

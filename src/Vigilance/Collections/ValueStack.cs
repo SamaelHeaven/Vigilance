@@ -87,15 +87,28 @@ public struct ValueStack<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueSta
 
     public readonly void CopyTo(T[] array, int arrayIndex)
     {
-        if (arrayIndex < 0 || arrayIndex > array.Length)
-            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-        if (array.Length - arrayIndex < Count)
-            throw new ArgumentException("Destination array was not long enough.");
         Debug.Assert(array != _items);
+        CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    public readonly void CopyTo(in Span<T> span, int arrayIndex = 0)
+    {
+        if (arrayIndex < 0 || arrayIndex > span.Length)
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        if (span.Length - arrayIndex < Count)
+            throw new ArgumentException("Destination array was not long enough.");
         var srcIndex = 0;
         var dstIndex = arrayIndex + Count;
         while (srcIndex < Count)
-            array[--dstIndex] = _items[srcIndex++];
+            span[--dstIndex] = _items[srcIndex++];
+    }
+
+    public readonly void CopyTo(ref ValueStack<T> stack)
+    {
+        stack.Clear();
+        stack.EnsureCapacity(Count);
+        _items.AsSpan(0, Count).CopyTo(stack._items);
+        stack.Count = Count;
     }
 
     public void TrimExcess()

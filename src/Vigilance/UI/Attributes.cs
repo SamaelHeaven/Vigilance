@@ -1,10 +1,15 @@
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Core;
 
 namespace Vigilance.UI;
 
-public sealed class Attributes() : Dictionary<string, object>, IFullCloneable
+public sealed class Attributes : Dictionary<string, object>, IFullCloneable
 {
+    [OverloadResolutionPriority(2)]
+    public Attributes() { }
+
+    [OverloadResolutionPriority(1)]
     public Attributes(params ReadOnlySpan<(string, object)> attributes)
         : this()
     {
@@ -12,6 +17,7 @@ public sealed class Attributes() : Dictionary<string, object>, IFullCloneable
             Add(key, value);
     }
 
+    [OverloadResolutionPriority(1)]
     public Attributes(params ReadOnlySpan<KeyValuePair<string, object>> attributes)
         : this()
     {
