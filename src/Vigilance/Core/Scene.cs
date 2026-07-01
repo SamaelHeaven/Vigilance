@@ -522,6 +522,8 @@ public sealed unsafe partial class Scene
 
     internal void Stop()
     {
+        if (!IsStarted)
+            return;
         _stopAction?.Invoke();
         IsStarted = false;
     }
@@ -628,8 +630,7 @@ public sealed unsafe partial class Scene
 
     private void RestartAction()
     {
-        if (IsStarted)
-            Stop();
+        Stop();
         if (IsInitialized)
             Clear();
         IsInitialized = false;

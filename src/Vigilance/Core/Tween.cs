@@ -7,6 +7,9 @@ public sealed class Tween
 {
     public const int InfiniteCycleCount = -1;
 
+    public Tween()
+        : this(TimeSpan.Zero) { }
+
     public Tween(
         TimeSpan duration,
         TimeSpan? initialTime = null,

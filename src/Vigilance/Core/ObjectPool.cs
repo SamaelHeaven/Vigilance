@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+using System.Reflection;
 using Vigilance.Collections;
-using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Vigilance.Core;
 
@@ -14,8 +13,6 @@ public sealed unsafe class ObjectPool<
 >
     where T : class, new()
 {
-    private static readonly T _uninitialized = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
-    private static readonly nuint _size = GetRawObjectDataSize(null, _uninitialized);
     private static readonly delegate* <T, void> _constructor;
     private ValueStack<T> _pool = [];
 
@@ -35,26 +32,6 @@ public sealed unsafe class ObjectPool<
         set => _pool.Capacity = value;
     }
 
-    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod)]
-    private static extern ref byte GetRawData(
-        [UnsafeAccessorType("System.Runtime.CompilerServices.RuntimeHelpers")] object? clazz,
-        object obj
-    );
-
-    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod)]
-    private static extern nuint GetRawObjectDataSize(
-        [UnsafeAccessorType("System.Runtime.CompilerServices.RuntimeHelpers")] object? clazz,
-        object obj
-    );
-
-    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod)]
-    private static extern void BulkMoveWithWriteBarrier(
-        [UnsafeAccessorType("System.Buffer")] object? clazz,
-        ref byte destination,
-        ref byte source,
-        nuint byteCount
-    );
-
     public T Rent()
     {
         if (!_pool.TryPop(out var item))
@@ -63,20 +40,18 @@ public sealed unsafe class ObjectPool<
         return item;
     }
 
-    public Handle Borrow()
-    {
-        return new Handle(this, Rent());
-    }
-
     public void Return(T item)
     {
         Debug.Assert(item is not null);
         if ((T?)item is null)
             return;
-        ref var data = ref GetRawData(null, item);
-        ref var uninitializedData = ref GetRawData(null, _uninitialized);
-        BulkMoveWithWriteBarrier(null, ref data, ref uninitializedData, _size);
+        Object<T>.Clear(item);
         _pool.Push(item);
+    }
+
+    public Handle Borrow()
+    {
+        return new Handle(this, Rent());
     }
 
     public void Clear()

@@ -66,8 +66,9 @@ public abstract class UIElement : IFullCloneable
     public ReadOnlySpan<IUIComponent> Components
     {
         get => _components.AsSpan();
-        set
+        init
         {
+            _components.EnsureCapacity(value.Length);
             foreach (var component in value)
                 Attach(component);
         }

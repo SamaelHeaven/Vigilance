@@ -6,6 +6,9 @@ public sealed class Timer
 {
     public const int InfiniteCycleCount = -1;
 
+    public Timer()
+        : this(TimeSpan.Zero) { }
+
     public Timer(
         TimeSpan duration,
         TimeSpan? initialTime = null,

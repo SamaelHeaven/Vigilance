@@ -27,10 +27,10 @@ public static unsafe class Game
         set
         {
             ThrowIfNotRunning();
-            if (_scene == value)
-                return;
             Defer(() =>
             {
+                if (_scene == value)
+                    return;
                 var oldScene = _scene;
                 _scene.Stop();
                 _scene = value;
@@ -153,7 +153,7 @@ public static unsafe class Game
         }
         finally
         {
-            ArrayPool<Action>.Shared.Return(actions);
+            ArrayPool<Action>.Shared.Return(actions, true);
         }
     }
 
