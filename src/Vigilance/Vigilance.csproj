@@ -35,6 +35,8 @@
     <None Include="Vigilance.props" Pack="true" PackagePath="build\Vigilance.props" />
     <None Include="$(MSBuildThisFileDirectory)..\..\README.MD" Pack="true" PackagePath="README.MD" />
     <None Include="$(LibsPath)\**\*" Pack="true" PackagePath="build\libs\" />
-    <EmbeddedResource Include="Resources\**\*" />
+    <EmbeddedResource Include="Resources\**\*">
+      <LogicalName>$([System.String]::Copy('%(RecursiveDir)').Replace('\','/').Replace('/','.'))%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

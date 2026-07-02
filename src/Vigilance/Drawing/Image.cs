@@ -90,7 +90,7 @@ public sealed unsafe class Image : IDisposable
 
     public bool Export(string path)
     {
-        return Raylib.ExportImage(RImage, FileSystem.FormatPath(path));
+        return Raylib.ExportImage(RImage, path);
     }
 
     public byte[] ExportToMemory(string fileType)
