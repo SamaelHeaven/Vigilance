@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using Vigilance.Collections;
 using Vigilance.Logging;
@@ -11,10 +10,14 @@ public readonly record struct Resource(string Name, Assembly Assembly)
 {
     private static ValueDictionary<Assembly, HashSet<string>> _resourceNames = [];
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
     public static implicit operator Resource(string name)
     {
-        return new Resource(name, Assembly.GetCallingAssembly());
+        return new Resource(name, Assemblies.Game);
+    }
+
+    public static implicit operator Resource(in (string Name, Assembly Assembly) resource)
+    {
+        return new Resource(resource.Name, resource.Assembly);
     }
 
     public static bool Exists(in Resource resource)
