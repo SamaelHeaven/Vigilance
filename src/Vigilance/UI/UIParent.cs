@@ -181,7 +181,7 @@ public abstract class UIParent : UIElement
         MarkDirty();
     }
 
-    internal enum ChildrenOperationType
+    internal enum ChildrenOperationType : byte
     {
         Add,
         Remove,
@@ -217,7 +217,7 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public unsafe struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
+    public struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
     {
         private readonly UIParent _parent;
         private bool _deferred;

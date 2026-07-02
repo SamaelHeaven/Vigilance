@@ -31,7 +31,7 @@ public readonly struct FastEnumerable<T> : IStructEnumerable<FastEnumerable<T>.E
     private readonly IReadOnlySpan<T>? _span;
     private readonly SourceKind _kind;
 
-    private enum SourceKind
+    private enum SourceKind : byte
     {
         Enumerable,
         Array,
