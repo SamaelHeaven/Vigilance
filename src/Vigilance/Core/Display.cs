@@ -566,7 +566,7 @@ public static unsafe class Display
 
     private static ConfigFlags GetConfigFlags()
     {
-        ConfigFlags flags = ConfigFlags.HighDpiWindow;
+        ConfigFlags flags = 0;
         if (_config.Resizable)
             flags |= ConfigFlags.ResizableWindow;
         if (!_config.Decorated)
