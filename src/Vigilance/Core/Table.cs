@@ -230,7 +230,6 @@ public sealed class Table<T>
     public void Emit(in Event<T> tableEvent)
     {
         Scene.ThrowIfNotConfigured();
-        Scene.BeginDefer();
         try
         {
             switch (tableEvent.Type)
@@ -259,10 +258,6 @@ public sealed class Table<T>
         catch (Exception e)
         {
             Log.Error(e);
-        }
-        finally
-        {
-            Scene.EndDefer();
         }
     }
 
