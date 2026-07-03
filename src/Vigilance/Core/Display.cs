@@ -447,7 +447,6 @@ public static unsafe class Display
         RunMinimized = _config.RunMinimized;
         Msaa4X = _config.Msaa4X;
         InitializeWindow();
-        // Apply the remaining settings through their setters now that the window exists.
         Title = _config.Title;
         MinScreenSize = _config.MinScreenSize;
         MaxScreenSize = _config.MaxScreenSize;
@@ -567,7 +566,7 @@ public static unsafe class Display
 
     private static ConfigFlags GetConfigFlags()
     {
-        ConfigFlags flags = 0;
+        ConfigFlags flags = ConfigFlags.HighDpiWindow;
         if (_config.Resizable)
             flags |= ConfigFlags.ResizableWindow;
         if (!_config.Decorated)
