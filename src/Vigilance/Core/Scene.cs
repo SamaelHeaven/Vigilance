@@ -630,9 +630,10 @@ public sealed unsafe partial class Scene
 
     private void RestartAction()
     {
+        if (!IsInitialized)
+            return;
         Stop();
-        if (IsInitialized)
-            Clear();
+        Clear();
         IsInitialized = false;
     }
 
