@@ -45,9 +45,7 @@ public static class Renderer
         }
 
         Graphics.Reset();
-        Raylib.ClearBackground(Display.Background.RColor);
-        if (_buffer is not null)
-            Graphics.ClearBackground(Display.Background);
+        Graphics.ClearBackground(Display.Background);
         var screenWidth = (float)Display.ScreenWidth;
         var screenHeight = (float)Display.ScreenHeight;
         var width = Display.Width;
@@ -100,14 +98,7 @@ public static class Renderer
         var background = Display.Background.RColor;
         var mode = Display.RenderingMode;
         Graphics.Reset();
-        if (_buffer is null)
-        {
-            Raylib.DrawRectangle(0, 0, offsetX, screenHeight, background);
-            Raylib.DrawRectangle(screenWidth - offsetX, 0, offsetX, screenHeight, background);
-            Raylib.DrawRectangle(0, 0, screenWidth, offsetY, background);
-            Raylib.DrawRectangle(0, screenHeight - offsetY, screenWidth, offsetY, background);
-        }
-        else
+        if (_buffer is not null)
         {
             var texture = _buffer.Texture;
             var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
@@ -116,6 +107,10 @@ public static class Renderer
             Raylib.DrawTexturePro(texture.Texture2D, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
         }
 
+        Raylib.DrawRectangle(0, 0, offsetX, screenHeight, background);
+        Raylib.DrawRectangle(screenWidth - offsetX, 0, offsetX, screenHeight, background);
+        Raylib.DrawRectangle(0, 0, screenWidth, offsetY, background);
+        Raylib.DrawRectangle(0, screenHeight - offsetY, screenWidth, offsetY, background);
         Graphics.DrawCurrentBuffer();
         Raylib.SwapScreenBuffer();
     }
