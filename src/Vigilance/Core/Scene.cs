@@ -41,6 +41,7 @@ public sealed unsafe partial class Scene
     private Collections.ValueStack<int> _suspendStack = [];
     private ValueList<IGameSystem> _systems = [];
     private ValueList<Table> _tables = [];
+    private Action<Scene>? _transitionToAction;
     private Action? _updateAction;
     internal Table<Child> ChildTable;
     internal Table<Disabled> DisabledTable;
@@ -267,6 +268,18 @@ public sealed unsafe partial class Scene
     {
         ThrowIfConfigured();
         _stopAction += action;
+    }
+
+    public void OnTransitionTo(Action action)
+    {
+        ThrowIfConfigured();
+        _transitionToAction += _ => action.Invoke();
+    }
+
+    public void OnTransitionTo(Action<Scene> action)
+    {
+        ThrowIfConfigured();
+        _transitionToAction += action;
     }
 
     public void OnDispose(Action action)
@@ -526,6 +539,11 @@ public sealed unsafe partial class Scene
             return;
         _stopAction?.Invoke();
         IsStarted = false;
+    }
+
+    internal void TransitionTo(Scene oldScene)
+    {
+        _transitionToAction?.Invoke(oldScene);
     }
 
     internal void Update()

@@ -34,7 +34,7 @@ public static unsafe class Game
                 var oldScene = _scene;
                 _scene.Stop();
                 _scene = value;
-                Hooks.OnSetScene?.Invoke(oldScene, _scene);
+                _scene.TransitionTo(oldScene);
             });
         }
     }
