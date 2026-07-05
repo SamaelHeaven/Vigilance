@@ -270,12 +270,6 @@ public sealed unsafe partial class Scene
         _stopAction += action;
     }
 
-    public void OnTransitionTo(Action action)
-    {
-        ThrowIfConfigured();
-        _transitionToAction += _ => action.Invoke();
-    }
-
     public void OnTransitionTo(Action<Scene> action)
     {
         ThrowIfConfigured();
