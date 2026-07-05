@@ -33,7 +33,7 @@ public readonly record struct Resource(string Name, Assembly Assembly)
     public static bool TryReadText(in Resource resource, out string text)
     {
         var result = TryReadBytes(resource, out var bytes);
-        text = Encoding.UTF8.GetString(bytes);
+        text = result ? Encoding.UTF8.GetString(bytes) : null!;
         return result;
     }
 

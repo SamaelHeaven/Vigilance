@@ -84,7 +84,7 @@ public static unsafe partial class FileSystem
     public static bool TryReadText(string path, out string text)
     {
         var result = TryReadBytes(path, out var bytes);
-        text = Encoding.UTF8.GetString(bytes);
+        text = result ? Encoding.UTF8.GetString(bytes) : null!;
         return result;
     }
 
