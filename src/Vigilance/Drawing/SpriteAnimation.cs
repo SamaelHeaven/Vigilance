@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
@@ -6,16 +7,38 @@ using ZLinq.Linq;
 
 namespace Vigilance.Drawing;
 
-public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
+public sealed class SpriteAnimation : IArrayView<ISpriteAnimationFrame>, IShallowCloneable
 {
     public const int InfiniteCycleCount = -1;
-    private readonly SpriteAnimationFrame[] _frames;
+    private readonly ISpriteAnimationFrame[] _frames;
     private int _index;
     private int? _nextIndex;
     private int _startIndex;
 
     public SpriteAnimation(
-        IEnumerable<SpriteAnimationFrame> frames,
+        IEnumerable<ISpriteAnimationFrame> frames,
+        TimeSpan delay,
+        int cycleCount = InfiniteCycleCount,
+        int startIndex = 0,
+        Action? repeatAction = null,
+        Action? completeAction = null
+    )
+        : this(frames.ToArray(), delay, cycleCount, startIndex, repeatAction, completeAction) { }
+
+    [OverloadResolutionPriority(1)]
+    public SpriteAnimation(
+        in ReadOnlySpan<ISpriteAnimationFrame> frames,
+        TimeSpan delay,
+        int cycleCount = InfiniteCycleCount,
+        int startIndex = 0,
+        Action? repeatAction = null,
+        Action? completeAction = null
+    )
+        : this(frames.ToArray(), delay, cycleCount, startIndex, repeatAction, completeAction) { }
+
+    [OverloadResolutionPriority(2)]
+    private SpriteAnimation(
+        ISpriteAnimationFrame[] frames,
         TimeSpan delay,
         int cycleCount = InfiniteCycleCount,
         int startIndex = 0,
@@ -23,9 +46,9 @@ public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
         Action? completeAction = null
     )
     {
-        _frames = frames.ToArray();
-        if (_frames.Length == 0)
+        if (frames.Length == 0)
             throw new ArgumentException($"{nameof(SpriteAnimation)} must have at least one frame.");
+        _frames = frames;
         _nextIndex = null;
         OnComplete = completeAction;
         OnRepeat = repeatAction;
@@ -45,7 +68,7 @@ public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
     public Action? OnComplete { get; set; }
     public Action? OnRepeat { get; set; }
 
-    public SpriteAnimationFrame Frame => _frames[_index];
+    public ISpriteAnimationFrame Frame => _frames[_index];
     public bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
     public int FrameCount => _frames.Length;
 
@@ -71,12 +94,12 @@ public sealed class SpriteAnimation : IArrayView<SpriteAnimationFrame>
         set => _nextIndex = value?.Clamp(0, _frames.Length - 1);
     }
 
-    public ArrayEnumerator<SpriteAnimationFrame> GetEnumerator()
+    public ArrayEnumerator<ISpriteAnimationFrame> GetEnumerator()
     {
         return _frames;
     }
 
-    public ValueEnumerable<FromArray<SpriteAnimationFrame>, SpriteAnimationFrame> AsValueEnumerable()
+    public ValueEnumerable<FromArray<ISpriteAnimationFrame>, ISpriteAnimationFrame> AsValueEnumerable()
     {
         return _frames.AsValueEnumerable();
     }

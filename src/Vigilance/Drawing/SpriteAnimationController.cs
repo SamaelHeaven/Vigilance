@@ -1,13 +1,15 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
+using Vigilance.Core;
 using ZLinq;
 
 namespace Vigilance.Drawing;
 
 public sealed class SpriteAnimationController
     : IValueDictionaryView<string, SpriteAnimation>,
-        IReadOnlyDictionary<string, SpriteAnimation>
+        IReadOnlyDictionary<string, SpriteAnimation>,
+        IShallowCloneable
 {
     private readonly ValueDictionary<string, SpriteAnimation> _animations;
 

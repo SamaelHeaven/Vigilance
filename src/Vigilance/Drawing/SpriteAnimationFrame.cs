@@ -4,9 +4,8 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public sealed class SpriteAnimationFrame
+public sealed class SpriteAnimationFrame : ISpriteAnimationFrame, IFullCloneable
 {
-    public TimeSpan Delay { get; set; } = TimeSpan.Zero;
     public Texture? Texture { get; set; } = null;
     public bool? FlipX { get; set; } = null;
     public bool? FlipY { get; set; } = null;
@@ -35,10 +34,7 @@ public sealed class SpriteAnimationFrame
         }
     }
 
-    public override string ToString()
-    {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
-    }
+    public TimeSpan Delay { get; set; } = TimeSpan.Zero;
 
     public void UpdateSprite(Sprite sprite)
     {
@@ -74,5 +70,10 @@ public sealed class SpriteAnimationFrame
             sprite.OnBeginDrawing = OnBeginDrawing.Value;
         if (OnEndDrawing.HasValue)
             sprite.OnEndDrawing = OnEndDrawing.Value;
+    }
+
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 }
