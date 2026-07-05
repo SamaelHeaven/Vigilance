@@ -1,4 +1,5 @@
-﻿using LinkDotNet.StringBuilder;
+﻿using System.Text;
+using LinkDotNet.StringBuilder;
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -6,7 +7,7 @@ using ZLinq;
 
 namespace Vigilance.Input;
 
-public static class Keyboard
+public static unsafe class Keyboard
 {
     private static readonly Key[] _keyValues;
     private static ValueList<Key> _currentKeys = [];
@@ -70,8 +71,18 @@ public static class Keyboard
     private static void UpdateState()
     {
         using var typedString = new ValueStringBuilder(stackalloc char[32]);
-        for (var c = (char)Raylib.GetCharPressed(); c != 0; c = (char)Raylib.GetCharPressed())
-            typedString.Append(c);
+        Span<char> utf16 = stackalloc char[2];
+        for (var unicode = Raylib.GetCharPressed(); unicode != 0; unicode = Raylib.GetCharPressed())
+        {
+            if (!Rune.IsValid(unicode))
+                continue;
+            var rune = new Rune(unicode);
+            if (!rune.TryEncodeToUtf16(utf16, out var written))
+                continue;
+            for (var i = 0; i < written; i++)
+                typedString.Append(utf16[i]);
+        }
+
         TypedString = typedString.ToString();
         _currentKeys.Clear();
         foreach (var key in _keyValues)
