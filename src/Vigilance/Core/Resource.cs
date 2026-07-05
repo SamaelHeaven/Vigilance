@@ -8,7 +8,7 @@ namespace Vigilance.Core;
 
 public readonly record struct Resource(string Name, Assembly Assembly)
 {
-    private static ValueDictionary<Assembly, HashSet<string>> _resourceNames = [];
+    private static ValueDictionary<Assembly, ValueHashSet<string>> _resourceNames = [];
 
     public static implicit operator Resource(string name)
     {
@@ -26,7 +26,7 @@ public readonly record struct Resource(string Name, Assembly Assembly)
             return false;
         ref var names = ref _resourceNames.GetValueRefOrAddDefault(resource.Assembly, out var exists)!;
         if (!exists)
-            names = resource.Assembly.GetManifestResourceNames().AsValueEnumerable().ToHashSet();
+            names = resource.Assembly.GetManifestResourceNames().AsValueEnumerable().ToValueHashSet();
         return names.Contains(resource.Name);
     }
 

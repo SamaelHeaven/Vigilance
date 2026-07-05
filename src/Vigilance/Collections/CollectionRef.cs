@@ -94,7 +94,7 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
         return AsSpan();
     }
 
-    public void Add(in T item)
+    public void Add(scoped in T item)
     {
         _ref.Add(item);
     }
@@ -109,28 +109,28 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
         _ref.AddRange(collection);
     }
 
-    public void AddRange(in ValueList<T> list)
+    public void AddRange(scoped in ValueList<T> list)
     {
         _ref.AddRange(list);
     }
 
     [OverloadResolutionPriority(1)]
-    public void AddRange(in ReadOnlySpan<T> span)
+    public void AddRange(scoped in ReadOnlySpan<T> span)
     {
         _ref.AddRange(span);
     }
 
-    public readonly int BinarySearch(int index, int count, in T item, IComparer<T>? comparer)
+    public readonly int BinarySearch(int index, int count, scoped in T item, IComparer<T>? comparer)
     {
         return _ref.BinarySearch(index, count, item, comparer);
     }
 
-    public readonly int BinarySearch(in T item)
+    public readonly int BinarySearch(scoped in T item)
     {
         return _ref.BinarySearch(item);
     }
 
-    public readonly int BinarySearch(in T item, IComparer<T>? comparer)
+    public readonly int BinarySearch(scoped in T item, IComparer<T>? comparer)
     {
         return _ref.BinarySearch(item, comparer);
     }
@@ -140,7 +140,7 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
         _ref.Clear();
     }
 
-    public readonly bool Contains(in T item)
+    public readonly bool Contains(scoped in T item)
     {
         return _ref.Contains(item);
     }
@@ -245,7 +245,7 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
         return _ref.Slice(start, length);
     }
 
-    public readonly int IndexOf(in T item)
+    public readonly int IndexOf(scoped in T item)
     {
         return _ref.IndexOf(item);
     }
@@ -255,17 +255,17 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
         return _ref.IndexOf(item);
     }
 
-    public readonly int IndexOf(in T item, int index)
+    public readonly int IndexOf(scoped in T item, int index)
     {
         return _ref.IndexOf(item, index);
     }
 
-    public readonly int IndexOf(in T item, int index, int count)
+    public readonly int IndexOf(scoped in T item, int index, int count)
     {
         return _ref.IndexOf(item, index, count);
     }
 
-    public void Insert(int index, in T item)
+    public void Insert(int index, scoped in T item)
     {
         _ref.Insert(index, item);
     }
@@ -280,22 +280,22 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
         _ref.InsertRange(index, collection);
     }
 
-    public readonly int LastIndexOf(in T item)
+    public readonly int LastIndexOf(scoped in T item)
     {
         return _ref.LastIndexOf(item);
     }
 
-    public readonly int LastIndexOf(in T item, int index)
+    public readonly int LastIndexOf(scoped in T item, int index)
     {
         return _ref.LastIndexOf(item, index);
     }
 
-    public readonly int LastIndexOf(in T item, int index, int count)
+    public readonly int LastIndexOf(scoped in T item, int index, int count)
     {
         return _ref.LastIndexOf(item, index, count);
     }
 
-    public bool Remove(in T item)
+    public bool Remove(scoped in T item)
     {
         return _ref.Remove(item);
     }
@@ -310,12 +310,12 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
         return _ref.RemoveAll(match);
     }
 
-    public int RemoveAll(in ValueList<T> list)
+    public int RemoveAll(scoped in ValueList<T> list)
     {
         return _ref.RemoveAll(list);
     }
 
-    public int RemoveAll(in ReadOnlySpan<T> span)
+    public int RemoveAll(scoped in ReadOnlySpan<T> span)
     {
         return _ref.RemoveAll(span);
     }
@@ -390,17 +390,17 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
         throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueListRef<>)} is not supported.");
     }
 
-    public readonly bool Equals(in ValueListRef<T> other)
+    public readonly bool Equals(scoped in ValueListRef<T> other)
     {
         return Unsafe.AreSame(ref _ref, ref other._ref);
     }
 
-    public static bool operator ==(in ValueListRef<T> left, in ValueListRef<T> right)
+    public static bool operator ==(scoped in ValueListRef<T> left, scoped in ValueListRef<T> right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(in ValueListRef<T> left, in ValueListRef<T> right)
+    public static bool operator !=(scoped in ValueListRef<T> left, scoped in ValueListRef<T> right)
     {
         return !left.Equals(right);
     }
@@ -486,7 +486,7 @@ public ref struct ValueQueueRef<T> : IReadOnlyCollection<T>, IStructEnumerable<V
         _ref.CopyTo(ref queue);
     }
 
-    public void Enqueue(in T item)
+    public void Enqueue(scoped in T item)
     {
         _ref.Enqueue(item);
     }
@@ -511,7 +511,7 @@ public ref struct ValueQueueRef<T> : IReadOnlyCollection<T>, IStructEnumerable<V
         return _ref.TryPeek(out result);
     }
 
-    public readonly bool Contains(in T item)
+    public readonly bool Contains(scoped in T item)
     {
         return _ref.Contains(item);
     }
@@ -551,17 +551,17 @@ public ref struct ValueQueueRef<T> : IReadOnlyCollection<T>, IStructEnumerable<V
         throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueQueueRef<>)} is not supported.");
     }
 
-    public readonly bool Equals(in ValueQueueRef<T> other)
+    public readonly bool Equals(scoped in ValueQueueRef<T> other)
     {
         return Unsafe.AreSame(ref _ref, ref other._ref);
     }
 
-    public static bool operator ==(in ValueQueueRef<T> left, in ValueQueueRef<T> right)
+    public static bool operator ==(scoped in ValueQueueRef<T> left, scoped in ValueQueueRef<T> right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(in ValueQueueRef<T> left, in ValueQueueRef<T> right)
+    public static bool operator !=(scoped in ValueQueueRef<T> left, scoped in ValueQueueRef<T> right)
     {
         return !left.Equals(right);
     }
@@ -632,7 +632,7 @@ public ref struct ValueStackRef<T> : IReadOnlyCollection<T>, IStructEnumerable<V
         _ref.Clear();
     }
 
-    public readonly bool Contains(in T item)
+    public readonly bool Contains(scoped in T item)
     {
         return _ref.Contains(item);
     }
@@ -682,7 +682,7 @@ public ref struct ValueStackRef<T> : IReadOnlyCollection<T>, IStructEnumerable<V
         return _ref.TryPop(out result);
     }
 
-    public void Push(in T item)
+    public void Push(scoped in T item)
     {
         _ref.Push(item);
     }
@@ -712,17 +712,17 @@ public ref struct ValueStackRef<T> : IReadOnlyCollection<T>, IStructEnumerable<V
         throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueStackRef<>)} is not supported.");
     }
 
-    public readonly bool Equals(in ValueStackRef<T> other)
+    public readonly bool Equals(scoped in ValueStackRef<T> other)
     {
         return Unsafe.AreSame(ref _ref, ref other._ref);
     }
 
-    public static bool operator ==(in ValueStackRef<T> left, in ValueStackRef<T> right)
+    public static bool operator ==(scoped in ValueStackRef<T> left, scoped in ValueStackRef<T> right)
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(in ValueStackRef<T> left, in ValueStackRef<T> right)
+    public static bool operator !=(scoped in ValueStackRef<T> left, scoped in ValueStackRef<T> right)
     {
         return !left.Equals(right);
     }
@@ -761,18 +761,18 @@ public ref struct ValueDictionaryRef<TKey, TValue>
 
     public readonly ValueDictionary<TKey, TValue>.ValueCollection Values => _ref.Values;
 
-    public TValue this[in TKey key]
+    public TValue this[scoped in TKey key]
     {
         readonly get => _ref[key];
         set => _ref[key] = value;
     }
 
-    public void Add(in TKey key, in TValue value)
+    public void Add(scoped in TKey key, scoped in TValue value)
     {
         _ref.Add(key, value);
     }
 
-    public bool TryAdd(in TKey key, in TValue value)
+    public bool TryAdd(scoped in TKey key, scoped in TValue value)
     {
         return _ref.TryAdd(key, value);
     }
@@ -782,27 +782,27 @@ public ref struct ValueDictionaryRef<TKey, TValue>
         _ref.Clear();
     }
 
-    public readonly bool ContainsKey(in TKey key)
+    public readonly bool ContainsKey(scoped in TKey key)
     {
         return _ref.ContainsKey(key);
     }
 
-    public readonly bool ContainsValue(in TValue value)
+    public readonly bool ContainsValue(scoped in TValue value)
     {
         return _ref.ContainsValue(value);
     }
 
-    public readonly bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
+    public readonly bool TryGetValue(scoped in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
         return _ref.TryGetValue(key, out value);
     }
 
-    public bool Remove(in TKey key)
+    public bool Remove(scoped in TKey key)
     {
         return _ref.Remove(key);
     }
 
-    public bool Remove(in TKey key, [MaybeNullWhen(false)] out TValue value)
+    public bool Remove(scoped in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
         return _ref.Remove(key, out value);
     }
@@ -813,11 +813,21 @@ public ref struct ValueDictionaryRef<TKey, TValue>
     }
 
     public readonly ValueEnumerable<
-        StructEnumerator<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
+        ValueDictionary<TKey, TValue>.Enumerator,
         KeyValuePair<TKey, TValue>
     > AsValueEnumerable()
     {
         return _ref.AsValueEnumerable();
+    }
+
+    readonly ValueEnumerable<
+        StructEnumerator<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
+        KeyValuePair<TKey, TValue>
+    > IStructEnumerable<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>(
+            GetEnumerator()
+        );
     }
 
     public readonly ValueDictionaryView<TKey, TValue>.Enumerable AsEnumerable()
@@ -964,17 +974,264 @@ public ref struct ValueDictionaryRef<TKey, TValue>
         );
     }
 
-    public readonly bool Equals(in ValueDictionaryRef<TKey, TValue> other)
+    public readonly bool Equals(scoped in ValueDictionaryRef<TKey, TValue> other)
     {
         return Unsafe.AreSame(ref _ref, ref other._ref);
     }
 
-    public static bool operator ==(in ValueDictionaryRef<TKey, TValue> left, in ValueDictionaryRef<TKey, TValue> right)
+    public static bool operator ==(
+        scoped in ValueDictionaryRef<TKey, TValue> left,
+        scoped in ValueDictionaryRef<TKey, TValue> right
+    )
     {
         return left.Equals(right);
     }
 
-    public static bool operator !=(in ValueDictionaryRef<TKey, TValue> left, in ValueDictionaryRef<TKey, TValue> right)
+    public static bool operator !=(
+        scoped in ValueDictionaryRef<TKey, TValue> left,
+        scoped in ValueDictionaryRef<TKey, TValue> right
+    )
+    {
+        return !left.Equals(right);
+    }
+}
+
+public ref struct ValueHashSetRef<T> : ISet<T>, IReadOnlySet<T>, IStructEnumerable<ValueHashSet<T>.Enumerator, T>
+{
+    private readonly ref ValueHashSet<T> _ref;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    private ValueHashSet<T> _hashSet;
+
+    public ValueHashSetRef()
+    {
+        _hashSet = [];
+        _ref = ref Unsafe.AsRef(ref _hashSet);
+    }
+
+    public ValueHashSetRef(ref ValueHashSet<T> hashSet)
+    {
+        _ref = ref hashSet;
+    }
+
+    public readonly IEqualityComparer<T> Comparer => _ref.Comparer;
+
+    public readonly int Count => _ref.Count;
+
+    public readonly int Capacity => _ref.Capacity;
+
+    readonly bool ICollection<T>.IsReadOnly => false;
+
+    public bool Add(scoped in T item)
+    {
+        return _ref.Add(item);
+    }
+
+    public void Clear()
+    {
+        _ref.Clear();
+    }
+
+    public readonly bool Contains(scoped in T item)
+    {
+        return _ref.Contains(item);
+    }
+
+    public bool Remove(scoped in T item)
+    {
+        return _ref.Remove(item);
+    }
+
+    public readonly bool TryGetValue(scoped in T equalValue, [MaybeNullWhen(false)] out T actualValue)
+    {
+        return _ref.TryGetValue(equalValue, out actualValue);
+    }
+
+    public void UnionWith(IEnumerable<T> other)
+    {
+        _ref.UnionWith(other);
+    }
+
+    public void IntersectWith(IEnumerable<T> other)
+    {
+        _ref.IntersectWith(other);
+    }
+
+    public void ExceptWith(IEnumerable<T> other)
+    {
+        _ref.ExceptWith(other);
+    }
+
+    public void SymmetricExceptWith(IEnumerable<T> other)
+    {
+        _ref.SymmetricExceptWith(other);
+    }
+
+    public readonly bool IsSubsetOf(IEnumerable<T> other)
+    {
+        return _ref.IsSubsetOf(other);
+    }
+
+    public readonly bool IsProperSubsetOf(IEnumerable<T> other)
+    {
+        return _ref.IsProperSubsetOf(other);
+    }
+
+    public readonly bool IsSupersetOf(IEnumerable<T> other)
+    {
+        return _ref.IsSupersetOf(other);
+    }
+
+    public readonly bool IsProperSupersetOf(IEnumerable<T> other)
+    {
+        return _ref.IsProperSupersetOf(other);
+    }
+
+    public readonly bool Overlaps(IEnumerable<T> other)
+    {
+        return _ref.Overlaps(other);
+    }
+
+    public readonly bool SetEquals(IEnumerable<T> other)
+    {
+        return _ref.SetEquals(other);
+    }
+
+    public int RemoveWhere(Predicate<T> match)
+    {
+        return _ref.RemoveWhere(match);
+    }
+
+    public readonly void CopyTo(T[] array)
+    {
+        _ref.CopyTo(array);
+    }
+
+    public readonly void CopyTo(T[] array, int arrayIndex)
+    {
+        _ref.CopyTo(array, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped in Span<T> span, int arrayIndex = 0)
+    {
+        _ref.CopyTo(span, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped in Span<T> span, int arrayIndex, int count)
+    {
+        _ref.CopyTo(span, arrayIndex, count);
+    }
+
+    public readonly void CopyTo(scoped ref ValueHashSet<T> hashSet)
+    {
+        _ref.CopyTo(ref hashSet);
+    }
+
+    public int EnsureCapacity(int capacity)
+    {
+        return _ref.EnsureCapacity(capacity);
+    }
+
+    public void TrimExcess()
+    {
+        _ref.TrimExcess();
+    }
+
+    public void TrimExcess(int capacity)
+    {
+        _ref.TrimExcess(capacity);
+    }
+
+    public readonly ValueHashSet<T>.Enumerator GetEnumerator()
+    {
+        return _ref.GetEnumerator();
+    }
+
+    public readonly ValueEnumerable<ValueHashSet<T>.Enumerator, T> AsValueEnumerable()
+    {
+        return _ref.AsValueEnumerable();
+    }
+
+    readonly ValueEnumerable<StructEnumerator<ValueHashSet<T>.Enumerator, T>, T> IStructEnumerable<
+        ValueHashSet<T>.Enumerator,
+        T
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueHashSet<T>.Enumerator, T>(GetEnumerator());
+    }
+
+    public readonly ValueHashSetView<T>.Enumerable AsEnumerable()
+    {
+        return new ValueHashSetView<T>.Enumerable(_ref);
+    }
+
+    void ICollection<T>.Add(T item)
+    {
+        _ref.Add(item);
+    }
+
+    bool ISet<T>.Add(T item)
+    {
+        return _ref.Add(item);
+    }
+
+    readonly bool ICollection<T>.Contains(T item)
+    {
+        return _ref.Contains(item);
+    }
+
+    readonly bool IReadOnlySet<T>.Contains(T item)
+    {
+        return _ref.Contains(item);
+    }
+
+    bool ICollection<T>.Remove(T item)
+    {
+        return _ref.Remove(item);
+    }
+
+    readonly void ICollection<T>.CopyTo(T[] array, int arrayIndex)
+    {
+        _ref.CopyTo(array, arrayIndex);
+    }
+
+    readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    readonly IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public static implicit operator ValueHashSetView<T>(ValueHashSetRef<T> hashSet)
+    {
+        return new ValueHashSetView<T>(ref hashSet._ref);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueHashSetRef<>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueHashSetRef<>)} is not supported.");
+    }
+
+    public readonly bool Equals(scoped in ValueHashSetRef<T> other)
+    {
+        return Unsafe.AreSame(ref _ref, ref other._ref);
+    }
+
+    public static bool operator ==(scoped in ValueHashSetRef<T> left, scoped in ValueHashSetRef<T> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(scoped in ValueHashSetRef<T> left, scoped in ValueHashSetRef<T> right)
     {
         return !left.Equals(right);
     }
@@ -1014,7 +1271,7 @@ public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
 
     public readonly int Count => _ref.Count;
 
-    public TValue this[in TKey key]
+    public TValue this[scoped in TKey key]
     {
         readonly get => _ref[key];
         set => _ref[key] = value;
@@ -1027,22 +1284,22 @@ public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
         _ref.Clear();
     }
 
-    public readonly bool ContainsKey(in TKey key)
+    public readonly bool ContainsKey(scoped in TKey key)
     {
         return _ref.ContainsKey(key);
     }
 
-    public readonly bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
+    public readonly bool TryGetValue(scoped in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
         return _ref.TryGetValue(key, out value);
     }
 
-    public bool Remove(in TKey key)
+    public bool Remove(scoped in TKey key)
     {
         return _ref.Remove(key);
     }
 
-    public readonly int GetKeyIndex(in TKey key)
+    public readonly int GetKeyIndex(scoped in TKey key)
     {
         return _ref.GetKeyIndex(key);
     }
@@ -1183,7 +1440,7 @@ public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
         );
     }
 
-    public readonly bool Equals(in ValueSparseSetRef<TKey, TValue, TStorage> other)
+    public readonly bool Equals(scoped in ValueSparseSetRef<TKey, TValue, TStorage> other)
     {
         return Unsafe.AreSame(ref _ref, ref other._ref);
     }
@@ -1236,5 +1493,10 @@ public static class CollectionRefExtensions
         where TStorage : IList<TValue>
     {
         return new ValueSparseSetRef<TKey, TValue, TStorage>(ref sparseSet);
+    }
+
+    public static ValueHashSetRef<T> AsRef<T>(this ref ValueHashSet<T> hashSet)
+    {
+        return new ValueHashSetRef<T>(ref hashSet);
     }
 }

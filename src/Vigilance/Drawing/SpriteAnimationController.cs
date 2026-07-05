@@ -73,14 +73,11 @@ public sealed class SpriteAnimationController
     }
 
     public ValueEnumerable<
-        StructEnumerator<ValueDictionary<string, SpriteAnimation>.Enumerator, KeyValuePair<string, SpriteAnimation>>,
+        ValueDictionary<string, SpriteAnimation>.Enumerator,
         KeyValuePair<string, SpriteAnimation>
     > AsValueEnumerable()
     {
-        return new StructEnumerator<
-            ValueDictionary<string, SpriteAnimation>.Enumerator,
-            KeyValuePair<string, SpriteAnimation>
-        >(GetEnumerator());
+        return _animations.AsValueEnumerable();
     }
 
     public bool IsUsing(string animation)
