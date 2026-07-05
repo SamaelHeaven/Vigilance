@@ -341,7 +341,10 @@ public struct ValueHashSet<T> : ISet<T>, IReadOnlySet<T>, IStructEnumerable<Valu
 
     public readonly void CopyTo(ref ValueHashSet<T> hashSet)
     {
-        hashSet = new ValueHashSet<T>(in this);
+        hashSet.Clear();
+        hashSet.EnsureCapacity(Count);
+        foreach (var item in this)
+            hashSet.Add(item);
     }
 
     public int EnsureCapacity(int capacity)
