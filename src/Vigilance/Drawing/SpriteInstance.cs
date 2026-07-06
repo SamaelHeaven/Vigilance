@@ -40,29 +40,3 @@ public record struct SpriteInstance
         }
     }
 }
-
-public static class SpriteInstanceExtensions
-{
-    extension(SpriteAnimationFrame frame)
-    {
-        public void UpdateSpriteInstance(ref SpriteInstance sprite)
-        {
-            if (frame.FlipX.HasValue)
-                sprite.FlipX = frame.FlipX.Value;
-            if (frame.FlipY.HasValue)
-                sprite.FlipY = frame.FlipY.Value;
-            if (frame.Source.HasValue)
-                sprite.Source = frame.Source;
-            if (frame.Tint.HasValue)
-                sprite.Tint = frame.Tint.Value;
-            if (frame.Position.HasValue)
-                sprite.Position = frame.Position.Value;
-            if (frame.Scale.HasValue)
-                sprite.Scale = frame.Scale.Value;
-            if (frame.Rotation.HasValue)
-                sprite.Rotation = frame.Rotation.Value;
-            if (frame.PivotPoint.HasValue)
-                sprite.PivotPoint = frame.PivotPoint.Value;
-        }
-    }
-}

@@ -166,7 +166,7 @@ public sealed class TextureAtlas : IArrayView<Box>
             _startIndex = startIndex;
             _currentIndex = startIndex - 1;
             _endIndex = endIndex;
-            Current = null!;
+            Current = default!;
         }
 
         public bool MoveNext()
@@ -181,7 +181,7 @@ public sealed class TextureAtlas : IArrayView<Box>
         public void Reset()
         {
             _currentIndex = _startIndex - 1;
-            Current = null!;
+            Current = default!;
         }
 
         public SpriteAnimationFrame Current { get; private set; }
