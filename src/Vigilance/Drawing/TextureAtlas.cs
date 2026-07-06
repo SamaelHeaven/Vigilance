@@ -135,6 +135,29 @@ public sealed class TextureAtlas : IArrayView<Box>
         return new SpriteAnimationFrameEnumerable(this, startIndex, endIndex);
     }
 
+    public BatchedSpriteAnimationFrameEnumerable GetBatchedSpriteAnimationFrames(
+        int startCol,
+        int startRow,
+        int endCol,
+        int? endRow = null
+    )
+    {
+        return GetBatchedSpriteAnimationFrames(GetIndex(startCol, startRow), GetIndex(endCol, endRow ?? startRow));
+    }
+
+    public BatchedSpriteAnimationFrameEnumerable GetBatchedSpriteAnimationFrames(
+        Vector2 startPosition,
+        Vector2 endPosition
+    )
+    {
+        return GetBatchedSpriteAnimationFrames(GetIndex(startPosition), GetIndex(endPosition));
+    }
+
+    public BatchedSpriteAnimationFrameEnumerable GetBatchedSpriteAnimationFrames(int startIndex, int endIndex)
+    {
+        return new BatchedSpriteAnimationFrameEnumerable(this, startIndex, endIndex);
+    }
+
     public readonly struct RegionEnumerable
         : IStructEnumerable<RegionEnumerable.Enumerator, Box>,
             IReadOnlyCollection<Box>
@@ -307,6 +330,75 @@ public sealed class TextureAtlas : IArrayView<Box>
             }
 
             public SpriteAnimationFrame Current { get; private set; }
+
+            public void Dispose() { }
+        }
+    }
+
+    public readonly struct BatchedSpriteAnimationFrameEnumerable
+        : IStructEnumerable<BatchedSpriteAnimationFrameEnumerable.Enumerator, BatchedSpriteAnimationFrame>,
+            IReadOnlyCollection<BatchedSpriteAnimationFrame>
+    {
+        private readonly TextureAtlas _atlas;
+        private readonly int _startIndex;
+        private readonly int _endIndex;
+
+        internal BatchedSpriteAnimationFrameEnumerable(TextureAtlas atlas, int startIndex, int endIndex)
+        {
+            if (startIndex < 0 || endIndex >= atlas.Count || startIndex > endIndex)
+                throw new ArgumentException("Invalid animation index range.");
+            _atlas = atlas;
+            _startIndex = startIndex;
+            _endIndex = endIndex;
+        }
+
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(_atlas, _startIndex, _endIndex);
+        }
+
+        public ValueEnumerable<
+            StructEnumerator<Enumerator, BatchedSpriteAnimationFrame>,
+            BatchedSpriteAnimationFrame
+        > AsValueEnumerable()
+        {
+            return new StructEnumerator<Enumerator, BatchedSpriteAnimationFrame>(GetEnumerator());
+        }
+
+        public int Count => _endIndex - _startIndex + 1;
+
+        public struct Enumerator : IStructEnumerator<BatchedSpriteAnimationFrame>
+        {
+            private readonly TextureAtlas _atlas;
+            private readonly int _startIndex;
+            private readonly int _endIndex;
+            private int _currentIndex;
+
+            internal Enumerator(TextureAtlas atlas, int startIndex, int endIndex)
+            {
+                _atlas = atlas;
+                _startIndex = startIndex;
+                _currentIndex = startIndex - 1;
+                _endIndex = endIndex;
+                Current = default!;
+            }
+
+            public bool MoveNext()
+            {
+                if (_currentIndex >= _endIndex)
+                    return false;
+                _currentIndex++;
+                Current = new BatchedSpriteAnimationFrame { Source = _atlas._boxes[_currentIndex] };
+                return true;
+            }
+
+            public void Reset()
+            {
+                _currentIndex = _startIndex - 1;
+                Current = default!;
+            }
+
+            public BatchedSpriteAnimationFrame Current { get; private set; }
 
             public void Dispose() { }
         }

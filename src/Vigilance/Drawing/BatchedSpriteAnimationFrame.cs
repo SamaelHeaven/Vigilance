@@ -5,9 +5,8 @@ using Vigilance.Math;
 namespace Vigilance.Drawing;
 
 [StructLayout(LayoutKind.Sequential)]
-public record struct SpriteAnimationFrame : IAnimationFrame
+public record struct BatchedSpriteAnimationFrame : IAnimationFrame
 {
-    public Texture? Texture { get; set; }
     public Wrapper<Box?>? Source { get; set; }
     public TimeSpan Delay { get; set; }
     public Vector2? Position { get; set; }
@@ -31,14 +30,23 @@ public record struct SpriteAnimationFrame : IAnimationFrame
 
     public readonly void Apply(Entity entity)
     {
-        if (entity.TryGet(out Sprite sprite))
-            Apply(sprite);
+        if (!entity.TryGet(out BatchedSprite sprite))
+            return;
+        var newSprite = sprite;
+        Apply(ref newSprite);
+        if (sprite != newSprite)
+            entity.Set(newSprite);
     }
 
-    public readonly void Apply(Sprite sprite)
+    public readonly void Apply(ref BatchedSprite sprite)
     {
-        if (Texture is not null)
-            sprite.Texture = Texture;
+        var instance = sprite.Instance;
+        Apply(ref instance);
+        sprite.Instance = instance;
+    }
+
+    public readonly void Apply(ref SpriteInstance sprite)
+    {
         if (FlipX.HasValue)
             sprite.FlipX = FlipX.Value;
         if (FlipY.HasValue)
