@@ -62,7 +62,7 @@ public readonly record struct Resource(string Name, Assembly Assembly)
         if (stream.CanSeek)
         {
             var length = (int)stream.Length;
-            bytes = new byte[length];
+            bytes = GC.AllocateUninitializedArray<byte>(length);
             stream.ReadExactly(bytes);
             return true;
         }
