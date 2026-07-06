@@ -16,13 +16,9 @@ public sealed class Tween
         TimeSpan duration,
         TimeSpan elapsed = default,
         int cycleCount = InfiniteCycleCount,
-        bool alternateDirection = false,
-        Action? repeatAction = null,
-        Action? completeAction = null
+        bool alternateDirection = false
     )
     {
-        OnComplete = completeAction;
-        OnRepeat = repeatAction;
         Elapsed = elapsed;
         Duration = duration;
         CycleCount = cycleCount;

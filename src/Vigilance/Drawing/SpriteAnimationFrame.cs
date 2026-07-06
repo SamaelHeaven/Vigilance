@@ -6,18 +6,18 @@ using Vigilance.UI;
 namespace Vigilance.Drawing;
 
 [StructLayout(LayoutKind.Sequential)]
-public record struct SpriteAnimationFrame() : IAnimationFrame
+public record struct SpriteAnimationFrame : IAnimationFrame
 {
-    public Texture? Texture { get; set; } = null;
-    public Wrapper<Box?>? Source { get; set; } = null;
-    public TimeSpan Delay { get; set; } = TimeSpan.Zero;
-    public Vector2? Position { get; set; } = null;
-    public Vector2? Scale { get; set; } = null;
-    public Vector2? PivotPoint { get; set; } = null;
-    public Color? Tint { get; set; } = null;
-    public float? Rotation { get; set; } = null;
-    public bool? FlipX { get; set; } = null;
-    public bool? FlipY { get; set; } = null;
+    public Texture? Texture { get; set; }
+    public Wrapper<Box?>? Source { get; set; }
+    public TimeSpan Delay { get; set; }
+    public Vector2? Position { get; set; }
+    public Vector2? Scale { get; set; }
+    public Vector2? PivotPoint { get; set; }
+    public Color? Tint { get; set; }
+    public float? Rotation { get; set; }
+    public bool? FlipX { get; set; }
+    public bool? FlipY { get; set; }
 
     public Transform Transform
     {
@@ -32,26 +32,32 @@ public record struct SpriteAnimationFrame() : IAnimationFrame
 
     public void Apply(Entity entity)
     {
-        if (entity.TryGet(out SpriteInstance spriteInstance))
         {
-            var newSpriteInstance = spriteInstance;
-            Apply(ref newSpriteInstance);
-            if (spriteInstance != newSpriteInstance)
-                entity.Set(newSpriteInstance);
+            if (entity.TryGet(out SpriteInstance sprite))
+            {
+                var newSprite = sprite;
+                Apply(ref newSprite);
+                if (sprite != newSprite)
+                    entity.Set(newSprite);
+            }
         }
-
-        if (entity.TryGet(out BatchedSprite batchedSprite))
         {
-            var newBatchedSprite = batchedSprite;
-            Apply(ref newBatchedSprite);
-            if (batchedSprite != newBatchedSprite)
-                entity.Set(newBatchedSprite);
+            if (entity.TryGet(out BatchedSprite sprite))
+            {
+                var newSprite = sprite;
+                Apply(ref newSprite);
+                if (sprite != newSprite)
+                    entity.Set(newSprite);
+            }
         }
-
-        if (entity.TryGet(out Sprite sprite))
-            Apply(sprite);
-        if (entity.TryGet(out UISprite uiSprite))
-            Apply(uiSprite);
+        {
+            if (entity.TryGet(out Sprite sprite))
+                Apply(sprite);
+        }
+        {
+            if (entity.TryGet(out UISprite sprite))
+                Apply(sprite);
+        }
     }
 
     public void Apply(Sprite sprite)

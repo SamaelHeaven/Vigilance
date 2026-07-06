@@ -11,16 +11,8 @@ public sealed class Timer
         CycleCount = InfiniteCycleCount;
     }
 
-    public Timer(
-        TimeSpan duration,
-        TimeSpan elapsed = default,
-        int cycleCount = InfiniteCycleCount,
-        Action? repeatAction = null,
-        Action? completeAction = null
-    )
+    public Timer(TimeSpan duration, TimeSpan elapsed = default, int cycleCount = InfiniteCycleCount)
     {
-        OnComplete = completeAction;
-        OnRepeat = repeatAction;
         Elapsed = elapsed;
         Duration = duration;
         CycleCount = cycleCount;

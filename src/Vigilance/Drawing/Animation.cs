@@ -20,39 +20,26 @@ public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneab
         IEnumerable<TFrame> frames,
         TimeSpan delay,
         int cycleCount = InfiniteCycleCount,
-        int startIndex = 0,
-        Action? repeatAction = null,
-        Action? completeAction = null
+        int startIndex = 0
     )
-        : this(frames.ToArray(), delay, cycleCount, startIndex, repeatAction, completeAction) { }
+        : this(frames.ToArray(), delay, cycleCount, startIndex) { }
 
     [OverloadResolutionPriority(1)]
     public Animation(
         in ReadOnlySpan<TFrame> frames,
         TimeSpan delay,
         int cycleCount = InfiniteCycleCount,
-        int startIndex = 0,
-        Action? repeatAction = null,
-        Action? completeAction = null
+        int startIndex = 0
     )
-        : this(frames.ToArray(), delay, cycleCount, startIndex, repeatAction, completeAction) { }
+        : this(frames.ToArray(), delay, cycleCount, startIndex) { }
 
     [OverloadResolutionPriority(2)]
-    private Animation(
-        TFrame[] frames,
-        TimeSpan delay,
-        int cycleCount = InfiniteCycleCount,
-        int startIndex = 0,
-        Action? repeatAction = null,
-        Action? completeAction = null
-    )
+    private Animation(TFrame[] frames, TimeSpan delay, int cycleCount = InfiniteCycleCount, int startIndex = 0)
     {
         if (frames.Length == 0)
             throw new ArgumentException($"{nameof(Animation<>)} must have at least one frame.");
         _frames = frames;
         _nextIndex = null;
-        OnComplete = completeAction;
-        OnRepeat = repeatAction;
         Delay = delay;
         CycleCount = cycleCount;
         Index = startIndex;
