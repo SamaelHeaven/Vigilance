@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.Drawing;
 
@@ -55,5 +57,91 @@ public record struct SpriteAnimationFrame : IAnimationFrame
             sprite.Rotation = Rotation.Value;
         if (PivotPoint.HasValue)
             sprite.PivotPoint = PivotPoint.Value;
+    }
+}
+
+public static class TextureAtlasSpriteAnimationExtensions
+{
+    extension(TextureAtlas atlas)
+    {
+        public SpriteAnimationFrameEnumerable GetSpriteAnimationFrames(
+            int startCol,
+            int startRow,
+            int endCol,
+            int? endRow = null
+        )
+        {
+            return new SpriteAnimationFrameEnumerable(atlas, atlas.GetRegions(startCol, startRow, endCol, endRow));
+        }
+
+        public SpriteAnimationFrameEnumerable GetSpriteAnimationFrames(Vector2 startPosition, Vector2 endPosition)
+        {
+            return new SpriteAnimationFrameEnumerable(atlas, atlas.GetRegions(startPosition, endPosition));
+        }
+
+        public SpriteAnimationFrameEnumerable GetSpriteAnimationFrames(int startIndex, int endIndex)
+        {
+            return new SpriteAnimationFrameEnumerable(atlas, atlas.GetRegions(startIndex, endIndex));
+        }
+    }
+
+    public readonly struct SpriteAnimationFrameEnumerable
+        : IStructEnumerable<SpriteAnimationFrameEnumerable.Enumerator, SpriteAnimationFrame>,
+            IReadOnlyCollection<SpriteAnimationFrame>
+    {
+        private readonly Texture _texture;
+        private readonly TextureAtlas.RegionEnumerable _regions;
+
+        internal SpriteAnimationFrameEnumerable(TextureAtlas atlas, TextureAtlas.RegionEnumerable regions)
+        {
+            _texture = atlas.Texture;
+            _regions = regions;
+        }
+
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(_texture, _regions.GetEnumerator());
+        }
+
+        public ValueEnumerable<
+            StructEnumerator<Enumerator, SpriteAnimationFrame>,
+            SpriteAnimationFrame
+        > AsValueEnumerable()
+        {
+            return new StructEnumerator<Enumerator, SpriteAnimationFrame>(GetEnumerator());
+        }
+
+        public int Count => _regions.Count;
+
+        public struct Enumerator : IStructEnumerator<SpriteAnimationFrame>
+        {
+            private readonly Texture _texture;
+            private TextureAtlas.RegionEnumerable.Enumerator _regions;
+
+            internal Enumerator(Texture texture, TextureAtlas.RegionEnumerable.Enumerator regions)
+            {
+                _texture = texture;
+                _regions = regions;
+                Current = default!;
+            }
+
+            public bool MoveNext()
+            {
+                if (!_regions.MoveNext())
+                    return false;
+                Current = new SpriteAnimationFrame { Texture = _texture, Source = _regions.Current };
+                return true;
+            }
+
+            public void Reset()
+            {
+                _regions.Reset();
+                Current = default!;
+            }
+
+            public SpriteAnimationFrame Current { get; private set; }
+
+            public void Dispose() { }
+        }
     }
 }

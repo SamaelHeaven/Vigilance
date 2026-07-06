@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
+using ZLinq;
 
 namespace Vigilance.Drawing;
 
@@ -63,5 +65,90 @@ public record struct BatchedSpriteAnimationFrame : IAnimationFrame
             sprite.Rotation = Rotation.Value;
         if (PivotPoint.HasValue)
             sprite.PivotPoint = PivotPoint.Value;
+    }
+}
+
+public static class TextureAtlasBatchedSpriteAnimationExtensions
+{
+    extension(TextureAtlas atlas)
+    {
+        public BatchedSpriteAnimationFrameEnumerable GetBatchedSpriteAnimationFrames(
+            int startCol,
+            int startRow,
+            int endCol,
+            int? endRow = null
+        )
+        {
+            return new BatchedSpriteAnimationFrameEnumerable(atlas.GetRegions(startCol, startRow, endCol, endRow));
+        }
+
+        public BatchedSpriteAnimationFrameEnumerable GetBatchedSpriteAnimationFrames(
+            Vector2 startPosition,
+            Vector2 endPosition
+        )
+        {
+            return new BatchedSpriteAnimationFrameEnumerable(atlas.GetRegions(startPosition, endPosition));
+        }
+
+        public BatchedSpriteAnimationFrameEnumerable GetBatchedSpriteAnimationFrames(int startIndex, int endIndex)
+        {
+            return new BatchedSpriteAnimationFrameEnumerable(atlas.GetRegions(startIndex, endIndex));
+        }
+    }
+
+    public readonly struct BatchedSpriteAnimationFrameEnumerable
+        : IStructEnumerable<BatchedSpriteAnimationFrameEnumerable.Enumerator, BatchedSpriteAnimationFrame>,
+            IReadOnlyCollection<BatchedSpriteAnimationFrame>
+    {
+        private readonly TextureAtlas.RegionEnumerable _regions;
+
+        public BatchedSpriteAnimationFrameEnumerable(TextureAtlas.RegionEnumerable regions)
+        {
+            _regions = regions;
+        }
+
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(_regions.GetEnumerator());
+        }
+
+        public ValueEnumerable<
+            StructEnumerator<Enumerator, BatchedSpriteAnimationFrame>,
+            BatchedSpriteAnimationFrame
+        > AsValueEnumerable()
+        {
+            return new StructEnumerator<Enumerator, BatchedSpriteAnimationFrame>(GetEnumerator());
+        }
+
+        public int Count => _regions.Count;
+
+        public struct Enumerator : IStructEnumerator<BatchedSpriteAnimationFrame>
+        {
+            private TextureAtlas.RegionEnumerable.Enumerator _regions;
+
+            internal Enumerator(TextureAtlas.RegionEnumerable.Enumerator regions)
+            {
+                _regions = regions;
+                Current = default!;
+            }
+
+            public bool MoveNext()
+            {
+                if (!_regions.MoveNext())
+                    return false;
+                Current = new BatchedSpriteAnimationFrame { Source = _regions.Current };
+                return true;
+            }
+
+            public void Reset()
+            {
+                _regions.Reset();
+                Current = default!;
+            }
+
+            public BatchedSpriteAnimationFrame Current { get; private set; }
+
+            public void Dispose() { }
+        }
     }
 }
