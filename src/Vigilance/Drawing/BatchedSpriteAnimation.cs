@@ -2,10 +2,10 @@ using System.Runtime.CompilerServices;
 
 namespace Vigilance.Drawing;
 
-public sealed class SpriteAnimation : Animation<SpriteAnimationFrame>
+public sealed class BatchedSpriteAnimation : Animation<BatchedSpriteAnimationFrame>
 {
-    public SpriteAnimation(
-        IEnumerable<SpriteAnimationFrame> frames,
+    public BatchedSpriteAnimation(
+        IEnumerable<BatchedSpriteAnimationFrame> frames,
         TimeSpan delay,
         int cycleCount = InfiniteCycleCount,
         int startIndex = 0
@@ -13,8 +13,8 @@ public sealed class SpriteAnimation : Animation<SpriteAnimationFrame>
         : base(frames, delay, cycleCount, startIndex) { }
 
     [OverloadResolutionPriority(1)]
-    public SpriteAnimation(
-        in ReadOnlySpan<SpriteAnimationFrame> frames,
+    public BatchedSpriteAnimation(
+        in ReadOnlySpan<BatchedSpriteAnimationFrame> frames,
         TimeSpan delay,
         int cycleCount = InfiniteCycleCount,
         int startIndex = 0

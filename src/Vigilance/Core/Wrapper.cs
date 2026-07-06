@@ -1,5 +1,8 @@
+using System.Runtime.InteropServices;
+
 namespace Vigilance.Core;
 
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 public readonly record struct Wrapper<T>(T Value)
 {
     public static implicit operator Wrapper<T>(T t)
