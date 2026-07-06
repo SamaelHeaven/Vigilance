@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using ZLinq;
 
 namespace Vigilance.Drawing;
 
@@ -12,12 +12,19 @@ public sealed class SpriteAnimation : Animation<SpriteAnimationFrame>
     )
         : base(frames, delay, cycleCount, startIndex) { }
 
-    [OverloadResolutionPriority(1)]
     public SpriteAnimation(
-        in ReadOnlySpan<SpriteAnimationFrame> frames,
+        SpriteAnimationFrame[] frames,
         TimeSpan delay,
         int cycleCount = InfiniteCycleCount,
         int startIndex = 0
     )
-        : base(in frames, delay, cycleCount, startIndex) { }
+        : base(frames, delay, cycleCount, startIndex) { }
+
+    public SpriteAnimation(
+        in TextureAtlasSpriteAnimationExtensions.SpriteAnimationFrameEnumerable frames,
+        TimeSpan delay,
+        int cycleCount = InfiniteCycleCount,
+        int startIndex = 0
+    )
+        : base(frames.AsValueEnumerable().ToArray(), delay, cycleCount, startIndex) { }
 }

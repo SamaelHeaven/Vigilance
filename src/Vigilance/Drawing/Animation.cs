@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
@@ -24,17 +23,7 @@ public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneab
     )
         : this(frames.ToArray(), delay, cycleCount, startIndex) { }
 
-    [OverloadResolutionPriority(1)]
-    public Animation(
-        in ReadOnlySpan<TFrame> frames,
-        TimeSpan delay,
-        int cycleCount = InfiniteCycleCount,
-        int startIndex = 0
-    )
-        : this(frames.ToArray(), delay, cycleCount, startIndex) { }
-
-    [OverloadResolutionPriority(2)]
-    private Animation(TFrame[] frames, TimeSpan delay, int cycleCount = InfiniteCycleCount, int startIndex = 0)
+    public Animation(TFrame[] frames, TimeSpan delay, int cycleCount = InfiniteCycleCount, int startIndex = 0)
     {
         if (frames.Length == 0)
             throw new ArgumentException($"{nameof(Animation<>)} must have at least one frame.");
