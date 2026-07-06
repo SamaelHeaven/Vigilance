@@ -333,6 +333,8 @@ public static unsafe class Display
 
     public static bool Focused { get; private set; }
 
+    public static Graphics Graphics { get; internal set; } = null!;
+
     public static void Maximize()
     {
         if (Maximized || !Platform.Desktop.IsCurrent)
@@ -420,7 +422,7 @@ public static unsafe class Display
     {
         var width = ScreenWidth;
         var height = ScreenHeight;
-        Graphics.Reset();
+        Graphics.ResetCurrentBuffer();
         Graphics.DrawCurrentBuffer();
         var data = Rlgl.ReadScreenPixels(width, height);
         var image = new Raylib_cs.Image

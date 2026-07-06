@@ -119,9 +119,15 @@ public sealed unsafe class Texture : IDisposable
     private void ReleaseUnmanagedResources()
     {
         if (RenderTexture is not null)
+        {
+            if (Graphics.IsBufferCurrent(RenderTexture))
+                Graphics.ResetCurrentBuffer();
             Raylib.UnloadRenderTexture(RenderTexture.RenderTexture2D);
+        }
         else
+        {
             Raylib.UnloadTexture(Texture2D);
+        }
     }
 
     ~Texture()

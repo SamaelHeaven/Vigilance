@@ -534,6 +534,15 @@ public sealed unsafe class Graphics
 
     #region Misc
 
+    public void Reset()
+    {
+        LoadIdentity();
+        _clip = null;
+        _blendMode = Drawing.DefaultBlendMode;
+        _culling = Drawing.DefaultCulling;
+        _shader = Drawing.DefaultShader;
+    }
+
     public void ClearBackground(Color? color = null)
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
@@ -562,7 +571,7 @@ public sealed unsafe class Graphics
         return _currentBuffer == buffer;
     }
 
-    public static void Reset()
+    public static void ResetCurrentBuffer()
     {
         if (_currentBuffer is not null)
         {

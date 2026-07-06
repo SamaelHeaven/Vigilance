@@ -45,6 +45,7 @@ public sealed unsafe partial class Scene
     private Action? _updateAction;
     internal Table<Child> ChildTable;
     internal Table<Disabled> DisabledTable;
+    internal Action<Graphics, Texture, Box>? DrawScreenAction;
     internal Table<EntityTag> EntityTagTable;
     internal Table<Interpolation> InterpolationTable;
     internal Table<Name> NameTable;
@@ -274,6 +275,12 @@ public sealed unsafe partial class Scene
     {
         ThrowIfConfigured();
         _transitionToAction += action;
+    }
+
+    public void OnDrawScreen(Action<Graphics, Texture, Box> action)
+    {
+        ThrowIfConfigured();
+        DrawScreenAction += action;
     }
 
     public void OnDispose(Action action)
