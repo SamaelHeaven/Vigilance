@@ -124,17 +124,22 @@ public static class TextureAtlasSpriteAnimationExtensions
             return new Enumerator(_texture, _regions.GetEnumerator());
         }
 
-        public ValueEnumerable<
-            StructEnumerator<Enumerator, SpriteAnimationFrame>,
+        public ValueEnumerable<Enumerator, SpriteAnimationFrame> AsValueEnumerable()
+        {
+            return new ValueEnumerable<Enumerator, SpriteAnimationFrame>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<Enumerator, SpriteAnimationFrame>, SpriteAnimationFrame> IStructEnumerable<
+            Enumerator,
             SpriteAnimationFrame
-        > AsValueEnumerable()
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<Enumerator, SpriteAnimationFrame>(GetEnumerator());
         }
 
         public int Count => _regions.Count;
 
-        public struct Enumerator : IStructEnumerator<SpriteAnimationFrame>
+        public struct Enumerator : IStructEnumerator<SpriteAnimationFrame>, IValueEnumerator<SpriteAnimationFrame>
         {
             private readonly Texture _texture;
             private TextureAtlas.RegionEnumerable.Enumerator _regions;
@@ -152,6 +157,34 @@ public static class TextureAtlasSpriteAnimationExtensions
                     return false;
                 Current = new SpriteAnimationFrame { Texture = _texture, Source = _regions.Current };
                 return true;
+            }
+
+            public bool TryGetNext(out SpriteAnimationFrame current)
+            {
+                if (!MoveNext())
+                {
+                    current = default!;
+                    return false;
+                }
+
+                current = Current;
+                return true;
+            }
+
+            public bool TryGetNonEnumeratedCount(out int count)
+            {
+                return _regions.TryGetNonEnumeratedCount(out count);
+            }
+
+            public bool TryGetSpan(out ReadOnlySpan<SpriteAnimationFrame> span)
+            {
+                span = default;
+                return false;
+            }
+
+            public bool TryCopyTo(scoped Span<SpriteAnimationFrame> destination, Index offset)
+            {
+                return false;
             }
 
             public void Reset()

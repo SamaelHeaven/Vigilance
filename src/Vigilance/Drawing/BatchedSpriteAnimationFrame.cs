@@ -112,17 +112,24 @@ public static class TextureAtlasBatchedSpriteAnimationExtensions
             return new Enumerator(_regions.GetEnumerator());
         }
 
-        public ValueEnumerable<
+        public ValueEnumerable<Enumerator, BatchedSpriteAnimationFrame> AsValueEnumerable()
+        {
+            return new ValueEnumerable<Enumerator, BatchedSpriteAnimationFrame>(GetEnumerator());
+        }
+
+        ValueEnumerable<
             StructEnumerator<Enumerator, BatchedSpriteAnimationFrame>,
             BatchedSpriteAnimationFrame
-        > AsValueEnumerable()
+        > IStructEnumerable<Enumerator, BatchedSpriteAnimationFrame>.AsValueEnumerable()
         {
             return new StructEnumerator<Enumerator, BatchedSpriteAnimationFrame>(GetEnumerator());
         }
 
         public int Count => _regions.Count;
 
-        public struct Enumerator : IStructEnumerator<BatchedSpriteAnimationFrame>
+        public struct Enumerator
+            : IStructEnumerator<BatchedSpriteAnimationFrame>,
+                IValueEnumerator<BatchedSpriteAnimationFrame>
         {
             private TextureAtlas.RegionEnumerable.Enumerator _regions;
 
@@ -138,6 +145,34 @@ public static class TextureAtlasBatchedSpriteAnimationExtensions
                     return false;
                 Current = new BatchedSpriteAnimationFrame { Source = _regions.Current };
                 return true;
+            }
+
+            public bool TryGetNext(out BatchedSpriteAnimationFrame current)
+            {
+                if (!MoveNext())
+                {
+                    current = default!;
+                    return false;
+                }
+
+                current = Current;
+                return true;
+            }
+
+            public bool TryGetNonEnumeratedCount(out int count)
+            {
+                return _regions.TryGetNonEnumeratedCount(out count);
+            }
+
+            public bool TryGetSpan(out ReadOnlySpan<BatchedSpriteAnimationFrame> span)
+            {
+                span = default;
+                return false;
+            }
+
+            public bool TryCopyTo(scoped Span<BatchedSpriteAnimationFrame> destination, Index offset)
+            {
+                return false;
             }
 
             public void Reset()
