@@ -30,7 +30,7 @@ public record struct SpriteAnimationFrame : IAnimationFrame
         }
     }
 
-    public void Apply(Entity entity)
+    public readonly void Apply(Entity entity)
     {
         {
             if (entity.TryGet(out SpriteInstance sprite))
@@ -60,7 +60,7 @@ public record struct SpriteAnimationFrame : IAnimationFrame
         }
     }
 
-    public void Apply(Sprite sprite)
+    public readonly void Apply(Sprite sprite)
     {
         if (Texture is not null)
             sprite.Texture = Texture;
@@ -82,7 +82,7 @@ public record struct SpriteAnimationFrame : IAnimationFrame
             sprite.PivotPoint = PivotPoint.Value;
     }
 
-    public void Apply(UISprite sprite)
+    public readonly void Apply(UISprite sprite)
     {
         if (Texture is not null)
             sprite.Texture = Texture;
@@ -104,14 +104,14 @@ public record struct SpriteAnimationFrame : IAnimationFrame
             sprite.PivotPoint = PivotPoint.Value;
     }
 
-    public void Apply(ref BatchedSprite sprite)
+    public readonly void Apply(ref BatchedSprite sprite)
     {
         var instance = sprite.Instance;
         Apply(ref instance);
         sprite.Instance = instance;
     }
 
-    public void Apply(ref SpriteInstance sprite)
+    public readonly void Apply(ref SpriteInstance sprite)
     {
         if (FlipX.HasValue)
             sprite.FlipX = FlipX.Value;
