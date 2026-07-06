@@ -26,7 +26,7 @@ public readonly unsafe struct WritableTexture : IDisposable
         _texture = texture;
     }
 
-    public WritableTexture(string fileType, IEnumerable<byte> bytes)
+    public WritableTexture(in ReadOnlySpan<char> fileType, in ReadOnlySpan<byte> bytes)
         : this(new Texture(fileType, bytes)) { }
 
     public WritableTexture(int width, int height, PixelFormat format = PixelFormat.UncompressedR8G8B8A8)

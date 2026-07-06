@@ -1,8 +1,10 @@
+using System.Text;
+
 namespace Vigilance.Drawing;
 
 internal readonly record struct Glyph(
     byte[] Bitmap,
-    char Character,
+    Rune Rune,
     int Width,
     int Height,
     int Advance,

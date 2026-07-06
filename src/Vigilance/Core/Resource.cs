@@ -6,76 +6,53 @@ using ZLinq;
 
 namespace Vigilance.Core;
 
-public static class Resource
+public readonly record struct Resource(string Name, Assembly Assembly)
 {
-    private static ValueDictionary<Assembly, HashSet<string>> _resourceNames = [];
+    private static ValueDictionary<Assembly, ValueHashSet<string>> _resourceNames = [];
 
-    static Resource()
+    public static implicit operator Resource(string name)
     {
-        WorkingNamespace = new ResourceConfig().WorkingNamespace;
+        return new Resource(name, Assemblies.Game);
     }
 
-    public static string WorkingNamespace { get; set; }
-
-    internal static void Initialize()
+    public static implicit operator Resource(in (string Name, Assembly Assembly) resource)
     {
-        var config = Game.Config.Take<ResourceConfig>() ?? new ResourceConfig();
-        WorkingNamespace = config.WorkingNamespace;
+        return new Resource(resource.Name, resource.Assembly);
     }
 
-    public static string Format(string resource, string? @namespace = null)
+    public static bool Exists(in Resource resource)
     {
-        @namespace ??= WorkingNamespace;
-        return @namespace.IsEmpty ? resource : $"{@namespace}.{resource}";
+        if (resource.Name.IsEmpty)
+            return false;
+        ref var names = ref _resourceNames.GetValueRefOrAddDefault(resource.Assembly, out var exists)!;
+        if (!exists)
+            names = resource.Assembly.GetManifestResourceNames().AsValueEnumerable().ToValueHashSet();
+        return names.Contains(resource.Name);
     }
 
-    public static string Format(string resource, string? @namespace, Assembly? assembly)
+    public static bool TryReadText(in Resource resource, out string text)
     {
-        @namespace ??= WorkingNamespace;
-        assembly ??= Assemblies.Game;
-        return $"{assembly.GetName().Name}.{@namespace}{(@namespace.IsEmpty ? "" : ".")}{resource}";
-    }
-
-    public static bool Exists(string resource, string? @namespace = null, Assembly? assembly = null)
-    {
-        assembly ??= Assemblies.Game;
-        resource = Format(resource, @namespace, assembly);
-        ref var names = ref _resourceNames.GetValueRefOrAddDefault(assembly, out var exists)!;
-        if (exists)
-            return names.Contains(resource);
-        names = assembly.GetManifestResourceNames().AsValueEnumerable().ToHashSet();
-        return names.Contains(resource);
-    }
-
-    public static bool TryReadText(
-        string resource,
-        out string text,
-        string? @namespace = null,
-        Assembly? assembly = null
-    )
-    {
-        var result = TryReadBytes(resource, out var bytes, @namespace, assembly);
-        text = Encoding.UTF8.GetString(bytes);
+        var result = TryReadBytes(resource, out var bytes);
+        text = result ? Encoding.UTF8.GetString(bytes) : null!;
         return result;
     }
 
-    public static string ReadText(string resource, string? @namespace = null, Assembly? assembly = null)
+    public static string ReadText(in Resource resource)
     {
-        if (!TryReadText(resource, out var text, @namespace, assembly))
-            Log.Warning($"FILEIO: [{Format(resource, @namespace)}] Failed to read resource text");
+        if (!TryReadText(resource, out var text))
+            Log.Warning($"FILEIO: [{resource}] Failed to read resource text");
         return text;
     }
 
-    public static bool TryReadBytes(
-        string resource,
-        out byte[] bytes,
-        string? @namespace = null,
-        Assembly? assembly = null
-    )
+    public static bool TryReadBytes(in Resource resource, out byte[] bytes)
     {
-        assembly ??= Assemblies.Game;
-        resource = Format(resource, @namespace, assembly);
-        using var stream = assembly.GetManifestResourceStream(resource);
+        if (!Exists(resource))
+        {
+            bytes = [];
+            return false;
+        }
+
+        using var stream = resource.Assembly.GetManifestResourceStream(resource.Name);
         if (stream is null)
         {
             bytes = [];
@@ -96,10 +73,10 @@ public static class Resource
         return true;
     }
 
-    public static byte[] ReadBytes(string resource, string? @namespace = null, Assembly? assembly = null)
+    public static byte[] ReadBytes(in Resource resource)
     {
-        if (!TryReadBytes(resource, out var bytes, @namespace, assembly))
-            Log.Warning($"FILEIO: [{Format(resource, @namespace)}] Failed to read resource");
+        if (!TryReadBytes(resource, out var bytes))
+            Log.Warning($"FILEIO: [{resource}] Failed to read resource");
         return bytes;
     }
 }

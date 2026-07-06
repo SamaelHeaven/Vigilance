@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -71,15 +72,16 @@ public sealed unsafe class Graphics
     public bool IsBoxInBounds(in Box box, Camera? camera, float offset = 0)
     {
         var matrix = GetMatrix(camera);
-        return Collision.CheckPolygonsSpan(box.Transform(matrix), new Quad(GetBounds(matrix, offset)));
+        return Collision.CheckPolygons(box.Transform(matrix), new Quad(GetBounds(matrix, offset)));
     }
 
     public bool IsPolygonInBounds(IEnumerable<Vector2> points, Camera? camera, float offset = 0)
     {
-        return IsPolygonInBoundsSpan(points.AsSpan(), camera, offset);
+        return IsPolygonInBounds(points.AsSpan(), camera, offset);
     }
 
-    public bool IsPolygonInBoundsSpan(ReadOnlySpan<Vector2> points, Camera? camera, float offset = 0)
+    [OverloadResolutionPriority(1)]
+    public bool IsPolygonInBounds(ReadOnlySpan<Vector2> points, Camera? camera, float offset = 0)
     {
         var matrix = GetMatrix(camera);
         Vector2[]? pooledPoints = null;
@@ -100,7 +102,7 @@ public sealed unsafe class Graphics
                 points = new ReadOnlySpan<Vector2>(transformedPoints, points.Length);
             }
 
-            return Collision.CheckPolygonsSpan(points, new Quad(GetBounds(matrix, offset)));
+            return Collision.CheckPolygons(points, new Quad(GetBounds(matrix, offset)));
         }
         finally
         {
@@ -532,6 +534,15 @@ public sealed unsafe class Graphics
 
     #region Misc
 
+    public void Reset()
+    {
+        LoadIdentity();
+        _clip = null;
+        _blendMode = Drawing.DefaultBlendMode;
+        _culling = Drawing.DefaultCulling;
+        _shader = Drawing.DefaultShader;
+    }
+
     public void ClearBackground(Color? color = null)
     {
         var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
@@ -560,7 +571,7 @@ public sealed unsafe class Graphics
         return _currentBuffer == buffer;
     }
 
-    public static void Reset()
+    public static void ResetCurrentBuffer()
     {
         if (_currentBuffer is not null)
         {

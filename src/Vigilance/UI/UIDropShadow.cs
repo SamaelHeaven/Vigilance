@@ -7,16 +7,10 @@ namespace Vigilance.UI;
 
 public sealed class UIDropShadow : IUIComponent, IFullCloneable
 {
-    private readonly Shader _blurShader = Shader.Fragment.Resource(
-        "Resources.Shader.blur.frag.glsl",
-        "",
-        Assemblies.Engine
-    );
+    private readonly Shader _blurShader = Shader.Fragment.Resource(("Shader.blur.frag.glsl", Assemblies.Engine));
 
     private readonly Shader _silhouetteShader = Shader.Fragment.Resource(
-        "Resources.Shader.silhouette.frag.glsl",
-        "",
-        Assemblies.Engine
+        ("Shader.silhouette.frag.glsl", Assemblies.Engine)
     );
 
     private int _blur;

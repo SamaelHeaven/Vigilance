@@ -39,7 +39,7 @@ public struct ValueDictionary<TKey, TValue>
             _underlyingComparer = comparer;
             if (
                 typeof(TKey) == typeof(string)
-                && DictionaryEqualityComparer.GetStringComparer(_comparer!) is { } stringComparer
+                && NonRandomizedStringEqualityComparer.GetStringComparer(_comparer!) is { } stringComparer
             )
                 _comparer = (IEqualityComparer<TKey>)stringComparer;
         }
@@ -303,10 +303,15 @@ public struct ValueDictionary<TKey, TValue>
         return new Enumerator(this);
     }
 
-    public readonly ValueEnumerable<
+    public readonly ValueEnumerable<Enumerator, KeyValuePair<TKey, TValue>> AsValueEnumerable()
+    {
+        return new ValueEnumerable<Enumerator, KeyValuePair<TKey, TValue>>(GetEnumerator());
+    }
+
+    readonly ValueEnumerable<
         StructEnumerator<Enumerator, KeyValuePair<TKey, TValue>>,
         KeyValuePair<TKey, TValue>
-    > AsValueEnumerable()
+    > IStructEnumerable<Enumerator, KeyValuePair<TKey, TValue>>.AsValueEnumerable()
     {
         return new StructEnumerator<Enumerator, KeyValuePair<TKey, TValue>>(GetEnumerator());
     }
@@ -658,15 +663,26 @@ public struct ValueDictionary<TKey, TValue>
     private readonly void CopyTo(KeyValuePair<TKey, TValue>[] array, int index)
     {
         ArgumentNullException.ThrowIfNull(array);
-        if ((uint)index > (uint)array.Length)
-            throw new ArgumentOutOfRangeException(nameof(index));
-        if (array.Length - index < Count)
-            throw new ArgumentException("Destination array is not long enough.", nameof(array));
+        CopyTo(array.AsSpan(), index);
+    }
+
+    public readonly void CopyTo(in Span<KeyValuePair<TKey, TValue>> span, int arrayIndex = 0)
+    {
+        if ((uint)arrayIndex > (uint)span.Length)
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        if (span.Length - arrayIndex < Count)
+            throw new ArgumentException("Destination array is not long enough.", nameof(span));
         var count = _count;
         var entries = _entries;
+        var index = arrayIndex;
         for (var i = 0; i < count; i++)
             if (entries![i].Next >= -1)
-                array[index++] = new KeyValuePair<TKey, TValue>(entries[i].Key, entries[i].Value);
+                span[index++] = new KeyValuePair<TKey, TValue>(entries[i].Key, entries[i].Value);
+    }
+
+    public readonly void CopyTo(ref ValueDictionary<TKey, TValue> dictionary)
+    {
+        dictionary = new ValueDictionary<TKey, TValue>(in this);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -783,7 +799,9 @@ public struct ValueDictionary<TKey, TValue>
         public TValue Value;
     }
 
-    public struct Enumerator : IStructEnumerator<KeyValuePair<TKey, TValue>>
+    public struct Enumerator
+        : IStructEnumerator<KeyValuePair<TKey, TValue>>,
+            IValueEnumerator<KeyValuePair<TKey, TValue>>
     {
         private readonly ValueDictionary<TKey, TValue> _dictionary;
         private int _index;
@@ -820,6 +838,32 @@ public struct ValueDictionary<TKey, TValue>
         }
 
         public void Dispose() { }
+
+        public bool TryGetNext(out KeyValuePair<TKey, TValue> current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _dictionary.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<KeyValuePair<TKey, TValue>> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<KeyValuePair<TKey, TValue>> destination, Index offset)
+        {
+            return false;
+        }
     }
 
     public readonly struct KeyCollection

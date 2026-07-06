@@ -18,4 +18,12 @@ public static class StringExtensions
             return new Utf8Ptr(str);
         }
     }
+
+    extension(scoped in ReadOnlySpan<char> str)
+    {
+        public Utf8Ptr ToUtf8Ptr()
+        {
+            return new Utf8Ptr(str);
+        }
+    }
 }

@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using FreeTypeSharp;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -16,12 +17,12 @@ public sealed unsafe class Font : IDisposable
     private static FontConfig _config = new();
     private nint _buffer;
     private FT_FaceRec_* _face;
-    private ValueDictionary<char, GlyphInfo> _glyphInfos = [];
+    private ValueDictionary<Rune, GlyphInfo> _glyphInfos = [];
     private int _spaceSize;
     private FT_StrokerRec_* _stroker;
     private ValueDictionary<int, StrokeEntry> _strokes = [];
 
-    public Font(IEnumerable<byte> bytes, int? quality = null, string? charset = null)
+    public Font(in ReadOnlySpan<byte> bytes, int? quality = null, string? charset = null)
     {
         Game.ThrowIfNotRunning();
         Quality = quality ?? DefaultQuality;
@@ -44,7 +45,7 @@ public sealed unsafe class Font : IDisposable
 
     public string Charset { get; private set; }
     public int Quality { get; private set; }
-    public ValueDictionaryView<char, GlyphInfo> GlyphInfos => _glyphInfos;
+    public ValueDictionaryView<Rune, GlyphInfo> GlyphInfos => _glyphInfos;
     public Texture Atlas { get; private set; }
     public bool IsValid => _buffer != 0;
 
@@ -97,17 +98,27 @@ public sealed unsafe class Font : IDisposable
         return GetStroke(strokeWidth).Atlas;
     }
 
+    public GlyphInfo GetGlyphInfo(Rune rune)
+    {
+        return _glyphInfos[rune];
+    }
+
     public GlyphInfo GetGlyphInfo(char c)
     {
-        return _glyphInfos[c];
+        return _glyphInfos[new Rune(c)];
+    }
+
+    public GlyphInfo GetStrokeGlyphInfo(Rune rune, int strokeWidth)
+    {
+        return GetStroke(strokeWidth).GlyphInfos[rune];
     }
 
     public GlyphInfo GetStrokeGlyphInfo(char c, int strokeWidth)
     {
-        return GetStroke(strokeWidth).GlyphInfos[c];
+        return GetStroke(strokeWidth).GlyphInfos[new Rune(c)];
     }
 
-    public ValueDictionaryView<char, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
+    public ValueDictionaryView<Rune, GlyphInfo> GetStrokeGlyphInfos(int strokeWidth)
     {
         return GetStroke(strokeWidth).GlyphInfos;
     }
@@ -117,7 +128,7 @@ public sealed unsafe class Font : IDisposable
         float? fontSize = null,
         in Vector2? spacing = null,
         int visibleCharacters = Text.UnlimitedCharacters,
-        ValueDictionaryView<char, GlyphInfo> glyphInfos = default
+        ValueDictionaryView<Rune, GlyphInfo> glyphInfos = default
     )
     {
         return new TextBoundEnumerable(
@@ -146,12 +157,13 @@ public sealed unsafe class Font : IDisposable
             0
         );
         var glyphs = Charset
+            .EnumerateRunes()
             .AsValueEnumerable()
             .Select(c => LoadGlyph(c, strokeWidth))
             .Where(g => g.HasValue)
             .Select(g => g!.Value)
             .ToValueList();
-        var glyphInfos = new ValueDictionary<char, GlyphInfo>();
+        var glyphInfos = new ValueDictionary<Rune, GlyphInfo>();
         var atlas = DrawAtlas(glyphs, ref glyphInfos);
         stroke = new StrokeEntry(atlas, glyphInfos);
         var result = new Stroke(atlas, stroke.GlyphInfos.AsView());
@@ -160,18 +172,17 @@ public sealed unsafe class Font : IDisposable
 #pragma warning restore CS9080 // Use of variable in this context may expose referenced variables outside of their declaration scope
     }
 
-    private ValueList<Glyph> LoadGlyphs(IEnumerable<byte> bytes)
+    private ValueList<Glyph> LoadGlyphs(in ReadOnlySpan<byte> bytes)
     {
-        var span = bytes.AsSpan();
-        _buffer = Marshal.AllocHGlobal(span.Length);
-        fixed (byte* bytesBuffer = span)
+        _buffer = Marshal.AllocHGlobal(bytes.Length);
+        fixed (byte* bytesBuffer = bytes)
         {
-            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, span.Length, span.Length);
+            Buffer.MemoryCopy(bytesBuffer, (byte*)_buffer, bytes.Length, bytes.Length);
         }
 
         fixed (FT_FaceRec_** face = &_face)
         {
-            FtThrowIfError(FT.FT_New_Memory_Face(_ftLibrary.Native, (byte*)_buffer, span.Length, 0, face));
+            FtThrowIfError(FT.FT_New_Memory_Face(_ftLibrary.Native, (byte*)_buffer, bytes.Length, 0, face));
         }
 
         FtThrowIfError(FT.FT_Set_Char_Size(_face, 0, Quality * 64, 0, 0));
@@ -183,6 +194,7 @@ public sealed unsafe class Font : IDisposable
         }
 
         return Charset
+            .EnumerateRunes()
             .AsValueEnumerable()
             .Select(c => LoadGlyph(c, null))
             .Where(g => g.HasValue)
@@ -190,7 +202,7 @@ public sealed unsafe class Font : IDisposable
             .ToValueList();
     }
 
-    private static Texture DrawAtlas(in ValueList<Glyph> glyphs, ref ValueDictionary<char, GlyphInfo> glyphInfos)
+    private static Texture DrawAtlas(in ValueList<Glyph> glyphs, ref ValueDictionary<Rune, GlyphInfo> glyphInfos)
     {
         var colSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Width).Prepend(0).Max();
         var rowSize = glyphs.AsValueEnumerable().Select(glyph => glyph.Height).Prepend(0).Max();
@@ -238,11 +250,11 @@ public sealed unsafe class Font : IDisposable
         return image.ToTexture();
     }
 
-    private Glyph? LoadGlyph(char c, int? stroke)
+    private Glyph? LoadGlyph(Rune rune, int? stroke)
     {
         if (!stroke.HasValue)
         {
-            var error = FT.FT_Load_Char(_face, c, FT_LOAD.FT_LOAD_RENDER);
+            var error = FT.FT_Load_Char(_face, (nuint)rune.Value, FT_LOAD.FT_LOAD_RENDER);
             if (error != FT_Error.FT_Err_Ok)
                 return null;
         }
@@ -250,7 +262,7 @@ public sealed unsafe class Font : IDisposable
         var bitmap = _face->glyph->bitmap;
         if (stroke.HasValue)
         {
-            var index = FT.FT_Get_Char_Index(_face, c);
+            var index = FT.FT_Get_Char_Index(_face, (nuint)rune.Value);
             FT.FT_Load_Glyph(_face, index, FT_LOAD.FT_LOAD_DEFAULT);
             FT_GlyphRec_* glyph;
             FtThrowIfError(FT.FT_Get_Glyph(_face->glyph, &glyph));
@@ -266,7 +278,7 @@ public sealed unsafe class Font : IDisposable
         Marshal.Copy((nint)bitmap.buffer, bytes, 0, (int)bitmap.width * (int)bitmap.rows);
         return new Glyph(
             bytes,
-            c,
+            rune,
             (int)bitmap.width,
             (int)bitmap.rows,
             _face->glyph->advance.x.ToInt32() >> 6,
@@ -295,10 +307,10 @@ public sealed unsafe class Font : IDisposable
         Marshal.FreeHGlobal(_buffer);
     }
 
-    private struct StrokeEntry(Texture atlas, in ValueDictionary<char, GlyphInfo> glyphInfos)
+    private struct StrokeEntry(Texture atlas, in ValueDictionary<Rune, GlyphInfo> glyphInfos)
     {
         public readonly Texture Atlas = atlas;
-        public readonly ValueDictionary<char, GlyphInfo> GlyphInfos = glyphInfos;
+        public readonly ValueDictionary<Rune, GlyphInfo> GlyphInfos = glyphInfos;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -316,7 +328,7 @@ public sealed unsafe class Font : IDisposable
         private readonly string _text;
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
-        private readonly ValueDictionaryView<char, GlyphInfo>.Enumerable _glyphInfos;
+        private readonly ValueDictionaryView<Rune, GlyphInfo>.Enumerable _glyphInfos;
         private readonly int _visibleCharacters;
 
         internal TextBoundEnumerable(
@@ -324,7 +336,7 @@ public sealed unsafe class Font : IDisposable
             string text,
             float fontSize,
             Vector2 spacing,
-            in ValueDictionaryView<char, GlyphInfo>.Enumerable glyphInfos,
+            in ValueDictionaryView<Rune, GlyphInfo>.Enumerable glyphInfos,
             int visibleCharacters
         )
         {
@@ -356,7 +368,7 @@ public sealed unsafe class Font : IDisposable
         private readonly string _text;
         private readonly float _fontSize;
         private readonly Vector2 _spacing;
-        private readonly ValueDictionaryView<char, GlyphInfo>.Enumerable _glyphInfos;
+        private readonly ValueDictionaryView<Rune, GlyphInfo>.Enumerable _glyphInfos;
         private readonly int _visibleCharacters;
         private readonly float _aspectRatio;
         private int _index;
@@ -367,7 +379,7 @@ public sealed unsafe class Font : IDisposable
             string text,
             float fontSize,
             Vector2 spacing,
-            in ValueDictionaryView<char, GlyphInfo>.Enumerable glyphInfos,
+            in ValueDictionaryView<Rune, GlyphInfo>.Enumerable glyphInfos,
             int visibleCharacters
         )
         {
@@ -385,8 +397,9 @@ public sealed unsafe class Font : IDisposable
         {
             while (_index < _text.Length && (_visibleCharacters < 0 || _index < _visibleCharacters))
             {
-                var c = _text[_index++];
-                switch (c)
+                Rune.DecodeFromUtf16(_text.AsSpan(_index), out var rune, out var charsConsumed);
+                _index += charsConsumed;
+                switch (rune.Value)
                 {
                     case '\n':
                         _position.X = 0;
@@ -402,7 +415,7 @@ public sealed unsafe class Font : IDisposable
                         continue;
                 }
 
-                if (!_glyphInfos.TryGetValue(c, out var glyph))
+                if (!_glyphInfos.TryGetValue(rune, out var glyph))
                     continue;
                 var atlasSpacing = glyph.Stroke == 0 ? 0 : 4;
                 var halfAtlasSpacing = atlasSpacing * 0.5f;
@@ -435,12 +448,12 @@ public sealed unsafe class Font : IDisposable
         public void Dispose() { }
     }
 
-    public readonly ref struct Stroke(Texture atlas, ValueDictionaryView<char, GlyphInfo> glyphInfos)
+    public readonly ref struct Stroke(Texture atlas, ValueDictionaryView<Rune, GlyphInfo> glyphInfos)
     {
         public Texture Atlas { get; } = atlas;
-        public ValueDictionaryView<char, GlyphInfo> GlyphInfos { get; } = glyphInfos;
+        public ValueDictionaryView<Rune, GlyphInfo> GlyphInfos { get; } = glyphInfos;
 
-        public void Deconstruct(out Texture atlas, out ValueDictionaryView<char, GlyphInfo> glyphInfos)
+        public void Deconstruct(out Texture atlas, out ValueDictionaryView<Rune, GlyphInfo> glyphInfos)
         {
             atlas = Atlas;
             glyphInfos = GlyphInfos;

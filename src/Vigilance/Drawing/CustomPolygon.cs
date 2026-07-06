@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -10,16 +11,22 @@ namespace Vigilance.Drawing;
 
 public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
 {
-    public CustomPolygon() { }
+    private ValueList<Vector2> _points;
+
+    public CustomPolygon()
+    {
+        _points = [];
+    }
 
     public CustomPolygon(Color fill)
+        : this()
     {
         Fill = fill;
     }
 
     public CustomPolygon(IEnumerable<Vector2> points)
     {
-        Points = points.ToList();
+        _points = new ValueList<Vector2>(points);
     }
 
     public CustomPolygon(IEnumerable<Vector2> points, Color fill)
@@ -28,18 +35,25 @@ public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
         Fill = fill;
     }
 
-    public CustomPolygon(List<Vector2> points)
+    [OverloadResolutionPriority(1)]
+    public CustomPolygon(in ReadOnlySpan<Vector2> points)
     {
-        Points = points;
+        _points = points.AsValueEnumerable().ToValueList();
     }
 
-    public CustomPolygon(List<Vector2> points, Color fill)
+    [OverloadResolutionPriority(1)]
+    public CustomPolygon(in ReadOnlySpan<Vector2> points, Color fill)
         : this(points)
     {
         Fill = fill;
     }
 
-    public List<Vector2> Points { get; set; } = [];
+    public ValueListRef<Vector2> Points
+    {
+        get => _points.AsRef();
+        set => value.CopyTo(ref _points);
+    }
+
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
@@ -48,7 +62,7 @@ public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
     object IDeepCloneable.DeepClone()
     {
         var result = this.ShallowClone();
-        result.Points = Points.AsValueEnumerable().ToList();
+        result._points = new ValueList<Vector2>(_points);
         return result;
     }
 
@@ -69,10 +83,11 @@ public static class CustomPolygonExtensions
     {
         public void FillCustomPolygon(IEnumerable<Vector2> points, Color? color = null, Camera? camera = null)
         {
-            graphics.FillCustomPolygonSpan(points.AsSpan(), color, camera);
+            graphics.FillCustomPolygon(points.AsSpan(), color, camera);
         }
 
-        public unsafe void FillCustomPolygonSpan(
+        [OverloadResolutionPriority(1)]
+        public unsafe void FillCustomPolygon(
             in ReadOnlySpan<Vector2> points,
             Color? color = null,
             Camera? camera = null
@@ -82,7 +97,7 @@ public static class CustomPolygonExtensions
             if (
                 colorValue == Color.Transparent
                 || points.Length < 3
-                || (graphics.Culling() && !graphics.IsPolygonInBoundsSpan(points, camera))
+                || (graphics.Culling() && !graphics.IsPolygonInBounds(points, camera))
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -101,10 +116,11 @@ public static class CustomPolygonExtensions
             Camera? camera = null
         )
         {
-            graphics.StrokeCustomPolygonSpan(points.AsSpan(), color, strokeWidth, camera);
+            graphics.StrokeCustomPolygon(points.AsSpan(), color, strokeWidth, camera);
         }
 
-        public void StrokeCustomPolygonSpan(
+        [OverloadResolutionPriority(1)]
+        public void StrokeCustomPolygon(
             in ReadOnlySpan<Vector2> points,
             Color? color = null,
             float? strokeWidth = null,
@@ -117,7 +133,7 @@ public static class CustomPolygonExtensions
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
                 || points.Length < 3
-                || (graphics.Culling() && !graphics.IsPolygonInBoundsSpan(points, camera, strokeWidthValue * 0.5f))
+                || (graphics.Culling() && !graphics.IsPolygonInBounds(points, camera, strokeWidthValue * 0.5f))
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -169,13 +185,13 @@ public static class CustomPolygonExtensions
                 Coordinates.Scale(span, scale, position);
                 if (order == DrawOrder.StrokeThenFill)
                 {
-                    graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
-                    graphics.FillCustomPolygonSpan(span, fill, camera);
+                    graphics.StrokeCustomPolygon(span, stroke, strokeWidth, camera);
+                    graphics.FillCustomPolygon(span, fill, camera);
                 }
                 else
                 {
-                    graphics.FillCustomPolygonSpan(span, fill, camera);
-                    graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+                    graphics.FillCustomPolygon(span, fill, camera);
+                    graphics.StrokeCustomPolygon(span, stroke, strokeWidth, camera);
                 }
             }
             finally

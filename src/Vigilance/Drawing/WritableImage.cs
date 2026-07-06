@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Raylib_cs;
 using Vigilance.Collections;
@@ -16,7 +17,7 @@ public readonly unsafe struct WritableImage : IDisposable
         Image = image;
     }
 
-    public WritableImage(string fileType, IEnumerable<byte> bytes)
+    public WritableImage(in ReadOnlySpan<char> fileType, in ReadOnlySpan<byte> bytes)
     {
         Image = new Image(fileType, bytes);
     }
@@ -151,10 +152,11 @@ public readonly unsafe struct WritableImage : IDisposable
 
     public void KernelConvolution(IEnumerable<float> kernel)
     {
-        KernelConvolutionSpan(kernel.AsSpan());
+        KernelConvolution(kernel.AsSpan());
     }
 
-    public void KernelConvolutionSpan(in ReadOnlySpan<float> kernel)
+    [OverloadResolutionPriority(1)]
+    public void KernelConvolution(in ReadOnlySpan<float> kernel)
     {
         if (kernel.IsEmpty)
             return;
@@ -222,7 +224,7 @@ public readonly unsafe struct WritableImage<T> : ISpanView<T>, IReadOnlyList<T>,
         _image = image;
     }
 
-    public WritableImage(string fileType, IEnumerable<byte> bytes)
+    public WritableImage(in ReadOnlySpan<char> fileType, in ReadOnlySpan<byte> bytes)
         : this(new WritableImage(fileType, bytes)) { }
 
     public WritableImage(Vector2 size)
@@ -412,9 +414,10 @@ public readonly unsafe struct WritableImage<T> : ISpanView<T>, IReadOnlyList<T>,
         _image.KernelConvolution(kernel);
     }
 
-    public void KernelConvolutionSpan(in ReadOnlySpan<float> kernel)
+    [OverloadResolutionPriority(1)]
+    public void KernelConvolution(in ReadOnlySpan<float> kernel)
     {
-        _image.KernelConvolutionSpan(kernel);
+        _image.KernelConvolution(kernel);
     }
 
     public void Blur(int blur)

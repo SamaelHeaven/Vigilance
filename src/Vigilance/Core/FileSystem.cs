@@ -1,20 +1,30 @@
 using System.Runtime.InteropServices;
 using System.Text;
-using LinkDotNet.StringBuilder;
 using Raylib_cs;
-using Vigilance.Collections;
 using Vigilance.Logging;
 
 namespace Vigilance.Core;
 
 public static unsafe partial class FileSystem
 {
-    public static string ApplicationDirectory { get; } =
-        FormatPath(Utf8Ptr.GetString(Raylib.GetApplicationDirectory()));
+    public static string ApplicationDirectory { get; } = Utf8Ptr.GetString(Raylib.GetApplicationDirectory());
 
-    public static string WorkingDirectory => FormatPath(Utf8Ptr.GetString(Raylib.GetWorkingDirectory()));
+    public static string WorkingDirectory => Utf8Ptr.GetString(Raylib.GetWorkingDirectory());
 
-    public static string[] DroppedFiles => !Raylib.IsFileDropped() ? [] : Raylib.GetDroppedFiles();
+    public static string[] DroppedFiles
+    {
+        get
+        {
+            if (!Raylib.IsFileDropped())
+                return [];
+            var filePathList = Raylib.LoadDroppedFiles();
+            var files = new string[filePathList.Count];
+            for (uint i = 0; i < filePathList.Count; i++)
+                files[i] = filePathList[i];
+            Raylib.UnloadDroppedFiles(filePathList);
+            return files;
+        }
+    }
 
     internal static void Initialize()
     {
@@ -22,37 +32,15 @@ public static unsafe partial class FileSystem
         ChangeDirectory(config.WorkingDirectory);
     }
 
-    public static string FormatPath(string path)
-    {
-        if (path.IsEmpty)
-            return "";
-        var trimmedPath = path.AsSpan().Trim();
-        var initialCapacity = trimmedPath.Length;
-        using var sb =
-            initialCapacity <= 256
-                ? new ValueStringBuilder(stackalloc char[initialCapacity])
-                : new ValueStringBuilder(initialCapacity);
-        char? lastChar = null;
-        foreach (var c in trimmedPath)
-        {
-            var normalized = c == '\\' ? '/' : c;
-            if (normalized == '/' && lastChar == '/')
-                continue;
-            sb.Append(normalized);
-            lastChar = normalized;
-        }
-
-        return sb.AsSpan().Trim('/').ToString();
-    }
-
     public static string NormalizePath(string path)
     {
-        return FormatPath(Path.Combine(WorkingDirectory, path));
+        return Path.GetFullPath(path, WorkingDirectory);
     }
 
     public static bool ChangeDirectory(string path)
     {
-        path = FormatPath(path);
+        if (path.IsEmpty)
+            return false;
         using var buffer = path.ToUtf8Ptr();
         if (!Raylib.DirectoryExists(buffer))
             return false;
@@ -61,7 +49,6 @@ public static unsafe partial class FileSystem
 
     public static bool FileExists(string path)
     {
-        path = FormatPath(path);
         if (path.IsEmpty)
             return false;
         using var buffer = path.ToUtf8Ptr();
@@ -70,7 +57,6 @@ public static unsafe partial class FileSystem
 
     public static bool DirectoryExists(string path)
     {
-        path = FormatPath(path);
         if (path.IsEmpty)
             return false;
         using var buffer = path.ToUtf8Ptr();
@@ -79,7 +65,8 @@ public static unsafe partial class FileSystem
 
     public static DateTime FileModTime(string path)
     {
-        path = FormatPath(path);
+        if (path.IsEmpty)
+            return DateTime.MinValue;
         using var buffer = path.ToUtf8Ptr();
         return !Raylib.FileExists(buffer)
             ? DateTime.MinValue
@@ -88,28 +75,30 @@ public static unsafe partial class FileSystem
 
     public static int GetFileSize(string path)
     {
-        path = FormatPath(path);
+        if (path.IsEmpty)
+            return 0;
         using var buffer = path.ToUtf8Ptr();
-        return !Raylib.FileExists(path) ? 0 : Raylib.GetFileLength(buffer);
+        return !Raylib.FileExists(buffer) ? 0 : Raylib.GetFileLength(buffer);
     }
 
     public static bool TryReadText(string path, out string text)
     {
         var result = TryReadBytes(path, out var bytes);
-        text = Encoding.UTF8.GetString(bytes);
+        text = result ? Encoding.UTF8.GetString(bytes) : null!;
         return result;
     }
 
     public static string ReadText(string path)
     {
         if (!TryReadText(path, out var text))
-            Log.Warning($"FILEIO: [{FormatPath(path)}] Failed to read text file");
+            Log.Warning($"FILEIO: [{NormalizePath(path)}] Failed to read text file");
         return text;
     }
 
     public static bool WriteText(string path, string text)
     {
-        path = FormatPath(path);
+        if (path.IsEmpty)
+            return false;
         using var pathBuffer = path.ToUtf8Ptr();
         using var textBuffer = text.ToUtf8Ptr();
         return Raylib.SaveFileText(pathBuffer, textBuffer);
@@ -117,7 +106,12 @@ public static unsafe partial class FileSystem
 
     public static bool TryReadBytes(string path, out byte[] bytes)
     {
-        path = FormatPath(path);
+        if (path.IsEmpty)
+        {
+            bytes = [];
+            return false;
+        }
+
         using var pathBuffer = path.ToUtf8Ptr();
         if (!Raylib.FileExists(pathBuffer))
         {
@@ -142,18 +136,14 @@ public static unsafe partial class FileSystem
     public static byte[] ReadBytes(string path)
     {
         if (!TryReadBytes(path, out var bytes))
-            Log.Warning($"FILEIO: [{FormatPath(path)}] Failed to read file");
+            Log.Warning($"FILEIO: [{NormalizePath(path)}] Failed to read file");
         return bytes;
     }
 
-    public static bool WriteBytes(string path, IEnumerable<byte> bytes)
+    public static bool WriteBytes(string path, in ReadOnlySpan<byte> bytes)
     {
-        return WriteBytesSpan(path, bytes.AsSpan());
-    }
-
-    public static bool WriteBytesSpan(string path, in ReadOnlySpan<byte> bytes)
-    {
-        path = FormatPath(path);
+        if (path.IsEmpty)
+            return false;
         using var pathBuffer = path.ToUtf8Ptr();
         fixed (byte* byteBuffer = bytes)
         {
@@ -163,13 +153,14 @@ public static unsafe partial class FileSystem
 
     public static string[] ScanDirectory(string path, bool recursive = false)
     {
-        path = FormatPath(path);
+        if (path.IsEmpty)
+            return [];
         using var pathBuffer = path.ToUtf8Ptr();
         var filePathList = Raylib.LoadDirectoryFilesEx(pathBuffer, null, recursive);
         var count = filePathList.Count;
         var result = new string[count];
         for (var i = 0; i < count; i++)
-            result[i] = FormatPath(Utf8Ptr.GetString(filePathList.Paths[i]));
+            result[i] = Utf8Ptr.GetString(filePathList.Paths[i]);
         Raylib.UnloadDirectoryFiles(filePathList);
         return result;
     }

@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using Vigilance.Collections;
 using Vigilance.Logging;
 
@@ -21,11 +20,7 @@ public static class Asset
         where TKey : notnull
         where TValue : class
     {
-        private ValueDictionary<TKey, TValue> _strongFiles = [];
-        private ValueDictionary<TKey, TValue> _strongResources = [];
         private ValueDictionary<TKey, TValue> _strongValues = [];
-        private ValueDictionary<TKey, WeakReference<TValue>> _weakFiles = [];
-        private ValueDictionary<TKey, WeakReference<TValue>> _weakResources = [];
         private ValueDictionary<TKey, WeakReference<TValue>> _weakValues = [];
 
         public Container() { }
@@ -38,7 +33,7 @@ public static class Asset
             [MaybeNullWhen(false)] out TValue value
         )
         {
-            var filePath = FileSystem.FormatPath(path);
+            var filePath = path;
             var normalizedPath = FileSystem.NormalizePath(path);
             path = normalizedPath;
             return File(
@@ -56,28 +51,20 @@ public static class Asset
             [MaybeNullWhen(false)] out TValue value
         )
         {
-            return Get(ref _weakFiles, ref _strongFiles, keyFunc, valueFunc, cacheType, out value);
+            return Get(keyFunc, valueFunc, cacheType, out value);
         }
 
         public bool Resource(
-            ref string resource,
-            string? @namespace,
-            Assembly? assembly,
+            Resource resource,
             Func<TKey> keyFunc,
             Func<byte[], TValue> valueFunc,
             CacheType? cacheType,
             [MaybeNullWhen(false)] out TValue value
         )
         {
-            resource = Core.Resource.Format(resource, @namespace);
-            var resourceValue = resource;
-            resource = Core.Resource.Format(resource, assembly?.FullName ?? "");
             return Resource(
                 keyFunc,
-                () =>
-                    Core.Resource.TryReadBytes(resourceValue, out var bytes, "", assembly)
-                        ? valueFunc.Invoke(bytes)
-                        : null,
+                () => Core.Resource.TryReadBytes(resource, out var bytes) ? valueFunc.Invoke(bytes) : null,
                 cacheType,
                 out value
             );
@@ -90,17 +77,15 @@ public static class Asset
             [MaybeNullWhen(false)] out TValue value
         )
         {
-            return Get(ref _weakResources, ref _strongResources, keyFunc, valueFunc, cacheType, out value);
+            return Get(keyFunc, valueFunc, cacheType, out value);
         }
 
         public bool Raw(TKey key, Func<TValue> valueFunc, CacheType? cacheType, [MaybeNullWhen(false)] out TValue value)
         {
-            return Get(ref _weakValues, ref _strongValues, () => key, valueFunc, cacheType, out value);
+            return Get(() => key, valueFunc, cacheType, out value);
         }
 
-        private static bool Get(
-            ref ValueDictionary<TKey, WeakReference<TValue>> weakValues,
-            ref ValueDictionary<TKey, TValue> strongValues,
+        private bool Get(
             Func<TKey> keyFunc,
             Func<TValue?> valueFunc,
             CacheType? cacheType,
@@ -113,18 +98,18 @@ public static class Asset
                 var cacheTypeValue = cacheType ?? DefaultCacheType;
                 var weak = cacheTypeValue == CacheType.Weak;
                 var strong = cacheTypeValue == CacheType.Strong;
-                if (weakValues.TryGetValue(key, out var reference))
+                if (_weakValues.TryGetValue(key, out var reference))
                     if (reference.TryGetTarget(out value!))
                         return true;
-                if (strongValues.TryGetValue(key, out value!))
+                if (_strongValues.TryGetValue(key, out value!))
                     return true;
                 value = valueFunc.Invoke();
                 if (value is null)
                     return false;
                 if (weak)
-                    weakValues[key] = new WeakReference<TValue>(value);
+                    _weakValues[key] = new WeakReference<TValue>(value);
                 if (strong)
-                    strongValues[key] = value;
+                    _strongValues[key] = value;
                 return true;
             }
             catch (Exception e)

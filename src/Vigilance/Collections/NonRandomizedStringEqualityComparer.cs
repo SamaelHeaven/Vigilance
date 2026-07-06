@@ -3,7 +3,7 @@ using Vigilance.Core;
 
 namespace Vigilance.Collections;
 
-internal static class DictionaryEqualityComparer
+public static class NonRandomizedStringEqualityComparer
 {
     private static IEqualityComparer<string>? DefaultComparer =>
         field ??= GetDictionaryComparer(new Dictionary<string, bool>(EqualityComparer<string?>.Default));

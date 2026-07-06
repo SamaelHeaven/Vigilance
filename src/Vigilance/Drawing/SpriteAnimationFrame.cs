@@ -1,28 +1,23 @@
+using System.Runtime.InteropServices;
 using Vigilance.Core;
-using Vigilance.Logging;
 using Vigilance.Math;
+using Vigilance.UI;
 
 namespace Vigilance.Drawing;
 
-public sealed class SpriteAnimationFrame
+[StructLayout(LayoutKind.Sequential)]
+public record struct SpriteAnimationFrame : IAnimationFrame
 {
-    public TimeSpan Delay { get; set; } = TimeSpan.Zero;
-    public Texture? Texture { get; set; } = null;
-    public bool? FlipX { get; set; } = null;
-    public bool? FlipY { get; set; } = null;
-    public Wrapper<Box?>? Source { get; set; } = null;
-    public Color? Tint { get; set; } = null;
-    public Wrapper<NPatchInfo?>? NPatchInfo { get; set; } = null;
-    public TextureFilter? TextureFilter { get; set; } = null;
-    public Vector2? Position { get; set; } = null;
-    public Vector2? Scale { get; set; } = null;
-    public float? Rotation { get; set; } = null;
-    public Vector2? PivotPoint { get; set; } = null;
-    public Wrapper<BlendMode?>? BlendMode { get; set; } = null;
-    public Wrapper<Shader?>? Shader { get; set; } = null;
-    public Wrapper<bool?>? Culling { get; set; } = null;
-    public Wrapper<Action<Transform, Sprite, Graphics>?>? OnBeginDrawing { get; set; } = null;
-    public Wrapper<Action<Transform, Sprite, Graphics>?>? OnEndDrawing { get; set; } = null;
+    public Texture? Texture { get; set; }
+    public Wrapper<Box?>? Source { get; set; }
+    public TimeSpan Delay { get; set; }
+    public Vector2? Position { get; set; }
+    public Vector2? Scale { get; set; }
+    public Vector2? PivotPoint { get; set; }
+    public Color? Tint { get; set; }
+    public float? Rotation { get; set; }
+    public bool? FlipX { get; set; }
+    public bool? FlipY { get; set; }
 
     public Transform Transform
     {
@@ -35,12 +30,37 @@ public sealed class SpriteAnimationFrame
         }
     }
 
-    public override string ToString()
+    public readonly void Apply(Entity entity)
     {
-        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
+        {
+            if (entity.TryGet(out SpriteInstance sprite))
+            {
+                var newSprite = sprite;
+                Apply(ref newSprite);
+                if (sprite != newSprite)
+                    entity.Set(newSprite);
+            }
+        }
+        {
+            if (entity.TryGet(out BatchedSprite sprite))
+            {
+                var newSprite = sprite;
+                Apply(ref newSprite);
+                if (sprite != newSprite)
+                    entity.Set(newSprite);
+            }
+        }
+        {
+            if (entity.TryGet(out Sprite sprite))
+                Apply(sprite);
+        }
+        {
+            if (entity.TryGet(out UISprite sprite))
+                Apply(sprite);
+        }
     }
 
-    public void UpdateSprite(Sprite sprite)
+    public readonly void Apply(Sprite sprite)
     {
         if (Texture is not null)
             sprite.Texture = Texture;
@@ -52,10 +72,6 @@ public sealed class SpriteAnimationFrame
             sprite.Source = Source;
         if (Tint.HasValue)
             sprite.Tint = Tint.Value;
-        if (NPatchInfo.HasValue)
-            sprite.NPatchInfo = NPatchInfo;
-        if (TextureFilter.HasValue)
-            sprite.TextureFilter = TextureFilter.Value;
         if (Position.HasValue)
             sprite.Position = Position.Value;
         if (Scale.HasValue)
@@ -64,15 +80,54 @@ public sealed class SpriteAnimationFrame
             sprite.Rotation = Rotation.Value;
         if (PivotPoint.HasValue)
             sprite.PivotPoint = PivotPoint.Value;
-        if (BlendMode.HasValue)
-            sprite.BlendMode = BlendMode.Value;
-        if (Shader.HasValue)
-            sprite.Shader = Shader;
-        if (Culling.HasValue)
-            sprite.Culling = Culling.Value;
-        if (OnBeginDrawing.HasValue)
-            sprite.OnBeginDrawing = OnBeginDrawing.Value;
-        if (OnEndDrawing.HasValue)
-            sprite.OnEndDrawing = OnEndDrawing.Value;
+    }
+
+    public readonly void Apply(UISprite sprite)
+    {
+        if (Texture is not null)
+            sprite.Texture = Texture;
+        if (FlipX.HasValue)
+            sprite.FlipX = FlipX.Value;
+        if (FlipY.HasValue)
+            sprite.FlipY = FlipY.Value;
+        if (Source.HasValue)
+            sprite.Source = Source;
+        if (Tint.HasValue)
+            sprite.Tint = Tint.Value;
+        if (Position.HasValue)
+            sprite.Translate = Position.Value;
+        if (Scale.HasValue)
+            sprite.Scale = Scale.Value;
+        if (Rotation.HasValue)
+            sprite.Rotation = Rotation.Value;
+        if (PivotPoint.HasValue)
+            sprite.PivotPoint = PivotPoint.Value;
+    }
+
+    public readonly void Apply(ref BatchedSprite sprite)
+    {
+        var instance = sprite.Instance;
+        Apply(ref instance);
+        sprite.Instance = instance;
+    }
+
+    public readonly void Apply(ref SpriteInstance sprite)
+    {
+        if (FlipX.HasValue)
+            sprite.FlipX = FlipX.Value;
+        if (FlipY.HasValue)
+            sprite.FlipY = FlipY.Value;
+        if (Source.HasValue)
+            sprite.Source = Source;
+        if (Tint.HasValue)
+            sprite.Tint = Tint.Value;
+        if (Position.HasValue)
+            sprite.Position = Position.Value;
+        if (Scale.HasValue)
+            sprite.Scale = Scale.Value;
+        if (Rotation.HasValue)
+            sprite.Rotation = Rotation.Value;
+        if (PivotPoint.HasValue)
+            sprite.PivotPoint = PivotPoint.Value;
     }
 }

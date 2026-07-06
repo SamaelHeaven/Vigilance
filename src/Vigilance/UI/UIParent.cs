@@ -145,7 +145,6 @@ public abstract class UIParent : UIElement
         if (_suspendStack.Count == 0)
             throw new InvalidOperationException("Element is not in a suspended state.");
         _deferredCount += _suspendStack.Pop();
-        TryFlush();
     }
 
     internal void Clone(CloneOptions options)
@@ -182,7 +181,7 @@ public abstract class UIParent : UIElement
         MarkDirty();
     }
 
-    internal enum ChildrenOperationType
+    internal enum ChildrenOperationType : byte
     {
         Add,
         Remove,

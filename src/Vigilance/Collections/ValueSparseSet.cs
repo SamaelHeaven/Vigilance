@@ -122,13 +122,27 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
 
     void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
     {
+        ArgumentNullException.ThrowIfNull(array);
+        CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    public readonly void CopyTo(in Span<KeyValuePair<TKey, TValue>> span, int arrayIndex = 0)
+    {
         AssertValid();
-        if ((uint)arrayIndex > (uint)array.Length)
+        if ((uint)arrayIndex > (uint)span.Length)
             throw new ArgumentOutOfRangeException(nameof(arrayIndex));
-        if (array.Length - arrayIndex < Count)
-            throw new ArgumentException("The destination array is not large enough.", nameof(array));
+        if (span.Length - arrayIndex < Count)
+            throw new ArgumentException("The destination array is not large enough.", nameof(span));
         for (var i = 0; i < Count; i++)
-            array[arrayIndex + i] = new KeyValuePair<TKey, TValue>(_keys[i], _values[i]);
+            span[arrayIndex + i] = new KeyValuePair<TKey, TValue>(_keys[i], _values[i]);
+    }
+
+    public readonly void CopyTo(ref ValueSparseSet<TKey, TValue, TStorage> sparseSet)
+    {
+        AssertValid();
+        sparseSet.Clear();
+        for (var i = 0; i < Count; i++)
+            sparseSet[_keys[i]] = _values[i];
     }
 
     bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
@@ -418,6 +432,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
             return new StructEnumerator<Enumerator, TValue>(GetEnumerator());
         }
 
+        [SuppressMessage("ReSharper", "MemberHidesStaticFromOuterClass")]
         public struct Enumerator : IStructEnumerator<TValue>, IValueEnumerator<TValue>
         {
             private readonly TStorage _values;

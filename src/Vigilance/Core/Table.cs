@@ -16,7 +16,7 @@ public abstract class Table
     }
 
     [Flags]
-    public enum Flags
+    public enum Flags : byte
     {
         Default = 0,
         SilentOnImmutable = 1 << 0,
@@ -63,7 +63,9 @@ public abstract class Table
 
     public abstract void Set(in Entity entity, object component, Flags flags = Flags.Default);
 
-    public abstract void Remove(in Entity entity, Flags flags = Flags.Default);
+    public abstract bool Remove(in Entity entity, Flags flags = Flags.Default);
+
+    public abstract bool Remove(in Entity entity, out object component, Flags flags = Flags.Default);
 
     internal abstract void DequeueOperation();
 
@@ -228,7 +230,6 @@ public sealed class Table<T>
     public void Emit(in Event<T> tableEvent)
     {
         Scene.ThrowIfNotConfigured();
-        Scene.BeginDefer();
         try
         {
             switch (tableEvent.Type)
@@ -257,10 +258,6 @@ public sealed class Table<T>
         catch (Exception e)
         {
             Log.Error(e);
-        }
-        finally
-        {
-            Scene.EndDefer();
         }
     }
 
@@ -313,34 +310,47 @@ public sealed class Table<T>
         Set(entity, (T)component, flags);
     }
 
-    public override void Remove(in Entity entity, Flags flags = Flags.Default)
+    public override bool Remove(in Entity entity, Flags flags = Flags.Default)
     {
-        if (Scene.IsDeferred)
-        {
-            _operations.Enqueue(new Operation(OperationType.Remove, entity, default!));
-            Scene.Enqueue(Scene.Event.TableOperation(this));
-            return;
-        }
+        return Remove(entity, out _, flags);
+    }
 
-        var chunkIndex = entity.Index / SparseChunkSize;
-        if (chunkIndex >= _sparseChunks.Count)
-            return;
-        var chunk = _sparseChunks[chunkIndex];
-        if (chunk == null)
-            return;
-        var withinChunk = entity.Index % SparseChunkSize;
-        var sparseValue = chunk[withinChunk];
-        if (sparseValue == 0)
-            return;
-        var denseIndex = sparseValue - 1;
+    public override bool Remove(in Entity entity, out object component, Flags flags = Flags.Default)
+    {
+        var result = Remove(entity, out var value, flags);
+        component = result ? value! : null!;
+        return result;
+    }
+
+    public bool Remove(in Entity entity, out T component, Flags flags = Flags.Default)
+    {
+        Unsafe.SkipInit(out component);
         if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
             if ((flags & Flags.SilentOnImmutable) != 0)
-                return;
+                return false;
             else
                 throw new InvalidOperationException(
                     $"Cannot remove {Type} because it implements {nameof(IRemoveImmutableComponent)}."
                 );
-        var component = _components[denseIndex];
+        if (Scene.IsDeferred)
+        {
+            _operations.Enqueue(new Operation(entity.Id, default!, OperationType.Remove, flags));
+            Scene.Enqueue(Scene.Event.TableOperation(this));
+            return false;
+        }
+
+        var chunkIndex = entity.Index / SparseChunkSize;
+        if (chunkIndex >= _sparseChunks.Count)
+            return false;
+        var chunk = _sparseChunks[chunkIndex];
+        if (chunk == null)
+            return false;
+        var withinChunk = entity.Index % SparseChunkSize;
+        var sparseValue = chunk[withinChunk];
+        if (sparseValue == 0)
+            return false;
+        var denseIndex = sparseValue - 1;
+        component = _components[denseIndex];
         var lastDenseIndex = _components.Count - 1;
         if (denseIndex != lastDenseIndex)
         {
@@ -358,6 +368,7 @@ public sealed class Table<T>
         _entityIds.RemoveAt(lastDenseIndex);
         chunk[withinChunk] = 0;
         Emit(Event<T>.Remove(entity, component));
+        return true;
     }
 
     public ComponentRef<T> GetRef(int index)
@@ -383,6 +394,13 @@ public sealed class Table<T>
 
     public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.Default)
     {
+        if (SetImmutable && AddImmutable && (flags & Flags.ForceMutable) == 0)
+            if ((flags & Flags.SilentOnImmutable) != 0)
+                return ComponentRef<T>.Null;
+            else
+                throw new InvalidOperationException(
+                    $"Cannot set {Type} because it implements {nameof(IAddImmutableComponent)} and {nameof(ISetImmutableComponent)}."
+                );
         if (!typeof(T).IsValueType)
         {
             Debug.Assert(component is not null);
@@ -392,7 +410,7 @@ public sealed class Table<T>
 
         if (Scene.IsDeferred)
         {
-            _operations.Enqueue(new Operation(OperationType.Set, entity, component));
+            _operations.Enqueue(new Operation(entity.Id, component, OperationType.Set, flags));
             Scene.Enqueue(Scene.Event.TableOperation(this));
             return ComponentRef<T>.Null;
         }
@@ -441,10 +459,10 @@ public sealed class Table<T>
         switch (operation.Type)
         {
             case OperationType.Set:
-                Set(operation.Entity, operation.Value);
+                Set(new Entity(operation.EntityId, Scene), operation.Value, operation.Flags);
                 break;
             case OperationType.Remove:
-                Remove(operation.Entity);
+                Remove(new Entity(operation.EntityId, Scene), operation.Flags);
                 break;
         }
     }
@@ -482,13 +500,13 @@ public sealed class Table<T>
         _sparseChunks[chunkIndex] = chunk;
     }
 
-    private enum OperationType
+    private enum OperationType : byte
     {
         Set,
         Remove,
     }
 
-    private readonly record struct Operation(OperationType Type, Entity Entity, T Value);
+    private readonly record struct Operation(ulong EntityId, T Value, OperationType Type, Flags Flags);
 
     public struct Enumerator : IStructEnumerator<KeyValuePair<Entity, T>>
     {

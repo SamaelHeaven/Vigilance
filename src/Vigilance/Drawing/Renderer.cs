@@ -14,8 +14,10 @@ public static class Renderer
     {
         Game.ThrowIfNotRunning();
         var mode = Display.RenderingMode;
-        if (mode.Type == RenderingModeType.Buffer)
-            _buffer = new RenderTexture(Display.ScreenSize, mode.Scale);
+        Graphics = Display.Graphics = new Graphics(null, true);
+        if (mode.Type != RenderingModeType.Buffer)
+            return;
+        _buffer = new RenderTexture(Display.ScreenSize, mode.Scale);
         Graphics = new Graphics(_buffer, true);
     }
 
@@ -44,10 +46,8 @@ public static class Renderer
             Graphics.Buffer = null;
         }
 
-        Graphics.Reset();
-        Raylib.ClearBackground(Display.Background.RColor);
-        if (_buffer is not null)
-            Graphics.ClearBackground(Display.Background);
+        Graphics.ResetCurrentBuffer();
+        Graphics.ClearBackground(Display.Background);
         var screenWidth = (float)Display.ScreenWidth;
         var screenHeight = (float)Display.ScreenHeight;
         var width = Display.Width;
@@ -97,25 +97,33 @@ public static class Renderer
         var screenHeight = Display.ScreenHeight;
         var offsetX = (int)_offset.X;
         var offsetY = (int)_offset.Y;
-        var background = Display.Background.RColor;
         var mode = Display.RenderingMode;
-        Graphics.Reset();
-        if (_buffer is null)
-        {
-            Raylib.DrawRectangle(0, 0, offsetX, screenHeight, background);
-            Raylib.DrawRectangle(screenWidth - offsetX, 0, offsetX, screenHeight, background);
-            Raylib.DrawRectangle(0, 0, screenWidth, offsetY, background);
-            Raylib.DrawRectangle(0, screenHeight - offsetY, screenWidth, offsetY, background);
-        }
-        else
+        Graphics.ResetCurrentBuffer();
+        if (_buffer is not null)
         {
             var texture = _buffer.Texture;
-            var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
-            var dest = new Raylib_cs.Rectangle(0, 0, screenWidth, screenHeight);
             texture.TextureFilter = mode.TextureFilter;
-            Raylib.DrawTexturePro(texture.Texture2D, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
+            var action = Game.Scene.DrawScreenAction;
+            if (action is null)
+            {
+                var source = new Raylib_cs.Rectangle(0, 0, texture.Width, -texture.Height);
+                var dest = new Raylib_cs.Rectangle(0, 0, screenWidth, screenHeight);
+                Raylib.DrawTexturePro(texture.Texture2D, source, dest, Vector2.Zero, 0, Raylib_cs.Color.White);
+            }
+            else
+            {
+                var dest = new Box(0, 0, screenWidth, screenHeight);
+                action.Invoke(Display.Graphics, texture, dest);
+                Debug.Assert(texture.IsValid);
+            }
         }
 
+        var background = Display.Background.RColor;
+        Graphics.ResetCurrentBuffer();
+        Raylib.DrawRectangle(0, 0, offsetX, screenHeight, background);
+        Raylib.DrawRectangle(screenWidth - offsetX, 0, offsetX, screenHeight, background);
+        Raylib.DrawRectangle(0, 0, screenWidth, offsetY, background);
+        Raylib.DrawRectangle(0, screenHeight - offsetY, screenWidth, offsetY, background);
         Graphics.DrawCurrentBuffer();
         Raylib.SwapScreenBuffer();
     }

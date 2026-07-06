@@ -35,10 +35,8 @@ public sealed unsafe class SpriteBatch : SpriteBatch<SpriteInstance>
 
     private static Shader DefaultShader =>
         Shader.Resource(
-            "Resources.Shader.sprite-batch.vert.glsl",
-            "Resources.Shader.sprite-batch.frag.glsl",
-            "",
-            Assemblies.Engine
+            ("Shader.sprite-batch.vert.glsl", Assemblies.Engine),
+            ("Shader.sprite-batch.frag.glsl", Assemblies.Engine)
         );
 
     private void ConfigureInstanceAttributes()

@@ -6,22 +6,19 @@ public sealed class Timer
 {
     public const int InfiniteCycleCount = -1;
 
-    public Timer(
-        TimeSpan duration,
-        TimeSpan? initialTime = null,
-        int cycleCount = InfiniteCycleCount,
-        Action? repeatAction = null,
-        Action? completeAction = null
-    )
+    public Timer()
     {
-        OnComplete = completeAction;
-        OnRepeat = repeatAction;
-        TimeLeft = initialTime ?? duration;
+        CycleCount = InfiniteCycleCount;
+    }
+
+    public Timer(TimeSpan duration, TimeSpan elapsed = default, int cycleCount = InfiniteCycleCount)
+    {
+        Elapsed = elapsed;
         Duration = duration;
         CycleCount = cycleCount;
     }
 
-    public TimeSpan TimeLeft { get; set; }
+    public TimeSpan Elapsed { get; set; }
     public TimeSpan Duration { get; set; }
     public bool IsPaused { get; set; }
     public int CycleCount { get; set; }
@@ -33,15 +30,15 @@ public sealed class Timer
     public bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
 
     public float Progress =>
-        Duration == TimeSpan.Zero ? 1f : (1f - (float)(TimeLeft.TotalSeconds / Duration.TotalSeconds)).Clamp(0f, 1f);
+        Duration == TimeSpan.Zero ? 1f : ((float)(Elapsed.TotalSeconds / Duration.TotalSeconds)).Clamp(0f, 1f);
 
     public bool Update(TimeSpan? step = null)
     {
         DidTick = false;
         if (IsPaused || IsCompleted)
             return false;
-        TimeLeft -= step ?? Time.Delta;
-        if (TimeLeft > TimeSpan.Zero)
+        Elapsed += step ?? Time.Delta;
+        if (Elapsed < Duration)
             return false;
         DidTick = true;
         CurrentCycle++;
@@ -51,14 +48,14 @@ public sealed class Timer
             return true;
         }
 
-        TimeLeft += Duration;
+        Elapsed -= Duration;
         OnRepeat?.Invoke();
         return true;
     }
 
     public void Reset()
     {
-        TimeLeft = Duration;
+        Elapsed = TimeSpan.Zero;
         CurrentCycle = 0;
         DidTick = false;
     }

@@ -7,28 +7,29 @@ public sealed class Tween
 {
     public const int InfiniteCycleCount = -1;
 
+    public Tween()
+    {
+        CycleCount = InfiniteCycleCount;
+    }
+
     public Tween(
         TimeSpan duration,
-        TimeSpan? initialTime = null,
+        TimeSpan elapsed = default,
         int cycleCount = InfiniteCycleCount,
-        bool alternateDirection = false,
-        Action? repeatAction = null,
-        Action? completeAction = null
+        bool alternateDirection = false
     )
     {
-        OnComplete = completeAction;
-        OnRepeat = repeatAction;
-        TimeLeft = initialTime ?? duration;
+        Elapsed = elapsed;
         Duration = duration;
         CycleCount = cycleCount;
         AlternateDirection = alternateDirection;
     }
 
-    public TimeSpan TimeLeft { get; set; }
+    public TimeSpan Elapsed { get; set; }
     public TimeSpan Duration { get; set; }
     public bool IsPaused { get; set; }
     public int CycleCount { get; set; }
-    public bool AlternateDirection { get; }
+    public bool AlternateDirection { get; set; }
     public bool IsReversed { get; set; }
     public Action? OnComplete { get; set; }
     public Action? OnRepeat { get; set; }
@@ -38,7 +39,7 @@ public sealed class Tween
     public bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
 
     public float Progress =>
-        Duration == TimeSpan.Zero ? 1f : (1f - (float)(TimeLeft.TotalSeconds / Duration.TotalSeconds)).Clamp(0f, 1f);
+        Duration == TimeSpan.Zero ? 1f : ((float)(Elapsed.TotalSeconds / Duration.TotalSeconds)).Clamp(0f, 1f);
 
     public float Value(Func<float, float>? ease = null)
     {
@@ -76,8 +77,8 @@ public sealed class Tween
         DidTick = false;
         if (IsPaused || IsCompleted)
             return;
-        TimeLeft -= step ?? Time.Delta;
-        if (TimeLeft > TimeSpan.Zero)
+        Elapsed += step ?? Time.Delta;
+        if (Elapsed < Duration)
             return;
         DidTick = true;
         CurrentCycle++;
@@ -87,7 +88,7 @@ public sealed class Tween
             return;
         }
 
-        TimeLeft += Duration;
+        Elapsed -= Duration;
         if (AlternateDirection)
             IsReversed = !IsReversed;
         OnRepeat?.Invoke();
@@ -95,7 +96,7 @@ public sealed class Tween
 
     public void Reset()
     {
-        TimeLeft = Duration;
+        Elapsed = TimeSpan.Zero;
         CurrentCycle = 0;
         DidTick = false;
     }

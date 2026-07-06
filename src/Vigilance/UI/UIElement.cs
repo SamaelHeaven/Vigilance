@@ -66,8 +66,9 @@ public abstract class UIElement : IFullCloneable
     public ReadOnlySpan<IUIComponent> Components
     {
         get => _components.AsSpan();
-        set
+        init
         {
+            _components.EnsureCapacity(value.Length);
             foreach (var component in value)
                 Attach(component);
         }
@@ -1313,7 +1314,6 @@ public abstract class UIElement : IFullCloneable
 
     private struct RenderData
     {
-        public RenderPhase Phase;
         public Matrix3x2? OldMatrix;
         public Box? OldClip;
         public BlendMode? OldBlendMode;
@@ -1321,6 +1321,7 @@ public abstract class UIElement : IFullCloneable
         public bool? OldCulling;
         public bool OverflowHidden;
         public readonly bool ShouldRender;
+        public RenderPhase Phase;
 
         public RenderData(UIElement element)
         {
@@ -1328,7 +1329,7 @@ public abstract class UIElement : IFullCloneable
         }
     }
 
-    private enum RenderPhase
+    private enum RenderPhase : byte
     {
         Begin,
         End,

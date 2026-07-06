@@ -119,7 +119,7 @@ public static class TriangleExtensions
     {
         public void FillTriangle(Vector2 v1, Vector2 v2, Vector2 v3, Color? color = null, Camera? camera = null)
         {
-            graphics.FillCustomPolygonSpan([v1, v2, v3], color, camera);
+            graphics.FillCustomPolygon([v1, v2, v3], color, camera);
         }
 
         public void StrokeTriangle(
@@ -131,7 +131,7 @@ public static class TriangleExtensions
             Camera? camera = null
         )
         {
-            graphics.StrokeCustomPolygonSpan([v1, v2, v3], color, strokeWidth, camera);
+            graphics.StrokeCustomPolygon([v1, v2, v3], color, strokeWidth, camera);
         }
 
         public void DrawTriangle(Triangle triangle)
@@ -157,13 +157,13 @@ public static class TriangleExtensions
             Coordinates.Scale(span, scale, position);
             if (order == DrawOrder.StrokeThenFill)
             {
-                graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
-                graphics.FillCustomPolygonSpan(span, fill, camera);
+                graphics.StrokeCustomPolygon(span, stroke, strokeWidth, camera);
+                graphics.FillCustomPolygon(span, fill, camera);
             }
             else
             {
-                graphics.FillCustomPolygonSpan(span, fill, camera);
-                graphics.StrokeCustomPolygonSpan(span, stroke, strokeWidth, camera);
+                graphics.FillCustomPolygon(span, fill, camera);
+                graphics.StrokeCustomPolygon(span, stroke, strokeWidth, camera);
             }
         }
     }

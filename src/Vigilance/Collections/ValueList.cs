@@ -57,7 +57,7 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public int Count
     {
-        get => _size;
+        readonly get => _size;
         set
         {
             ArgumentOutOfRangeException.ThrowIfNegative(value);
@@ -199,6 +199,23 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         }
     }
 
+    public void AddRange(in ValueList<T> list)
+    {
+        AddRange(list.AsSpan());
+    }
+
+    [OverloadResolutionPriority(1)]
+    public void AddRange(in ReadOnlySpan<T> span)
+    {
+        var count = span.Length;
+        if (count <= 0)
+            return;
+        if (_items.Length - _size < count)
+            Grow(checked(_size + count));
+        span.CopyTo(_items.AsSpan(_size, count));
+        _size += count;
+    }
+
     public readonly int BinarySearch(int index, int count, in T item, IComparer<T>? comparer)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
@@ -262,7 +279,23 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
 
     public readonly void CopyTo(T[] array, int arrayIndex = 0)
     {
-        Array.Copy(_items, 0, array, arrayIndex, _size);
+        CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    public readonly void CopyTo(in Span<T> span, int arrayIndex = 0)
+    {
+        if (arrayIndex < 0 || arrayIndex > span.Length)
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        if (span.Length - arrayIndex < _size)
+            throw new ArgumentException("Destination array was not long enough.");
+        AsSpan().CopyTo(span[arrayIndex..]);
+    }
+
+    public readonly void CopyTo(ref ValueList<T> list)
+    {
+        list.Clear();
+        list.Count = _size;
+        CopyTo(list.AsSpan());
     }
 
     public int EnsureCapacity(int capacity)
@@ -529,6 +562,34 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         while (current < _size)
         {
             while (current < _size && match(_items[current]))
+                current++;
+            if (current < _size)
+                _items[freeIndex++] = _items[current++];
+        }
+
+        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+            Array.Clear(_items, freeIndex, _size - freeIndex);
+        var result = _size - freeIndex;
+        _size = freeIndex;
+        return result;
+    }
+
+    public int RemoveAll(in ValueList<T> list)
+    {
+        return RemoveAll(list.AsSpan());
+    }
+
+    public int RemoveAll(in ReadOnlySpan<T> span)
+    {
+        var freeIndex = 0;
+        while (freeIndex < _size && !span.Contains(_items[freeIndex]))
+            freeIndex++;
+        if (freeIndex >= _size)
+            return 0;
+        var current = freeIndex + 1;
+        while (current < _size)
+        {
+            while (current < _size && span.Contains(_items[current]))
                 current++;
             if (current < _size)
                 _items[freeIndex++] = _items[current++];

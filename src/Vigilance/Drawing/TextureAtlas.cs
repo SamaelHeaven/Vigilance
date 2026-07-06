@@ -100,6 +100,21 @@ public sealed class TextureAtlas : IArrayView<Box>
         return row * Cols + col;
     }
 
+    public RegionEnumerable GetRegions(int startCol, int startRow, int endCol, int? endRow = null)
+    {
+        return GetRegions(GetIndex(startCol, startRow), GetIndex(endCol, endRow ?? startRow));
+    }
+
+    public RegionEnumerable GetRegions(Vector2 startPosition, Vector2 endPosition)
+    {
+        return GetRegions(GetIndex(startPosition), GetIndex(endPosition));
+    }
+
+    public RegionEnumerable GetRegions(int startIndex, int endIndex)
+    {
+        return new RegionEnumerable(this, startIndex, endIndex);
+    }
+
     public SpriteAnimationFrameEnumerable GetSpriteAnimationFrames(
         int startCol,
         int startRow,
@@ -120,8 +135,116 @@ public sealed class TextureAtlas : IArrayView<Box>
         return new SpriteAnimationFrameEnumerable(this, startIndex, endIndex);
     }
 
+    public readonly struct RegionEnumerable
+        : IStructEnumerable<RegionEnumerable.Enumerator, Box>,
+            IReadOnlyCollection<Box>
+    {
+        private readonly TextureAtlas _atlas;
+        private readonly int _startIndex;
+        private readonly int _endIndex;
+
+        internal RegionEnumerable(TextureAtlas atlas, int startIndex, int endIndex)
+        {
+            if (startIndex < 0 || endIndex >= atlas.Count || startIndex > endIndex)
+                throw new ArgumentException("Invalid region index range.");
+            _atlas = atlas;
+            _startIndex = startIndex;
+            _endIndex = endIndex;
+        }
+
+        public Enumerator GetEnumerator()
+        {
+            return new Enumerator(_atlas, _startIndex, _endIndex);
+        }
+
+        public ValueEnumerable<Enumerator, Box> AsValueEnumerable()
+        {
+            return new ValueEnumerable<Enumerator, Box>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<Enumerator, Box>, Box> IStructEnumerable<Enumerator, Box>.AsValueEnumerable()
+        {
+            return new StructEnumerator<Enumerator, Box>(GetEnumerator());
+        }
+
+        public int Count => _endIndex - _startIndex + 1;
+
+        public struct Enumerator : IStructEnumerator<Box>, IValueEnumerator<Box>
+        {
+            private readonly TextureAtlas _atlas;
+            private readonly int _startIndex;
+            private readonly int _endIndex;
+            private int _currentIndex;
+
+            internal Enumerator(TextureAtlas atlas, int startIndex, int endIndex)
+            {
+                _atlas = atlas;
+                _startIndex = startIndex;
+                _currentIndex = startIndex - 1;
+                _endIndex = endIndex;
+                Current = default;
+            }
+
+            public bool MoveNext()
+            {
+                if (_currentIndex >= _endIndex)
+                    return false;
+                _currentIndex++;
+                Current = _atlas._boxes[_currentIndex];
+                return true;
+            }
+
+            public bool TryGetNext(out Box current)
+            {
+                if (MoveNext())
+                {
+                    current = Current;
+                    return true;
+                }
+
+                current = default;
+                return false;
+            }
+
+            public bool TryGetNonEnumeratedCount(out int count)
+            {
+                count = _endIndex - _startIndex + 1;
+                return true;
+            }
+
+            public bool TryGetSpan(out ReadOnlySpan<Box> span)
+            {
+                span = _atlas._boxes.AsSpan(_startIndex, _endIndex - _startIndex + 1);
+                return true;
+            }
+
+            public bool TryCopyTo(scoped Span<Box> destination, Index offset)
+            {
+                var source = _atlas._boxes.AsSpan(_startIndex, _endIndex - _startIndex + 1);
+                var start = offset.GetOffset(source.Length);
+                if (start < 0 || start >= source.Length)
+                    return false;
+                source = source[start..];
+                if (destination.Length < source.Length)
+                    return false;
+                source.CopyTo(destination);
+                return true;
+            }
+
+            public void Reset()
+            {
+                _currentIndex = _startIndex - 1;
+                Current = default;
+            }
+
+            public Box Current { get; private set; }
+
+            public void Dispose() { }
+        }
+    }
+
     public readonly struct SpriteAnimationFrameEnumerable
-        : IStructEnumerable<SpriteAnimationFrameEnumerator, SpriteAnimationFrame>,
+        : IStructEnumerable<SpriteAnimationFrameEnumerable.Enumerator, SpriteAnimationFrame>,
             IReadOnlyCollection<SpriteAnimationFrame>
     {
         private readonly TextureAtlas _atlas;
@@ -137,55 +260,55 @@ public sealed class TextureAtlas : IArrayView<Box>
             _endIndex = endIndex;
         }
 
-        public SpriteAnimationFrameEnumerator GetEnumerator()
+        public Enumerator GetEnumerator()
         {
-            return new SpriteAnimationFrameEnumerator(_atlas, _startIndex, _endIndex);
+            return new Enumerator(_atlas, _startIndex, _endIndex);
         }
 
         public ValueEnumerable<
-            StructEnumerator<SpriteAnimationFrameEnumerator, SpriteAnimationFrame>,
+            StructEnumerator<Enumerator, SpriteAnimationFrame>,
             SpriteAnimationFrame
         > AsValueEnumerable()
         {
-            return new StructEnumerator<SpriteAnimationFrameEnumerator, SpriteAnimationFrame>(GetEnumerator());
+            return new StructEnumerator<Enumerator, SpriteAnimationFrame>(GetEnumerator());
         }
 
         public int Count => _endIndex - _startIndex + 1;
-    }
 
-    public struct SpriteAnimationFrameEnumerator : IStructEnumerator<SpriteAnimationFrame>
-    {
-        private readonly TextureAtlas _atlas;
-        private readonly int _startIndex;
-        private readonly int _endIndex;
-        private int _currentIndex;
-
-        internal SpriteAnimationFrameEnumerator(TextureAtlas atlas, int startIndex, int endIndex)
+        public struct Enumerator : IStructEnumerator<SpriteAnimationFrame>
         {
-            _atlas = atlas;
-            _startIndex = startIndex;
-            _currentIndex = startIndex - 1;
-            _endIndex = endIndex;
-            Current = null!;
+            private readonly TextureAtlas _atlas;
+            private readonly int _startIndex;
+            private readonly int _endIndex;
+            private int _currentIndex;
+
+            internal Enumerator(TextureAtlas atlas, int startIndex, int endIndex)
+            {
+                _atlas = atlas;
+                _startIndex = startIndex;
+                _currentIndex = startIndex - 1;
+                _endIndex = endIndex;
+                Current = default!;
+            }
+
+            public bool MoveNext()
+            {
+                if (_currentIndex >= _endIndex)
+                    return false;
+                _currentIndex++;
+                Current = new SpriteAnimationFrame { Texture = _atlas.Texture, Source = _atlas._boxes[_currentIndex] };
+                return true;
+            }
+
+            public void Reset()
+            {
+                _currentIndex = _startIndex - 1;
+                Current = default!;
+            }
+
+            public SpriteAnimationFrame Current { get; private set; }
+
+            public void Dispose() { }
         }
-
-        public bool MoveNext()
-        {
-            if (_currentIndex >= _endIndex)
-                return false;
-            _currentIndex++;
-            Current = new SpriteAnimationFrame { Texture = _atlas.Texture, Source = _atlas._boxes[_currentIndex] };
-            return true;
-        }
-
-        public void Reset()
-        {
-            _currentIndex = _startIndex - 1;
-            Current = null!;
-        }
-
-        public SpriteAnimationFrame Current { get; private set; }
-
-        public void Dispose() { }
     }
 }

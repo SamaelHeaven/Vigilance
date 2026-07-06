@@ -437,7 +437,7 @@ public class UIScrollContainer : UIContainer
         };
     }
 
-    private enum ScrollBarDirection
+    private enum ScrollBarDirection : byte
     {
         Horizontal,
         Vertical,

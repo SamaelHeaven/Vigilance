@@ -17,7 +17,6 @@ public sealed class RenderTexture : IDisposable
     public RenderTexture(float width, float height, float scale = 1, bool pool = true)
     {
         Game.ThrowIfNotRunning();
-        Graphics.Reset();
         _pool = pool;
         Scale = scale.Max(1);
         var scaledWidth = (int)(width * Scale).Max(1);
@@ -40,6 +39,7 @@ public sealed class RenderTexture : IDisposable
         }
         else
         {
+            Graphics.ResetCurrentBuffer();
             var multipleOf = Drawing.RenderTexturePoolRoundUpToMultipleOf;
             PhysicalWidth = _pool ? scaledWidth.RoundUpToMultipleOf(multipleOf) : scaledWidth;
             PhysicalHeight = _pool ? scaledHeight.RoundUpToMultipleOf(multipleOf) : scaledHeight;
