@@ -24,7 +24,7 @@ public readonly record struct Body : ISkipSetEventIfEqualComponent
     public Entity Entity
     {
         get => new(B2Bodies.b2Body_GetUserData(_id).ulValue, Scene);
-        internal set => B2Bodies.b2Body_SetUserData(_id, new B2UserData(value.Id));
+        set => B2Bodies.b2Body_SetUserData(_id, new B2UserData(value.Id));
     }
 
     public BodyType Type
@@ -232,7 +232,7 @@ public readonly record struct Body : ISkipSetEventIfEqualComponent
         );
     }
 
-    internal void Destroy()
+    public void Destroy()
     {
         B2Bodies.b2DestroyBody(_id);
     }

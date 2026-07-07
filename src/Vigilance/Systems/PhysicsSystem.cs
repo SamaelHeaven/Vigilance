@@ -1,9 +1,15 @@
 using Vigilance.Core;
+using Vigilance.Drawing;
+using Vigilance.Physics;
 
-namespace Vigilance.Physics;
+namespace Vigilance.Systems;
 
 public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
 {
+    public static Graphics DebugDrawGraphics { get; set; } = Renderer.Graphics;
+    public static bool IsDebugDrawEnabled { get; set; } = false;
+    public static DebugDrawFlags DebugDrawFlags { get; set; } = DebugDrawFlags.Default;
+
     public override void Configure()
     {
         Scene.OnAddOrSet<Body>(SetBody);
@@ -13,14 +19,20 @@ public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
     public override void FixedUpdate()
     {
         Scene.World.Update();
-        foreach (var body in Components<Body>())
+        foreach (var (entity, body) in Entries<Body>())
         {
-            var entity = body.Entity;
-            entity.AssertValid();
+            if (entity != body.Entity)
+                continue;
             var transform = body.Transform;
             entity.Position = transform.Position;
             entity.Rotation = transform.Rotation;
         }
+    }
+
+    public override void PostRender()
+    {
+        if (IsDebugDrawEnabled)
+            Scene.World.DebugDraw(DebugDrawGraphics, DebugDrawFlags, Scene.Camera);
     }
 
     private static void SetBody(Entity entity, Body body)
@@ -33,6 +45,8 @@ public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
 
     private static void RemoveBody(Entity entity, Body body)
     {
+        if (entity != body.Entity)
+            return;
         body.Entity = Entity.Null;
         body.Destroy();
     }
