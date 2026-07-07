@@ -58,6 +58,8 @@ public abstract partial class GameSystem : IGameSystem
         var worldContactBegin = WorldContactBegin;
         var worldContactEnd = WorldContactEnd;
         var worldContactHit = WorldContactHit;
+        var worldSensorBegin = WorldSensorBegin;
+        var worldSensorEnd = WorldSensorEnd;
         if (initialize.Method.DeclaringType != baseType)
             scene.OnInitialize(initialize);
         if (start.Method.DeclaringType != baseType)
@@ -90,6 +92,10 @@ public abstract partial class GameSystem : IGameSystem
             scene.World.OnContactEnd(worldContactEnd);
         if (worldContactHit.Method.DeclaringType != baseType)
             scene.World.OnContactHit(worldContactHit);
+        if (worldSensorBegin.Method.DeclaringType != baseType)
+            scene.World.OnSensorBegin(worldSensorBegin);
+        if (worldSensorEnd.Method.DeclaringType != baseType)
+            scene.World.OnSensorEnd(worldSensorEnd);
         Configure();
     }
 
@@ -129,6 +135,10 @@ public abstract partial class GameSystem : IGameSystem
     public virtual void WorldContactEnd(Shape shapeA, Shape shapeB) { }
 
     public virtual void WorldContactHit(ContactHit contact) { }
+
+    public virtual void WorldSensorBegin(Shape sensor, Shape visitor) { }
+
+    public virtual void WorldSensorEnd(Shape sensor, Shape visitor) { }
 
     private void InternalPreUpdate()
     {

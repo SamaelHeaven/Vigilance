@@ -290,6 +290,7 @@ public readonly record struct Body : ISkipSetEventIfEqualComponent
         b2Def.filter = def.Filter.B2Filter;
         b2Def.userData = new B2UserData(def.Data);
         b2Def.enableContactEvents = def.EnableContactEvents;
+        b2Def.enableSensorEvents = def.EnableSensorEvents;
         b2Def.enableHitEvents = def.EnableHitEvents;
         return b2Def;
     }
