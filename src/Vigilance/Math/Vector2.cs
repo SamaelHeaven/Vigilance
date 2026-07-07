@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Box2D.NET;
 
 namespace Vigilance.Math;
 
@@ -40,6 +41,14 @@ public record struct Vector2
         X = x;
         Y = y;
     }
+
+    internal Vector2(B2Vec2 vec2)
+    {
+        X = vec2.X;
+        Y = vec2.Y;
+    }
+
+    internal readonly B2Vec2 B2Vec2 => new(X, Y);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static implicit operator System.Numerics.Vector2(Vector2 v)

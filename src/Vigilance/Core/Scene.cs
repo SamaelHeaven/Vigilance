@@ -3,8 +3,8 @@
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Drawing;
-using Vigilance.Logging;
 using Vigilance.Math;
+using Vigilance.Physics;
 using ZLinq;
 
 namespace Vigilance.Core;
@@ -43,6 +43,7 @@ public sealed unsafe partial class Scene
     private ValueList<Table> _tables = [];
     private Action<Scene>? _transitionToAction;
     private Action? _updateAction;
+    private World? _world;
     internal Table<Child> ChildTable;
     internal Table<Disabled> DisabledTable;
     internal Action<Graphics, Texture, Box>? DrawScreenAction;
@@ -89,6 +90,7 @@ public sealed unsafe partial class Scene
 
     public GameSystemsFunc SystemsFunc { get; }
     public Camera Camera { get; } = new();
+    public World World => _world ??= new World(this);
     public bool IsConfigured { get; private set; }
     public bool IsInitialized { get; private set; }
     public bool IsStarted { get; private set; }
@@ -205,7 +207,7 @@ public sealed unsafe partial class Scene
             if (IsDeferred)
                 Enqueue(Event.Instantiate(entity));
             else
-                _instantiateAction?.Invoke(entity);
+                _instantiateAction?.SafeInvoke(entity);
         }
 
         return entity;
@@ -538,13 +540,13 @@ public sealed unsafe partial class Scene
     {
         if (!IsStarted)
             return;
-        _stopAction?.Invoke();
+        _stopAction?.SafeInvoke();
         IsStarted = false;
     }
 
     internal void TransitionTo(Scene oldScene)
     {
-        _transitionToAction?.Invoke(oldScene);
+        _transitionToAction?.SafeInvoke(oldScene);
     }
 
     internal void Update()
@@ -553,9 +555,9 @@ public sealed unsafe partial class Scene
             Initialize();
         if (!IsStarted)
             Start();
-        _preUpdateAction?.Invoke();
-        _updateAction?.Invoke();
-        _postUpdateAction?.Invoke();
+        _preUpdateAction?.SafeInvoke();
+        _updateAction?.SafeInvoke();
+        _postUpdateAction?.SafeInvoke();
         for (
             Time.FixedAccumulator += Time.Delta;
             Time.FixedAccumulator >= Time.FixedDelta;
@@ -575,7 +577,7 @@ public sealed unsafe partial class Scene
             return;
         }
 
-        _destroyAction?.Invoke(entity);
+        _destroyAction?.SafeInvoke(entity);
         var tables = Tables()
             .WithHidden()
             .AsValueEnumerable()
@@ -629,22 +631,22 @@ public sealed unsafe partial class Scene
         }
 
         IsInitialized = true;
-        _initializeAction?.Invoke();
+        _initializeAction?.SafeInvoke();
         Time.Restart();
     }
 
     private void Start()
     {
-        _startAction?.Invoke();
+        _startAction?.SafeInvoke();
         IsStarted = true;
     }
 
     private void FixedUpdate()
     {
         UpdateInterpolatedEntities();
-        _preFixedUpdateAction?.Invoke();
-        _fixedUpdateAction?.Invoke();
-        _postFixedUpdateAction?.Invoke();
+        _preFixedUpdateAction?.SafeInvoke();
+        _fixedUpdateAction?.SafeInvoke();
+        _postFixedUpdateAction?.SafeInvoke();
     }
 
     private void RestartAction()
@@ -662,65 +664,51 @@ public sealed unsafe partial class Scene
             return;
         _isFlushing = true;
         while (_events.TryDequeue(out var @event))
-            try
+            switch (@event.EventType)
             {
-                switch (@event.EventType)
-                {
-                    case EventType.Instantiate:
-                        _instantiateAction?.Invoke(new Entity(@event.EntityId, this));
-                        break;
-                    case EventType.Destroy:
-                        Destroy(new Entity(@event.EntityId, this));
-                        break;
-                    case EventType.Destroyed:
-                        _destroyAction?.Invoke(new Entity(@event.EntityId, this));
-                        break;
-                    case EventType.Clear:
-                        Clear();
-                        break;
-                    case EventType.Custom:
-                        _customEvents[(Type)@event.Data].DequeueAction.Invoke();
-                        break;
-                    case EventType.TableOperation:
-                        ((Table)@event.Data).DequeueOperation();
-                        break;
-                    case EventType.TableEvent:
-                        ((Table)@event.Data).DequeueEvent();
-                        break;
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
+                case EventType.Instantiate:
+                    _instantiateAction?.SafeInvoke(new Entity(@event.EntityId, this));
+                    break;
+                case EventType.Destroy:
+                    Destroy(new Entity(@event.EntityId, this));
+                    break;
+                case EventType.Destroyed:
+                    _destroyAction?.SafeInvoke(new Entity(@event.EntityId, this));
+                    break;
+                case EventType.Clear:
+                    Clear();
+                    break;
+                case EventType.Custom:
+                    _customEvents[(Type)@event.Data].DequeueAction.SafeInvoke();
+                    break;
+                case EventType.TableOperation:
+                    ((Table)@event.Data).DequeueOperation();
+                    break;
+                case EventType.TableEvent:
+                    ((Table)@event.Data).DequeueEvent();
+                    break;
             }
 
         _isFlushing = false;
         var action = _deferredAction;
         _deferredAction = null;
-        try
-        {
-            action?.Invoke();
-        }
-        catch (Exception e)
-        {
-            Log.Error(e);
-        }
+        action?.SafeInvoke();
     }
 
     private void Render()
     {
         var commands = new RenderCommands(this);
-        _preRenderAction?.Invoke();
+        _preRenderAction?.SafeInvoke();
         try
         {
-            _renderAction?.Invoke(commands);
+            _renderAction?.SafeInvoke(commands);
         }
         finally
         {
             commands.Execute();
         }
 
-        _postRenderAction?.Invoke();
+        _postRenderAction?.SafeInvoke();
     }
 
     private void UpdateInterpolatedEntities()
@@ -751,8 +739,11 @@ public sealed unsafe partial class Scene
 
     ~Scene()
     {
-        if (_onDispose is not null)
-            Game.Defer(_onDispose);
+        Game.Defer(() =>
+        {
+            _onDispose?.SafeInvoke();
+            _world?.Dispose();
+        });
     }
 
     public void OnInstantiate(Action<Entity> action)

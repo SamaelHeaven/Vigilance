@@ -113,7 +113,7 @@ public static class Renderer
             else
             {
                 var dest = new Box(0, 0, screenWidth, screenHeight);
-                action.Invoke(Display.Graphics, texture, dest);
+                action.SafeInvoke(Display.Graphics, texture, dest);
                 Debug.Assert(texture.IsValid);
             }
         }
