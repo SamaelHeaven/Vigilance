@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
-using Vigilance.Logging;
 using ZLinq;
 
 namespace Vigilance.Core;
@@ -230,34 +229,26 @@ public sealed class Table<T>
     public void Emit(in Event<T> tableEvent)
     {
         Scene.ThrowIfNotConfigured();
-        try
+        switch (tableEvent.Type)
         {
-            switch (tableEvent.Type)
-            {
-                case EventType.Add:
-                    if (_addAction is not null && !SkipAddEvent)
-                        _addAction.Invoke(tableEvent.Entity, tableEvent.NewValue);
-                    break;
-                case EventType.Set:
-                    if (
-                        _setAction is not null
-                        && !SkipSetEvent
-                        && (
-                            !SkipSetEventIfEqual
-                            || !EqualityComparer<T>.Default.Equals(tableEvent.OldValue, tableEvent.NewValue)
-                        )
+            case EventType.Add:
+                if (!SkipAddEvent)
+                    _addAction?.SafeInvoke(tableEvent.Entity, tableEvent.NewValue);
+                break;
+            case EventType.Set:
+                if (
+                    !SkipSetEvent
+                    && (
+                        !SkipSetEventIfEqual
+                        || !EqualityComparer<T>.Default.Equals(tableEvent.OldValue, tableEvent.NewValue)
                     )
-                        _setAction.Invoke(tableEvent.Entity, tableEvent.OldValue, tableEvent.NewValue);
-                    break;
-                case EventType.Remove:
-                    if (_removeAction is not null && !SkipRemoveEvent)
-                        _removeAction.Invoke(tableEvent.Entity, tableEvent.NewValue);
-                    break;
-            }
-        }
-        catch (Exception e)
-        {
-            Log.Error(e);
+                )
+                    _setAction?.SafeInvoke(tableEvent.Entity, tableEvent.OldValue, tableEvent.NewValue);
+                break;
+            case EventType.Remove:
+                if (!SkipRemoveEvent)
+                    _removeAction?.SafeInvoke(tableEvent.Entity, tableEvent.NewValue);
+                break;
         }
     }
 

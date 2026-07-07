@@ -32,7 +32,7 @@ public sealed class Timer
     public float Progress =>
         Duration == TimeSpan.Zero ? 1f : ((float)(Elapsed.TotalSeconds / Duration.TotalSeconds)).Clamp(0f, 1f);
 
-    public bool Update(TimeSpan? step = null)
+    public bool Update(in TimeSpan? step = null)
     {
         DidTick = false;
         if (IsPaused || IsCompleted)

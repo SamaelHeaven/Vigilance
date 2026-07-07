@@ -72,7 +72,7 @@ public sealed class Tween
         return Interpolate(start, end, Color.Lerp, ease);
     }
 
-    public void Update(TimeSpan? step = null)
+    public void Update(in TimeSpan? step = null)
     {
         DidTick = false;
         if (IsPaused || IsCompleted)

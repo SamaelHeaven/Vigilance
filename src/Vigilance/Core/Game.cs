@@ -116,18 +116,7 @@ public static unsafe class Game
         UpdateFullscreen();
         UpdateActions();
         Renderer.BeginDrawing();
-        try
-        {
-            _scene.Update();
-        }
-        catch (Exception e)
-        {
-            var rethrow = true;
-            Hooks.OnException?.Invoke(e, out rethrow);
-            if (rethrow)
-                throw;
-        }
-
+        _scene.Update();
         Renderer.EndDrawing();
         Raylib.PollInputEvents();
     }
@@ -142,14 +131,7 @@ public static unsafe class Game
         {
             var amount = _actions.TryPopRange(actions, 0, length);
             for (var i = amount - 1; i >= 0; i--)
-                try
-                {
-                    actions[i].Invoke();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
+                actions[i].SafeInvoke();
         }
         finally
         {
@@ -159,7 +141,7 @@ public static unsafe class Game
 
     private static void Dispose()
     {
-        Hooks.OnExit?.Invoke();
+        Hooks.OnExit?.SafeInvoke();
         Audio.Audio.Dispose();
         Display.Dispose();
     }

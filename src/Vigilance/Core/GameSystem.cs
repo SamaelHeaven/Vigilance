@@ -1,4 +1,5 @@
 using Vigilance.Drawing;
+using Vigilance.Physics;
 
 namespace Vigilance.Core;
 
@@ -53,6 +54,10 @@ public abstract partial class GameSystem : IGameSystem
         var preRender = PreRender;
         var render = Render;
         var postRender = PostRender;
+        var worldFilter = WorldFilter;
+        var worldContactBegin = WorldContactBegin;
+        var worldContactEnd = WorldContactEnd;
+        var worldContactHit = WorldContactHit;
         if (initialize.Method.DeclaringType != baseType)
             scene.OnInitialize(initialize);
         if (start.Method.DeclaringType != baseType)
@@ -77,6 +82,14 @@ public abstract partial class GameSystem : IGameSystem
             scene.OnRender(InternalRender);
         if (postRender.Method.DeclaringType != baseType)
             scene.OnPostRender(InternalPostRender);
+        if (worldFilter.Method.DeclaringType != baseType)
+            scene.World.OnFilter(worldFilter);
+        if (worldContactBegin.Method.DeclaringType != baseType)
+            scene.World.OnContactBegin(worldContactBegin);
+        if (worldContactEnd.Method.DeclaringType != baseType)
+            scene.World.OnContactEnd(worldContactEnd);
+        if (worldContactHit.Method.DeclaringType != baseType)
+            scene.World.OnContactHit(worldContactHit);
         Configure();
     }
 
@@ -105,6 +118,17 @@ public abstract partial class GameSystem : IGameSystem
     public virtual void Render(RenderCommands commands) { }
 
     public virtual void PostRender() { }
+
+    public virtual bool WorldFilter(Shape shapeA, Shape shapeB)
+    {
+        return true;
+    }
+
+    public virtual void WorldContactBegin(Shape shapeA, Shape shapeB) { }
+
+    public virtual void WorldContactEnd(Shape shapeA, Shape shapeB) { }
+
+    public virtual void WorldContactHit(ContactHit contact) { }
 
     private void InternalPreUpdate()
     {
