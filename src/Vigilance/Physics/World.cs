@@ -86,6 +86,20 @@ public readonly record struct World : IDisposable
         data.OnContactHit += callback;
     }
 
+    public void OnSensorBegin(Action<Shape, Shape> callback)
+    {
+        var data = Data;
+        data.Scene?.ThrowIfConfigured();
+        data.OnSensorBegin += callback;
+    }
+
+    public void OnSensorEnd(Action<Shape, Shape> callback)
+    {
+        var data = Data;
+        data.Scene?.ThrowIfConfigured();
+        data.OnSensorEnd += callback;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector2 PixelsToMeters(Vector2 pixels)
     {
@@ -114,6 +128,7 @@ public readonly record struct World : IDisposable
     {
         B2Worlds.b2World_Step(_id, (float)(step ?? Time.FixedDelta).TotalSeconds, 4);
         DispatchContactEvents();
+        DispatchSensorEvents();
     }
 
     public void Overlap(
@@ -485,6 +500,30 @@ public readonly record struct World : IDisposable
         }
     }
 
+    private void DispatchSensorEvents()
+    {
+        var data = Data;
+        if (data.OnSensorBegin is null && data.OnSensorEnd is null)
+            return;
+        var events = B2Worlds.b2World_GetSensorEvents(_id);
+        if (data.OnSensorBegin is { } onBegin)
+            for (var i = 0; i < events.beginCount; i++)
+            {
+                var e = events.beginEvents[i];
+                onBegin.SafeInvoke(new Shape(e.sensorShapeId), new Shape(e.visitorShapeId));
+            }
+
+        if (data.OnSensorEnd is not { } onEnd)
+            return;
+        {
+            for (var i = 0; i < events.endCount; i++)
+            {
+                var e = events.endEvents[i];
+                onEnd.SafeInvoke(new Shape(e.sensorShapeId), new Shape(e.visitorShapeId));
+            }
+        }
+    }
+
     private static bool FilterCallback(B2ShapeId shapeIdA, B2ShapeId shapeIdB, object context)
     {
         var data = (WorldData)context;
@@ -511,5 +550,7 @@ internal sealed class WorldData
     public Action<Shape, Shape>? OnContactEnd;
     public Action<ContactHit>? OnContactHit;
     public Func<Shape, Shape, bool>? OnFilter;
+    public Action<Shape, Shape>? OnSensorBegin;
+    public Action<Shape, Shape>? OnSensorEnd;
     public Scene? Scene = null;
 }

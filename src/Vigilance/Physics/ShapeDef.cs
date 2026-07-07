@@ -8,6 +8,7 @@ public record struct ShapeDef
         Density = 1f;
         Filter = new ShapeFilter();
         EnableContactEvents = true;
+        EnableSensorEvents = true;
     }
 
     public float Friction { get; set; }
@@ -19,5 +20,6 @@ public record struct ShapeDef
     public ShapeFilter Filter { get; set; }
     public object? Data { get; set; }
     public bool EnableContactEvents { get; set; }
+    public bool EnableSensorEvents { get; set; }
     public bool EnableHitEvents { get; set; }
 }
