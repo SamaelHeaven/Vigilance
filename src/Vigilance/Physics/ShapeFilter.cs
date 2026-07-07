@@ -6,12 +6,12 @@ public record struct ShapeFilter
 {
     public ShapeFilter()
     {
-        Category = ShapeFilterCategory.Default;
-        Mask = ShapeFilterMask.Default;
+        Category = ShapeFilterCategory.DefaultCategory;
+        Mask = ShapeFilterCategory.DefaultMask;
     }
 
     public ShapeFilterCategory Category { get; set; }
-    public ShapeFilterMask Mask { get; set; }
+    public ShapeFilterCategory Mask { get; set; }
 
     public int GroupIndex { get; set; }
 
@@ -27,11 +27,6 @@ public record struct ShapeFilter
 [Flags]
 public enum ShapeFilterCategory : ulong
 {
-    Default = 1,
-}
-
-[Flags]
-public enum ShapeFilterMask : ulong
-{
-    Default = ulong.MaxValue,
+    DefaultCategory = 1,
+    DefaultMask = ulong.MaxValue,
 }

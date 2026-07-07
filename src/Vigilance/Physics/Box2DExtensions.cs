@@ -49,7 +49,7 @@ public static class Box2DExtensions
             return new ShapeFilter
             {
                 Category = (ShapeFilterCategory)filter.categoryBits,
-                Mask = (ShapeFilterMask)filter.maskBits,
+                Mask = (ShapeFilterCategory)filter.maskBits,
                 GroupIndex = filter.groupIndex,
             };
         }

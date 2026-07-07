@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Box2D.NET;
 using Vigilance.Core;
+using Vigilance.Drawing;
 using Vigilance.Logging;
 using Vigilance.Math;
 
@@ -290,6 +291,160 @@ public readonly record struct World : IDisposable
         return new Body(bodyId);
     }
 
+    public void DebugDraw(Graphics graphics, DebugDrawFlags flags = DebugDrawFlags.Default, Camera? camera = null)
+    {
+        var draw = B2Types.b2DefaultDebugDraw();
+        draw.context = new DebugDrawContext(graphics, camera);
+        draw.DrawPolygonFcn = DrawPolygon;
+        draw.DrawSolidPolygonFcn = DrawSolidPolygon;
+        draw.DrawCircleFcn = DrawCircle;
+        draw.DrawSolidCircleFcn = DrawSolidCircle;
+        draw.DrawSolidCapsuleFcn = DrawSolidCapsule;
+        draw.drawLineFcn = DrawSegment;
+        draw.DrawTransformFcn = DrawTransform;
+        draw.DrawPointFcn = DrawPoint;
+        draw.DrawStringFcn = DrawString;
+        draw.drawShapes = flags.HasFlag(DebugDrawFlags.Shapes);
+        draw.drawJoints = flags.HasFlag(DebugDrawFlags.Joints);
+        draw.drawJointExtras = flags.HasFlag(DebugDrawFlags.JointExtras);
+        draw.drawBounds = flags.HasFlag(DebugDrawFlags.Bounds);
+        draw.drawMass = flags.HasFlag(DebugDrawFlags.Mass);
+        draw.drawBodyNames = flags.HasFlag(DebugDrawFlags.BodyNames);
+        draw.drawContactPoints = flags.HasFlag(DebugDrawFlags.ContactPoints);
+        draw.drawGraphColors = flags.HasFlag(DebugDrawFlags.GraphColors);
+        draw.drawContactFeatures = flags.HasFlag(DebugDrawFlags.ContactFeatures);
+        draw.drawContactNormals = flags.HasFlag(DebugDrawFlags.ContactNormals);
+        draw.drawContactForces = flags.HasFlag(DebugDrawFlags.ContactForces);
+        draw.drawFrictionForces = flags.HasFlag(DebugDrawFlags.FrictionForces);
+        draw.drawIslands = flags.HasFlag(DebugDrawFlags.Islands);
+        B2Worlds.b2World_Draw(_id, draw);
+    }
+
+    private static Color ToColor(B2HexColor hexColor)
+    {
+        var value = (uint)hexColor;
+        return new Color((byte)((value >> 16) & 0xff), (byte)((value >> 8) & 0xff), (byte)(value & 0xff));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector2 Transform(in B2Transform transform, B2Vec2 vertex)
+    {
+        var x = transform.q.c * vertex.X - transform.q.s * vertex.Y + transform.p.X;
+        var y = transform.q.s * vertex.X + transform.q.c * vertex.Y + transform.p.Y;
+        return MetersToPixels(new Vector2(x, y));
+    }
+
+    private static Vector2[] TransformVertices(
+        in B2Transform transform,
+        in ReadOnlySpan<B2Vec2> vertices,
+        int vertexCount
+    )
+    {
+        var points = new Vector2[vertexCount];
+        for (var i = 0; i < vertexCount; i++)
+            points[i] = Transform(transform, vertices[i]);
+        return points;
+    }
+
+    private static void DrawPolygon(ReadOnlySpan<B2Vec2> vertices, int vertexCount, B2HexColor color, object context)
+    {
+        var (graphics, camera) = (DebugDrawContext)context;
+        var points = new Vector2[vertexCount];
+        for (var i = 0; i < vertexCount; i++)
+            points[i] = MetersToPixels(new Vector2(vertices[i]));
+        graphics.StrokeCustomPolygon(points, ToColor(color), camera: camera);
+    }
+
+    private static void DrawSolidPolygon(
+        in B2Transform transform,
+        ReadOnlySpan<B2Vec2> vertices,
+        int vertexCount,
+        float radius,
+        B2HexColor color,
+        object context
+    )
+    {
+        var (graphics, camera) = (DebugDrawContext)context;
+        var points = TransformVertices(transform, vertices, vertexCount);
+        var fill = ToColor(color);
+        graphics.FillCustomPolygon(points, fill.Alpha(0.5f), camera);
+        graphics.StrokeCustomPolygon(points, fill, camera: camera);
+    }
+
+    private static void DrawCircle(in B2Vec2 center, float radius, B2HexColor color, object context)
+    {
+        var (graphics, camera) = (DebugDrawContext)context;
+        graphics.StrokeCircle(
+            MetersToPixels(new Vector2(center)),
+            MetersToPixels(radius),
+            ToColor(color),
+            camera: camera
+        );
+    }
+
+    private static void DrawSolidCircle(in B2Transform transform, float radius, B2HexColor color, object context)
+    {
+        var (graphics, camera) = (DebugDrawContext)context;
+        var center = MetersToPixels(new Vector2(transform.p));
+        var radiusPixels = MetersToPixels(radius);
+        var fill = ToColor(color);
+        graphics.FillCircle(center, radiusPixels, fill.Alpha(0.5f), camera: camera);
+        graphics.StrokeCircle(center, radiusPixels, fill, camera: camera);
+        var axis = Transform(transform, new B2Vec2(radius, 0f));
+        graphics.DrawLine(center, axis, fill, camera: camera);
+    }
+
+    private static void DrawSolidCapsule(in B2Vec2 p1, in B2Vec2 p2, float radius, B2HexColor color, object context)
+    {
+        var (graphics, camera) = (DebugDrawContext)context;
+        var start = MetersToPixels(new Vector2(p1));
+        var end = MetersToPixels(new Vector2(p2));
+        var radiusPixels = MetersToPixels(radius);
+        var fill = ToColor(color);
+        var body = fill.Alpha(0.5f);
+        var axis = end - start;
+        var normal = new Vector2(-axis.Y, axis.X).Normalize() * radiusPixels;
+        graphics.FillCustomPolygon([start + normal, end + normal, end - normal, start - normal], body, camera);
+        graphics.FillCircle(start, radiusPixels, body, camera: camera);
+        graphics.FillCircle(end, radiusPixels, body, camera: camera);
+        graphics.DrawLine(start + normal, end + normal, fill, camera: camera);
+        graphics.DrawLine(start - normal, end - normal, fill, camera: camera);
+        graphics.StrokeCircle(start, radiusPixels, fill, camera: camera);
+        graphics.StrokeCircle(end, radiusPixels, fill, camera: camera);
+    }
+
+    private static void DrawSegment(in B2Vec2 p1, in B2Vec2 p2, B2HexColor color, object context)
+    {
+        var (graphics, camera) = (DebugDrawContext)context;
+        graphics.DrawLine(
+            MetersToPixels(new Vector2(p1)),
+            MetersToPixels(new Vector2(p2)),
+            ToColor(color),
+            camera: camera
+        );
+    }
+
+    private static void DrawTransform(in B2Transform transform, object context)
+    {
+        var (graphics, camera) = (DebugDrawContext)context;
+        const float axisScale = 0.4f;
+        var origin = MetersToPixels(new Vector2(transform.p));
+        graphics.DrawLine(origin, Transform(transform, new B2Vec2(axisScale, 0f)), Color.Red, camera: camera);
+        graphics.DrawLine(origin, Transform(transform, new B2Vec2(0f, axisScale)), Color.Green, camera: camera);
+    }
+
+    private static void DrawPoint(in B2Vec2 p, float size, B2HexColor color, object context)
+    {
+        var (graphics, camera) = (DebugDrawContext)context;
+        graphics.FillCircle(MetersToPixels(new Vector2(p)), size * 0.5f, ToColor(color), camera: camera);
+    }
+
+    private static void DrawString(in B2Vec2 p, string s, B2HexColor color, object context)
+    {
+        var (graphics, camera) = (DebugDrawContext)context;
+        graphics.FillText(s, MetersToPixels(new Vector2(p)), ToColor(color), camera: camera);
+    }
+
     private void DispatchContactEvents()
     {
         var data = Data;
@@ -346,6 +501,8 @@ public readonly record struct World : IDisposable
 
         return true;
     }
+
+    private record DebugDrawContext(Graphics Graphics, Camera? Camera);
 }
 
 internal sealed class WorldData
