@@ -14,6 +14,8 @@ public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
     {
         Scene.OnAddOrSet<Body>(SetBody);
         Scene.OnRemove<Body>(RemoveBody);
+        Scene.OnSet<Position>(SetPosition);
+        Scene.OnSet<Rotation>(SetRotation);
     }
 
     public override void FixedUpdate()
@@ -38,9 +40,7 @@ public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
     private static void SetBody(Entity entity, Body body)
     {
         body.Entity = entity;
-        var transform = body.Transform;
-        entity.Position = transform.Position;
-        entity.Rotation = transform.Rotation;
+        body.Transform = (entity.Position, entity.Rotation);
     }
 
     private static void RemoveBody(Entity entity, Body body)
@@ -49,5 +49,17 @@ public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
             return;
         body.Entity = Entity.Null;
         body.Destroy();
+    }
+
+    private static void SetPosition(Entity entity, Position position)
+    {
+        if (entity.TryGet(out Body body) && body.Entity == entity)
+            body.Position = position;
+    }
+
+    private static void SetRotation(Entity entity, Rotation rotation)
+    {
+        if (entity.TryGet(out Body body) && body.Entity == entity)
+            body.Rotation = rotation;
     }
 }

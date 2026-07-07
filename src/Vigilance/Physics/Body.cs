@@ -40,24 +40,44 @@ public readonly record struct Body : ISkipSetEventIfEqualComponent
             var transform = B2Bodies.b2Body_GetTransform(_id);
             return (World.MetersToPixels(new Vector2(transform.p)), transform.q.ToDegrees());
         }
-        set =>
+        set
+        {
+            var transform = Transform;
+            if (
+                Precision.AreEqual(value.Position, transform.Position)
+                && Precision.AreEqual(value.Rotation, transform.Rotation)
+            )
+                return;
             B2Bodies.b2Body_SetTransform(
                 _id,
                 World.PixelsToMeters(value.Position).B2Vec2,
                 B2Rot.FromDegrees(value.Rotation)
             );
+        }
     }
 
     public Vector2 Position
     {
         get => World.MetersToPixels(new Vector2(B2Bodies.b2Body_GetPosition(_id)));
-        set => B2Bodies.b2Body_SetTransform(_id, World.PixelsToMeters(value).B2Vec2, B2Bodies.b2Body_GetRotation(_id));
+        set
+        {
+            var position = Position;
+            if (Precision.AreEqual(value, position))
+                return;
+            B2Bodies.b2Body_SetTransform(_id, World.PixelsToMeters(value).B2Vec2, B2Bodies.b2Body_GetRotation(_id));
+        }
     }
 
     public float Rotation
     {
         get => B2Bodies.b2Body_GetRotation(_id).ToDegrees();
-        set => B2Bodies.b2Body_SetTransform(_id, B2Bodies.b2Body_GetPosition(_id), B2Rot.FromDegrees(value));
+        set
+        {
+            var rotation = Rotation;
+            if (Precision.AreEqual(value, rotation))
+                return;
+            B2Bodies.b2Body_SetTransform(_id, B2Bodies.b2Body_GetPosition(_id), B2Rot.FromDegrees(value));
+        }
     }
 
     public Vector2 LinearVelocity

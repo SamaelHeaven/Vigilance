@@ -299,6 +299,12 @@ public record struct Vector2
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly float LengthSquared()
+    {
+        return X * X + Y * Y;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly float AngleBetween(Vector2 v)
     {
         return Length() * v.Length() == 0 ? 0 : MathF.Acos(Dot(v) / (Length() * v.Length()));
