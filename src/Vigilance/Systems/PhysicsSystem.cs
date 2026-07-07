@@ -6,9 +6,9 @@ namespace Vigilance.Systems;
 
 public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
 {
-    public static Graphics DebugDrawGraphics { get; set; } = Renderer.Graphics;
-    public static bool IsDebugDrawEnabled { get; set; } = false;
-    public static DebugDrawFlags DebugDrawFlags { get; set; } = DebugDrawFlags.Default;
+    public Graphics DebugDrawGraphics { get; set; } = Renderer.Graphics;
+    public bool IsDebugDrawEnabled { get; set; } = false;
+    public DebugDrawFlags DebugDrawFlags { get; set; } = DebugDrawFlags.Default;
 
     public override void Configure()
     {
