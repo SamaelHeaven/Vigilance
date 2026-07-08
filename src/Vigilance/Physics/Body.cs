@@ -8,7 +8,7 @@ using ZLinq;
 
 namespace Vigilance.Physics;
 
-public readonly record struct Body : ISkipSetEventIfEqualComponent
+public readonly record struct Body : IInterpolated, ISkipSetEventIfEqualComponent
 {
     private readonly B2BodyId _id;
 
