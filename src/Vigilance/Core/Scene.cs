@@ -86,6 +86,7 @@ public sealed unsafe partial class Scene
         OnSet<Child>(OnSetChild);
         OnRemove<Child>(OnRemoveChild);
         OnRemove<Parent>(OnRemoveParent);
+        OnDestroy(OnDestroyEntity);
     }
 
     public GameSystemsFunc SystemsFunc { get; }
@@ -1468,6 +1469,20 @@ public sealed unsafe partial class Scene
 
         if (parent.FirstChildId == 0)
             ParentTable.Remove(parentEntity, Core.Table.Flags.ForceMutable);
+    }
+
+    private void OnDestroyEntity(Entity entity)
+    {
+        while (true)
+        {
+            var parentRef = ParentTable.GetRef(entity);
+            if (parentRef.IsNull)
+                return;
+            var firstChildId = parentRef.Value.FirstChildId;
+            if (firstChildId == 0)
+                return;
+            new Entity(firstChildId, this).Destroy();
+        }
     }
 
     private void OnRemoveParent(Parent parent)
