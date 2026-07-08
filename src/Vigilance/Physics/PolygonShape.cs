@@ -40,6 +40,7 @@ public record struct PolygonShape
         var b2Points = MemoryMarshal.Cast<B2Vec2, Vector2>(b2Hull.points.AsSpan());
         for (var i = 0; i < points.Length; i++)
             b2Points[i] = World.PixelsToMeters(points[i]);
+        b2Hull.count = points.Length;
         return B2Geometries.b2MakePolygon(b2Hull, World.PixelsToMeters(radius)).ToPolygon();
     }
 
@@ -50,6 +51,7 @@ public record struct PolygonShape
         var b2Points = MemoryMarshal.Cast<B2Vec2, Vector2>(b2Hull.points.AsSpan());
         for (var i = 0; i < points.Length; i++)
             b2Points[i] = World.PixelsToMeters(points[i]);
+        b2Hull.count = points.Length;
         return B2Geometries
             .b2MakeOffsetPolygon(b2Hull, World.PixelsToMeters(offset).B2Vec2, B2Rot.FromDegrees(rotation))
             .ToPolygon();
@@ -67,6 +69,7 @@ public record struct PolygonShape
         var b2Points = MemoryMarshal.Cast<B2Vec2, Vector2>(b2Hull.points.AsSpan());
         for (var i = 0; i < points.Length; i++)
             b2Points[i] = World.PixelsToMeters(points[i]);
+        b2Hull.count = points.Length;
         return B2Geometries
             .b2MakeOffsetRoundedPolygon(
                 b2Hull,
