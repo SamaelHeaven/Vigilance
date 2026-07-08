@@ -220,8 +220,8 @@ public static class RectangleExtensions
                 || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera, strokeWidthValue))
             )
                 return;
-            position += strokeWidthValue * 0.5f;
-            size -= strokeWidthValue;
+            position += strokeWidthValue;
+            size -= strokeWidthValue * 2;
             var minSize = size.Abs().Min();
             segments = Drawing.CalculateSegments(minSize, 0, 90, segments);
             radiusValue = radiusValue <= 0 ? 0 : radiusValue / minSize;
