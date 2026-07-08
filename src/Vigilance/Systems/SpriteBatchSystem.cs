@@ -2,22 +2,58 @@ using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
+using Vigilance.Math;
 using ZLinq;
 
 namespace Vigilance.Systems;
 
 public sealed class SpriteBatchSystem : GameSystem
 {
-    private ValueDictionary<SpriteBatch, ValueSparseSet<Entity, SpriteInstance, SpriteBatch>> _batches = [];
+    private ValueDictionary<SpriteBatch, ValueSparseSet<ulong, SpriteInstance, SpriteBatch>> _batches = [];
+    private ValueSparseSet<ulong, byte, ValueList<byte>> _moving = new([], Entity.GetIndex);
 
     public override void Configure()
     {
         Scene.OnAdd<BatchedSprite>(UpdateSprite);
         Scene.OnSet<BatchedSprite>(SetSprite);
         Scene.OnRemove<BatchedSprite>(RemoveSprite);
-        Scene.OnSet<Interpolation>(TryUpdateSprite);
+        Scene.OnSet<Interpolation>(OnInterpolationChanged);
         Scene.OnAddOrSet<Child>(TryUpdateSprite);
         Scene.OnRemove<Child>(TryUpdateSprite);
+    }
+
+    public override void PreRender()
+    {
+        for (var i = _moving.Count - 1; i >= 0; i--)
+        {
+            var (entityId, _) = _moving[i];
+            var entity = new Entity(entityId, Scene);
+            if (entity.IsValid && entity.TryGet(out BatchedSprite sprite))
+                UpdateSprite(entity, sprite);
+            else
+                _moving.Remove(entityId);
+        }
+    }
+
+    private void OnInterpolationChanged(Entity entity, Interpolation interpolation)
+    {
+        var moving = interpolation.Start.HasValue && !Precision.AreEqual(interpolation.Start, interpolation.End);
+        Track(entity, moving);
+        if (!entity.IsParent)
+            return;
+        foreach (var child in entity.Descendants())
+            Track(child, moving);
+    }
+
+    private void Track(in Entity entity, bool moving)
+    {
+        if (!entity.TryGet(out BatchedSprite sprite))
+            return;
+        UpdateSprite(entity, sprite);
+        if (moving)
+            _moving[entity.Id] = 0;
+        else
+            _moving.Remove(entity.Id);
     }
 
     private void TryUpdateSprite(Entity entity)
@@ -35,8 +71,8 @@ public sealed class SpriteBatchSystem : GameSystem
     {
         ref var instances = ref _batches.GetValueRefOrAddDefault(sprite.Batch, out var exists)!;
         if (!exists)
-            instances = new ValueSparseSet<Entity, SpriteInstance, SpriteBatch>(sprite.Batch, e => e.Index);
-        instances[entity] = sprite.Instance with { Transform = sprite.Instance.Transform + entity.RenderTransform };
+            instances = new ValueSparseSet<ulong, SpriteInstance, SpriteBatch>(sprite.Batch, Entity.GetIndex);
+        instances[entity.Id] = sprite.Instance with { Transform = sprite.Instance.Transform + entity.RenderTransform };
     }
 
     private void SetSprite(Entity entity, BatchedSprite oldSprite, BatchedSprite newSprite)
@@ -48,10 +84,11 @@ public sealed class SpriteBatchSystem : GameSystem
 
     private void RemoveSprite(Entity entity, BatchedSprite sprite)
     {
+        _moving.Remove(entity.Id);
         ref var instances = ref _batches.GetValueRefOrNullRef(sprite.Batch);
-        if (!Unsafe.IsNullRef(ref instances))
+        if (Unsafe.IsNullRef(ref instances))
             return;
-        instances.Remove(entity);
+        instances.Remove(entity.Id);
         if (instances.Count == 0)
             _batches.Remove(sprite.Batch);
     }

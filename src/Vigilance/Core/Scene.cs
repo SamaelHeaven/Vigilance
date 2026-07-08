@@ -143,6 +143,16 @@ public sealed unsafe partial class Scene
         return _systems.AsValueEnumerable().OfType<T>().FirstOrDefault();
     }
 
+    public int Count()
+    {
+        return EntityTagTable.Count;
+    }
+
+    public int Count<T>()
+    {
+        return Table<T>().Count;
+    }
+
     public void Restart()
     {
         if (!IsInitialized)
