@@ -119,7 +119,7 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
     {
         var clone = element.ShallowClone();
         clone.ResetLayoutAndTransform();
-        using var elementTexture = clone.ToTexture(element.Parent?.LayoutSize ?? element.LayoutSize);
+        using var elementTexture = clone.ToTexture(element.LayoutSize);
         var width = elementTexture.ScaledWidth + offset * 2;
         var height = elementTexture.ScaledHeight + offset * 2;
         var silhouette = new RenderTexture(width, height);
