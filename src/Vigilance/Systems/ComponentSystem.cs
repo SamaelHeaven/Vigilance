@@ -19,7 +19,7 @@ public sealed class ComponentSystem : GameSystem
 
     public override void PostUpdate()
     {
-        foreach (var (entity, component) in Scene.AssignableEntries<IPostUpdatable>())
+        foreach (var (entity, component) in AssignableEntries<IPostUpdatable>())
             component.PostUpdate(entity);
     }
 
