@@ -634,8 +634,7 @@ public sealed unsafe partial class Scene
     {
         if (!IsConfigured)
         {
-            _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).ToValueList();
-            _systems.Sort();
+            _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToValueList();
             foreach (var system in _systems)
                 system.Configure(this);
             IsConfigured = true;
