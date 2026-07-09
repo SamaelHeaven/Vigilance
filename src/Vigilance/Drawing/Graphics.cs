@@ -15,6 +15,9 @@ public sealed unsafe class Graphics
     private static RenderTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
     private static BlendMode? _currentBlendMode = null;
+    private static ShapeTexture? _currentShapesTexture = null;
+    private static Texture2D? _defaultShapesTexture = null;
+    private static Raylib_cs.Rectangle _defaultShapesTextureSource;
     private readonly bool _primary;
     private BlendMode _blendMode = Drawing.DefaultBlendMode;
     private Box? _clip = null;
@@ -23,6 +26,7 @@ public sealed unsafe class Graphics
     private ValueStack<Matrix3x2> _matrices = new();
     private Matrix3x2 _matrix = Matrix3x2.Identity;
     private Shader _shader = Drawing.DefaultShader;
+    private ShapeTexture? _shapesTexture = null;
     internal RenderTexture? Buffer;
 
     internal Graphics(RenderTexture? buffer, bool primary = false)
@@ -312,6 +316,22 @@ public sealed unsafe class Graphics
 
     #endregion
 
+    #region ShapesTexture
+
+    public ShapeTexture? SetShapesTexture(ShapeTexture? shapesTexture)
+    {
+        var previous = _shapesTexture;
+        _shapesTexture = shapesTexture;
+        return previous;
+    }
+
+    public ShapeTexture? GetShapesTexture()
+    {
+        return _shapesTexture;
+    }
+
+    #endregion
+
     #region Culling
 
     public bool SetCulling(bool culling)
@@ -597,7 +617,29 @@ public sealed unsafe class Graphics
             CurrentShader = Shader.Default;
         }
 
+        if (_currentShapesTexture is not null)
+        {
+            if (_defaultShapesTexture.HasValue)
+                Raylib.SetShapesTexture(_defaultShapesTexture.Value, _defaultShapesTextureSource);
+            _currentShapesTexture = null;
+        }
+
         Rlgl.LoadIdentity();
+    }
+
+    private static void EnsureDefaultShapesTexture()
+    {
+        if (_defaultShapesTexture.HasValue)
+            return;
+        _defaultShapesTexture = Raylib.GetShapesTexture();
+        _defaultShapesTextureSource = Raylib.GetShapesTextureRectangle();
+    }
+
+    private static bool ShapesTextureEquals(ShapeTexture? a, ShapeTexture? b)
+    {
+        if (a is not { } av)
+            return b is null;
+        return b is { } bv && ReferenceEquals(av.Texture, bv.Texture) && Precision.AreEqual(av.Source, bv.Source);
     }
 
     public static void DrawCurrentBuffer()
@@ -679,6 +721,24 @@ public sealed unsafe class Graphics
             CurrentShader = _shader;
             if (!_shader.IsDefault)
                 Raylib.BeginShaderMode(_shader.RShader);
+        }
+
+        EnsureDefaultShapesTexture();
+        if (!ShapesTextureEquals(_currentShapesTexture, _shapesTexture))
+        {
+            _currentShapesTexture = _shapesTexture;
+            if (_shapesTexture is { } shapesTexture)
+            {
+                var source = shapesTexture.Source;
+                Raylib.SetShapesTexture(
+                    shapesTexture.Texture.Texture2D,
+                    new Raylib_cs.Rectangle(source.X, source.Y, source.Width, source.Height)
+                );
+            }
+            else
+            {
+                Raylib.SetShapesTexture(_defaultShapesTexture!.Value, _defaultShapesTextureSource);
+            }
         }
 
         var matrix = GetMatrix(camera);

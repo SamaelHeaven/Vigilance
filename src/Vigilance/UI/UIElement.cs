@@ -137,6 +137,8 @@ public abstract class UIElement : IFullCloneable
 
     public Shader? Shader { get; set; } = null;
 
+    public ShapeTexture? ShapeTexture { get; set; } = null;
+
     public bool? Culling { get; set; } = null;
 
     public bool WasRenderedOutside { get; private set; } = true;
@@ -1207,6 +1209,12 @@ public abstract class UIElement : IFullCloneable
             graphics.SetShader(element.Shader);
         }
 
+        if (element.ShapeTexture is not null)
+        {
+            data.OldShapesTexture = graphics.GetShapesTexture();
+            graphics.SetShapesTexture(element.ShapeTexture);
+        }
+
         if (element.Culling.HasValue)
         {
             data.OldCulling = graphics.Culling();
@@ -1253,6 +1261,8 @@ public abstract class UIElement : IFullCloneable
         element.OnEndRender(graphics, camera);
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
+        if (element.ShapeTexture is not null)
+            graphics.SetShapesTexture(data.OldShapesTexture);
         if (data.OldShader is not null)
             graphics.SetShader(data.OldShader);
         if (data.OldBlendMode.HasValue)
@@ -1319,6 +1329,7 @@ public abstract class UIElement : IFullCloneable
         public Box? OldClip;
         public BlendMode? OldBlendMode;
         public Shader? OldShader;
+        public ShapeTexture? OldShapesTexture;
         public bool? OldCulling;
         public bool OverflowHidden;
         public readonly bool ShouldRender;
