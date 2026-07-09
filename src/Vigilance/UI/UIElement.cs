@@ -1050,6 +1050,7 @@ public abstract class UIElement : IFullCloneable
         element.Entity = entity;
         if (!element.IsLayoutReady)
             return;
+        var oldMouseInside = element.IsMouseInside;
         element.IsMouseInside =
             element.RenderedGraphics == Renderer.Graphics
             && Mouse.OnScreen
@@ -1067,7 +1068,6 @@ public abstract class UIElement : IFullCloneable
             return;
         }
 
-        var oldMouseInside = element.IsMouseInside;
         element.OnUpdate();
         element.OnUpdateSignal.Invoke(element);
         switch (oldMouseInside)
