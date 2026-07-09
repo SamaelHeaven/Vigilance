@@ -824,6 +824,8 @@ public abstract class UIElement : IFullCloneable
             return;
         foreach (var element in this.DescendantsPostOrderAndSelf())
             Update(element, entity);
+        foreach (var element in this.DescendantsPostOrderAndSelf())
+            element.DispatchDirty();
     }
 
     public void Render(in Transform transform, Graphics graphics)
@@ -1061,10 +1063,6 @@ public abstract class UIElement : IFullCloneable
             element._click = false;
             element.OnDisabledUpdate();
             element.OnDisabledUpdateSignal.Invoke(element);
-            if (!element.IsDirty)
-                return;
-            element.OnDirty();
-            element.OnDirtySignal.Invoke(element);
             return;
         }
 
@@ -1107,11 +1105,14 @@ public abstract class UIElement : IFullCloneable
                 element.OnReleaseSignal.Invoke(element);
             }
         }
+    }
 
-        if (!element.IsDirty)
+    private void DispatchDirty()
+    {
+        if (!IsLayoutReady || !IsDirty)
             return;
-        element.OnDirty();
-        element.OnDirtySignal.Invoke(element);
+        OnDirty();
+        OnDirtySignal.Invoke(this);
     }
 
     private void Render(Graphics graphics, CameraProvider camera)
