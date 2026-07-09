@@ -14,6 +14,7 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
     );
 
     private int _blur;
+    private bool _isRebuilding;
     private bool _isTextureUsed;
     private Func<UIElement, Graphics, CameraProvider, bool> _onBeginRenderHandler = null!;
     private Func<UIElement, bool> _onDirtyHandler = null!;
@@ -98,6 +99,8 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
 
     private bool BeginRender(UIElement element, Graphics graphics, CameraProvider camera)
     {
+        if (_isRebuilding)
+            return false;
         var offset = 1 + _blur * 3;
         if (IsTextureDirty)
         {
@@ -119,7 +122,7 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
     {
         var clone = element.ShallowClone();
         clone.ResetLayoutAndTransform();
-        using var elementTexture = clone.ToTexture(element.LayoutSize);
+        using var elementTexture = RenderSilhouetteSource(clone, element.LayoutSize);
         var width = elementTexture.ScaledWidth + offset * 2;
         var height = elementTexture.ScaledHeight + offset * 2;
         var silhouette = new RenderTexture(width, height);
@@ -151,6 +154,19 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
         _renderTexture = result;
         _texture = result.Texture;
         _isTextureUsed = false;
+    }
+
+    private RenderTexture RenderSilhouetteSource(UIElement clone, Vector2 size)
+    {
+        _isRebuilding = true;
+        try
+        {
+            return clone.ToTexture(size);
+        }
+        finally
+        {
+            _isRebuilding = false;
+        }
     }
 
     private RenderTexture RenderBlurPass(RenderTexture source, Vector2 direction, int radius, float sigma)
