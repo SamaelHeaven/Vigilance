@@ -140,6 +140,9 @@ public sealed class Sound : IDisposable
             _aliases[oldestIndex] = (alias, now);
         }
 
+        Raylib.SetSoundVolume(alias, _volume);
+        Raylib.SetSoundPitch(alias, _pitch);
+        Raylib.SetSoundPan(alias, _pan);
         Raylib.PlaySound(alias);
         if (!_sounds.Contains(this))
             _sounds.Add(this);
