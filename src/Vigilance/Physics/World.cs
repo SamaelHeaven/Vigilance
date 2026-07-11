@@ -49,6 +49,17 @@ public readonly record struct World : IDisposable
 
     public void Dispose()
     {
+        if (B2Worlds.b2World_GetUserData(_id).oValue is WorldData data)
+        {
+            data.Scene = null;
+            data.OnFilter = null;
+            data.OnContactBegin = null;
+            data.OnContactEnd = null;
+            data.OnContactHit = null;
+            data.OnSensorBegin = null;
+            data.OnSensorEnd = null;
+        }
+
         B2Worlds.b2DestroyWorld(_id);
     }
 
