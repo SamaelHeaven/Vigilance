@@ -458,6 +458,7 @@ internal sealed class RefStack<T>
     {
         for (var i = 0; i < _size; i++)
             _array[i].Dispose();
+        Array.Clear(_array, 0, _size);
         _size = 0;
     }
 }
@@ -540,6 +541,7 @@ internal sealed class RefQueue<T>
     {
         for (var i = _head; i < _tail; i++)
             _array[i].Dispose();
+        Array.Clear(_array, _head, _tail - _head);
         _head = 0;
         _tail = 0;
     }

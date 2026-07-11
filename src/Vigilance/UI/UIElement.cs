@@ -798,7 +798,7 @@ public abstract class UIElement : IFullCloneable
         }
         finally
         {
-            ArrayPool<WrapMinSizeState>.Shared.Return(wrapMinSizes);
+            ArrayPool<WrapMinSizeState>.Shared.Return(wrapMinSizes, true);
         }
     }
 
