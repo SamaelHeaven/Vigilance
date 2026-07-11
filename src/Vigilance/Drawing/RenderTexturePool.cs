@@ -6,7 +6,12 @@ namespace Vigilance.Drawing;
 
 internal static class RenderTexturePool
 {
-    private static ValueList<(RenderTexture Texture, TimeSpan Time)> _entries = [];
+    private static ValueList<(
+        RenderTexture2D Texture,
+        int PhysicalWidth,
+        int PhysicalHeight,
+        TimeSpan Time
+    )> _entries = [];
 
     public static bool TryRent(
         int width,
@@ -16,25 +21,22 @@ internal static class RenderTexturePool
         out int physicalHeight
     )
     {
-        RenderTexture? best = null;
         var bestIndex = -1;
         for (var i = 0; i < _entries.Count; i++)
         {
-            var entry = _entries[i];
-            var candidate = entry.Texture;
+            var candidate = _entries[i];
             if (candidate.PhysicalWidth < width || candidate.PhysicalHeight < height)
                 continue;
             if (
-                best is not null
+                bestIndex >= 0
                 && (long)candidate.PhysicalWidth * candidate.PhysicalHeight
-                    >= (long)best.PhysicalWidth * best.PhysicalHeight
+                    >= (long)_entries[bestIndex].PhysicalWidth * _entries[bestIndex].PhysicalHeight
             )
                 continue;
-            best = candidate;
             bestIndex = i;
         }
 
-        if (best is null)
+        if (bestIndex < 0)
         {
             renderTexture2D = default;
             physicalWidth = 0;
@@ -42,15 +44,20 @@ internal static class RenderTexturePool
             return false;
         }
 
+        var best = _entries[bestIndex];
         _entries[bestIndex] = _entries[^1];
         _entries.RemoveAt(_entries.Count - 1);
-        best.DetachForReuse(out renderTexture2D, out physicalWidth, out physicalHeight);
+        renderTexture2D = best.Texture;
+        physicalWidth = best.PhysicalWidth;
+        physicalHeight = best.PhysicalHeight;
         return true;
     }
 
-    public static void Return(RenderTexture renderTexture)
+    public static void Return(RenderTexture2D renderTexture2D, int physicalWidth, int physicalHeight)
     {
-        _entries.Add((renderTexture, Time.Elapsed));
+        if (renderTexture2D.Texture.Id == 0)
+            return;
+        _entries.Add((renderTexture2D, physicalWidth, physicalHeight, Time.Elapsed));
     }
 
     internal static void Update()
@@ -60,8 +67,7 @@ internal static class RenderTexturePool
         {
             if (now - entry.Time <= Drawing.RenderTexturePoolLifetime)
                 return false;
-            entry.Texture.DetachForReuse(out var renderTexture2D, out _, out _);
-            Raylib.UnloadRenderTexture(renderTexture2D);
+            Raylib.UnloadRenderTexture(entry.Texture);
             return true;
         });
     }

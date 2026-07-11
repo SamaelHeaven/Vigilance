@@ -122,7 +122,7 @@ public sealed unsafe class Texture : IDisposable
         {
             if (Graphics.IsBufferCurrent(RenderTexture))
                 Graphics.ResetCurrentBuffer();
-            Raylib.UnloadRenderTexture(RenderTexture.RenderTexture2D);
+            RenderTexture.ReclaimUnmanaged();
         }
         else
         {

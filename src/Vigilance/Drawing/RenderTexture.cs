@@ -97,7 +97,9 @@ public sealed class RenderTexture : IDisposable
             RenderTexture2D.Texture.Width = PhysicalWidth;
             RenderTexture2D.Texture.Height = PhysicalHeight;
             Graphics = null!;
-            RenderTexturePool.Return(this);
+            RenderTexturePool.Return(RenderTexture2D, PhysicalWidth, PhysicalHeight);
+            RenderTexture2D = default;
+            GC.SuppressFinalize(Texture);
         }
         else
         {
@@ -107,6 +109,17 @@ public sealed class RenderTexture : IDisposable
             Graphics = null!;
             Scale = 0;
         }
+    }
+
+    internal void ReclaimUnmanaged()
+    {
+        if (_pooled || RenderTexture2D.Texture.Id == 0)
+            return;
+        if (_pool)
+            RenderTexturePool.Return(RenderTexture2D, PhysicalWidth, PhysicalHeight);
+        else
+            Raylib.UnloadRenderTexture(RenderTexture2D);
+        RenderTexture2D = default;
     }
 
     public static implicit operator Texture(RenderTexture renderTexture)
@@ -126,13 +139,5 @@ public sealed class RenderTexture : IDisposable
     public WritableImage<PixelR8G8B8A8> ToScaledImage()
     {
         return new WritableImage<PixelR8G8B8A8>(Texture.ToImage());
-    }
-
-    internal void DetachForReuse(out RenderTexture2D renderTexture2D, out int physicalWidth, out int physicalHeight)
-    {
-        renderTexture2D = RenderTexture2D;
-        physicalWidth = PhysicalWidth;
-        physicalHeight = PhysicalHeight;
-        RenderTexture2D = default;
     }
 }
