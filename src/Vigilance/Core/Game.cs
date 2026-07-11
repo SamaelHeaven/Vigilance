@@ -35,6 +35,7 @@ public static unsafe class Game
                 _scene.Stop();
                 _scene = value;
                 _scene.TransitionTo(oldScene);
+                Defer(GC.Collect);
             });
         }
     }
