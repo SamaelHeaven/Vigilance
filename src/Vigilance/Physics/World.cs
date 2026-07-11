@@ -20,14 +20,14 @@ public readonly record struct World : IDisposable
         def.gravity = PixelsToMeters(DefaultGravity).B2Vec2;
         _id = B2Worlds.b2CreateWorld(def);
         var data = new WorldData();
-        B2Worlds.b2World_SetUserData(_id, new B2UserData(data));
+        B2Worlds.b2World_SetUserData(_id, new B2UserData(new WeakReference(data)));
         B2Worlds.b2World_SetCustomFilterCallback(_id, FilterCallback, data);
     }
 
     public World(Scene scene)
         : this()
     {
-        Data.Scene = scene;
+        Data?.Scene = scene;
     }
 
     internal World(B2WorldId id)
@@ -37,9 +37,20 @@ public readonly record struct World : IDisposable
 
     public static Vector2 DefaultGravity { get; set; } = _config.DefaultGravity;
 
-    private WorldData Data => (WorldData)B2Worlds.b2World_GetUserData(_id).oValue;
+    private WorldData? Data
+    {
+        get
+        {
+            if (
+                B2Worlds.b2World_GetUserData(_id).oValue is WeakReference<WorldData> dataRef
+                && dataRef.TryGetTarget(out var data)
+            )
+                return data;
+            return null;
+        }
+    }
 
-    public Scene Scene => Data.Scene!;
+    public Scene? Scene => Data?.Scene;
 
     public Vector2 Gravity
     {
@@ -72,43 +83,43 @@ public readonly record struct World : IDisposable
     public void OnFilter(Func<Shape, Shape, bool> func)
     {
         var data = Data;
-        data.Scene?.ThrowIfConfigured();
-        data.OnFilter += func;
+        data?.Scene?.ThrowIfConfigured();
+        data?.OnFilter += func;
     }
 
     public void OnContactBegin(Action<Shape, Shape> callback)
     {
         var data = Data;
-        data.Scene?.ThrowIfConfigured();
-        data.OnContactBegin += callback;
+        data?.Scene?.ThrowIfConfigured();
+        data?.OnContactBegin += callback;
     }
 
     public void OnContactEnd(Action<Shape, Shape> callback)
     {
         var data = Data;
-        data.Scene?.ThrowIfConfigured();
-        data.OnContactEnd += callback;
+        data?.Scene?.ThrowIfConfigured();
+        data?.OnContactEnd += callback;
     }
 
     public void OnContactHit(Action<ContactHit> callback)
     {
         var data = Data;
-        data.Scene?.ThrowIfConfigured();
-        data.OnContactHit += callback;
+        data?.Scene?.ThrowIfConfigured();
+        data?.OnContactHit += callback;
     }
 
     public void OnSensorBegin(Action<Shape, Shape> callback)
     {
         var data = Data;
-        data.Scene?.ThrowIfConfigured();
-        data.OnSensorBegin += callback;
+        data?.Scene?.ThrowIfConfigured();
+        data?.OnSensorBegin += callback;
     }
 
     public void OnSensorEnd(Action<Shape, Shape> callback)
     {
         var data = Data;
-        data.Scene?.ThrowIfConfigured();
-        data.OnSensorEnd += callback;
+        data?.Scene?.ThrowIfConfigured();
+        data?.OnSensorEnd += callback;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -474,7 +485,7 @@ public readonly record struct World : IDisposable
     private void DispatchContactEvents()
     {
         var data = Data;
-        if (data.OnContactBegin is null && data.OnContactEnd is null && data.OnContactHit is null)
+        if (data?.OnContactBegin is null && data?.OnContactEnd is null && data?.OnContactHit is null)
             return;
         var events = B2Worlds.b2World_GetContactEvents(_id);
         if (data.OnContactBegin is { } onBegin)
@@ -514,7 +525,7 @@ public readonly record struct World : IDisposable
     private void DispatchSensorEvents()
     {
         var data = Data;
-        if (data.OnSensorBegin is null && data.OnSensorEnd is null)
+        if (data?.OnSensorBegin is null && data?.OnSensorEnd is null)
             return;
         var events = B2Worlds.b2World_GetSensorEvents(_id);
         if (data.OnSensorBegin is { } onBegin)
