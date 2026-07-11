@@ -32,10 +32,12 @@ public static unsafe class Game
                 if (_scene == value)
                     return;
                 var oldScene = _scene;
-                _scene.Stop();
+                oldScene.Stop();
                 _scene = value;
                 _scene.TransitionTo(oldScene);
-                Defer(GC.Collect);
+                // ReSharper disable once RedundantAssignment
+                oldScene = null;
+                ReclaimAbandonedResources();
             });
         }
     }
@@ -120,6 +122,14 @@ public static unsafe class Game
         _scene.Update();
         Renderer.EndDrawing();
         Raylib.PollInputEvents();
+    }
+
+    private static void ReclaimAbandonedResources()
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        UpdateActions();
     }
 
     private static void UpdateActions()
