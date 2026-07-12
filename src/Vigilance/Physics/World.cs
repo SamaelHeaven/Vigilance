@@ -13,6 +13,7 @@ public sealed class World : IDisposable
     public const float PixelsToMeter = 1f / PixelsPerMeter;
     private static WorldConfig _config = new();
     internal readonly B2WorldId Id;
+    private bool _disposed;
     private Action<Shape, Shape>? _onContactBegin;
     private Action<Shape, Shape>? _onContactEnd;
     private Action<ContactHit>? _onContactHit;
@@ -54,11 +55,15 @@ public sealed class World : IDisposable
 
     ~World()
     {
-        ReleaseUnmanagedResources();
+        if (!_disposed)
+            Game.Defer(ReleaseUnmanagedResources);
     }
 
     private void ReleaseUnmanagedResources()
     {
+        if (_disposed)
+            return;
+        _disposed = true;
         Scene = null!;
         _onFilter = null;
         _onContactBegin = null;

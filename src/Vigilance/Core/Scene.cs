@@ -1,7 +1,6 @@
 ﻿#pragma warning disable CS9084
 
 using System.Runtime.CompilerServices;
-using Box2D.NET;
 using Vigilance.Collections;
 using Vigilance.Drawing;
 using Vigilance.Math;
@@ -44,7 +43,7 @@ public sealed unsafe partial class Scene
     private ValueList<Table> _tables = [];
     private Action<Scene>? _transitionToAction;
     private Action? _updateAction;
-    private B2WorldId? _worldId;
+    private World? _world;
     internal Table<Child> ChildTable;
     internal Table<Disabled> DisabledTable;
     internal Action<Graphics, Texture, Box>? DrawScreenAction;
@@ -97,11 +96,13 @@ public sealed unsafe partial class Scene
     {
         get
         {
-            if (_worldId.HasValue)
-                return World.Get(_worldId.Value)!;
-            var world = new World(this);
-            _worldId = world.Id;
-            return world;
+            if (_world is not null)
+                return _world;
+            _world = new World(this);
+#pragma warning disable CA1816
+            GC.SuppressFinalize(_world);
+            return _world;
+#pragma warning restore CA1816
         }
     }
 
@@ -765,8 +766,7 @@ public sealed unsafe partial class Scene
         Game.Defer(() =>
         {
             _onDispose?.SafeInvoke();
-            if (_worldId.HasValue)
-                World.Get(_worldId.Value)?.Dispose();
+            _world?.Dispose();
         });
     }
 
