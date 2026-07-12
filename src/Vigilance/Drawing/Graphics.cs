@@ -750,8 +750,6 @@ public sealed unsafe class Graphics
         if (width == buffer.PhysicalWidth && height == buffer.PhysicalHeight)
             return;
         Rlgl.Viewport(0, 0, width, height);
-        Rlgl.SetFramebufferWidth(width);
-        Rlgl.SetFramebufferHeight(height);
         Rlgl.SetMatrixProjection(Raymath.MatrixOrtho(0, width, height, 0, 0.0, 1.0));
         Rlgl.SetMatrixModelView(Matrix4x4.Identity);
     }
