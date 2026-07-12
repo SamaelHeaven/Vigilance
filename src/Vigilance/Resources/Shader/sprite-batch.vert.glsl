@@ -21,6 +21,7 @@ uniform vec2 transformScale;
 uniform float transformRotation;
 uniform vec2 transformPivotPoint;
 uniform vec2 textureSize;
+uniform vec2 contentSize;
 uniform int flipY;
 
 vec2 rotate(vec2 v, float deg)
@@ -33,7 +34,7 @@ vec2 rotate(vec2 v, float deg)
 
 void main()
 {
-    vec4 source = instanceHasSource > 0.5 ? instanceSource : vec4(0, 0, textureSize);
+    vec4 source = instanceHasSource > 0.5 ? instanceSource : vec4(0, 0, contentSize);
     vec2 invTextureSize = 1.0 / textureSize;
     float sw = instanceFlipX > 0.5 ? -source.z : source.z;
     float sh = instanceFlipY > 0.5 ? -source.w : source.w;
@@ -48,7 +49,7 @@ void main()
     float tx = flipX ? (1.0 - vertexTexCoord.x) : vertexTexCoord.x;
     float u = mix(uLeft, uRight, tx);
     float v = mix(vTop, vBottom, vertexTexCoord.y);
-    v = flipY == 0 ? v : 1.0 - v;
+    v = flipY == 0 ? v : (vTop + vBottom - v);
     fragTexCoord = vec2(u, v);
     fragColor = instanceTint;
     vec2 position = instancePosition + transformPosition;

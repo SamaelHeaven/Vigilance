@@ -113,7 +113,8 @@ public sealed unsafe class SpriteBatch : SpriteBatch<SpriteInstance>
             Shader.SetVec2("transformScale", transform.Scale.Abs());
             Shader.SetFloat("transformRotation", transform.Rotation);
             Shader.SetVec2("transformPivotPoint", transform.PivotPoint);
-            Shader.SetVec2("textureSize", Texture.Size);
+            Shader.SetVec2("textureSize", Texture.PhysicalSize);
+            Shader.SetVec2("contentSize", Texture.Size);
             Shader.SetInt("flipY", Texture.IsRenderTexture ? 1 : 0);
         }
 

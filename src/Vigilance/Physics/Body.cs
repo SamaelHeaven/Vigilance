@@ -17,7 +17,7 @@ public readonly record struct Body : IInterpolated, ISkipSetEventIfEqualComponen
         _id = id;
     }
 
-    public World World => new(B2Bodies.b2Body_GetWorld(_id));
+    public World World => World.Get(B2Bodies.b2Body_GetWorld(_id))!;
 
     public Scene Scene => World.Scene;
 

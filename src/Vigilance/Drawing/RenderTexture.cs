@@ -22,59 +22,48 @@ public sealed class RenderTexture : IDisposable
         var scaledWidth = (int)(width * Scale).Max(1);
         var scaledHeight = (int)(height * Scale).Max(1);
         bool rented;
-        if (
-            _pool
-            && RenderTexturePool.TryRent(
-                scaledWidth,
-                scaledHeight,
-                out var physical,
-                out var physicalWidth,
-                out var physicalHeight
-            )
-        )
+        if (_pool && RenderTexturePool.TryRent(scaledWidth, scaledHeight, out var physical))
         {
             rented = true;
-            PhysicalWidth = physicalWidth;
-            PhysicalHeight = physicalHeight;
         }
         else
         {
             Graphics.ResetCurrentBuffer();
             var multipleOf = Drawing.RenderTexturePoolRoundUpToMultipleOf;
-            PhysicalWidth = _pool ? scaledWidth.RoundUpToMultipleOf(multipleOf) : scaledWidth;
-            PhysicalHeight = _pool ? scaledHeight.RoundUpToMultipleOf(multipleOf) : scaledHeight;
+            var physicalWidth = _pool ? scaledWidth.RoundUpToMultipleOf(multipleOf) : scaledWidth;
+            var physicalHeight = _pool ? scaledHeight.RoundUpToMultipleOf(multipleOf) : scaledHeight;
             var logLevel = Log.SetLogLevel(Log.LogLevel.Max(LogLevel.Info));
-            physical = Raylib.LoadRenderTexture(PhysicalWidth, PhysicalHeight);
+            physical = Raylib.LoadRenderTexture(physicalWidth, physicalHeight);
             Log.LogLevel = logLevel;
             rented = false;
         }
 
         RenderTexture2D = physical;
-        RenderTexture2D.Texture.Width = scaledWidth;
-        RenderTexture2D.Texture.Height = scaledHeight;
-        Texture = new Texture(physical.Texture, this) { LogicalSize = new Vector2(scaledWidth, scaledHeight) };
+        ScaledWidth = scaledWidth;
+        ScaledHeight = scaledHeight;
+        Texture = new Texture(physical.Texture, this) { LogicalSize = ScaledSize };
         Graphics = new Graphics(this);
         if (rented)
             Graphics.ClearBackground(Color.Transparent);
     }
 
-    public int PhysicalWidth { get; }
-    public int PhysicalHeight { get; }
+    public int PhysicalWidth => RenderTexture2D.Texture.Width;
+    public int PhysicalHeight => RenderTexture2D.Texture.Height;
     public Texture Texture { get; private set; }
     public Graphics Graphics { get; private set; }
     public float Scale { get; private set; }
 
-    public float Width => RenderTexture2D.Texture.Width / Scale;
+    public float Width => ScaledWidth / Scale;
 
-    public float Height => RenderTexture2D.Texture.Height / Scale;
+    public float Height => ScaledHeight / Scale;
 
     public Vector2 Size => new(Width, Height);
 
     public Vector2 PhysicalSize => new(PhysicalWidth, PhysicalHeight);
 
-    public int ScaledWidth => RenderTexture2D.Texture.Width;
+    public int ScaledWidth { get; }
 
-    public int ScaledHeight => RenderTexture2D.Texture.Height;
+    public int ScaledHeight { get; }
 
     public Vector2 ScaledSize => new(ScaledWidth, ScaledHeight);
 
@@ -94,12 +83,12 @@ public sealed class RenderTexture : IDisposable
         if (pool)
         {
             _pooled = true;
-            RenderTexture2D.Texture.Width = PhysicalWidth;
-            RenderTexture2D.Texture.Height = PhysicalHeight;
             Graphics = null!;
-            RenderTexturePool.Return(RenderTexture2D, PhysicalWidth, PhysicalHeight);
+            RenderTexturePool.Return(RenderTexture2D);
             RenderTexture2D = default;
+#pragma warning disable CA1816
             GC.SuppressFinalize(Texture);
+#pragma warning restore CA1816
         }
         else
         {
@@ -116,7 +105,7 @@ public sealed class RenderTexture : IDisposable
         if (_pooled || RenderTexture2D.Texture.Id == 0)
             return;
         if (_pool)
-            RenderTexturePool.Return(RenderTexture2D, PhysicalWidth, PhysicalHeight);
+            RenderTexturePool.Return(RenderTexture2D);
         else
             Raylib.UnloadRenderTexture(RenderTexture2D);
         RenderTexture2D = default;

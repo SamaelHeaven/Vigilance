@@ -424,12 +424,7 @@ public sealed unsafe class Graphics
         var tintValue = tint ?? Color.White;
         if (tintValue == Color.Transparent || texture == Texture.Empty || (_culling && !IsBoxInBounds(dest, camera)))
             return;
-        var rSource = new Raylib_cs.Rectangle(
-            source.X,
-            source.Y,
-            source.Width,
-            texture.IsRenderTexture ? -source.Height : source.Height
-        );
+        var rSource = GetTextureSource(texture, source);
         var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
         texture.TextureFilter = textureFilter ?? Drawing.DefaultTextureFilter;
         texture.TextureWrap = textureWrap ?? Drawing.DefaultTextureWrap;
@@ -527,12 +522,7 @@ public sealed unsafe class Graphics
         var tintValue = tint ?? Color.White;
         if (tintValue == Color.Transparent || texture == Texture.Empty || (_culling && !IsBoxInBounds(dest, camera)))
             return;
-        var rSource = new Raylib_cs.Rectangle(
-            source.X,
-            source.Y,
-            source.Width,
-            texture.RenderTexture is null ? source.Height : -source.Height
-        );
+        var rSource = GetTextureSource(texture, source);
         var rDest = new Raylib_cs.Rectangle(dest.Position, dest.Size);
         var rNPatchInfo = new Raylib_cs.NPatchInfo
         {
@@ -593,16 +583,16 @@ public sealed unsafe class Graphics
 
     public static void ResetCurrentBuffer()
     {
+        if (_currentClip.HasValue)
+        {
+            EndClip();
+            _currentClip = null;
+        }
+
         if (_currentBuffer is not null)
         {
             Raylib.EndTextureMode();
             _currentBuffer = null;
-        }
-
-        if (_currentClip.HasValue)
-        {
-            Raylib.EndScissorMode();
-            _currentClip = null;
         }
 
         if (_currentBlendMode.HasValue)
@@ -678,7 +668,10 @@ public sealed unsafe class Graphics
                 Raylib.EndTextureMode();
             _currentBuffer = Buffer;
             if (Buffer is not null)
+            {
                 Raylib.BeginTextureMode(Buffer.RenderTexture2D);
+                ApplyLogicalRenderTarget(Buffer);
+            }
         }
 
         var clip = _clip;
@@ -687,15 +680,10 @@ public sealed unsafe class Graphics
         if (!Precision.AreEqual(_currentClip, clip))
         {
             if (_currentClip.HasValue)
-                Raylib.EndScissorMode();
+                EndClip();
             _currentClip = clip;
             if (clip.HasValue)
-                Raylib.BeginScissorMode(
-                    (int)clip.Value.X.Floor(),
-                    (int)clip.Value.Y.Floor(),
-                    (int)clip.Value.Width.Ceil(),
-                    (int)clip.Value.Height.Ceil()
-                );
+                BeginClip(clip.Value);
         }
 
         if (_currentBlendMode != _blendMode)
@@ -753,6 +741,56 @@ public sealed unsafe class Graphics
             throw new InvalidOperationException($"{nameof(BeginDrawing)} must be called before {nameof(EndDrawing)}.");
         _drawing = false;
         Rlgl.PopMatrix();
+    }
+
+    private static void ApplyLogicalRenderTarget(RenderTexture buffer)
+    {
+        var width = buffer.ScaledWidth;
+        var height = buffer.ScaledHeight;
+        if (width == buffer.PhysicalWidth && height == buffer.PhysicalHeight)
+            return;
+        Rlgl.Viewport(0, 0, width, height);
+        Rlgl.SetFramebufferWidth(width);
+        Rlgl.SetFramebufferHeight(height);
+        Rlgl.SetMatrixProjection(Raymath.MatrixOrtho(0, width, height, 0, 0.0, 1.0));
+        Rlgl.SetMatrixModelView(Matrix4x4.Identity);
+    }
+
+    private static Raylib_cs.Rectangle GetTextureSource(Texture texture, in Box source)
+    {
+        return !texture.IsRenderTexture
+            ? new Raylib_cs.Rectangle(source.X, source.Y, source.Width, source.Height)
+            : new Raylib_cs.Rectangle(source.X, source.Y, source.Width, -source.Height);
+    }
+
+    private void BeginClip(in Box clip)
+    {
+        var x = (int)clip.X.Floor();
+        var y = (int)clip.Y.Floor();
+        var width = (int)clip.Width.Ceil();
+        var height = (int)clip.Height.Ceil();
+        if (Buffer is null)
+        {
+            Raylib.BeginScissorMode(x, y, width, height);
+            return;
+        }
+
+        Rlgl.DrawRenderBatchActive();
+        Rlgl.EnableScissorTest();
+        Rlgl.Scissor(x, Buffer.ScaledHeight - (y + height), width, height);
+    }
+
+    private static void EndClip()
+    {
+        if (_currentBuffer is null)
+        {
+            Raylib.EndScissorMode();
+        }
+        else
+        {
+            Rlgl.DrawRenderBatchActive();
+            Rlgl.DisableScissorTest();
+        }
     }
 
     #endregion

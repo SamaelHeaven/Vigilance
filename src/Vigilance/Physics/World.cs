@@ -7,71 +7,76 @@ using Vigilance.Math;
 
 namespace Vigilance.Physics;
 
-public readonly record struct World : IDisposable
+public sealed class World : IDisposable
 {
     public const float PixelsPerMeter = 50f;
     public const float PixelsToMeter = 1f / PixelsPerMeter;
     private static WorldConfig _config = new();
-    private readonly B2WorldId _id;
+    internal readonly B2WorldId Id;
+    private Action<Shape, Shape>? _onContactBegin;
+    private Action<Shape, Shape>? _onContactEnd;
+    private Action<ContactHit>? _onContactHit;
+    private Func<Shape, Shape, bool>? _onFilter;
+    private Action<Shape, Shape>? _onSensorBegin;
+    private Action<Shape, Shape>? _onSensorEnd;
 
     public World()
     {
         var def = B2Types.b2DefaultWorldDef();
         def.gravity = PixelsToMeters(DefaultGravity).B2Vec2;
-        _id = B2Worlds.b2CreateWorld(def);
-        var data = new WorldData();
-        B2Worlds.b2World_SetUserData(_id, new B2UserData(new WeakReference(data)));
-        B2Worlds.b2World_SetCustomFilterCallback(_id, FilterCallback, data);
+        Id = B2Worlds.b2CreateWorld(def);
+        var worldRef = new WeakReference<World>(this);
+        B2Worlds.b2World_SetUserData(Id, new B2UserData(worldRef));
+        B2Worlds.b2World_SetCustomFilterCallback(Id, FilterCallback, null);
     }
 
     public World(Scene scene)
         : this()
     {
-        Data?.Scene = scene;
-    }
-
-    internal World(B2WorldId id)
-    {
-        _id = id;
+        Scene = scene;
     }
 
     public static Vector2 DefaultGravity { get; set; } = _config.DefaultGravity;
 
-    private WorldData? Data
-    {
-        get
-        {
-            if (
-                B2Worlds.b2World_GetUserData(_id).oValue is WeakReference<WorldData> dataRef
-                && dataRef.TryGetTarget(out var data)
-            )
-                return data;
-            return null;
-        }
-    }
-
-    public Scene? Scene => Data?.Scene;
+    public Scene Scene { get; private set; } = null!;
 
     public Vector2 Gravity
     {
-        get => MetersToPixels(new Vector2(B2Worlds.b2World_GetGravity(_id)));
-        set => B2Worlds.b2World_SetGravity(_id, PixelsToMeters(value).B2Vec2);
+        get => MetersToPixels(new Vector2(B2Worlds.b2World_GetGravity(Id)));
+        set => B2Worlds.b2World_SetGravity(Id, PixelsToMeters(value).B2Vec2);
     }
 
     public void Dispose()
     {
-        if (B2Worlds.b2World_GetUserData(_id).oValue is WorldData data)
-        {
-            data.Scene = null;
-            data.OnFilter = null;
-            data.OnContactBegin = null;
-            data.OnContactEnd = null;
-            data.OnContactHit = null;
-            data.OnSensorBegin = null;
-            data.OnSensorEnd = null;
-        }
+        ReleaseUnmanagedResources();
+        GC.SuppressFinalize(this);
+    }
 
-        B2Worlds.b2DestroyWorld(_id);
+    ~World()
+    {
+        ReleaseUnmanagedResources();
+    }
+
+    private void ReleaseUnmanagedResources()
+    {
+        Scene = null!;
+        _onFilter = null;
+        _onContactBegin = null;
+        _onContactEnd = null;
+        _onContactHit = null;
+        _onSensorBegin = null;
+        _onSensorEnd = null;
+        B2Worlds.b2DestroyWorld(Id);
+    }
+
+    internal static World? Get(B2WorldId worldId)
+    {
+        if (
+            B2Worlds.b2World_GetUserData(worldId).oValue is WeakReference<World> worldRef
+            && worldRef.TryGetTarget(out var world)
+        )
+            return world;
+        return null;
     }
 
     internal static void Initialize()
@@ -82,44 +87,38 @@ public readonly record struct World : IDisposable
 
     public void OnFilter(Func<Shape, Shape, bool> func)
     {
-        var data = Data;
-        data?.Scene?.ThrowIfConfigured();
-        data?.OnFilter += func;
+        ((Scene?)Scene)?.ThrowIfConfigured();
+        _onFilter += func;
     }
 
     public void OnContactBegin(Action<Shape, Shape> callback)
     {
-        var data = Data;
-        data?.Scene?.ThrowIfConfigured();
-        data?.OnContactBegin += callback;
+        ((Scene?)Scene)?.ThrowIfConfigured();
+        _onContactBegin += callback;
     }
 
     public void OnContactEnd(Action<Shape, Shape> callback)
     {
-        var data = Data;
-        data?.Scene?.ThrowIfConfigured();
-        data?.OnContactEnd += callback;
+        ((Scene?)Scene)?.ThrowIfConfigured();
+        _onContactEnd += callback;
     }
 
     public void OnContactHit(Action<ContactHit> callback)
     {
-        var data = Data;
-        data?.Scene?.ThrowIfConfigured();
-        data?.OnContactHit += callback;
+        ((Scene?)Scene)?.ThrowIfConfigured();
+        _onContactHit += callback;
     }
 
     public void OnSensorBegin(Action<Shape, Shape> callback)
     {
-        var data = Data;
-        data?.Scene?.ThrowIfConfigured();
-        data?.OnSensorBegin += callback;
+        ((Scene?)Scene)?.ThrowIfConfigured();
+        _onSensorBegin += callback;
     }
 
     public void OnSensorEnd(Action<Shape, Shape> callback)
     {
-        var data = Data;
-        data?.Scene?.ThrowIfConfigured();
-        data?.OnSensorEnd += callback;
+        ((Scene?)Scene)?.ThrowIfConfigured();
+        _onSensorEnd += callback;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -148,7 +147,7 @@ public readonly record struct World : IDisposable
 
     public void Update(in TimeSpan? step = null)
     {
-        B2Worlds.b2World_Step(_id, (float)(step ?? Time.FixedDelta).TotalSeconds, 4);
+        B2Worlds.b2World_Step(Id, (float)(step ?? Time.FixedDelta).TotalSeconds, 4);
         DispatchContactEvents();
         DispatchSensorEvents();
     }
@@ -167,7 +166,7 @@ public readonly record struct World : IDisposable
         };
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapAABB(
-            _id,
+            Id,
             in b2Aabb,
             in b2Filter,
             static (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
@@ -184,7 +183,7 @@ public readonly record struct World : IDisposable
         };
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapAABB(
-            _id,
+            Id,
             in b2Aabb,
             in b2Filter,
             static (id, ctx) =>
@@ -201,7 +200,7 @@ public readonly record struct World : IDisposable
         var proxy = circle.MakeProxy();
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
-            _id,
+            Id,
             ref proxy,
             in b2Filter,
             (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
@@ -214,7 +213,7 @@ public readonly record struct World : IDisposable
         var proxy = circle.MakeProxy();
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
-            _id,
+            Id,
             ref proxy,
             in b2Filter,
             (id, ctx) =>
@@ -231,7 +230,7 @@ public readonly record struct World : IDisposable
         var proxy = capsule.MakeProxy();
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
-            _id,
+            Id,
             ref proxy,
             in b2Filter,
             (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
@@ -244,7 +243,7 @@ public readonly record struct World : IDisposable
         var proxy = capsule.MakeProxy();
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
-            _id,
+            Id,
             ref proxy,
             in b2Filter,
             (id, ctx) =>
@@ -261,7 +260,7 @@ public readonly record struct World : IDisposable
         var proxy = polygon.MakeProxy();
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
-            _id,
+            Id,
             ref proxy,
             in b2Filter,
             (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
@@ -274,7 +273,7 @@ public readonly record struct World : IDisposable
         var proxy = polygon.MakeProxy();
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
-            _id,
+            Id,
             ref proxy,
             in b2Filter,
             (id, ctx) =>
@@ -289,7 +288,7 @@ public readonly record struct World : IDisposable
     public RayCastHit CastRay(Vector2 origin, Vector2 translation)
     {
         var result = B2Worlds.b2World_CastRayClosest(
-            _id,
+            Id,
             PixelsToMeters(origin).B2Vec2,
             PixelsToMeters(translation).B2Vec2,
             B2Types.b2DefaultQueryFilter()
@@ -324,7 +323,7 @@ public readonly record struct World : IDisposable
         b2Def.isBullet = def.IsBullet;
         b2Def.isEnabled = def.IsEnabled;
         b2Def.allowFastRotation = def.AllowFastRotation;
-        var bodyId = B2Bodies.b2CreateBody(_id, b2Def);
+        var bodyId = B2Bodies.b2CreateBody(Id, b2Def);
         return new Body(bodyId);
     }
 
@@ -354,7 +353,7 @@ public readonly record struct World : IDisposable
         draw.drawContactForces = flags.HasFlag(DebugDrawFlags.ContactForces);
         draw.drawFrictionForces = flags.HasFlag(DebugDrawFlags.FrictionForces);
         draw.drawIslands = flags.HasFlag(DebugDrawFlags.Islands);
-        B2Worlds.b2World_Draw(_id, draw);
+        B2Worlds.b2World_Draw(Id, draw);
     }
 
     private static Color ToColor(B2HexColor hexColor)
@@ -484,25 +483,24 @@ public readonly record struct World : IDisposable
 
     private void DispatchContactEvents()
     {
-        var data = Data;
-        if (data?.OnContactBegin is null && data?.OnContactEnd is null && data?.OnContactHit is null)
+        if (_onContactBegin is null && _onContactEnd is null && _onContactHit is null)
             return;
-        var events = B2Worlds.b2World_GetContactEvents(_id);
-        if (data.OnContactBegin is { } onBegin)
+        var events = B2Worlds.b2World_GetContactEvents(Id);
+        if (_onContactBegin is { } onBegin)
             for (var i = 0; i < events.beginCount; i++)
             {
                 var e = events.beginEvents[i];
                 onBegin.SafeInvoke(new Shape(e.shapeIdA), new Shape(e.shapeIdB));
             }
 
-        if (data.OnContactEnd is { } onEnd)
+        if (_onContactEnd is { } onEnd)
             for (var i = 0; i < events.endCount; i++)
             {
                 var e = events.endEvents[i];
                 onEnd.SafeInvoke(new Shape(e.shapeIdA), new Shape(e.shapeIdB));
             }
 
-        if (data.OnContactHit is not { } onHit)
+        if (_onContactHit is not { } onHit)
             return;
         {
             for (var i = 0; i < events.hitCount; i++)
@@ -524,18 +522,17 @@ public readonly record struct World : IDisposable
 
     private void DispatchSensorEvents()
     {
-        var data = Data;
-        if (data?.OnSensorBegin is null && data?.OnSensorEnd is null)
+        if (_onSensorBegin is null && _onSensorEnd is null)
             return;
-        var events = B2Worlds.b2World_GetSensorEvents(_id);
-        if (data.OnSensorBegin is { } onBegin)
+        var events = B2Worlds.b2World_GetSensorEvents(Id);
+        if (_onSensorBegin is { } onBegin)
             for (var i = 0; i < events.beginCount; i++)
             {
                 var e = events.beginEvents[i];
                 onBegin.SafeInvoke(new Shape(e.sensorShapeId), new Shape(e.visitorShapeId));
             }
 
-        if (data.OnSensorEnd is not { } onEnd)
+        if (_onSensorEnd is not { } onEnd)
             return;
         {
             for (var i = 0; i < events.endCount; i++)
@@ -548,8 +545,8 @@ public readonly record struct World : IDisposable
 
     private static bool FilterCallback(B2ShapeId shapeIdA, B2ShapeId shapeIdB, object context)
     {
-        var data = (WorldData)context;
-        foreach (var func in Delegate.EnumerateInvocationList(data.OnFilter))
+        var world = new Shape(shapeIdA).World;
+        foreach (var func in Delegate.EnumerateInvocationList(world._onFilter))
             try
             {
                 if (!func.Invoke(new Shape(shapeIdA), new Shape(shapeIdB)))
@@ -564,15 +561,4 @@ public readonly record struct World : IDisposable
     }
 
     private record DebugDrawContext(Graphics Graphics, Camera? Camera);
-}
-
-internal sealed class WorldData
-{
-    public Action<Shape, Shape>? OnContactBegin;
-    public Action<Shape, Shape>? OnContactEnd;
-    public Action<ContactHit>? OnContactHit;
-    public Func<Shape, Shape, bool>? OnFilter;
-    public Action<Shape, Shape>? OnSensorBegin;
-    public Action<Shape, Shape>? OnSensorEnd;
-    public Scene? Scene = null;
 }
