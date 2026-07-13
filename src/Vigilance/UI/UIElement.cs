@@ -170,13 +170,13 @@ public abstract class UIElement : IFullCloneable
         get
         {
             foreach (var element in this.AncestorsAndSelf())
-                if (!(element.IsLayoutReady && element.Display != DisplayMode.None && !element.WasRenderedOutside))
+                if (!(element.IsLayoutReady && element.DisplayMode != DisplayMode.None && !element.WasRenderedOutside))
                     return false;
             return true;
         }
     }
 
-    public DisplayMode Display
+    public DisplayMode DisplayMode
     {
         get => (DisplayMode)Node.StyleGetDisplay();
         set => Node.StyleSetDisplay((Display)value);
@@ -1337,7 +1337,7 @@ public abstract class UIElement : IFullCloneable
 
         public RenderData(UIElement element)
         {
-            ShouldRender = element.IsLayoutReady && element.Display != DisplayMode.None;
+            ShouldRender = element.IsLayoutReady && element.DisplayMode != DisplayMode.None;
         }
     }
 

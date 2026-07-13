@@ -8,8 +8,8 @@ namespace Vigilance.Core;
 public sealed class Camera
 {
     private Matrix3x2? _matrixCache = null;
-    public static CameraProvider Null => default;
-    public static CameraProvider Scene { get; } = new(() => Game.Scene.Camera);
+    public static CameraProvider Null => CameraProvider.Null;
+    public static CameraProvider Scene => CameraProvider.Scene;
 
     public Vector2 Target
     {
@@ -84,6 +84,9 @@ public readonly struct CameraProvider
 {
     private readonly Camera? _camera;
     private readonly Func<Camera?>? _func;
+
+    public static CameraProvider Null => default;
+    public static CameraProvider Scene { get; } = new(() => Game.Scene.Camera);
 
     public CameraProvider(Func<Camera?>? func)
     {

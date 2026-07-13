@@ -770,16 +770,34 @@ public sealed unsafe partial class Scene
         });
     }
 
+    public void OnInstantiate(Action action)
+    {
+        ThrowIfConfigured();
+        _instantiateAction += _ => action.Invoke();
+    }
+
     public void OnInstantiate(Action<Entity> action)
     {
         ThrowIfConfigured();
         _instantiateAction += action;
     }
 
+    public void OnDestroy(Action action)
+    {
+        ThrowIfConfigured();
+        _destroyAction += _ => action.Invoke();
+    }
+
     public void OnDestroy(Action<Entity> action)
     {
         ThrowIfConfigured();
         _destroyAction += action;
+    }
+
+    public void OnAdd<T>(Action action)
+    {
+        ThrowIfConfigured();
+        Table<T>().OnAdd((_, _) => action.Invoke());
     }
 
     public void OnAdd<T>(Action<Entity> action)
@@ -798,6 +816,13 @@ public sealed unsafe partial class Scene
     {
         ThrowIfConfigured();
         Table<T>().OnAdd(action);
+    }
+
+    public void OnAddOrSet<T>(Action action)
+    {
+        ThrowIfConfigured();
+        Table<T>().OnAdd((_, _) => action.Invoke());
+        Table<T>().OnSet((_, _, _) => action.Invoke());
     }
 
     public void OnAddOrSet<T>(Action<Entity> action)
@@ -819,6 +844,12 @@ public sealed unsafe partial class Scene
         ThrowIfConfigured();
         Table<T>().OnAdd(action);
         Table<T>().OnSet((entity, _, value) => action.Invoke(entity, value));
+    }
+
+    public void OnSet<T>(Action action)
+    {
+        ThrowIfConfigured();
+        Table<T>().OnSet((_, _, _) => action.Invoke());
     }
 
     public void OnSet<T>(Action<Entity> action)
@@ -849,6 +880,12 @@ public sealed unsafe partial class Scene
     {
         ThrowIfConfigured();
         Table<T>().OnSet(action);
+    }
+
+    public void OnRemove<T>(Action action)
+    {
+        ThrowIfConfigured();
+        Table<T>().OnRemove((_, _) => action.Invoke());
     }
 
     public void OnRemove<T>(Action<Entity> action)

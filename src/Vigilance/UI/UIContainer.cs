@@ -91,7 +91,7 @@ public class UIContainer : UIParent
         {
             var flowCount = 0;
             for (var i = 0; i < children.Count; i++)
-                if (children[i].Position != PositionType.Absolute && children[i].Display != DisplayMode.None)
+                if (children[i].Position != PositionType.Absolute && children[i].DisplayMode != DisplayMode.None)
                     flowIndices[flowCount++] = i;
             if (flowCount == 0)
                 return false;
