@@ -22,7 +22,7 @@ public readonly record struct RenderingMode
     }
 }
 
-public enum RenderingModeType : byte
+public enum RenderingModeType : sbyte
 {
     Native,
     Buffer,

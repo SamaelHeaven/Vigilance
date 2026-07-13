@@ -181,7 +181,7 @@ public abstract class UIParent : UIElement
         MarkDirty();
     }
 
-    internal enum ChildrenOperationType : byte
+    internal enum ChildrenOperationType : sbyte
     {
         Add,
         Remove,

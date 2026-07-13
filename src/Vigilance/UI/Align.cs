@@ -1,13 +1,13 @@
 namespace Vigilance.UI;
 
-public enum Align : byte
+public enum Align : sbyte
 {
-    Auto = FlexLayoutSharp.Align.Auto,
-    Start = FlexLayoutSharp.Align.FlexStart,
-    Center = FlexLayoutSharp.Align.Center,
-    End = FlexLayoutSharp.Align.FlexEnd,
-    Stretch = FlexLayoutSharp.Align.Stretch,
-    Baseline = FlexLayoutSharp.Align.Baseline,
-    SpaceBetween = FlexLayoutSharp.Align.SpaceBetween,
-    SpaceAround = FlexLayoutSharp.Align.SpaceAround,
+    Auto = FlexLayout.Align.Auto,
+    Start = FlexLayout.Align.FlexStart,
+    Center = FlexLayout.Align.Center,
+    End = FlexLayout.Align.FlexEnd,
+    Stretch = FlexLayout.Align.Stretch,
+    Baseline = FlexLayout.Align.Baseline,
+    SpaceBetween = FlexLayout.Align.SpaceBetween,
+    SpaceAround = FlexLayout.Align.SpaceAround,
 }

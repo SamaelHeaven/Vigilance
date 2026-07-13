@@ -1,13 +1,13 @@
 using System.Buffers;
 using System.Numerics;
-using FlexLayoutSharp;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
+using Vigilance.FlexLayout;
 using Vigilance.Input;
 using Vigilance.Math;
 using ZLinq;
-using Display = FlexLayoutSharp.Display;
+using Display = Vigilance.FlexLayout.Display;
 using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
@@ -51,7 +51,7 @@ public abstract class UIElement : IFullCloneable
     protected UIElement()
     {
         var measure = Measure;
-        Node.StyleSetAlignItems(FlexLayoutSharp.Align.FlexStart);
+        Node.StyleSetAlignItems(FlexLayout.Align.FlexStart);
         IsLayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
         if (IsLayoutCustom)
             Node.SetMeasureFunc(
@@ -478,7 +478,7 @@ public abstract class UIElement : IFullCloneable
     public Align AlignSelf
     {
         get => (Align)Node.StyleGetAlignSelf();
-        set => Node.StyleSetAlignSelf((FlexLayoutSharp.Align)value);
+        set => Node.StyleSetAlignSelf((FlexLayout.Align)value);
     }
 
     public Unit Basis
@@ -509,7 +509,7 @@ public abstract class UIElement : IFullCloneable
     public PositionType Position
     {
         get => (PositionType)Node.StyleGetPositionType();
-        set => Node.StyleSetPositionType((FlexLayoutSharp.PositionType)value);
+        set => Node.StyleSetPositionType((FlexLayout.PositionType)value);
     }
 
     public Insets Insets
@@ -779,7 +779,7 @@ public abstract class UIElement : IFullCloneable
                 bool changed;
                 do
                 {
-                    Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
+                    Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.Ltr);
                     changed = false;
                     foreach (var element in this.DescendantsAndSelf())
                         if (element is UIContainer container)
@@ -788,12 +788,12 @@ public abstract class UIElement : IFullCloneable
             }
             else
             {
-                Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
+                Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.Ltr);
             }
 
             var saved = wrapMinSizes.AsSpan(0, wrapMinSizeCount);
             if (ApplyWrapMinSizeFloors(saved, width, height))
-                Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
+                Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.Ltr);
             RestoreWrapMinSizeDimensions(saved);
         }
         finally
@@ -1345,7 +1345,7 @@ public abstract class UIElement : IFullCloneable
         }
     }
 
-    private enum RenderPhase : byte
+    private enum RenderPhase : sbyte
     {
         Begin,
         End,

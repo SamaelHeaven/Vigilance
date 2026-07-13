@@ -2,7 +2,7 @@
 
 namespace Vigilance.Input;
 
-public enum Cursor : byte
+public enum Cursor : sbyte
 {
     Default = MouseCursor.Default,
     Arrow = MouseCursor.Arrow,

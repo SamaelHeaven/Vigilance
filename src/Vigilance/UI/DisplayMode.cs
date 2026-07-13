@@ -1,8 +1,8 @@
-using FlexLayoutSharp;
+using Vigilance.FlexLayout;
 
 namespace Vigilance.UI;
 
-public enum DisplayMode : byte
+public enum DisplayMode : sbyte
 {
     Flex = Display.Flex,
     None = Display.None,

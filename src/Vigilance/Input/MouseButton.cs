@@ -1,6 +1,6 @@
 ﻿namespace Vigilance.Input;
 
-public enum MouseButton : byte
+public enum MouseButton : sbyte
 {
     Left = Raylib_cs.MouseButton.Left,
     Middle = Raylib_cs.MouseButton.Middle,

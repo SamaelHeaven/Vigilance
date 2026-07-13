@@ -1,8 +1,8 @@
 namespace Vigilance.UI;
 
-public enum MeasureMode : byte
+public enum MeasureMode : sbyte
 {
-    Undefined = FlexLayoutSharp.MeasureMode.Undefined,
-    Exactly = FlexLayoutSharp.MeasureMode.Exactly,
-    AtMost = FlexLayoutSharp.MeasureMode.AtMost,
+    Undefined = FlexLayout.MeasureMode.Undefined,
+    Exactly = FlexLayout.MeasureMode.Exactly,
+    AtMost = FlexLayout.MeasureMode.AtMost,
 }

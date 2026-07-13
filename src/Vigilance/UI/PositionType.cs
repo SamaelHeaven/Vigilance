@@ -1,7 +1,7 @@
 namespace Vigilance.UI;
 
-public enum PositionType : byte
+public enum PositionType : sbyte
 {
-    Relative = FlexLayoutSharp.PositionType.Relative,
-    Absolute = FlexLayoutSharp.PositionType.Absolute,
+    Relative = FlexLayout.PositionType.Relative,
+    Absolute = FlexLayout.PositionType.Absolute,
 }

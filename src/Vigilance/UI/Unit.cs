@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using FlexLayoutSharp;
+using Vigilance.FlexLayout;
 
 namespace Vigilance.UI;
 
@@ -64,14 +64,14 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     internal static Unit FromValue(Value value)
     {
-        var type = value.unit switch
+        var type = value.Unit switch
         {
-            FlexLayoutSharp.Unit.Auto => UnitType.Auto,
-            FlexLayoutSharp.Unit.Percent => UnitType.Percent,
-            FlexLayoutSharp.Unit.Point => UnitType.Fixed,
+            FlexLayout.Unit.Auto => UnitType.Auto,
+            FlexLayout.Unit.Percent => UnitType.Percent,
+            FlexLayout.Unit.Point => UnitType.Fixed,
             _ => UnitType.Undefined,
         };
-        return new Unit(type, value.value);
+        return new Unit(type, value.Number);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -168,7 +168,7 @@ public record struct Unit(UnitType Type, float Value = 0)
     }
 }
 
-public enum UnitType : byte
+public enum UnitType : sbyte
 {
     Undefined,
     Auto,

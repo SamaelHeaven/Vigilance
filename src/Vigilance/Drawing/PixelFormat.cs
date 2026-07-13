@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-public enum PixelFormat : byte
+public enum PixelFormat : sbyte
 {
     UncompressedGrayscale = Raylib_cs.PixelFormat.UncompressedGrayscale,
     UncompressedGrayAlpha = Raylib_cs.PixelFormat.UncompressedGrayAlpha,

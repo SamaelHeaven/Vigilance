@@ -1244,7 +1244,7 @@ public sealed unsafe partial class Scene
         }
     }
 
-    internal enum EventType : byte
+    internal enum EventType : sbyte
     {
         Instantiate,
         Destroy,

@@ -1,5 +1,5 @@
 using System.Buffers;
-using FlexLayoutSharp;
+using Vigilance.FlexLayout;
 using Vigilance.Math;
 using Vector2 = Vigilance.Math.Vector2;
 
@@ -18,25 +18,25 @@ public class UIContainer : UIParent
     public Justify Justify
     {
         get => (Justify)Node.StyleGetJustifyContent();
-        set => Node.StyleSetJustifyContent((FlexLayoutSharp.Justify)value);
+        set => Node.StyleSetJustifyContent((FlexLayout.Justify)value);
     }
 
     public Align AlignItems
     {
         get => (Align)Node.StyleGetAlignItems();
-        set => Node.StyleSetAlignItems((FlexLayoutSharp.Align)value);
+        set => Node.StyleSetAlignItems((FlexLayout.Align)value);
     }
 
     public Align AlignContent
     {
         get => (Align)Node.StyleGetAlignContent();
-        set => Node.StyleSetAlignContent((FlexLayoutSharp.Align)value);
+        set => Node.StyleSetAlignContent((FlexLayout.Align)value);
     }
 
     public Wrap Wrap
     {
         get => (Wrap)Node.StyleGetFlexWrap();
-        set => Node.StyleSetFlexWrap((FlexLayoutSharp.Wrap)value);
+        set => Node.StyleSetFlexWrap((FlexLayout.Wrap)value);
     }
 
     public Dimensions Gap
