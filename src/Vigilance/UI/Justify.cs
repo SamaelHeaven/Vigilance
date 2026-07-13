@@ -2,9 +2,10 @@ namespace Vigilance.UI;
 
 public enum Justify : sbyte
 {
-    Start = FlexLayout.Justify.FlexStart,
+    Start = FlexLayout.Justify.Start,
     Center = FlexLayout.Justify.Center,
-    End = FlexLayout.Justify.FlexEnd,
+    End = FlexLayout.Justify.End,
     SpaceBetween = FlexLayout.Justify.SpaceBetween,
     SpaceAround = FlexLayout.Justify.SpaceAround,
+    SpaceEvenly = FlexLayout.Justify.SpaceEvenly,
 }

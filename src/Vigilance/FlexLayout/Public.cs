@@ -6,7 +6,7 @@ public delegate Size MeasureFunc(Node node, float width, MeasureMode widthMode, 
 // BaselineFunc describes function for baseline
 public delegate float BaselineFunc(Node node, float width, float height);
 
-public class Size
+public sealed class Size
 {
     public float Height;
     public float Width;
@@ -18,7 +18,7 @@ public class Size
     }
 }
 
-public class Value
+public sealed class Value
 {
     public float Number;
     public Unit Unit;
@@ -53,7 +53,7 @@ public static partial class Flex
     public static float RoundValueToPixelGrid(float value, float pointScaleFactor, bool forceCeil, bool forceFloor)
     {
         var scaledValue = value * pointScaleFactor;
-        var fractial = Fmodf(scaledValue, 1f);
+        var fractial = scaledValue % 1f;
         if (FloatsEqual(fractial, 0))
         {
             scaledValue -= fractial;
@@ -88,8 +88,8 @@ public static partial class Flex
 
     public static void Reset(ref Node node)
     {
-        AssertWithNode(node, node.Children.Count == 0, "Cannot reset a node which still has children attached");
-        AssertWithNode(node, node.Parent == null, "Cannot reset a node still attached to a parent");
+        Assert(node.Children.Count == 0, "Cannot reset a node which still has children attached");
+        Assert(node.Parent == null, "Cannot reset a node still attached to a parent");
         node.Children.Clear();
         node = CreateDefaultNode();
     }
@@ -119,8 +119,7 @@ public static partial class Flex
                 heightMeasureMode,
                 parentWidth,
                 parentHeight,
-                true,
-                "initial"
+                true
             )
         )
         {

@@ -3,9 +3,9 @@
 public enum Align : sbyte
 {
     Auto,
-    FlexStart,
+    Start,
     Center,
-    FlexEnd,
+    End,
     Stretch,
     Baseline,
     SpaceBetween,
@@ -20,9 +20,9 @@ public enum Dimension : sbyte
 
 public enum Direction : sbyte
 {
-    Inherit = 0,
-    Ltr,
-    Rtl,
+    Inherit,
+    LeftToRight,
+    RightToLeft,
 }
 
 public enum Display : sbyte
@@ -54,9 +54,9 @@ public enum FlexDirection : sbyte
 
 public enum Justify : sbyte
 {
-    FlexStart,
+    Start,
     Center,
-    FlexEnd,
+    End,
     SpaceBetween,
     SpaceAround,
     SpaceEvenly,
@@ -64,7 +64,7 @@ public enum Justify : sbyte
 
 public enum MeasureMode : sbyte
 {
-    Undefined = 0,
+    Undefined,
     Exactly,
     AtMost,
 }

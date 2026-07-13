@@ -51,7 +51,7 @@ public abstract class UIElement : IFullCloneable
     protected UIElement()
     {
         var measure = Measure;
-        Node.StyleSetAlignItems(FlexLayout.Align.FlexStart);
+        Node.StyleSetAlignItems(FlexLayout.Align.Start);
         IsLayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
         if (IsLayoutCustom)
             Node.SetMeasureFunc(
@@ -779,7 +779,7 @@ public abstract class UIElement : IFullCloneable
                 bool changed;
                 do
                 {
-                    Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.Ltr);
+                    Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.LeftToRight);
                     changed = false;
                     foreach (var element in this.DescendantsAndSelf())
                         if (element is UIContainer container)
@@ -788,12 +788,12 @@ public abstract class UIElement : IFullCloneable
             }
             else
             {
-                Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.Ltr);
+                Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.LeftToRight);
             }
 
             var saved = wrapMinSizes.AsSpan(0, wrapMinSizeCount);
             if (ApplyWrapMinSizeFloors(saved, width, height))
-                Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.Ltr);
+                Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.LeftToRight);
             RestoreWrapMinSizeDimensions(saved);
         }
         finally

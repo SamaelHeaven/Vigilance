@@ -1,12 +1,14 @@
+using Vigilance.Collections;
+
 namespace Vigilance.FlexLayout;
 
-public partial class Node
+public sealed partial class Node
 {
-    internal readonly List<Node> Children = [];
     internal readonly Flex.Layout NodeLayout = new();
     internal readonly Style NodeStyle = new();
     internal readonly Value[] ResolvedDimensions = [Flex.ValueUndefined, Flex.ValueUndefined];
     internal BaselineFunc? BaselineFunc;
+    internal ValueList<Node> Children = [];
     internal int LineIndex;
     internal MeasureFunc? MeasureFunc;
     internal Node? NextChild;

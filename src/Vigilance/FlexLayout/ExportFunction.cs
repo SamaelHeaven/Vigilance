@@ -2,13 +2,11 @@
 
 namespace Vigilance.FlexLayout;
 
-public partial class Node
+public sealed partial class Node
 {
     public void CopyStyle(Node other)
     {
-        if (other == null)
-            throw new ArgumentNullException(nameof(other));
-
+        ArgumentNullException.ThrowIfNull(other);
         Style.Copy(NodeStyle, other.NodeStyle);
     }
 
@@ -684,18 +682,18 @@ public partial class Node
     // LayoutGetMargin gets margin
     public float LayoutGetMargin(Edge edge)
     {
-        Flex.AssertWithNode(this, edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
+        Flex.Assert(edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
         switch (edge)
         {
             case Edge.Left:
             {
-                if (NodeLayout.Direction == Direction.Rtl)
+                if (NodeLayout.Direction == Direction.RightToLeft)
                     return NodeLayout.Margin[(int)Edge.End];
                 return NodeLayout.Margin[(int)Edge.Start];
             }
             case Edge.Right:
             {
-                if (NodeLayout.Direction == Direction.Rtl)
+                if (NodeLayout.Direction == Direction.RightToLeft)
                     return NodeLayout.Margin[(int)Edge.Start];
                 return NodeLayout.Margin[(int)Edge.End];
             }
@@ -707,18 +705,18 @@ public partial class Node
     // LayoutGetBorder gets border
     public float LayoutGetBorder(Edge edge)
     {
-        Flex.AssertWithNode(this, edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
+        Flex.Assert(edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
         switch (edge)
         {
             case Edge.Left:
             {
-                if (NodeLayout.Direction == Direction.Rtl)
+                if (NodeLayout.Direction == Direction.RightToLeft)
                     return NodeLayout.Border[(int)Edge.End];
                 return NodeLayout.Border[(int)Edge.Start];
             }
             case Edge.Right:
             {
-                if (NodeLayout.Direction == Direction.Rtl)
+                if (NodeLayout.Direction == Direction.RightToLeft)
                     return NodeLayout.Border[(int)Edge.Start];
                 return NodeLayout.Border[(int)Edge.End];
             }
@@ -730,18 +728,18 @@ public partial class Node
     // LayoutGetPadding gets padding
     public float LayoutGetPadding(Edge edge)
     {
-        Flex.AssertWithNode(this, edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
+        Flex.Assert(edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
         switch (edge)
         {
             case Edge.Left:
             {
-                if (NodeLayout.Direction == Direction.Rtl)
+                if (NodeLayout.Direction == Direction.RightToLeft)
                     return NodeLayout.Padding[(int)Edge.End];
                 return NodeLayout.Padding[(int)Edge.Start];
             }
             case Edge.Right:
             {
-                if (NodeLayout.Direction == Direction.Rtl)
+                if (NodeLayout.Direction == Direction.RightToLeft)
                     return NodeLayout.Padding[(int)Edge.Start];
                 return NodeLayout.Padding[(int)Edge.End];
             }
@@ -856,8 +854,7 @@ public partial class Node
 
     public void RemoveParent()
     {
-        if (Parent != null)
-            Parent.RemoveChild(this);
+        Parent?.RemoveChild(this);
     }
 
     #endregion
