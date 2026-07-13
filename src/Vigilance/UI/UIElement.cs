@@ -1245,7 +1245,11 @@ public abstract class UIElement : IFullCloneable
         }
 
         if (shouldSort)
-            stack.AsSpan(i, count - i).Sort((a, b) => b.ZIndex.CompareTo(a.ZIndex));
+        {
+            var span = stack.AsSpan(i, count - i);
+            span.AsValueEnumerable().OrderByDescending(e => e.ZIndex).CopyTo(span);
+        }
+
         element.OnBeginRender(graphics, camera);
         element.OnBeginRenderSignal.Invoke(element, graphics, camera);
         element.OnRender(graphics, camera);
