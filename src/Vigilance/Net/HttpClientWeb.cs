@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -16,23 +17,28 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
     {
         var headersBuffer = nint.Zero;
         nint[]? headerBuffers = null;
+        var headerBuffersLength = 0;
+        byte[]? methodBytes = null;
         try
         {
             var id = (nint)Interlocked.Increment(ref _requestId);
-            var method = Encoding.UTF8.GetBytes(request.Method);
+            var methodByteCount = Encoding.UTF8.GetByteCount(request.Method);
+            methodBytes = ArrayPool<byte>.Shared.Rent(methodByteCount);
+            var methodLength = Encoding.UTF8.GetBytes(request.Method, methodBytes);
             var attr = new EmscriptenFetchAttr();
             Emscripten.FetchAttrInit(ref attr);
             attr.UserData = id;
             attr.Attributes = 1;
-            for (var i = 0; i < method.Length.Min(EmscriptenFetchAttr.RequestMethodSize); i++)
-                attr.RequestMethod[i] = method[i];
+            for (var i = 0; i < methodLength.Min(EmscriptenFetchAttr.RequestMethodSize); i++)
+                attr.RequestMethod[i] = methodBytes[i];
             attr.RequestMethod[EmscriptenFetchAttr.RequestMethodSize - 1] = 0;
             attr.TimeoutMSecs = (uint)request.Timeout.TotalMilliseconds;
             if (request.Headers is { Count: > 0 } headers)
             {
                 var elements = headers.Count * 2 + 1;
                 headersBuffer = Marshal.AllocHGlobal(elements * nint.Size);
-                headerBuffers = new nint[elements];
+                headerBuffers = ArrayPool<nint>.Shared.Rent(elements);
+                headerBuffersLength = elements;
                 var idx = 0;
                 foreach (var (key, value) in headers)
                 {
@@ -62,11 +68,14 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         }
         finally
         {
+            if (methodBytes is not null)
+                ArrayPool<byte>.Shared.Return(methodBytes);
             if (headerBuffers is not null)
             {
-                foreach (var p in headerBuffers)
-                    if (p != nint.Zero)
-                        Marshal.FreeCoTaskMem(p);
+                for (var i = 0; i < headerBuffersLength; i++)
+                    if (headerBuffers[i] != nint.Zero)
+                        Marshal.FreeCoTaskMem(headerBuffers[i]);
+                ArrayPool<nint>.Shared.Return(headerBuffers, true);
                 Marshal.FreeHGlobal(headersBuffer);
             }
         }
@@ -77,6 +86,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
     {
         var id = fetch->UserData;
         var response = new HttpResponse();
+        byte[]? headersBytes = null;
         try
         {
             response.StatusCode = fetch->Status;
@@ -85,13 +95,13 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
             if (fetch->Data != nint.Zero)
                 Marshal.Copy(fetch->Data, response.Body, 0, response.Body.Length);
             var headersLength = Emscripten.FetchGetResponseHeadersLength(fetch);
-            var headersBytes = new byte[headersLength + 1];
+            headersBytes = ArrayPool<byte>.Shared.Rent((int)headersLength + 1);
             fixed (byte* headersBuffer = headersBytes)
             {
                 Emscripten.FetchGetResponseHeaders(fetch, headersBuffer, headersLength + 1);
             }
 
-            var headersText = Encoding.UTF8.GetString(headersBytes);
+            var headersText = Encoding.UTF8.GetString(headersBytes, 0, (int)headersLength);
             foreach (var line in headersText.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries))
             {
                 var separatorIndex = line.IndexOf(':');
@@ -108,6 +118,8 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         }
         finally
         {
+            if (headersBytes is not null)
+                ArrayPool<byte>.Shared.Return(headersBytes);
             Emscripten.FetchClose(fetch);
             if (_requests.Remove(id, out var request))
             {
