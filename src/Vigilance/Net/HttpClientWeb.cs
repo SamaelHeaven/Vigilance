@@ -58,7 +58,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         }
         catch (Exception e)
         {
-            Http.CompleteFetch(request, new HttpResponse { StatusText = e.Message });
+            Http.CompleteFetch(new HttpResponse { Request = request, StatusText = e.Message });
         }
         finally
         {
@@ -110,7 +110,10 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         {
             Emscripten.FetchClose(fetch);
             if (_requests.Remove(id, out var request))
-                Http.CompleteFetch(request, response);
+            {
+                response.Request = request;
+                Http.CompleteFetch(response);
+            }
         }
     }
 }

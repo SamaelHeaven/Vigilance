@@ -26,6 +26,7 @@ public abstract class UIParent : UIElement
         }
     }
 
+    [OverloadResolutionPriority(1)]
     public UIParent this[params ReadOnlySpan<UIElement?> elements]
     {
         get

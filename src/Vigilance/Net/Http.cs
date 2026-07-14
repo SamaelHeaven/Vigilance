@@ -22,14 +22,14 @@ public static class Http
         _client.Fetch(request);
     }
 
-    internal static void CompleteFetch(HttpRequest request, HttpResponse response)
+    internal static void CompleteFetch(HttpResponse response)
     {
-        var method = Uri.EscapeDataString(request.Method.ToUpper());
-        var url = HttpUtility.UrlPathEncode(request.Url).Replace("\"", "%22");
+        var method = Uri.EscapeDataString(response.Request.Method.ToUpper());
+        var url = HttpUtility.UrlPathEncode(response.Request.Url).Replace("\"", "%22");
         var statusCode = response.StatusCode;
         var statusText = response.StatusText;
         var logLevel = response.IsSuccess ? LogLevel.Info : LogLevel.Error;
         Log.Invoke(logLevel, $"FETCH: {method} \"{url}\"{(statusCode == 0 ? "" : $" {statusCode}")} ({statusText})");
-        Game.Defer(() => request.OnComplete?.Invoke(response));
+        Game.Defer(() => response.Request.OnComplete?.Invoke(response));
     }
 }
