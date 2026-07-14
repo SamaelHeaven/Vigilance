@@ -11,10 +11,8 @@ internal static class Constant
 {
     internal const int EdgeCount = 9;
 
-    /// <summary>
-    ///     This value was chosen based on empiracle data. Even the most complicated
-    ///     layouts should not require more than 16 entries to fit within the cache.
-    /// </summary>
+    // This value was chosen based on empiracle data. Even the most complicated
+    // layouts should not require more than 16 entries to fit within the cache.
     internal const int MaxCachedResultCount = 16;
 
     internal const float DefaultFlexGrow = 0;
@@ -897,11 +895,7 @@ public static partial class Flex
         {
             case MeasureMode.Exactly:
             case MeasureMode.AtMost:
-                if (FloatIsUndefined(maxSize) || size < maxSize)
-                {
-                    // TODO: this is redundant, but what is in original code
-                    //*size = *size
-                }
+                if (FloatIsUndefined(maxSize) || size < maxSize) { }
                 else
                 {
                     size = maxSize;
@@ -928,7 +922,7 @@ public static partial class Flex
     )
         where TStorage : IList<Node<TStorage>>
     {
-        /* Root nodes should be always layouted as LTR, so we don't return negative values. */
+        // Root nodes should be always layouted as LTR, so we don't return negative values.
         var directionRespectingRoot = Direction.LeftToRight;
         if (node.Parent != null)
         {
