@@ -166,16 +166,16 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
         get
         {
             foreach (var element in this.AncestorsAndSelf())
-                if (!(element.IsLayoutReady && element.DisplayMode != DisplayMode.None && !element.WasRenderedOutside))
+                if (element is not { IsLayoutReady: true, Hidden: false, WasRenderedOutside: false })
                     return false;
             return true;
         }
     }
 
-    public DisplayMode DisplayMode
+    public bool Hidden
     {
-        get => (DisplayMode)Node.StyleGetDisplay();
-        set => Node.StyleSetDisplay((Display)value);
+        get => Node.StyleGetDisplay() == Display.None;
+        set => Node.StyleSetDisplay(value ? Display.None : Display.Flex);
     }
 
     public Overflow Overflow { get; set; }
@@ -1247,7 +1247,7 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
 
         public RenderData(UIElement element)
         {
-            ShouldRender = element.IsLayoutReady && element.DisplayMode != DisplayMode.None;
+            ShouldRender = element.IsLayoutReady && !element.Hidden;
         }
     }
 
