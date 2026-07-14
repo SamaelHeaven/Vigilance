@@ -19,7 +19,7 @@ public static unsafe class Keyboard
     static Keyboard()
     {
         Game.ThrowIfNotRunning();
-        _keyValues = Enum.GetValues<Key>().AsValueEnumerable().Where(key => key != Key.Null).ToArray();
+        _keyValues = Key.Values().AsValueEnumerable().Where(key => key != Key.Null).ToArray();
     }
 
     public static string TypedString { get; private set; } = "";

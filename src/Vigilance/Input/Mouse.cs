@@ -8,7 +8,6 @@ namespace Vigilance.Input;
 
 public static class Mouse
 {
-    private static readonly MouseButton[] _buttonValues = Enum.GetValues<MouseButton>();
     private static ValueList<MouseButton> _currentButtons = [];
     private static ValueList<MouseButton> _downButtons = [];
     private static ValueList<MouseButton> _pressedButtons = [];
@@ -118,7 +117,7 @@ public static class Mouse
     {
         _downButtons.Clear();
         _upButtons.Clear();
-        _upButtons.AddRange(_buttonValues);
+        _upButtons.AddRange(MouseButton.Values());
         _pressedButtons.Clear();
         _releasedButtons.Clear();
         _scroll = Vector2.Zero;
@@ -139,7 +138,7 @@ public static class Mouse
         if (Platform.Web.IsCurrent)
             _scroll.X = -_scroll.X;
         _currentButtons.Clear();
-        foreach (var button in _buttonValues)
+        foreach (var button in MouseButton.Values())
             if (Raylib.IsMouseButtonDown((Raylib_cs.MouseButton)button))
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
@@ -151,7 +150,7 @@ public static class Mouse
         _downButtons.Clear();
         _downButtons.AddRange(_currentButtons);
         _upButtons.Clear();
-        _upButtons.AddRange(_buttonValues);
+        _upButtons.AddRange(MouseButton.Values());
         _upButtons.RemoveAll(_currentButtons);
     }
 }
