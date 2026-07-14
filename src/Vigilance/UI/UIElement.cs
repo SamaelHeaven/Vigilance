@@ -22,7 +22,7 @@ public sealed class UINode : Node<UIElement>
 public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
 {
     [Flags]
-    public enum CloneOptions
+    public enum CloneOptions : byte
     {
         None = 0,
         SkipChildren = 1 << 0,

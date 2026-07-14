@@ -15,7 +15,7 @@ public abstract class Table
     }
 
     [Flags]
-    public enum Flags : sbyte
+    public enum Flags : byte
     {
         Default = 0,
         SilentOnImmutable = 1 << 0,
