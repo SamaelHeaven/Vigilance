@@ -759,7 +759,7 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
         {
             if (this is UIParent { IsLayoutCustom: false } parent)
                 return parent.Children()[index].Node;
-            return null!;
+            throw new ArgumentOutOfRangeException(nameof(index));
         }
         set
         {
