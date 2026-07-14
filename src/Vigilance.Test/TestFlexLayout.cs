@@ -14307,4 +14307,247 @@ public class TestUnit
 
         Flex.CalculateLayout(root, float.NaN, float.NaN, Direction.LeftToRight);
     }
+
+    [Test]
+    public void TestGapColumnGapOnRowContainer()
+    {
+        var root = new TestNode();
+        root.StyleSetFlexDirection(FlexDirection.Row);
+        root.StyleSetWidth(300);
+        root.StyleSetHeight(100);
+        root.StyleSetGap(Gutter.Column, 20);
+
+        var c0 = AddChild(root, 50, 50, 0);
+        var c1 = AddChild(root, 50, 50, 1);
+        var c2 = AddChild(root, 50, 50, 2);
+
+        Flex.CalculateLayout(root, float.NaN, float.NaN, Direction.LeftToRight);
+
+        AssertFloatEqual(0, c0.LayoutGetLeft());
+        AssertFloatEqual(70, c1.LayoutGetLeft());
+        AssertFloatEqual(140, c2.LayoutGetLeft());
+        // No trailing gap: all three items fit inside the fixed width.
+        AssertFloatEqual(300, root.LayoutGetWidth());
+    }
+
+    [Test]
+    public void TestGapRowGapOnColumnContainer()
+    {
+        var root = new TestNode();
+        root.StyleSetFlexDirection(FlexDirection.Column);
+        root.StyleSetWidth(100);
+        root.StyleSetHeight(300);
+        root.StyleSetGap(Gutter.Row, 20);
+
+        var c0 = AddChild(root, 50, 50, 0);
+        var c1 = AddChild(root, 50, 50, 1);
+        var c2 = AddChild(root, 50, 50, 2);
+
+        Flex.CalculateLayout(root, float.NaN, float.NaN, Direction.LeftToRight);
+
+        AssertFloatEqual(0, c0.LayoutGetTop());
+        AssertFloatEqual(70, c1.LayoutGetTop());
+        AssertFloatEqual(140, c2.LayoutGetTop());
+    }
+
+    [Test]
+    public void TestGapSingleChildHasNoGap()
+    {
+        var root = new TestNode();
+        root.StyleSetFlexDirection(FlexDirection.Row);
+        root.StyleSetGap(Gutter.Column, 40);
+        var c0 = AddChild(root, 50, 50, 0);
+
+        Flex.CalculateLayout(root, float.NaN, float.NaN, Direction.LeftToRight);
+
+        AssertFloatEqual(0, c0.LayoutGetLeft());
+        // Container shrinks to its single child, gap does not inflate it.
+        AssertFloatEqual(50, root.LayoutGetWidth());
+    }
+
+    [Test]
+    public void TestGapContentSizeExcludesTrailingGap()
+    {
+        // An auto-sized container's main size is the sum of items plus the
+        // gaps between them, never a trailing gap.
+        var root = new TestNode();
+        root.StyleSetFlexDirection(FlexDirection.Row);
+        root.StyleSetGap(Gutter.Column, 25);
+        AddChild(root, 30, 10, 0);
+        AddChild(root, 30, 10, 1);
+        AddChild(root, 30, 10, 2);
+
+        Flex.CalculateLayout(root, float.NaN, float.NaN, Direction.LeftToRight);
+
+        // 3*30 + 2*25 = 140.
+        AssertFloatEqual(140, root.LayoutGetWidth());
+    }
+
+    [Test]
+    public void TestGapPercentResolvesAgainstInnerSize()
+    {
+        var root = new TestNode();
+        root.StyleSetFlexDirection(FlexDirection.Row);
+        root.StyleSetWidth(200);
+        root.StyleSetHeight(50);
+        root.StyleSetGapPercent(Gutter.Column, 10); // 10% of 200 = 20
+
+        var c0 = AddChild(root, 50, 50, 0);
+        var c1 = AddChild(root, 50, 50, 1);
+
+        Flex.CalculateLayout(root, float.NaN, float.NaN, Direction.LeftToRight);
+
+        AssertFloatEqual(0, c0.LayoutGetLeft());
+        AssertFloatEqual(70, c1.LayoutGetLeft());
+    }
+
+    [Test]
+    public void TestGapWithFlexGrowReservesGapBeforeFlexing()
+    {
+        var root = new TestNode();
+        root.StyleSetFlexDirection(FlexDirection.Row);
+        root.StyleSetWidth(300);
+        root.StyleSetHeight(50);
+        root.StyleSetGap(Gutter.Column, 20);
+
+        var c0 = new TestNode();
+        c0.StyleSetFlexGrow(1);
+        c0.StyleSetFlexBasis(0);
+        c0.StyleSetHeight(50);
+        root.InsertChild(c0, 0);
+
+        var c1 = new TestNode();
+        c1.StyleSetFlexGrow(1);
+        c1.StyleSetFlexBasis(0);
+        c1.StyleSetHeight(50);
+        root.InsertChild(c1, 1);
+
+        Flex.CalculateLayout(root, float.NaN, float.NaN, Direction.LeftToRight);
+
+        // 300 - 20 gap = 280 shared equally => 140 each.
+        AssertFloatEqual(0, c0.LayoutGetLeft());
+        AssertFloatEqual(140, c0.LayoutGetWidth());
+        AssertFloatEqual(160, c1.LayoutGetLeft());
+        AssertFloatEqual(140, c1.LayoutGetWidth());
+    }
+
+    [Test]
+    public void TestGapWithJustifySpaceBetween()
+    {
+        var root = new TestNode();
+        root.StyleSetFlexDirection(FlexDirection.Row);
+        root.StyleSetJustifyContent(Justify.SpaceBetween);
+        root.StyleSetWidth(300);
+        root.StyleSetHeight(50);
+        root.StyleSetGap(Gutter.Column, 20);
+
+        var c0 = AddChild(root, 50, 50, 0);
+        var c1 = AddChild(root, 50, 50, 1);
+
+        Flex.CalculateLayout(root, float.NaN, float.NaN, Direction.LeftToRight);
+
+        // Gap is a floor; space-between distributes the rest so the last item
+        // still ends at the container edge.
+        AssertFloatEqual(0, c0.LayoutGetLeft());
+        AssertFloatEqual(250, c1.LayoutGetLeft());
+    }
+
+    [Test]
+    public void TestGapWrapWithBothGutters()
+    {
+        var root = new TestNode();
+        root.StyleSetFlexDirection(FlexDirection.Row);
+        root.StyleSetFlexWrap(Wrap.Wrap);
+        root.StyleSetWidth(100);
+        root.StyleSetGap(Gutter.Column, 10);
+        root.StyleSetGap(Gutter.Row, 20);
+
+        var c0 = AddChild(root, 40, 30, 0);
+        var c1 = AddChild(root, 40, 30, 1);
+        var c2 = AddChild(root, 40, 30, 2);
+        var c3 = AddChild(root, 40, 30, 3);
+
+        Flex.CalculateLayout(root, float.NaN, float.NaN, Direction.LeftToRight);
+
+        // Line 0: c0, c1 (40 + 10 + 40 = 90 <= 100). Line 1: c2, c3.
+        AssertFloatEqual(0, c0.LayoutGetLeft());
+        AssertFloatEqual(0, c0.LayoutGetTop());
+        AssertFloatEqual(50, c1.LayoutGetLeft());
+        AssertFloatEqual(0, c1.LayoutGetTop());
+        AssertFloatEqual(0, c2.LayoutGetLeft());
+        AssertFloatEqual(50, c2.LayoutGetTop());
+        AssertFloatEqual(50, c3.LayoutGetLeft());
+        AssertFloatEqual(50, c3.LayoutGetTop());
+        // Auto height = 30 + 20 row-gap + 30 = 80.
+        AssertFloatEqual(80, root.LayoutGetHeight());
+    }
+
+    [Test]
+    public void TestGapAllSetsBothGutters()
+    {
+        var root = new TestNode();
+        root.StyleSetGap(Gutter.All, 15);
+
+        AssertFloatEqual(15, root.StyleGetGap(Gutter.Column).Number);
+        AssertFloatEqual(15, root.StyleGetGap(Gutter.Row).Number);
+    }
+
+    [Test]
+    public void TestWrapContainerRespectsMinWidth()
+    {
+        // A wrapping container laid out under a tighter constraint than its
+        // min-width must wrap within the min-width and adopt it as its size.
+        var root = new TestNode();
+        root.StyleSetFlexDirection(FlexDirection.Row);
+        root.StyleSetFlexWrap(Wrap.Wrap);
+        root.StyleSetMinWidth(200);
+
+        var c0 = AddChild(root, 80, 20, 0);
+        var c1 = AddChild(root, 80, 20, 1);
+        var c2 = AddChild(root, 80, 20, 2);
+
+        // Offered only 100 wide; min-width should win.
+        Flex.CalculateLayout(root, 100, float.NaN, Direction.LeftToRight);
+
+        AssertFloatEqual(200, root.LayoutGetWidth());
+        // Two items fit per line within 200.
+        AssertFloatEqual(0, c0.LayoutGetLeft());
+        AssertFloatEqual(0, c0.LayoutGetTop());
+        AssertFloatEqual(80, c1.LayoutGetLeft());
+        AssertFloatEqual(0, c1.LayoutGetTop());
+        // Third item wraps to the second line.
+        AssertFloatEqual(0, c2.LayoutGetLeft());
+        AssertFloatEqual(20, c2.LayoutGetTop());
+    }
+
+    [Test]
+    public void TestWrapContainerRespectsMinHeightColumn()
+    {
+        var root = new TestNode();
+        root.StyleSetFlexDirection(FlexDirection.Column);
+        root.StyleSetFlexWrap(Wrap.Wrap);
+        root.StyleSetMinHeight(200);
+
+        var c0 = AddChild(root, 20, 80, 0);
+        var c1 = AddChild(root, 20, 80, 1);
+        var c2 = AddChild(root, 20, 80, 2);
+
+        Flex.CalculateLayout(root, float.NaN, 100, Direction.LeftToRight);
+
+        AssertFloatEqual(200, root.LayoutGetHeight());
+        AssertFloatEqual(0, c0.LayoutGetTop());
+        AssertFloatEqual(80, c1.LayoutGetTop());
+        AssertFloatEqual(0, c2.LayoutGetTop());
+        // Third item wraps to a second column.
+        AssertFloatEqual(20, c2.LayoutGetLeft());
+    }
+
+    private static TestNode AddChild(TestNode parent, float width, float height, int index)
+    {
+        var child = new TestNode();
+        child.StyleSetWidth(width);
+        child.StyleSetHeight(height);
+        parent.InsertChild(child, index);
+        return child;
+    }
 }

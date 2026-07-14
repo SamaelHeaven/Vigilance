@@ -52,6 +52,13 @@ public enum FlexDirection : sbyte
     RowReverse,
 }
 
+public enum Gutter : sbyte
+{
+    Column,
+    Row,
+    All,
+}
+
 public enum Justify : sbyte
 {
     Start,

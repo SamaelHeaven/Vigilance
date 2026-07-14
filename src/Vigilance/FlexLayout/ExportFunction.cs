@@ -636,12 +636,50 @@ public partial class Node<TStorage>
         return NodeStyle.MaxDimensions[(int)Dimension.Height];
     }
 
-    // StyleSetAspectRatio sets axpect ratio
+    // StyleSetAspectRatio sets aspect ratio
     public void StyleSetAspectRatio(float aspectRatio)
     {
         if (NodeStyle.AspectRatio != aspectRatio)
         {
             NodeStyle.AspectRatio = aspectRatio;
+            Flex.NodeMarkDirtyInternal(this);
+        }
+    }
+
+    // StyleSetGap sets the spacing between flex items in points
+    public void StyleSetGap(Gutter gutter, float gapLength)
+    {
+        var unit = Flex.FloatIsUndefined(gapLength) ? Unit.Undefined : Unit.Point;
+        SetGap(gutter, gapLength, unit);
+    }
+
+    // StyleSetGapPercent sets the spacing between flex items as a percentage
+    public void StyleSetGapPercent(Gutter gutter, float gapLength)
+    {
+        var unit = Flex.FloatIsUndefined(gapLength) ? Unit.Undefined : Unit.Percent;
+        SetGap(gutter, gapLength, unit);
+    }
+
+    // StyleGetGap gets the spacing between flex items for the given gutter
+    public Value StyleGetGap(Gutter gutter)
+    {
+        return gutter == Gutter.Row ? NodeStyle.GapRow : NodeStyle.GapColumn;
+    }
+
+    private void SetGap(Gutter gutter, float number, Unit unit)
+    {
+        if (gutter is Gutter.Column or Gutter.All)
+            ApplyGap(ref NodeStyle.GapColumn, number, unit);
+        if (gutter is Gutter.Row or Gutter.All)
+            ApplyGap(ref NodeStyle.GapRow, number, unit);
+    }
+
+    private void ApplyGap(ref Value gap, float number, Unit unit)
+    {
+        if (gap.Number != number || gap.Unit != unit)
+        {
+            gap.Number = number;
+            gap.Unit = unit;
             Flex.NodeMarkDirtyInternal(this);
         }
     }

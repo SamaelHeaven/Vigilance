@@ -63,7 +63,6 @@ public abstract class UIParent : UIElement
         element.Remove();
         _childrenList.Add(element);
         element.Parent = this;
-        element.ApplyDeclaredMargin();
         MarkDirty();
     }
 
@@ -84,7 +83,6 @@ public abstract class UIParent : UIElement
         _childrenList.Insert(index, element);
         element.Remove();
         element.Parent = this;
-        element.ApplyDeclaredMargin();
         MarkDirty();
     }
 
@@ -104,7 +102,6 @@ public abstract class UIParent : UIElement
         _childrenList[index].Remove();
         element.Remove();
         element.Parent = this;
-        element.ApplyDeclaredMargin();
         _childrenList[index] = element;
         MarkDirty();
     }

@@ -125,6 +125,30 @@ public record struct Unit(UnitType Type, float Value = 0)
     internal static void SetUnit(
         Node<UIElement> node,
         Unit value,
+        Gutter gutter,
+        Action<Node<UIElement>, Gutter, float> setFixed,
+        Action<Node<UIElement>, Gutter, float> setPercent
+    )
+    {
+        switch (value.Type)
+        {
+            case UnitType.Undefined:
+            case UnitType.Auto:
+                setFixed.Invoke(node, gutter, float.NaN);
+                break;
+            case UnitType.Fixed:
+                setFixed.Invoke(node, gutter, value.Value);
+                break;
+            case UnitType.Percent:
+                setPercent.Invoke(node, gutter, value.Value);
+                break;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SetUnit(
+        Node<UIElement> node,
+        Unit value,
         Edge edge,
         Action<Node<UIElement>, Edge> setAuto,
         Action<Node<UIElement>, Edge, float> setFixed,

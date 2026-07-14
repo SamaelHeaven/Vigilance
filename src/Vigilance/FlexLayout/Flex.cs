@@ -42,6 +42,12 @@ internal struct Style
     internal Display Display = Display.Flex;
     internal float Flex = float.NaN;
     internal Value FlexBasis = CreateAutoValue();
+
+    // Spacing between flex items. GapColumn is the horizontal gutter (CSS
+    // column-gap), GapRow is the vertical gutter (CSS row-gap). Undefined means
+    // no gap.
+    internal Value GapColumn = Value.UndefinedValue;
+    internal Value GapRow = Value.UndefinedValue;
     internal FlexDirection FlexDirection = FlexDirection.Column;
     internal float FlexGrow = float.NaN;
     internal float FlexShrink = float.NaN;
@@ -170,6 +176,14 @@ public static partial class Flex
         return ResolveValue(value, parentSize);
     }
 
+    internal static float NodeResolveGap<TStorage>(Node<TStorage> node, FlexDirection axis, float availableSize)
+        where TStorage : IList<Node<TStorage>>
+    {
+        var gap = FlexDirectionIsRow(axis) ? node.NodeStyle.GapColumn : node.NodeStyle.GapRow;
+        var resolved = ResolveValue(gap, availableSize);
+        return FloatIsUndefined(resolved) || resolved < 0 ? 0 : resolved;
+    }
+
     internal static void NodeMarkDirtyInternal<TStorage>(Node<TStorage> node)
         where TStorage : IList<Node<TStorage>>
     {
@@ -254,6 +268,8 @@ public static partial class Flex
             || !Feq(s1.FlexGrow, s2.FlexGrow)
             || !Feq(s1.FlexShrink, s2.FlexShrink)
             || !ValueEq(s1.FlexBasis, s2.FlexBasis)
+            || !ValueEq(s1.GapColumn, s2.GapColumn)
+            || !ValueEq(s1.GapRow, s2.GapRow)
         )
         {
             return false;
@@ -1804,6 +1820,11 @@ public static partial class Flex
             availableInnerCrossDim = availableInnerHeight;
         }
 
+        // Spacing inserted between flex items (main axis) and between flex lines
+        // (cross axis). Resolved once against the container's inner size.
+        var mainAxisGap = NodeResolveGap(node, mainAxis, availableInnerMainDim);
+        var crossAxisGap = NodeResolveGap(node, crossAxis, availableInnerCrossDim);
+
         // If there is only one child with flexGrow + flexShrink it means we can set the
         // computedFlexBasis to 0 instead of measuring and shrinking / flexing the child to exactly
         // match the remaining space
@@ -1921,6 +1942,14 @@ public static partial class Flex
 
         while (endOfLineIndex < childCount)
         {
+            // Insert the cross-axis gap ahead of every line after the first. Done
+            // before the line is positioned so single-line cross alignment (STEP 7)
+            // accounts for it when the container is auto-sized on the cross axis.
+            if (lineCount > 0)
+            {
+                totalLineCrossDim += crossAxisGap;
+            }
+
             // Number of items on the currently line. May be different from the
             // difference
             // between start and end indicates because we skip over absolute-positioned
@@ -1956,6 +1985,10 @@ public static partial class Flex
                 if (child.NodeStyle.PositionType != PositionType.Absolute)
                 {
                     var childMarginMainAxis = NodeMarginForAxis(child, mainAxis, availableInnerWidth);
+
+                    // Every item except the first on a line is preceded by the
+                    // main-axis gap.
+                    var childLeadingGapMainAxis = itemsOnLine > 0 ? mainAxisGap : 0;
                     var flexBasisWithMaxConstraints = Fminf(
                         ResolveValue(child.NodeStyle.MaxDimensions[(int)Dim[(int)mainAxis]], mainAxisParentSize),
                         child.NodeLayout.ComputedFlexBasis
@@ -1973,6 +2006,7 @@ public static partial class Flex
                         sizeConsumedOnCurrentLineIncludingMinConstraint
                             + flexBasisWithMinAndMaxConstraints
                             + childMarginMainAxis
+                            + childLeadingGapMainAxis
                             > availableInnerMainDim
                         && isNodeFlexWrap
                         && itemsOnLine > 0
@@ -1982,8 +2016,9 @@ public static partial class Flex
                     }
 
                     sizeConsumedOnCurrentLineIncludingMinConstraint +=
-                        flexBasisWithMinAndMaxConstraints + childMarginMainAxis;
-                    sizeConsumedOnCurrentLine += flexBasisWithMinAndMaxConstraints + childMarginMainAxis;
+                        flexBasisWithMinAndMaxConstraints + childMarginMainAxis + childLeadingGapMainAxis;
+                    sizeConsumedOnCurrentLine +=
+                        flexBasisWithMinAndMaxConstraints + childMarginMainAxis + childLeadingGapMainAxis;
                     itemsOnLine++;
 
                     if (NodeIsFlex(child))
@@ -2510,6 +2545,10 @@ public static partial class Flex
             var mainDim = leadingPaddingAndBorderMain + leadingMainDim;
             float crossDim = 0;
 
+            // Tracks whether the next in-flow item is the first on the line so the
+            // main-axis gap is only inserted between items, never before the first.
+            var isFirstInFlowChildOnLine = true;
+
             for (var i = startOfLineIndex; i < endOfLineIndex; i++)
             {
                 var child = node.Storage[i];
@@ -2540,6 +2579,14 @@ public static partial class Flex
                     // do not take part in that phase.
                     case PositionType.Relative:
                     {
+                        // Insert the main-axis gap ahead of every item after the first.
+                        if (!isFirstInFlowChildOnLine)
+                        {
+                            mainDim += mainAxisGap;
+                        }
+
+                        isFirstInFlowChildOnLine = false;
+
                         if (MarginLeadingValue(child, mainAxis).Unit == Unit.Auto)
                         {
                             mainDim += remainingFreeSpace / numberOfAutoMarginsOnCurrentLine;
@@ -3005,6 +3052,12 @@ public static partial class Flex
                 }
 
                 currentLead += lineHeight;
+
+                // Advance past the cross-axis gap before positioning the next line.
+                if (i < lineCount - 1)
+                {
+                    currentLead += crossAxisGap;
+                }
             }
         }
 
