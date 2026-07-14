@@ -25,7 +25,7 @@ public partial class Node<TStorage> : IStructEnumerable<Node<TStorage>.Enumerato
     internal Node<TStorage>? Parent = null;
     internal TStorage Storage;
 
-    public Node(TStorage storage)
+    internal Node(TStorage storage)
     {
         Storage = storage;
     }
