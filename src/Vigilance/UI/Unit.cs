@@ -76,11 +76,11 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node node,
+        Node<UIElement> node,
         Unit value,
-        Action<Node> setAuto,
-        Action<Node, float> setFixed,
-        Action<Node, float> setPercent
+        Action<Node<UIElement>> setAuto,
+        Action<Node<UIElement>, float> setFixed,
+        Action<Node<UIElement>, float> setPercent
     )
     {
         switch (value.Type)
@@ -99,7 +99,12 @@ public record struct Unit(UnitType Type, float Value = 0)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void SetUnit(Node node, Unit value, Action<Node, float> setFixed, Action<Node, float> setPercent)
+    internal static void SetUnit(
+        Node<UIElement> node,
+        Unit value,
+        Action<Node<UIElement>, float> setFixed,
+        Action<Node<UIElement>, float> setPercent
+    )
     {
         switch (value.Type)
         {
@@ -118,12 +123,12 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node node,
+        Node<UIElement> node,
         Unit value,
         Edge edge,
-        Action<Node, Edge> setAuto,
-        Action<Node, Edge, float> setFixed,
-        Action<Node, Edge, float> setPercent
+        Action<Node<UIElement>, Edge> setAuto,
+        Action<Node<UIElement>, Edge, float> setFixed,
+        Action<Node<UIElement>, Edge, float> setPercent
     )
     {
         switch (value.Type)
@@ -145,11 +150,11 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node node,
+        Node<UIElement> node,
         Unit value,
         Edge edge,
-        Action<Node, Edge, float> setFixed,
-        Action<Node, Edge, float> setPercent
+        Action<Node<UIElement>, Edge, float> setFixed,
+        Action<Node<UIElement>, Edge, float> setPercent
     )
     {
         switch (value.Type)

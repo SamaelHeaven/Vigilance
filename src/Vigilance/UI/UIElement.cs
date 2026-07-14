@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Collections;
 using System.Numerics;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -12,7 +13,7 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public abstract class UIElement : IFullCloneable
+public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
 {
     [Flags]
     public enum CloneOptions
@@ -46,11 +47,12 @@ public abstract class UIElement : IFullCloneable
     private Func<UIElement, Graphics, CameraProvider, bool>? _onRenderHandlers;
     private Func<UIElement, bool>? _onUpdateHandlers;
     private RenderData _renderData;
-    internal Node Node = Flex.CreateDefaultNode();
+    internal Node<UIElement> Node;
 
     protected UIElement()
     {
         var measure = Measure;
+        Node = new Node<UIElement>(this);
         Node.StyleSetAlignItems(FlexLayout.Align.Start);
         IsLayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
         if (IsLayoutCustom)
@@ -677,6 +679,98 @@ public abstract class UIElement : IFullCloneable
         return ShallowClone(CloneOptions.None);
     }
 
+    IEnumerator<Node<UIElement>> IEnumerable<Node<UIElement>>.GetEnumerator()
+    {
+        if (this is not UIParent { IsLayoutCustom: false } parent)
+            yield break;
+        foreach (var child in parent.Children())
+            yield return child.Node;
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return ((IEnumerable<Node<UIElement>>)this).GetEnumerator();
+    }
+
+    void ICollection<Node<UIElement>>.Add(Node<UIElement> item)
+    {
+        if (this is not UIParent { IsLayoutCustom: false } parent)
+            throw new NotSupportedException();
+        parent.Add(item.Storage);
+    }
+
+    void ICollection<Node<UIElement>>.Clear()
+    {
+        if (this is not UIParent { IsLayoutCustom: false } parent)
+            throw new NotSupportedException();
+        parent.Clear();
+    }
+
+    bool ICollection<Node<UIElement>>.Contains(Node<UIElement> item)
+    {
+        if (this is UIParent { IsLayoutCustom: false } parent)
+            return parent.Children().AsValueEnumerable().Contains(item.Storage);
+        return false;
+    }
+
+    void ICollection<Node<UIElement>>.CopyTo(Node<UIElement>[] array, int arrayIndex)
+    {
+        if (this is UIParent { IsLayoutCustom: false } parent)
+            parent.Children().AsValueEnumerable().Select(p => p.Node).CopyTo(array.AsSpan(arrayIndex));
+    }
+
+    bool ICollection<Node<UIElement>>.Remove(Node<UIElement> item)
+    {
+        return this is not UIParent { IsLayoutCustom: false } parent
+            ? throw new NotSupportedException()
+            : parent.Remove(item.Storage);
+    }
+
+    int ICollection<Node<UIElement>>.Count =>
+        this is not UIParent { IsLayoutCustom: false } parent ? 0 : parent.Children().Count;
+
+    bool ICollection<Node<UIElement>>.IsReadOnly => this is not UIParent { IsLayoutCustom: false };
+
+    int IList<Node<UIElement>>.IndexOf(Node<UIElement> item)
+    {
+        if (this is UIParent { IsLayoutCustom: false } parent)
+            return parent.IndexOf(item.Storage);
+        return -1;
+    }
+
+    void IList<Node<UIElement>>.Insert(int index, Node<UIElement> item)
+    {
+        if (this is not UIParent { IsLayoutCustom: false } parent)
+            throw new NotSupportedException();
+        parent.Insert(index, item.Storage);
+    }
+
+    void IList<Node<UIElement>>.RemoveAt(int index)
+    {
+        if (this is not UIParent { IsLayoutCustom: false } parent)
+            throw new NotSupportedException();
+        parent.Children()[index].Remove();
+    }
+
+    Node<UIElement> IList<Node<UIElement>>.this[int index]
+    {
+        get
+        {
+            if (this is UIParent { IsLayoutCustom: false } parent)
+                return parent.Children()[index].Node;
+            return null!;
+        }
+        set
+        {
+            if (this is not UIParent { IsLayoutCustom: false } parent)
+                throw new NotSupportedException();
+            var children = parent.Children();
+            if (index < children.Count)
+                children[index].Remove();
+            parent.Insert(index, value.Storage);
+        }
+    }
+
     internal bool ApplyDeclaredMargin()
     {
         return ApplyComputedMargin(DeclaredMargin);
@@ -1284,7 +1378,7 @@ public abstract class UIElement : IFullCloneable
         result._click = false;
         result.IsLayoutReady = false;
         result.Parent = null;
-        result.Node = Flex.CreateDefaultNode();
+        result.Node = new Node<UIElement>(result);
         Flex.NodeCopyStyle(result.Node, element.Node);
         result.ApplyDeclaredMargin();
         result.Attributes = element.Attributes.ShallowClone();

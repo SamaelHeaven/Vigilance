@@ -1,10 +1,18 @@
 ﻿namespace Vigilance.FlexLayout;
 
 // MeasureFunc describes function for measuring
-public delegate Size MeasureFunc(Node node, float width, MeasureMode widthMode, float height, MeasureMode heightMode);
+public delegate Size MeasureFunc<TStorage>(
+    Node<TStorage> node,
+    float width,
+    MeasureMode widthMode,
+    float height,
+    MeasureMode heightMode
+)
+    where TStorage : IList<Node<TStorage>>;
 
 // BaselineFunc describes function for baseline
-public delegate float BaselineFunc(Node node, float width, float height);
+public delegate float BaselineFunc<TStorage>(Node<TStorage> node, float width, float height)
+    where TStorage : IList<Node<TStorage>>;
 
 public sealed class Size
 {
@@ -77,7 +85,8 @@ public static partial class Flex
         return scaledValue / pointScaleFactor;
     }
 
-    public static void NodeCopyStyle(Node dstNode, Node srcNode)
+    public static void NodeCopyStyle<TStorage>(Node<TStorage> dstNode, Node<TStorage> srcNode)
+        where TStorage : IList<Node<TStorage>>
     {
         if (!StyleEq(dstNode.NodeStyle, srcNode.NodeStyle))
         {
@@ -86,21 +95,13 @@ public static partial class Flex
         }
     }
 
-    public static void Reset(ref Node node)
-    {
-        Assert(node.Children.Count == 0, "Cannot reset a node which still has children attached");
-        Assert(node.Parent == null, "Cannot reset a node still attached to a parent");
-        node.Children.Clear();
-        node = CreateDefaultNode();
-    }
-
-    public static Node CreateDefaultNode()
-    {
-        var node = new Node();
-        return node;
-    }
-
-    public static void CalculateLayout(Node node, float parentWidth, float parentHeight, Direction parentDirection)
+    public static void CalculateLayout<TStorage>(
+        Node<TStorage> node,
+        float parentWidth,
+        float parentHeight,
+        Direction parentDirection
+    )
+        where TStorage : IList<Node<TStorage>>
     {
         CurrentGenerationCount++;
 

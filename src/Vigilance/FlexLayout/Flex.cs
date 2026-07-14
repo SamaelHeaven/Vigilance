@@ -2,7 +2,7 @@
 
 // ReSharper disable ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
 
-using System.Runtime.CompilerServices;
+using Vigilance.Core;
 
 namespace Vigilance.FlexLayout;
 
@@ -189,7 +189,8 @@ public static partial class Flex
     //     return array == null ? 0 : array.Length;
     // }
 
-    internal static void NodeMarkDirtyInternal(Node node)
+    internal static void NodeMarkDirtyInternal<TStorage>(Node<TStorage> node)
+        where TStorage : IList<Node<TStorage>>
     {
         if (!node.IsDirty)
         {
@@ -203,7 +204,8 @@ public static partial class Flex
     }
 
     // SetMeasureFunc sets measure function
-    internal static void SetMeasureFunc(Node node, MeasureFunc? measureFunc)
+    internal static void SetMeasureFunc<TStorage>(Node<TStorage> node, MeasureFunc<TStorage>? measureFunc)
+        where TStorage : IList<Node<TStorage>>
     {
         if (measureFunc == null)
         {
@@ -213,8 +215,8 @@ public static partial class Flex
         }
         else
         {
-            Assert(
-                node.Children.Count == 0,
+            Debug.Assert(
+                node.Storage.Count == 0,
                 "Cannot set measure function: Nodes with measure functions cannot have children."
             );
             node.MeasureFunc = measureFunc;
@@ -224,20 +226,22 @@ public static partial class Flex
     }
 
     // InsertChild inserts a child
-    internal static void InsertChild(Node node, Node child, int idx)
+    internal static void InsertChild<TStorage>(Node<TStorage> node, Node<TStorage> child, int idx)
+        where TStorage : IList<Node<TStorage>>
     {
-        Assert(child.Parent == null, "Child already has a parent, it must be removed first.");
-        Assert(node.MeasureFunc == null, "Cannot add child: Nodes with measure functions cannot have children.");
+        Debug.Assert(child.Parent == null, "Child already has a parent, it must be removed first.");
+        Debug.Assert(node.MeasureFunc == null, "Cannot add child: Nodes with measure functions cannot have children.");
 
-        node.Children.Insert(idx, child);
+        node.Storage.Insert(idx, child);
         child.Parent = node;
         NodeMarkDirtyInternal(node);
     }
 
     // RemoveChild removes child node
-    internal static void RemoveChild(Node node, Node child)
+    internal static void RemoveChild<TStorage>(Node<TStorage> node, Node<TStorage> child)
+        where TStorage : IList<Node<TStorage>>
     {
-        if (node.Children.Remove(child))
+        if (node.Storage.Remove(child))
         {
             child.NodeLayout.ResetToDefault(); // layout is no longer valid
             child.Parent = null;
@@ -246,9 +250,10 @@ public static partial class Flex
     }
 
     // GetChild returns a child at a given index
-    internal static Node GetChild(Node node, int idx)
+    internal static Node<TStorage> GetChild<TStorage>(Node<TStorage> node, int idx)
+        where TStorage : IList<Node<TStorage>>
     {
-        return idx < node.Children.Count ? node.Children[idx] : null!;
+        return idx < node.Storage.Count ? node.Storage[idx] : null!;
     }
 
     internal static bool StyleEq(Style s1, Style s2)
@@ -301,7 +306,8 @@ public static partial class Flex
         return true;
     }
 
-    internal static float ResolveFlexGrow(Node node)
+    internal static float ResolveFlexGrow<TStorage>(Node<TStorage> node)
+        where TStorage : IList<Node<TStorage>>
     {
         // Root nodes flexGrow should always be 0
         if (node.Parent == null)
@@ -322,7 +328,8 @@ public static partial class Flex
         return Constant.DefaultFlexGrow;
     }
 
-    internal static float NodeResolveFlexShrink(Node node)
+    internal static float NodeResolveFlexShrink<TStorage>(Node<TStorage> node)
+        where TStorage : IList<Node<TStorage>>
     {
         // Root nodes flexShrink should always be 0
         if (node.Parent == null)
@@ -343,7 +350,8 @@ public static partial class Flex
         return Constant.DefaultFlexShrink;
     }
 
-    internal static Value NodeResolveFlexBasisPtr(Node node)
+    internal static Value NodeResolveFlexBasisPtr<TStorage>(Node<TStorage> node)
+        where TStorage : IList<Node<TStorage>>
     {
         var style = node.NodeStyle;
         if (style.FlexBasis.Unit != Unit.Auto && style.FlexBasis.Unit != Unit.Undefined)
@@ -381,7 +389,8 @@ public static partial class Flex
         return System.Math.Abs(a.Number - b.Number) < 0.0001f;
     }
 
-    internal static void ResolveDimensions(Node node)
+    internal static void ResolveDimensions<TStorage>(Node<TStorage> node)
+        where TStorage : IList<Node<TStorage>>
     {
         for (var dim = (int)Dimension.Width; dim <= (int)Dimension.Height; dim++)
         {
@@ -409,7 +418,8 @@ public static partial class Flex
         return flexDirection is FlexDirection.Column or FlexDirection.ColumnReverse;
     }
 
-    internal static float NodeLeadingMargin(Node node, FlexDirection axis, float widthSize)
+    internal static float NodeLeadingMargin<TStorage>(Node<TStorage> node, FlexDirection axis, float widthSize)
+        where TStorage : IList<Node<TStorage>>
     {
         if (FlexDirectionIsRow(axis) && node.NodeStyle.Margin[(int)Edge.Start].Unit != Unit.Undefined)
         {
@@ -420,7 +430,8 @@ public static partial class Flex
         return ResolveValueMargin(v, widthSize);
     }
 
-    internal static float NodeTrailingMargin(Node node, FlexDirection axis, float widthSize)
+    internal static float NodeTrailingMargin<TStorage>(Node<TStorage> node, FlexDirection axis, float widthSize)
+        where TStorage : IList<Node<TStorage>>
     {
         if (FlexDirectionIsRow(axis) && node.NodeStyle.Margin[(int)Edge.End].Unit != Unit.Undefined)
         {
@@ -430,7 +441,8 @@ public static partial class Flex
         return ResolveValueMargin(ComputedEdgeValue(node.NodeStyle.Margin, Trailing[(int)axis], ValueZero), widthSize);
     }
 
-    internal static float NodeLeadingPadding(Node node, FlexDirection axis, float widthSize)
+    internal static float NodeLeadingPadding<TStorage>(Node<TStorage> node, FlexDirection axis, float widthSize)
+        where TStorage : IList<Node<TStorage>>
     {
         if (
             FlexDirectionIsRow(axis)
@@ -447,7 +459,8 @@ public static partial class Flex
         );
     }
 
-    internal static float NodeTrailingPadding(Node node, FlexDirection axis, float widthSize)
+    internal static float NodeTrailingPadding<TStorage>(Node<TStorage> node, FlexDirection axis, float widthSize)
+        where TStorage : IList<Node<TStorage>>
     {
         if (
             FlexDirectionIsRow(axis)
@@ -464,7 +477,8 @@ public static partial class Flex
         );
     }
 
-    internal static float NodeLeadingBorder(Node node, FlexDirection axis)
+    internal static float NodeLeadingBorder<TStorage>(Node<TStorage> node, FlexDirection axis)
+        where TStorage : IList<Node<TStorage>>
     {
         if (
             FlexDirectionIsRow(axis)
@@ -478,7 +492,8 @@ public static partial class Flex
         return Fmaxf(ComputedEdgeValue(node.NodeStyle.Border, Leading[(int)axis], ValueZero).Number, 0);
     }
 
-    internal static float NodeTrailingBorder(Node node, FlexDirection axis)
+    internal static float NodeTrailingBorder<TStorage>(Node<TStorage> node, FlexDirection axis)
+        where TStorage : IList<Node<TStorage>>
     {
         if (
             FlexDirectionIsRow(axis)
@@ -492,29 +507,46 @@ public static partial class Flex
         return Fmaxf(ComputedEdgeValue(node.NodeStyle.Border, Trailing[(int)axis], ValueZero).Number, 0);
     }
 
-    internal static float NodeLeadingPaddingAndBorder(Node node, FlexDirection axis, float widthSize)
+    internal static float NodeLeadingPaddingAndBorder<TStorage>(
+        Node<TStorage> node,
+        FlexDirection axis,
+        float widthSize
+    )
+        where TStorage : IList<Node<TStorage>>
     {
         return NodeLeadingPadding(node, axis, widthSize) + NodeLeadingBorder(node, axis);
     }
 
-    internal static float NodeTrailingPaddingAndBorder(Node node, FlexDirection axis, float widthSize)
+    internal static float NodeTrailingPaddingAndBorder<TStorage>(
+        Node<TStorage> node,
+        FlexDirection axis,
+        float widthSize
+    )
+        where TStorage : IList<Node<TStorage>>
     {
         return NodeTrailingPadding(node, axis, widthSize) + NodeTrailingBorder(node, axis);
     }
 
-    internal static float NodeMarginForAxis(Node node, FlexDirection axis, float widthSize)
+    internal static float NodeMarginForAxis<TStorage>(Node<TStorage> node, FlexDirection axis, float widthSize)
+        where TStorage : IList<Node<TStorage>>
     {
         var leading = NodeLeadingMargin(node, axis, widthSize);
         var trailing = NodeTrailingMargin(node, axis, widthSize);
         return leading + trailing;
     }
 
-    internal static float NodePaddingAndBorderForAxis(Node node, FlexDirection axis, float widthSize)
+    internal static float NodePaddingAndBorderForAxis<TStorage>(
+        Node<TStorage> node,
+        FlexDirection axis,
+        float widthSize
+    )
+        where TStorage : IList<Node<TStorage>>
     {
         return NodeLeadingPaddingAndBorder(node, axis, widthSize) + NodeTrailingPaddingAndBorder(node, axis, widthSize);
     }
 
-    internal static Align NodeAlignItem(Node node, Node child)
+    internal static Align NodeAlignItem<TStorage>(Node<TStorage> node, Node<TStorage> child)
+        where TStorage : IList<Node<TStorage>>
     {
         var align = child.NodeStyle.AlignSelf;
         if (child.NodeStyle.AlignSelf == Align.Auto)
@@ -530,7 +562,8 @@ public static partial class Flex
         return align;
     }
 
-    internal static Direction NodeResolveDirection(Node node, Direction parentDirection)
+    internal static Direction NodeResolveDirection<TStorage>(Node<TStorage> node, Direction parentDirection)
+        where TStorage : IList<Node<TStorage>>
     {
         if (node.NodeStyle.Direction == Direction.Inherit)
         {
@@ -546,7 +579,8 @@ public static partial class Flex
     }
 
     // Baseline retuns baseline
-    internal static float Baseline(Node node)
+    internal static float Baseline<TStorage>(Node<TStorage> node)
+        where TStorage : IList<Node<TStorage>>
     {
         if (node.BaselineFunc != null)
         {
@@ -555,13 +589,13 @@ public static partial class Flex
                 node.NodeLayout.MeasuredDimensions[(int)Dimension.Width],
                 node.NodeLayout.MeasuredDimensions[(int)Dimension.Height]
             );
-            Assert(!FloatIsUndefined(baseline), "Expect custom baseline function to not return NaN");
+            Debug.Assert(!FloatIsUndefined(baseline), "Expect custom baseline function to not return NaN");
             return baseline;
         }
         else
         {
-            Node? baselineChild = null;
-            foreach (var child in node.Children)
+            Node<TStorage>? baselineChild = null;
+            foreach (var child in node)
             {
                 if (child.LineIndex > 0)
                 {
@@ -618,13 +652,15 @@ public static partial class Flex
         return FlexDirection.Column;
     }
 
-    internal static bool NodeIsFlex(Node node)
+    internal static bool NodeIsFlex<TStorage>(Node<TStorage> node)
+        where TStorage : IList<Node<TStorage>>
     {
         return node.NodeStyle.PositionType == PositionType.Relative
             && (ResolveFlexGrow(node) != 0 || NodeResolveFlexShrink(node) != 0);
     }
 
-    internal static bool IsBaselineLayout(Node node)
+    internal static bool IsBaselineLayout<TStorage>(Node<TStorage> node)
+        where TStorage : IList<Node<TStorage>>
     {
         if (FlexDirectionIsColumn(node.NodeStyle.FlexDirection))
         {
@@ -636,7 +672,7 @@ public static partial class Flex
             return true;
         }
 
-        foreach (var child in node.Children)
+        foreach (var child in node)
         {
             if (child.NodeStyle is { PositionType: PositionType.Relative, AlignSelf: Align.Baseline })
             {
@@ -647,14 +683,16 @@ public static partial class Flex
         return false;
     }
 
-    internal static float NodeDimWithMargin(Node node, FlexDirection axis, float widthSize)
+    internal static float NodeDimWithMargin<TStorage>(Node<TStorage> node, FlexDirection axis, float widthSize)
+        where TStorage : IList<Node<TStorage>>
     {
         return node.NodeLayout.MeasuredDimensions[(int)Dim[(int)axis]]
             + NodeLeadingMargin(node, axis, widthSize)
             + NodeTrailingMargin(node, axis, widthSize);
     }
 
-    internal static bool NodeIsStyleDimDefined(Node node, FlexDirection axis, float parentSize)
+    internal static bool NodeIsStyleDimDefined<TStorage>(Node<TStorage> node, FlexDirection axis, float parentSize)
+        where TStorage : IList<Node<TStorage>>
     {
         var v = node.ResolvedDimensions[(int)Dim[(int)axis]];
         var isNotDefined =
@@ -665,13 +703,15 @@ public static partial class Flex
         return !isNotDefined;
     }
 
-    internal static bool NodeIsLayoutDimDefined(Node node, FlexDirection axis)
+    internal static bool NodeIsLayoutDimDefined<TStorage>(Node<TStorage> node, FlexDirection axis)
+        where TStorage : IList<Node<TStorage>>
     {
         var value = node.NodeLayout.MeasuredDimensions[(int)Dim[(int)axis]];
         return !FloatIsUndefined(value) && value >= 0;
     }
 
-    internal static bool NodeIsLeadingPosDefined(Node node, FlexDirection axis)
+    internal static bool NodeIsLeadingPosDefined<TStorage>(Node<TStorage> node, FlexDirection axis)
+        where TStorage : IList<Node<TStorage>>
     {
         return (
                 FlexDirectionIsRow(axis)
@@ -680,7 +720,8 @@ public static partial class Flex
             || ComputedEdgeValue(node.NodeStyle.Position, Leading[(int)axis], ValueUndefined).Unit != Unit.Undefined;
     }
 
-    internal static bool NodeIsTrailingPosDefined(Node node, FlexDirection axis)
+    internal static bool NodeIsTrailingPosDefined<TStorage>(Node<TStorage> node, FlexDirection axis)
+        where TStorage : IList<Node<TStorage>>
     {
         return (
                 FlexDirectionIsRow(axis)
@@ -689,7 +730,8 @@ public static partial class Flex
             || ComputedEdgeValue(node.NodeStyle.Position, Trailing[(int)axis], ValueUndefined).Unit != Unit.Undefined;
     }
 
-    internal static float NodeLeadingPosition(Node node, FlexDirection axis, float axisSize)
+    internal static float NodeLeadingPosition<TStorage>(Node<TStorage> node, FlexDirection axis, float axisSize)
+        where TStorage : IList<Node<TStorage>>
     {
         if (FlexDirectionIsRow(axis))
         {
@@ -712,7 +754,8 @@ public static partial class Flex
         }
     }
 
-    internal static float NodeTrailingPosition(Node node, FlexDirection axis, float axisSize)
+    internal static float NodeTrailingPosition<TStorage>(Node<TStorage> node, FlexDirection axis, float axisSize)
+        where TStorage : IList<Node<TStorage>>
     {
         if (FlexDirectionIsRow(axis))
         {
@@ -735,7 +778,13 @@ public static partial class Flex
         }
     }
 
-    internal static float NodeBoundAxisWithinMinAndMax(Node node, FlexDirection axis, float value, float axisSize)
+    internal static float NodeBoundAxisWithinMinAndMax<TStorage>(
+        Node<TStorage> node,
+        FlexDirection axis,
+        float value,
+        float axisSize
+    )
+        where TStorage : IList<Node<TStorage>>
     {
         var min = float.NaN;
         var max = float.NaN;
@@ -766,7 +815,8 @@ public static partial class Flex
         return boundValue;
     }
 
-    internal static Value MarginLeadingValue(Node node, FlexDirection axis)
+    internal static Value MarginLeadingValue<TStorage>(Node<TStorage> node, FlexDirection axis)
+        where TStorage : IList<Node<TStorage>>
     {
         if (FlexDirectionIsRow(axis) && node.NodeStyle.Margin[(int)Edge.Start].Unit != Unit.Undefined)
         {
@@ -776,7 +826,8 @@ public static partial class Flex
         return node.NodeStyle.Margin[(int)Leading[(int)axis]];
     }
 
-    internal static Value MarginTrailingValue(Node node, FlexDirection axis)
+    internal static Value MarginTrailingValue<TStorage>(Node<TStorage> node, FlexDirection axis)
+        where TStorage : IList<Node<TStorage>>
     {
         if (FlexDirectionIsRow(axis) && node.NodeStyle.Margin[(int)Edge.End].Unit != Unit.Undefined)
         {
@@ -788,7 +839,14 @@ public static partial class Flex
 
     // nodeBoundAxis is like nodeBoundAxisWithinMinAndMax but also ensures that
     // the value doesn't go below the padding and border amount.
-    internal static float NodeBoundAxis(Node node, FlexDirection axis, float value, float axisSize, float widthSize)
+    internal static float NodeBoundAxis<TStorage>(
+        Node<TStorage> node,
+        FlexDirection axis,
+        float value,
+        float axisSize,
+        float widthSize
+    )
+        where TStorage : IList<Node<TStorage>>
     {
         return Fmaxf(
             NodeBoundAxisWithinMinAndMax(node, axis, value, axisSize),
@@ -796,7 +854,12 @@ public static partial class Flex
         );
     }
 
-    internal static void NodeSetChildTrailingPosition(Node node, Node child, FlexDirection axis)
+    internal static void NodeSetChildTrailingPosition<TStorage>(
+        Node<TStorage> node,
+        Node<TStorage> child,
+        FlexDirection axis
+    )
+        where TStorage : IList<Node<TStorage>>
     {
         var size = child.NodeLayout.MeasuredDimensions[(int)Dim[(int)axis]];
         child.NodeLayout.Position[(int)Trailing[(int)axis]] =
@@ -807,7 +870,8 @@ public static partial class Flex
 
     // If both left and right are defined, then use left. Otherwise, return
     // +left or -right depending on which is defined.
-    internal static float NodeRelativePosition(Node node, FlexDirection axis, float axisSize)
+    internal static float NodeRelativePosition<TStorage>(Node<TStorage> node, FlexDirection axis, float axisSize)
+        where TStorage : IList<Node<TStorage>>
     {
         if (NodeIsLeadingPosDefined(node, axis))
         {
@@ -817,15 +881,18 @@ public static partial class Flex
         return -NodeTrailingPosition(node, axis, axisSize);
     }
 
-    internal static void ConstrainMaxSizeForMode(
-        Node node,
+    internal static void ConstrainMaxSizeForMode<TStorage>(
+        Node<TStorage> node,
         FlexDirection axis,
         float parentAxisSize,
         float parentWidth,
         ref MeasureMode mode,
         ref float size
     )
+        where TStorage : IList<Node<TStorage>>
     {
+        if (node == null)
+            throw new ArgumentNullException(nameof(node));
         var maxSize =
             ResolveValue(node.NodeStyle.MaxDimensions[(int)Dim[(int)axis]], parentAxisSize)
             + NodeMarginForAxis(node, axis, parentWidth);
@@ -855,13 +922,14 @@ public static partial class Flex
         }
     }
 
-    internal static void NodeSetPosition(
-        Node node,
+    internal static void NodeSetPosition<TStorage>(
+        Node<TStorage> node,
         Direction direction,
         float mainSize,
         float crossSize,
         float parentWidth
     )
+        where TStorage : IList<Node<TStorage>>
     {
         /* Root nodes should be always layouted as LTR, so we don't return negative values. */
         var directionRespectingRoot = Direction.LeftToRight;
@@ -883,9 +951,9 @@ public static partial class Flex
         pos[(int)Trailing[(int)crossAxis]] = NodeTrailingMargin(node, crossAxis, parentWidth) + relativePositionCross;
     }
 
-    internal static void NodeComputeFlexBasisForChild(
-        Node node,
-        Node child,
+    internal static void NodeComputeFlexBasisForChild<TStorage>(
+        Node<TStorage> node,
+        Node<TStorage> child,
         float width,
         MeasureMode widthMode,
         float height,
@@ -894,6 +962,7 @@ public static partial class Flex
         MeasureMode heightMode,
         Direction direction
     )
+        where TStorage : IList<Node<TStorage>>
     {
         var mainAxis = ResolveFlexDirection(node.NodeStyle.FlexDirection, direction);
         var isMainAxisRow = FlexDirectionIsRow(mainAxis);
@@ -1069,14 +1138,15 @@ public static partial class Flex
             }
     }
 
-    internal static void NodeAbsoluteLayoutChild(
-        Node node,
-        Node child,
+    internal static void NodeAbsoluteLayoutChild<TStorage>(
+        Node<TStorage> node,
+        Node<TStorage> child,
         float width,
         MeasureMode widthMode,
         float height,
         Direction direction
     )
+        where TStorage : IList<Node<TStorage>>
     {
         var mainAxis = ResolveFlexDirection(node.NodeStyle.FlexDirection, direction);
         var crossAxis = FlexDirectionCross(mainAxis, direction);
@@ -1282,8 +1352,8 @@ public static partial class Flex
     }
 
     // nodeWithMeasureFuncSetMeasuredDimensions sets measure dimensions for node with measure func
-    internal static void NodeWithMeasureFuncSetMeasuredDimensions(
-        Node node,
+    internal static void NodeWithMeasureFuncSetMeasuredDimensions<TStorage>(
+        Node<TStorage> node,
         float availableWidth,
         float availableHeight,
         MeasureMode widthMeasureMode,
@@ -1291,8 +1361,9 @@ public static partial class Flex
         float parentWidth,
         float parentHeight
     )
+        where TStorage : IList<Node<TStorage>>
     {
-        Assert(node.MeasureFunc != null, "Expected node to have custom measure function");
+        Debug.Assert(node.MeasureFunc != null, "Expected node to have custom measure function");
 
         var paddingAndBorderAxisRow = NodePaddingAndBorderForAxis(node, FlexDirection.Row, availableWidth);
         var paddingAndBorderAxisColumn = NodePaddingAndBorderForAxis(node, FlexDirection.Column, availableWidth);
@@ -1368,8 +1439,8 @@ public static partial class Flex
     // nodeEmptyContainerSetMeasuredDimensions sets measure dimensions for empty container
     // For nodes with no children, use the available values if they were provided,
     // or the minimum size as indicated by the padding and border sizes.
-    internal static void NodeEmptyContainerSetMeasuredDimensions(
-        Node node,
+    internal static void NodeEmptyContainerSetMeasuredDimensions<TStorage>(
+        Node<TStorage> node,
         float availableWidth,
         float availableHeight,
         MeasureMode widthMeasureMode,
@@ -1377,6 +1448,7 @@ public static partial class Flex
         float parentWidth,
         float parentHeight
     )
+        where TStorage : IList<Node<TStorage>>
     {
         var paddingAndBorderAxisRow = NodePaddingAndBorderForAxis(node, FlexDirection.Row, parentWidth);
         var paddingAndBorderAxisColumn = NodePaddingAndBorderForAxis(node, FlexDirection.Column, parentWidth);
@@ -1412,8 +1484,8 @@ public static partial class Flex
         );
     }
 
-    internal static bool NodeFixedSizeSetMeasuredDimensions(
-        Node node,
+    internal static bool NodeFixedSizeSetMeasuredDimensions<TStorage>(
+        Node<TStorage> node,
         float availableWidth,
         float availableHeight,
         MeasureMode widthMeasureMode,
@@ -1421,6 +1493,7 @@ public static partial class Flex
         float parentWidth,
         float parentHeight
     )
+        where TStorage : IList<Node<TStorage>>
     {
         if (
             (widthMeasureMode == MeasureMode.AtMost && availableWidth <= 0)
@@ -1466,7 +1539,8 @@ public static partial class Flex
     }
 
     // ZeroOutLayoutRecursively zeros out layout recursively
-    internal static void ZeroOutLayoutRecursively(Node node)
+    internal static void ZeroOutLayoutRecursively<TStorage>(Node<TStorage> node)
+        where TStorage : IList<Node<TStorage>>
     {
         node.NodeLayout.Dimensions[(int)Dimension.Height] = 0;
         node.NodeLayout.Dimensions[(int)Dimension.Width] = 0;
@@ -1480,7 +1554,7 @@ public static partial class Flex
         node.NodeLayout.CachedLayout.WidthMeasureMode = MeasureMode.Exactly;
         node.NodeLayout.CachedLayout.ComputedWidth = 0;
         node.NodeLayout.CachedLayout.ComputedHeight = 0;
-        foreach (var child in node.Children)
+        foreach (var child in node)
         {
             ZeroOutLayoutRecursively(child);
         }
@@ -1570,8 +1644,8 @@ public static partial class Flex
     //    an available size of
     //    undefined then it must also pass a measure mode of YGMeasureModeUndefined
     //    in that dimension.
-    internal static void NodeLayoutImpl(
-        Node node,
+    internal static void NodeLayoutImpl<TStorage>(
+        Node<TStorage> node,
         float availableWidth,
         float availableHeight,
         Direction parentDirection,
@@ -1581,6 +1655,7 @@ public static partial class Flex
         float parentHeight,
         bool performLayout
     )
+        where TStorage : IList<Node<TStorage>>
     {
         // Set the resolved resolution in the node's layout.
         var direction = NodeResolveDirection(node, parentDirection);
@@ -1618,7 +1693,7 @@ public static partial class Flex
             return;
         }
 
-        var childCount = node.Children.Count;
+        var childCount = node.Storage.Count;
         if (childCount == 0)
         {
             NodeEmptyContainerSetMeasuredDimensions(
@@ -1669,8 +1744,8 @@ public static partial class Flex
             crossAxisParentSize = parentHeight;
         }
 
-        Node? firstAbsoluteChild = null;
-        Node? currentAbsoluteChild = null;
+        Node<TStorage>? firstAbsoluteChild = null;
+        Node<TStorage>? currentAbsoluteChild = null;
 
         var leadingPaddingAndBorderMain = NodeLeadingPaddingAndBorder(node, mainAxis, parentWidth);
         var trailingPaddingAndBorderMain = NodeTrailingPaddingAndBorder(node, mainAxis, parentWidth);
@@ -1751,10 +1826,10 @@ public static partial class Flex
         // If there is only one child with flexGrow + flexShrink it means we can set the
         // computedFlexBasis to 0 instead of measuring and shrinking / flexing the child to exactly
         // match the remaining space
-        Node? singleFlexChild = null;
+        Node<TStorage>? singleFlexChild = null;
         if (measureModeMainDim == MeasureMode.Exactly)
         {
-            foreach (var child in node.Children)
+            foreach (var child in node)
             {
                 if (singleFlexChild != null)
                 {
@@ -1775,7 +1850,7 @@ public static partial class Flex
         float totalOuterFlexBasis = 0;
 
         // STEP 3: DETERMINE FLEX BASIS FOR EACH ITEM
-        foreach (var child in node.Children)
+        foreach (var child in node)
         {
             if (child.NodeStyle.Display == Display.None)
             {
@@ -1882,13 +1957,13 @@ public static partial class Flex
             float totalFlexShrinkScaledFactors = 0;
 
             // Maintain a linked list of the child nodes that can shrink and/or grow.
-            Node? firstRelativeChild = null;
-            Node? currentRelativeChild = null;
+            Node<TStorage>? firstRelativeChild = null;
+            Node<TStorage>? currentRelativeChild = null;
 
             // Add items to the current line until it's full, or we run out of items.
             for (var i = startOfLineIndex; i < childCount; i++)
             {
-                var child = node.Children[i];
+                var child = node.Storage[i];
                 if (child.NodeStyle.Display == Display.None)
                 {
                     endOfLineIndex++;
@@ -2400,7 +2475,7 @@ public static partial class Flex
             var numberOfAutoMarginsOnCurrentLine = 0;
             for (var i = startOfLineIndex; i < endOfLineIndex; i++)
             {
-                var child = node.Children[i];
+                var child = node.Storage[i];
                 if (child.NodeStyle.PositionType == PositionType.Relative)
                 {
                     if (MarginLeadingValue(child, mainAxis).Unit == Unit.Auto)
@@ -2456,7 +2531,7 @@ public static partial class Flex
 
             for (var i = startOfLineIndex; i < endOfLineIndex; i++)
             {
-                var child = node.Children[i];
+                var child = node.Storage[i];
                 if (child.NodeStyle.Display == Display.None)
                 {
                     continue;
@@ -2568,7 +2643,7 @@ public static partial class Flex
             {
                 for (var i = startOfLineIndex; i < endOfLineIndex; i++)
                 {
-                    var child = node.Children[i];
+                    var child = node.Storage[i];
                     if (child.NodeStyle.Display == Display.None)
                     {
                         continue;
@@ -2801,7 +2876,7 @@ public static partial class Flex
                 float maxDescentForCurrentLine = 0;
                 for (ii = startIndex; ii < childCount; ii++)
                 {
-                    var child = node.Children[ii];
+                    var child = node.Storage[ii];
                     if (child.NodeStyle.Display == Display.None)
                     {
                         continue;
@@ -2845,7 +2920,7 @@ public static partial class Flex
                 {
                     for (ii = startIndex; ii < endIndex; ii++)
                     {
-                        var child = node.Children[ii];
+                        var child = node.Storage[ii];
                         if (child.NodeStyle.Display == Display.None)
                         {
                             continue;
@@ -3030,7 +3105,7 @@ public static partial class Flex
         // As we only wrapped in normal direction yet, we need to reverse the positions on wrap-reverse.
         if (performLayout && node.NodeStyle.FlexWrap == Wrap.WrapReverse)
         {
-            foreach (var child in node.Children)
+            foreach (var child in node)
             {
                 if (child.NodeStyle.PositionType == PositionType.Relative)
                 {
@@ -3074,7 +3149,7 @@ public static partial class Flex
             // Set trailing position if necessary.
             if (needsMainTrailingPos || needsCrossTrailingPos)
             {
-                foreach (var child in node.Children)
+                foreach (var child in node)
                 {
                     if (child.NodeStyle.Display == Display.None)
                     {
@@ -3211,8 +3286,8 @@ public static partial class Flex
     // Parameters:
     //  Input parameters are the same as YGNodelayoutImpl (see above)
     //  Return parameter is true if layout was performed, false if skipped
-    internal static bool LayoutNodeInternal(
-        Node node,
+    internal static bool LayoutNodeInternal<TStorage>(
+        Node<TStorage> node,
         float availableWidth,
         float availableHeight,
         Direction parentDirection,
@@ -3222,6 +3297,7 @@ public static partial class Flex
         float parentHeight,
         bool performLayout
     )
+        where TStorage : IList<Node<TStorage>>
     {
         var layout = node.NodeLayout;
 
@@ -3398,7 +3474,13 @@ public static partial class Flex
         return needToVisitNode || cachedResults == null;
     }
 
-    internal static void RoundToPixelGrid(Node node, float pointScaleFactor, float absoluteLeft, float absoluteTop)
+    internal static void RoundToPixelGrid<TStorage>(
+        Node<TStorage> node,
+        float pointScaleFactor,
+        float absoluteLeft,
+        float absoluteTop
+    )
+        where TStorage : IList<Node<TStorage>>
     {
         if (pointScaleFactor == 0.0)
         {
@@ -3451,18 +3533,19 @@ public static partial class Flex
                 textRounding && !hasFractionalHeight
             ) - RoundValueToPixelGrid(absoluteNodeTop, pointScaleFactor, false, textRounding);
 
-        foreach (var child in node.Children)
+        foreach (var child in node)
         {
             RoundToPixelGrid(child, pointScaleFactor, absoluteNodeLeft, absoluteNodeTop);
         }
     }
 
-    internal static void CalcStartWidth(
-        Node node,
+    internal static void CalcStartWidth<TStorage>(
+        Node<TStorage> node,
         float parentWidth,
         out float outWidth,
         out MeasureMode outMeasureMode
     )
+        where TStorage : IList<Node<TStorage>>
     {
         if (NodeIsStyleDimDefined(node, FlexDirection.Row, parentWidth))
         {
@@ -3492,13 +3575,14 @@ public static partial class Flex
         }
     }
 
-    internal static void CalcStartHeight(
-        Node node,
+    internal static void CalcStartHeight<TStorage>(
+        Node<TStorage> node,
         float parentWidth,
         float parentHeight,
         out float outHeight,
         out MeasureMode outMeasureMode
     )
+        where TStorage : IList<Node<TStorage>>
     {
         if (NodeIsStyleDimDefined(node, FlexDirection.Column, parentHeight))
         {
@@ -3525,15 +3609,6 @@ public static partial class Flex
 
             outHeight = parentHeight;
             outMeasureMode = heightMeasureMode;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void Assert(bool cond, string format)
-    {
-        if (!cond)
-        {
-            throw new Exception(format);
         }
     }
 

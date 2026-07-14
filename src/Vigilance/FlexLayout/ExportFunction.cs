@@ -1,10 +1,13 @@
 ﻿// ReSharper disable CompareOfFloatsByEqualityOperator
 
+using Vigilance.Core;
+
 namespace Vigilance.FlexLayout;
 
-public sealed partial class Node
+public partial class Node<TStorage>
+    where TStorage : IList<Node<TStorage>>
 {
-    public void CopyStyle(Node other)
+    public void CopyStyle(Node<TStorage> other)
     {
         ArgumentNullException.ThrowIfNull(other);
         Style.Copy(NodeStyle, other.NodeStyle);
@@ -682,7 +685,7 @@ public sealed partial class Node
     // LayoutGetMargin gets margin
     public float LayoutGetMargin(Edge edge)
     {
-        Flex.Assert(edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
+        Debug.Assert(edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
         switch (edge)
         {
             case Edge.Left:
@@ -705,7 +708,7 @@ public sealed partial class Node
     // LayoutGetBorder gets border
     public float LayoutGetBorder(Edge edge)
     {
-        Flex.Assert(edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
+        Debug.Assert(edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
         switch (edge)
         {
             case Edge.Left:
@@ -728,7 +731,7 @@ public sealed partial class Node
     // LayoutGetPadding gets padding
     public float LayoutGetPadding(Edge edge)
     {
-        Flex.Assert(edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
+        Debug.Assert(edge < Edge.End, "Cannot get layout properties of multi-edge shorthands");
         switch (edge)
         {
             case Edge.Left:
@@ -762,22 +765,22 @@ public sealed partial class Node
 
     #region other props
 
-    public void SetMeasureFunc(MeasureFunc measureFunc)
+    public void SetMeasureFunc(MeasureFunc<TStorage> measureFunc)
     {
         Flex.SetMeasureFunc(this, measureFunc);
     }
 
-    public MeasureFunc? GetMeasureFunc()
+    public MeasureFunc<TStorage>? GetMeasureFunc()
     {
         return MeasureFunc;
     }
 
-    public void SetBaselineFunc(BaselineFunc baselineFunc)
+    public void SetBaselineFunc(BaselineFunc<TStorage> baselineFunc)
     {
         BaselineFunc = baselineFunc;
     }
 
-    public BaselineFunc? GetBaselineFunc()
+    public BaselineFunc<TStorage>? GetBaselineFunc()
     {
         return BaselineFunc;
     }
@@ -786,22 +789,22 @@ public sealed partial class Node
 
     #region tree
 
-    public Node? GetParent()
+    public Node<TStorage>? GetParent()
     {
         return Parent;
     }
 
-    public IEnumerable<Node> GetChildrenIter()
+    public TStorage GetChildrenStorage()
     {
-        return Children;
+        return Storage;
     }
 
-    public Node GetChild(int idx)
+    public Node<TStorage> GetChild(int idx)
     {
         return Flex.GetChild(this, idx);
     }
 
-    public void AddChild(Node? child)
+    public void AddChild(Node<TStorage>? child)
     {
         if (child == null || child.Parent == this)
             return;
@@ -809,12 +812,12 @@ public sealed partial class Node
         Flex.InsertChild(this, child, ChildrenCount);
     }
 
-    public int IndexOfChild(Node child)
+    public int IndexOfChild(Node<TStorage> child)
     {
-        return Children.IndexOf(child);
+        return Storage.IndexOf(child);
     }
 
-    public void InsertChild(Node? child, int idx)
+    public void InsertChild(Node<TStorage>? child, int idx)
     {
         if (child == null)
             return;
@@ -822,12 +825,12 @@ public sealed partial class Node
         Flex.InsertChild(this, child, idx);
     }
 
-    public void RemoveChild(Node child)
+    public void RemoveChild(Node<TStorage> child)
     {
         Flex.RemoveChild(this, child);
     }
 
-    public bool ReplaceChild(int index, Node? child)
+    public bool ReplaceChild(int index, Node<TStorage>? child)
     {
         if (child == null)
             return false;
@@ -835,7 +838,7 @@ public sealed partial class Node
         if (0 <= index && index < ChildrenCount)
         {
             child.Parent = this;
-            Children[index] = child;
+            Storage[index] = child;
             MarkAsDirty();
             return true;
         }
@@ -843,7 +846,7 @@ public sealed partial class Node
         return false;
     }
 
-    public void SetParent(Node parent)
+    public void SetParent(Node<TStorage> parent)
     {
         if (parent == Parent)
             return;
