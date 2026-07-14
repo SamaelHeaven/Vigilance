@@ -32,6 +32,7 @@ public partial class Node<TStorage> : IStructEnumerable<Node<TStorage>.Enumerato
 
     public int ChildrenCount => Storage.Count;
 
+    public object? Context { get; set; }
     public bool IsDirty { get; internal set; }
 
     public Enumerator GetEnumerator()

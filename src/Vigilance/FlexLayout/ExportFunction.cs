@@ -765,7 +765,7 @@ public partial class Node<TStorage>
 
     #region other props
 
-    public void SetMeasureFunc(MeasureFunc<TStorage> measureFunc)
+    public void SetMeasureFunc(MeasureFunc<TStorage>? measureFunc)
     {
         Flex.SetMeasureFunc(this, measureFunc);
     }
@@ -775,7 +775,7 @@ public partial class Node<TStorage>
         return MeasureFunc;
     }
 
-    public void SetBaselineFunc(BaselineFunc<TStorage> baselineFunc)
+    public void SetBaselineFunc(BaselineFunc<TStorage>? baselineFunc)
     {
         BaselineFunc = baselineFunc;
     }
