@@ -2,6 +2,7 @@
 
 // ReSharper disable ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
 
+using System.Runtime.CompilerServices;
 using Vigilance.Core;
 
 namespace Vigilance.FlexLayout;
@@ -20,15 +21,15 @@ internal static class Constant
     internal const float DefaultFlexShrink = 0;
 }
 
-internal sealed class Style
+internal struct Style
 {
-    internal readonly Value[] Border = CreateDefaultEdgeValuesUnit();
-    internal readonly Value[] Dimensions = [CreateAutoValue(), CreateAutoValue()];
-    internal readonly Value[] Margin = CreateDefaultEdgeValuesUnit();
-    internal readonly Value[] MaxDimensions = [Value.UndefinedValue, Value.UndefinedValue];
-    internal readonly Value[] MinDimensions = [Value.UndefinedValue, Value.UndefinedValue];
-    internal readonly Value[] Padding = CreateDefaultEdgeValuesUnit();
-    internal readonly Value[] Position = CreateDefaultEdgeValuesUnit();
+    internal ValueBufferEdge Border;
+    internal ValueBuffer2 Dimensions;
+    internal ValueBufferEdge Margin;
+    internal ValueBuffer2 MaxDimensions;
+    internal ValueBuffer2 MinDimensions;
+    internal ValueBufferEdge Padding;
+    internal ValueBufferEdge Position;
     internal Align AlignContent = Align.Start;
     internal Align AlignItems = Align.Stretch;
 
@@ -49,53 +50,27 @@ internal sealed class Style
     internal Overflow Overflow = Overflow.Visible;
     internal PositionType PositionType;
 
+    public Style()
+    {
+        for (var i = 0; i < Constant.EdgeCount; i++)
+        {
+            Border[i] = Value.UndefinedValue;
+            Margin[i] = Value.UndefinedValue;
+            Padding[i] = Value.UndefinedValue;
+            Position[i] = Value.UndefinedValue;
+        }
+
+        Dimensions[0] = CreateAutoValue();
+        Dimensions[1] = CreateAutoValue();
+        MinDimensions[0] = Value.UndefinedValue;
+        MinDimensions[1] = Value.UndefinedValue;
+        MaxDimensions[0] = Value.UndefinedValue;
+        MaxDimensions[1] = Value.UndefinedValue;
+    }
+
     internal static Value CreateAutoValue()
     {
         return new Value(float.NaN, Unit.Auto);
-    }
-
-    internal static Value[] CreateDefaultEdgeValuesUnit()
-    {
-        return
-        [
-            Value.UndefinedValue,
-            Value.UndefinedValue,
-            Value.UndefinedValue,
-            Value.UndefinedValue,
-            Value.UndefinedValue,
-            Value.UndefinedValue,
-            Value.UndefinedValue,
-            Value.UndefinedValue,
-            Value.UndefinedValue,
-        ];
-    }
-
-    internal static void Copy(Style dest, Style src)
-    {
-        dest.Direction = src.Direction;
-        dest.FlexDirection = src.FlexDirection;
-        dest.JustifyContent = src.JustifyContent;
-        dest.AlignContent = src.AlignContent;
-        dest.AlignItems = src.AlignItems;
-        dest.AlignSelf = src.AlignSelf;
-        dest.PositionType = src.PositionType;
-        dest.FlexWrap = src.FlexWrap;
-        dest.Overflow = src.Overflow;
-        dest.Display = src.Display;
-        dest.Flex = src.Flex;
-        dest.FlexGrow = src.FlexGrow;
-        dest.FlexShrink = src.FlexShrink;
-
-        Value.CopyValue(dest.Margin, src.Margin);
-        Value.CopyValue(dest.Position, src.Position);
-        Value.CopyValue(dest.Padding, src.Padding);
-        Value.CopyValue(dest.Border, src.Border);
-
-        Value.CopyValue(dest.Dimensions, src.Dimensions);
-        Value.CopyValue(dest.MinDimensions, src.MinDimensions);
-        Value.CopyValue(dest.MaxDimensions, src.MaxDimensions);
-
-        dest.AspectRatio = src.AspectRatio;
     }
 }
 
@@ -105,11 +80,22 @@ public static partial class Flex
     internal static readonly Value ValueUndefined = new(float.NaN, Unit.Undefined);
     internal static readonly Value ValueAuto = new(float.NaN, Unit.Auto);
     internal static int CurrentGenerationCount = 0;
-    internal static readonly Edge[] Leading = [Edge.Top, Edge.Bottom, Edge.Left, Edge.Right];
-    internal static readonly Edge[] Trailing = [Edge.Bottom, Edge.Top, Edge.Right, Edge.Left];
-    internal static readonly Edge[] Pos = [Edge.Top, Edge.Bottom, Edge.Left, Edge.Right];
+    internal static readonly InlineArray4<Edge> Leading;
+    internal static readonly InlineArray4<Edge> Trailing;
+    internal static readonly InlineArray4<Edge> Pos;
+    internal static readonly InlineArray4<Dimension> Dim;
 
-    internal static readonly Dimension[] Dim = [Dimension.Height, Dimension.Height, Dimension.Width, Dimension.Width];
+    static Flex()
+    {
+        ReadOnlySpan<Edge> leading = [Edge.Top, Edge.Bottom, Edge.Left, Edge.Right];
+        leading.CopyTo(Leading);
+        ReadOnlySpan<Edge> trailing = [Edge.Bottom, Edge.Top, Edge.Right, Edge.Left];
+        trailing.CopyTo(Trailing);
+        ReadOnlySpan<Edge> pos = [Edge.Top, Edge.Bottom, Edge.Left, Edge.Right];
+        pos.CopyTo(Pos);
+        ReadOnlySpan<Dimension> dim = [Dimension.Height, Dimension.Height, Dimension.Width, Dimension.Width];
+        dim.CopyTo(Dim);
+    }
 
     internal static bool Feq(float a, float b)
     {
@@ -126,7 +112,7 @@ public static partial class Flex
         return Feq(v1.Number, v2.Number);
     }
 
-    internal static Value ComputedEdgeValue(Value[] edges, Edge edge, Value defaultValue)
+    internal static Value ComputedEdgeValue(ReadOnlySpan<Value> edges, Edge edge, Value defaultValue)
     {
         if (edges[(int)edge].Unit != Unit.Undefined)
         {
@@ -183,11 +169,6 @@ public static partial class Flex
 
         return ResolveValue(value, parentSize);
     }
-
-    // internal static int Len(Node[] array)
-    // {
-    //     return array == null ? 0 : array.Length;
-    // }
 
     internal static void NodeMarkDirtyInternal<TStorage>(Node<TStorage> node)
         where TStorage : IList<Node<TStorage>>
@@ -256,7 +237,7 @@ public static partial class Flex
         return idx < node.Storage.Count ? node.Storage[idx] : null!;
     }
 
-    internal static bool StyleEq(Style s1, Style s2)
+    internal static bool StyleEq(in Style s1, in Style s2)
     {
         if (
             s1.Direction != s2.Direction
@@ -353,7 +334,7 @@ public static partial class Flex
     internal static Value NodeResolveFlexBasisPtr<TStorage>(Node<TStorage> node)
         where TStorage : IList<Node<TStorage>>
     {
-        var style = node.NodeStyle;
+        ref readonly var style = ref node.NodeStyle;
         if (style.FlexBasis.Unit != Unit.Auto && style.FlexBasis.Unit != Unit.Undefined)
         {
             return style.FlexBasis;
@@ -944,7 +925,7 @@ public static partial class Flex
         var relativePositionMain = NodeRelativePosition(node, mainAxis, mainSize);
         var relativePositionCross = NodeRelativePosition(node, crossAxis, crossSize);
 
-        var pos = node.NodeLayout.Position;
+        ref var pos = ref node.NodeLayout.Position;
         pos[(int)Leading[(int)mainAxis]] = NodeLeadingMargin(node, mainAxis, parentWidth) + relativePositionMain;
         pos[(int)Trailing[(int)mainAxis]] = NodeTrailingMargin(node, mainAxis, parentWidth) + relativePositionMain;
         pos[(int)Leading[(int)crossAxis]] = NodeLeadingMargin(node, crossAxis, parentWidth) + relativePositionCross;
@@ -3299,7 +3280,7 @@ public static partial class Flex
     )
         where TStorage : IList<Node<TStorage>>
     {
-        var layout = node.NodeLayout;
+        ref var layout = ref node.NodeLayout;
 
         var needToVisitNode =
             (node.IsDirty && layout.GenerationCount != CurrentGenerationCount)
@@ -3315,7 +3296,9 @@ public static partial class Flex
             layout.CachedLayout.ComputedHeight = -1;
         }
 
-        CachedMeasurement? cachedResults = null;
+        var cachedResultsValid = false;
+        float cachedComputedWidth = 0;
+        float cachedComputedHeight = 0;
 
         // Determine whether the results are already cached. We maintain a separate
         // cache for layouts and measurements. A layout operation modifies the
@@ -3352,7 +3335,9 @@ public static partial class Flex
                 )
             )
             {
-                cachedResults = layout.CachedLayout;
+                cachedResultsValid = true;
+                cachedComputedWidth = layout.CachedLayout.ComputedWidth;
+                cachedComputedHeight = layout.CachedLayout.ComputedHeight;
             }
             else
             {
@@ -3376,7 +3361,9 @@ public static partial class Flex
                         )
                     )
                     {
-                        cachedResults = layout.CachedMeasurements[i];
+                        cachedResultsValid = true;
+                        cachedComputedWidth = layout.CachedMeasurements[i].ComputedWidth;
+                        cachedComputedHeight = layout.CachedMeasurements[i].ComputedHeight;
                         break;
                     }
                 }
@@ -3391,7 +3378,9 @@ public static partial class Flex
                 && layout.CachedLayout.HeightMeasureMode == heightMeasureMode
             )
             {
-                cachedResults = layout.CachedLayout;
+                cachedResultsValid = true;
+                cachedComputedWidth = layout.CachedLayout.ComputedWidth;
+                cachedComputedHeight = layout.CachedLayout.ComputedHeight;
             }
         }
         else
@@ -3405,16 +3394,18 @@ public static partial class Flex
                     && layout.CachedMeasurements[i].HeightMeasureMode == heightMeasureMode
                 )
                 {
-                    cachedResults = layout.CachedMeasurements[i];
+                    cachedResultsValid = true;
+                    cachedComputedWidth = layout.CachedMeasurements[i].ComputedWidth;
+                    cachedComputedHeight = layout.CachedMeasurements[i].ComputedHeight;
                     break;
                 }
             }
         }
 
-        if (!needToVisitNode && cachedResults != null)
+        if (!needToVisitNode && cachedResultsValid)
         {
-            layout.MeasuredDimensions[(int)Dimension.Width] = cachedResults.ComputedWidth;
-            layout.MeasuredDimensions[(int)Dimension.Height] = cachedResults.ComputedHeight;
+            layout.MeasuredDimensions[(int)Dimension.Width] = cachedComputedWidth;
+            layout.MeasuredDimensions[(int)Dimension.Height] = cachedComputedHeight;
         }
         else
         {
@@ -3432,23 +3423,23 @@ public static partial class Flex
 
             layout.LastParentDirection = parentDirection;
 
-            if (cachedResults == null)
+            if (!cachedResultsValid)
             {
                 if (layout.NextCachedMeasurementsIndex == Constant.MaxCachedResultCount)
                 {
                     layout.NextCachedMeasurementsIndex = 0;
                 }
 
-                CachedMeasurement? newCacheEntry;
+                ref var newCacheEntry = ref layout.CachedLayout;
                 if (performLayout)
                 {
                     // Use the single layout cache entry.
-                    newCacheEntry = layout.CachedLayout;
+                    newCacheEntry = ref layout.CachedLayout;
                 }
                 else
                 {
                     // Allocate a new measurement cache entry.
-                    newCacheEntry = layout.CachedMeasurements[layout.NextCachedMeasurementsIndex];
+                    newCacheEntry = ref layout.CachedMeasurements[layout.NextCachedMeasurementsIndex];
                     layout.NextCachedMeasurementsIndex++;
                 }
 
@@ -3471,7 +3462,7 @@ public static partial class Flex
         }
 
         layout.GenerationCount = CurrentGenerationCount;
-        return needToVisitNode || cachedResults == null;
+        return needToVisitNode || !cachedResultsValid;
     }
 
     internal static void RoundToPixelGrid<TStorage>(
@@ -3654,7 +3645,7 @@ public static partial class Flex
         return a;
     }
 
-    internal sealed class CachedMeasurement
+    internal struct CachedMeasurement
     {
         internal float AvailableHeight;
         internal float AvailableWidth;
@@ -3662,6 +3653,8 @@ public static partial class Flex
         internal float ComputedWidth = -1;
         internal MeasureMode HeightMeasureMode = MeasureMode.Undefined;
         internal MeasureMode WidthMeasureMode = MeasureMode.Undefined;
+
+        public CachedMeasurement() { }
 
         internal void ResetToDefault()
         {
@@ -3674,36 +3667,18 @@ public static partial class Flex
         }
     }
 
-    internal sealed class Layout
+    internal struct Layout
     {
-        internal readonly float[] Border = new float[6];
-        internal readonly CachedMeasurement CachedLayout = new();
+        internal FloatBuffer6 Border;
+        internal CachedMeasurement CachedLayout = new();
 
-        internal readonly CachedMeasurement[] CachedMeasurements =
-        [
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-            new(),
-        ];
+        internal CachedMeasurementBuffer CachedMeasurements;
 
-        internal readonly float[] Dimensions = [float.NaN, float.NaN];
-        internal readonly float[] Margin = new float[6];
-        internal readonly float[] MeasuredDimensions = [float.NaN, float.NaN];
-        internal readonly float[] Padding = new float[6];
-        internal readonly float[] Position = new float[4];
+        internal FloatBuffer2 Dimensions;
+        internal FloatBuffer6 Margin;
+        internal FloatBuffer2 MeasuredDimensions;
+        internal FloatBuffer6 Padding;
+        internal FloatBuffer4 Position;
         internal float ComputedFlexBasis = float.NaN;
         internal Direction Direction;
 
@@ -3714,14 +3689,27 @@ public static partial class Flex
         internal Direction LastParentDirection = Direction.Inherit;
         internal int NextCachedMeasurementsIndex = 0;
 
+        public Layout()
+        {
+            Dimensions[0] = float.NaN;
+            Dimensions[1] = float.NaN;
+            MeasuredDimensions[0] = float.NaN;
+            MeasuredDimensions[1] = float.NaN;
+
+            for (var i = 0; i < Constant.MaxCachedResultCount; i++)
+            {
+                CachedMeasurements[i] = new CachedMeasurement();
+            }
+        }
+
         internal void ResetToDefault()
         {
-            for (var i = 0; i < Position.Length; i++)
+            for (var i = 0; i < 4; i++)
             {
                 Position[i] = 0;
             }
 
-            for (var i = 0; i < Dimensions.Length; i++)
+            for (var i = 0; i < 2; i++)
             {
                 Dimensions[i] = float.NaN;
             }
@@ -3740,12 +3728,12 @@ public static partial class Flex
             LastParentDirection = Direction.Inherit;
             NextCachedMeasurementsIndex = 0;
 
-            foreach (var cm in CachedMeasurements)
+            for (var i = 0; i < Constant.MaxCachedResultCount; i++)
             {
-                cm.ResetToDefault();
+                CachedMeasurements[i].ResetToDefault();
             }
 
-            for (var i = 0; i < MeasuredDimensions.Length; i++)
+            for (var i = 0; i < 2; i++)
             {
                 MeasuredDimensions[i] = float.NaN;
             }

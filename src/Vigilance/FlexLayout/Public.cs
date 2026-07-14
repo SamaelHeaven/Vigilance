@@ -14,7 +14,7 @@ public delegate Size MeasureFunc<TStorage>(
 public delegate float BaselineFunc<TStorage>(Node<TStorage> node, float width, float height)
     where TStorage : IList<Node<TStorage>>;
 
-public sealed class Size
+public struct Size
 {
     public float Height;
     public float Width;
@@ -26,7 +26,7 @@ public sealed class Size
     }
 }
 
-public sealed class Value
+public struct Value
 {
     public float Number;
     public Unit Unit;
@@ -38,15 +38,6 @@ public sealed class Value
     }
 
     public static Value UndefinedValue => new(float.NaN, Unit.Undefined);
-
-    public static void CopyValue(Value[] dest, Value[] src)
-    {
-        for (var i = 0; i < src.Length; i++)
-        {
-            dest[i].Number = src[i].Number;
-            dest[i].Unit = src[i].Unit;
-        }
-    }
 }
 
 public static partial class Flex
@@ -90,7 +81,7 @@ public static partial class Flex
     {
         if (!StyleEq(dstNode.NodeStyle, srcNode.NodeStyle))
         {
-            Style.Copy(dstNode.NodeStyle, srcNode.NodeStyle);
+            dstNode.NodeStyle = srcNode.NodeStyle;
             NodeMarkDirtyInternal(dstNode);
         }
     }

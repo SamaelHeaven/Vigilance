@@ -11,28 +11,29 @@ public sealed class Node : Node<Node.Children>
     public sealed class Children : List<Node<Children>>;
 }
 
-public partial class Node<TStorage> : IStructEnumerable<Node<TStorage>.Enumerator, Node<TStorage>>
+public abstract partial class Node<TStorage> : IStructEnumerable<Node<TStorage>.Enumerator, Node<TStorage>>
     where TStorage : IList<Node<TStorage>>
 {
-    internal readonly Flex.Layout NodeLayout = new();
-    internal readonly Style NodeStyle = new();
-    internal readonly Value[] ResolvedDimensions = [Flex.ValueUndefined, Flex.ValueUndefined];
     internal BaselineFunc<TStorage>? BaselineFunc;
     internal int LineIndex;
     internal MeasureFunc<TStorage>? MeasureFunc;
     internal Node<TStorage>? NextChild;
+    internal Flex.Layout NodeLayout = new();
+    internal Style NodeStyle = new();
     internal NodeType NodeType = NodeType.Default;
     internal Node<TStorage>? Parent = null;
+    internal ValueBuffer2 ResolvedDimensions;
     internal TStorage Storage;
 
-    internal Node(TStorage storage)
+    protected Node(TStorage storage)
     {
         Storage = storage;
+        ResolvedDimensions[0] = Flex.ValueUndefined;
+        ResolvedDimensions[1] = Flex.ValueUndefined;
     }
 
     public int ChildrenCount => Storage.Count;
 
-    public object? Context { get; set; }
     public bool IsDirty { get; internal set; }
 
     public Enumerator GetEnumerator()

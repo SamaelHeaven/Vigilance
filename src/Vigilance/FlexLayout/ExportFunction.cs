@@ -10,7 +10,7 @@ public partial class Node<TStorage>
     public void CopyStyle(Node<TStorage> other)
     {
         ArgumentNullException.ThrowIfNull(other);
-        Style.Copy(NodeStyle, other.NodeStyle);
+        NodeStyle = other.NodeStyle;
     }
 
     public void MarkAsDirty()
@@ -23,7 +23,7 @@ public partial class Node<TStorage>
     // StyleSetWidth sets width
     public void StyleSetWidth(float width)
     {
-        var dim = NodeStyle.Dimensions[(int)Dimension.Width];
+        ref var dim = ref NodeStyle.Dimensions[(int)Dimension.Width];
         if (dim.Number != width || dim.Unit != Unit.Point)
         {
             dim.Number = width;
@@ -37,7 +37,7 @@ public partial class Node<TStorage>
     // StyleSetWidthPercent sets width percent
     public void StyleSetWidthPercent(float width)
     {
-        var dim = NodeStyle.Dimensions[(int)Dimension.Width];
+        ref var dim = ref NodeStyle.Dimensions[(int)Dimension.Width];
         if (dim.Number != width || dim.Unit != Unit.Percent)
         {
             dim.Number = width;
@@ -51,7 +51,7 @@ public partial class Node<TStorage>
     // StyleSetWidthAuto sets width auto
     public void StyleSetWidthAuto()
     {
-        var dim = NodeStyle.Dimensions[(int)Dimension.Width];
+        ref var dim = ref NodeStyle.Dimensions[(int)Dimension.Width];
         if (dim.Unit != Unit.Auto)
         {
             dim.Number = float.NaN;
@@ -69,7 +69,7 @@ public partial class Node<TStorage>
     // StyleSetHeight sets height
     public void StyleSetHeight(float height)
     {
-        var dim = NodeStyle.Dimensions[(int)Dimension.Height];
+        ref var dim = ref NodeStyle.Dimensions[(int)Dimension.Height];
         if (dim.Number != height || dim.Unit != Unit.Point)
         {
             dim.Number = height;
@@ -83,7 +83,7 @@ public partial class Node<TStorage>
     // StyleSetHeightPercent sets height percent
     public void StyleSetHeightPercent(float height)
     {
-        var dim = NodeStyle.Dimensions[(int)Dimension.Height];
+        ref var dim = ref NodeStyle.Dimensions[(int)Dimension.Height];
         if (dim.Number != height || dim.Unit != Unit.Percent)
         {
             dim.Number = height;
@@ -97,7 +97,7 @@ public partial class Node<TStorage>
     // StyleSetHeightAuto sets height auto
     public void StyleSetHeightAuto()
     {
-        var dim = NodeStyle.Dimensions[(int)Dimension.Height];
+        ref var dim = ref NodeStyle.Dimensions[(int)Dimension.Height];
         if (dim.Unit != Unit.Auto)
         {
             dim.Number = float.NaN;
@@ -130,7 +130,7 @@ public partial class Node<TStorage>
     // StyleSetPosition sets position
     public void StyleSetPosition(Edge edge, float position)
     {
-        var pos = NodeStyle.Position[(int)edge];
+        ref var pos = ref NodeStyle.Position[(int)edge];
         if (pos.Number != position || pos.Unit != Unit.Point)
         {
             pos.Number = position;
@@ -144,7 +144,7 @@ public partial class Node<TStorage>
     // StyleSetPositionPercent sets position percent
     public void StyleSetPositionPercent(Edge edge, float position)
     {
-        var pos = NodeStyle.Position[(int)edge];
+        ref var pos = ref NodeStyle.Position[(int)edge];
         if (pos.Number != position || pos.Unit != Unit.Percent)
         {
             pos.Number = position;
@@ -794,7 +794,7 @@ public partial class Node<TStorage>
         return Parent;
     }
 
-    public TStorage GetChildrenStorage()
+    public TStorage GetStorage()
     {
         return Storage;
     }
