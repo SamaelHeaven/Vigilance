@@ -83,10 +83,6 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
         }
     }
 
-    public string Id { get; set; } = "";
-
-    public Attributes Attributes { get; private set; } = new();
-
     public float LayoutLeft => Node.LayoutGetLeft();
 
     public float LayoutTop => Node.LayoutGetTop();
@@ -989,15 +985,15 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
         OnClearSignals();
     }
 
-    public RenderTexture ToTexture(Vector2 size)
+    public RenderTexture ToTexture(Vector2 size, bool pool = true)
     {
-        return ToTexture(size.X, size.Y);
+        return ToTexture(size.X, size.Y, pool);
     }
 
-    public RenderTexture ToTexture(float width = float.NaN, float height = float.NaN)
+    public RenderTexture ToTexture(float width = float.NaN, float height = float.NaN, bool pool = true)
     {
         CalculateLayout(width, height);
-        var texture = new RenderTexture(LayoutSize);
+        var texture = new RenderTexture(LayoutSize, pool: pool);
         Render(texture.Graphics);
         return texture;
     }
@@ -1392,7 +1388,6 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
         result.Node = new UINode(result);
         Flex.NodeCopyStyle(result.Node, element.Node);
         result.ApplyDeclaredMargin();
-        result.Attributes = element.Attributes.ShallowClone();
         if (element.IsLayoutCustom)
             result.Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>

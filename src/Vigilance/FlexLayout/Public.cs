@@ -14,28 +14,28 @@ public delegate Size MeasureFunc<TStorage>(
 public delegate float BaselineFunc<TStorage>(Node<TStorage> node, float width, float height)
     where TStorage : IList<Node<TStorage>>;
 
-public struct Size
+public record struct Size
 {
-    public float Height;
-    public float Width;
-
     public Size(float w, float h)
     {
         Width = w;
         Height = h;
     }
+
+    public float Height { get; set; }
+    public float Width { get; set; }
 }
 
-public struct Value
+public record struct Value
 {
-    public float Number;
-    public Unit Unit;
-
     public Value(float v, Unit u)
     {
         Number = v;
         Unit = u;
     }
+
+    public float Number { get; set; }
+    public Unit Unit { get; set; }
 
     public static Value UndefinedValue => new(float.NaN, Unit.Undefined);
 }

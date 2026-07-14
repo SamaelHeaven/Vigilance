@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using NUnit.Framework;
 using Vigilance.FlexLayout;
 
@@ -14307,24 +14306,5 @@ public class TestUnit
         root.InsertChild(rootChild0, 0);
 
         Flex.CalculateLayout(root, float.NaN, float.NaN, Direction.LeftToRight);
-    }
-
-    public void RunTest()
-    {
-        var m = typeof(TestUnit).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
-        foreach (var method in m)
-            if (method.Name.StartsWith("Test"))
-                try
-                {
-                    Console.Write($"Test: {method.Name} -> ");
-                    method.Invoke(this, null);
-                    Console.WriteLine("passed");
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"{e.StackTrace}");
-                }
-            else
-                Console.WriteLine($"ignore: {method.Name}");
     }
 }
