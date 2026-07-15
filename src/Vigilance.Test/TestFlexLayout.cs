@@ -14243,29 +14243,6 @@ public sealed class TestFlexLayout
         AssertFloatEqual(5, rootChild1.LayoutGetHeight());
     }
 
-    /*
-#if GTEST_HAS_DEATH_TEST
-    TEST(YogaDeathTest, cannot_add_child_to_node_with_measure_func) {
-      root := YGNodeNew();
-      YGroot.SetMeasureFunc(_measure3);
-
-      rootChild0 := YGNodeNew();
-      ASSERT_DEATH(YGroot.InsertChild(rootChild0, 0), "Cannot add child.*");
-      YGNodeFree(rootChild0);
-      ;
-    }
-
-    TEST(YogaDeathTest, cannot_add_nonnull_measure_func_to_non_leaf_node) {
-      root := YGNodeNew();
-      rootChild0 := YGNodeNew();
-      YGroot.InsertChild(rootChild0, 0);
-
-      ASSERT_DEATH(YGroot.SetMeasureFunc(_measure3), "Cannot set measure function.*");
-      ;
-    }
-#endif
-    */
-
     [Test]
     public void TestCan_nullify_measure_func_on_any_node()
     {

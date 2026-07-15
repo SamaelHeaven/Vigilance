@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using ZLinq;
 
@@ -22,7 +23,7 @@ public abstract partial class Node<TStorage> : IStructEnumerable<Node<TStorage>.
     internal Style NodeStyle = new();
     internal NodeType NodeType = NodeType.Default;
     internal Node<TStorage>? Parent = null;
-    internal ValueBuffer2 ResolvedDimensions;
+    internal InlineArray2<Value> ResolvedDimensions;
     internal TStorage Storage;
 
     protected Node(in TStorage storage)

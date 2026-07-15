@@ -19,17 +19,29 @@ internal static class Constant
     internal const float DefaultFlexShrink = 0;
 }
 
+[InlineArray(Constant.EdgeCount)]
+internal struct EdgeArray
+{
+    private Value _element0;
+}
+
+[InlineArray(Constant.MaxCachedResultCount)]
+internal struct CachedMeasurementArray
+{
+    private Flex.CachedMeasurement _element0;
+}
+
 internal struct Style
 {
-    internal ValueBufferEdge Border;
-    internal ValueBuffer2 Dimensions;
-    internal ValueBufferEdge Margin;
-    internal ValueBuffer2 MaxDimensions;
-    internal ValueBuffer2 MinDimensions;
-    internal ValueBufferEdge Padding;
-    internal ValueBufferEdge Position;
+    internal EdgeArray Border;
+    internal InlineArray2<Value> Dimensions;
+    internal EdgeArray Margin;
+    internal InlineArray2<Value> MaxDimensions;
+    internal InlineArray2<Value> MinDimensions;
+    internal EdgeArray Padding;
+    internal EdgeArray Position;
     internal Align AlignContent = Align.Start;
-    internal Align AlignItems = Align.Start;
+    internal Align AlignItems = Align.Stretch;
     internal Align AlignSelf;
 
     // Yoga specific properties, not compatible with flexbox specification
@@ -3711,16 +3723,16 @@ public static partial class Flex
 
     internal struct Layout
     {
-        internal FloatBuffer6 Border;
+        internal InlineArray6<float> Border;
         internal CachedMeasurement CachedLayout = new();
 
-        internal CachedMeasurementBuffer CachedMeasurements;
+        internal CachedMeasurementArray CachedMeasurements;
 
-        internal FloatBuffer2 Dimensions;
-        internal FloatBuffer6 Margin;
-        internal FloatBuffer2 MeasuredDimensions;
-        internal FloatBuffer6 Padding;
-        internal FloatBuffer4 Position;
+        internal InlineArray2<float> Dimensions;
+        internal InlineArray6<float> Margin;
+        internal InlineArray2<float> MeasuredDimensions;
+        internal InlineArray6<float> Padding;
+        internal InlineArray4<float> Position;
         internal float ComputedFlexBasis = float.NaN;
         internal Direction Direction;
 

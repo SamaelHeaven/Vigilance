@@ -49,6 +49,7 @@ public abstract class UIElement : IFullCloneable
     {
         var measure = Measure;
         Node = new UINode(this);
+        Node.StyleSetAlignItems(FlexLayout.Align.Start);
         IsLayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
         if (IsLayoutCustom)
             Node.SetMeasureFunc(
