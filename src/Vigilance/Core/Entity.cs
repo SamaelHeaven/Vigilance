@@ -34,7 +34,7 @@ public readonly unsafe partial record struct Entity
 
     public bool IsNull => Index == 0;
 
-    public bool IsValid => Scene.IsValid(this);
+    public bool IsValid => Scene is not null && Scene.IsValid(this);
 
     public ulong Id => GetId(Index, Version);
 
