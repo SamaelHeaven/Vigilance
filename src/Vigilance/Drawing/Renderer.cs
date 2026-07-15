@@ -17,7 +17,7 @@ public static class Renderer
         Graphics = Display.Graphics = new Graphics(null, true);
         if (mode.Type != RenderingModeType.Buffer)
             return;
-        _buffer = new RenderTexture(Display.ScreenSize, mode.Scale);
+        _buffer = new RenderTexture(Display.ScreenSize, mode.Scale, mode.Pool);
         Graphics = new Graphics(_buffer, true);
     }
 
@@ -36,7 +36,7 @@ public static class Renderer
         )
         {
             _buffer?.Dispose();
-            _buffer = new RenderTexture(Display.ScreenSize, mode.Scale);
+            _buffer = new RenderTexture(Display.ScreenSize, mode.Scale, mode.Pool);
             Graphics.Buffer = _buffer;
         }
         else if (mode.Type != RenderingModeType.Buffer)
