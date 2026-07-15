@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Vigilance.Logging;
 
 namespace Vigilance.Core;
 
@@ -15,6 +14,6 @@ public static class Debug
     )
     {
         if (!condition)
-            Log.Fatal($"ASSERT: {message}\n{new StackTrace(true).ToString().TrimEnd()}");
+            throw new AssertionException(message);
     }
 }
