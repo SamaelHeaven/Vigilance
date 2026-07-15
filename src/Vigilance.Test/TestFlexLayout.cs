@@ -6,7 +6,7 @@ using Vigilance.FlexLayout;
 namespace Vigilance.Test;
 
 [TestFixture]
-public class TestUnit
+public sealed class TestFlexLayout
 {
     private sealed class TestNode : Node<TestNode.Children>
     {
