@@ -76,11 +76,11 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node<UIElement> node,
+        UINode node,
         Unit value,
-        Action<Node<UIElement>> setAuto,
-        Action<Node<UIElement>, float> setFixed,
-        Action<Node<UIElement>, float> setPercent
+        Action<UINode> setAuto,
+        Action<UINode, float> setFixed,
+        Action<UINode, float> setPercent
     )
     {
         switch (value.Type)
@@ -100,10 +100,10 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node<UIElement> node,
+        UINode node,
         Unit value,
-        Action<Node<UIElement>, float> setFixed,
-        Action<Node<UIElement>, float> setPercent
+        Action<UINode, float> setFixed,
+        Action<UINode, float> setPercent
     )
     {
         switch (value.Type)
@@ -123,11 +123,11 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node<UIElement> node,
+        UINode node,
         Unit value,
         Gutter gutter,
-        Action<Node<UIElement>, Gutter, float> setFixed,
-        Action<Node<UIElement>, Gutter, float> setPercent
+        Action<UINode, Gutter, float> setFixed,
+        Action<UINode, Gutter, float> setPercent
     )
     {
         switch (value.Type)
@@ -147,12 +147,12 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node<UIElement> node,
+        UINode node,
         Unit value,
         Edge edge,
-        Action<Node<UIElement>, Edge> setAuto,
-        Action<Node<UIElement>, Edge, float> setFixed,
-        Action<Node<UIElement>, Edge, float> setPercent
+        Action<UINode, Edge> setAuto,
+        Action<UINode, Edge, float> setFixed,
+        Action<UINode, Edge, float> setPercent
     )
     {
         switch (value.Type)
@@ -174,11 +174,11 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node<UIElement> node,
+        UINode node,
         Unit value,
         Edge edge,
-        Action<Node<UIElement>, Edge, float> setFixed,
-        Action<Node<UIElement>, Edge, float> setPercent
+        Action<UINode, Edge, float> setFixed,
+        Action<UINode, Edge, float> setPercent
     )
     {
         switch (value.Type)

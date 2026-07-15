@@ -13,13 +13,13 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public sealed class UINode : Node<UIElement>
+public sealed class UINode : Node<UIElement.NodeStorage>
 {
-    internal UINode(UIElement storage)
-        : base(storage) { }
+    internal UINode(UIElement element)
+        : base(new UIElement.NodeStorage(element)) { }
 }
 
-public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
+public abstract class UIElement : IFullCloneable
 {
     [Flags]
     public enum CloneOptions : byte
@@ -49,7 +49,6 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
     {
         var measure = Measure;
         Node = new UINode(this);
-        Node.StyleSetAlignItems(FlexLayout.Align.Start);
         IsLayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
         if (IsLayoutCustom)
             Node.SetMeasureFunc(
@@ -61,7 +60,7 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
             );
     }
 
-    public UINode Node { get; private set; }
+    internal UINode Node { get; private set; }
 
     public ReadOnlySpan<IUIComponent> Components
     {
@@ -676,102 +675,6 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
         return ShallowClone(CloneOptions.None);
     }
 
-    IEnumerator<Node<UIElement>> IEnumerable<Node<UIElement>>.GetEnumerator()
-    {
-        if (this is not UIParent { IsLayoutCustom: false } parent)
-            yield break;
-        foreach (var child in parent.Children())
-            yield return child.Node;
-    }
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return ((IEnumerable<Node<UIElement>>)this).GetEnumerator();
-    }
-
-    void ICollection<Node<UIElement>>.Add(Node<UIElement> item)
-    {
-        if (this is not UIParent { IsLayoutCustom: false } parent)
-            throw new NotSupportedException();
-        parent.Add(((UINode)item).Storage);
-    }
-
-    void ICollection<Node<UIElement>>.Clear()
-    {
-        if (this is not UIParent { IsLayoutCustom: false } parent)
-            throw new NotSupportedException();
-        parent.Clear();
-    }
-
-    bool ICollection<Node<UIElement>>.Contains(Node<UIElement> item)
-    {
-        if (this is UIParent { IsLayoutCustom: false } parent)
-            return parent.Children().AsValueEnumerable().Contains(((UINode)item).Storage);
-        return false;
-    }
-
-    void ICollection<Node<UIElement>>.CopyTo(Node<UIElement>[] array, int arrayIndex)
-    {
-        if (this is UIParent { IsLayoutCustom: false } parent)
-            parent
-                .Children()
-                .AsValueEnumerable()
-                .Select(Node<UIElement> (p) => p.Node)
-                .CopyTo(array.AsSpan(arrayIndex));
-    }
-
-    bool ICollection<Node<UIElement>>.Remove(Node<UIElement> item)
-    {
-        return this is not UIParent { IsLayoutCustom: false } parent
-            ? throw new NotSupportedException()
-            : parent.Remove(((UINode)item).Storage);
-    }
-
-    int ICollection<Node<UIElement>>.Count =>
-        this is not UIParent { IsLayoutCustom: false } parent ? 0 : parent.Children().Count;
-
-    bool ICollection<Node<UIElement>>.IsReadOnly => this is not UIParent { IsLayoutCustom: false };
-
-    int IList<Node<UIElement>>.IndexOf(Node<UIElement> item)
-    {
-        if (this is UIParent { IsLayoutCustom: false } parent)
-            return parent.IndexOf(((UINode)item).Storage);
-        return -1;
-    }
-
-    void IList<Node<UIElement>>.Insert(int index, Node<UIElement> item)
-    {
-        if (this is not UIParent { IsLayoutCustom: false } parent)
-            throw new NotSupportedException();
-        parent.Insert(index, ((UINode)item).Storage);
-    }
-
-    void IList<Node<UIElement>>.RemoveAt(int index)
-    {
-        if (this is not UIParent { IsLayoutCustom: false } parent)
-            throw new NotSupportedException();
-        parent.Children()[index].Remove();
-    }
-
-    Node<UIElement> IList<Node<UIElement>>.this[int index]
-    {
-        get
-        {
-            if (this is UIParent { IsLayoutCustom: false } parent)
-                return parent.Children()[index].Node;
-            throw new ArgumentOutOfRangeException(nameof(index));
-        }
-        set
-        {
-            if (this is not UIParent { IsLayoutCustom: false } parent)
-                throw new NotSupportedException();
-            var children = parent.Children();
-            if (index < children.Count)
-                children[index].Remove();
-            parent.Insert(index, value.Storage);
-        }
-    }
-
     internal object DeepClone(CloneOptions options)
     {
         ValueDictionary<UIElement, UIElement> cloneMap = default;
@@ -1233,6 +1136,107 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
             element.IsLayoutReady = true;
     }
 
+    public readonly struct NodeStorage(UIElement element) : IList<Node<NodeStorage>>
+    {
+        public UIElement Element { get; } = element;
+
+        IEnumerator<Node<NodeStorage>> IEnumerable<Node<NodeStorage>>.GetEnumerator()
+        {
+            if (Element is not UIParent { IsLayoutCustom: false } parent)
+                yield break;
+            foreach (var child in parent.Children())
+                yield return child.Node;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable<Node<NodeStorage>>)this).GetEnumerator();
+        }
+
+        void ICollection<Node<NodeStorage>>.Add(Node<NodeStorage> item)
+        {
+            if (Element is not UIParent { IsLayoutCustom: false } parent)
+                throw new NotSupportedException();
+            parent.Add(item.Storage.Element);
+        }
+
+        void ICollection<Node<NodeStorage>>.Clear()
+        {
+            if (Element is not UIParent { IsLayoutCustom: false } parent)
+                throw new NotSupportedException();
+            parent.Clear();
+        }
+
+        bool ICollection<Node<NodeStorage>>.Contains(Node<NodeStorage> item)
+        {
+            if (Element is UIParent { IsLayoutCustom: false } parent)
+                return parent.Children().AsValueEnumerable().Contains(item.Storage.Element);
+            return false;
+        }
+
+        void ICollection<Node<NodeStorage>>.CopyTo(Node<NodeStorage>[] array, int arrayIndex)
+        {
+            if (Element is UIParent { IsLayoutCustom: false } parent)
+                parent
+                    .Children()
+                    .AsValueEnumerable()
+                    .Select(Node<NodeStorage> (p) => p.Node)
+                    .CopyTo(array.AsSpan(arrayIndex));
+        }
+
+        bool ICollection<Node<NodeStorage>>.Remove(Node<NodeStorage> item)
+        {
+            return Element is not UIParent { IsLayoutCustom: false } parent
+                ? throw new NotSupportedException()
+                : parent.Remove(item.Storage.Element);
+        }
+
+        int ICollection<Node<NodeStorage>>.Count =>
+            Element is not UIParent { IsLayoutCustom: false } parent ? 0 : parent.Children().Count;
+
+        bool ICollection<Node<NodeStorage>>.IsReadOnly => Element is not UIParent { IsLayoutCustom: false };
+
+        int IList<Node<NodeStorage>>.IndexOf(Node<NodeStorage> item)
+        {
+            if (Element is UIParent { IsLayoutCustom: false } parent)
+                return parent.IndexOf(item.Storage.Element);
+            return -1;
+        }
+
+        void IList<Node<NodeStorage>>.Insert(int index, Node<NodeStorage> item)
+        {
+            if (Element is not UIParent { IsLayoutCustom: false } parent)
+                throw new NotSupportedException();
+            parent.Insert(index, item.Storage.Element);
+        }
+
+        void IList<Node<NodeStorage>>.RemoveAt(int index)
+        {
+            if (Element is not UIParent { IsLayoutCustom: false } parent)
+                throw new NotSupportedException();
+            parent.Children()[index].Remove();
+        }
+
+        Node<NodeStorage> IList<Node<NodeStorage>>.this[int index]
+        {
+            get
+            {
+                if (Element is UIParent { IsLayoutCustom: false } parent)
+                    return parent.Children()[index].Node;
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+            set
+            {
+                if (Element is not UIParent { IsLayoutCustom: false } parent)
+                    throw new NotSupportedException();
+                var children = parent.Children();
+                if (index < children.Count)
+                    children[index].Remove();
+                parent.Insert(index, value.Storage.Element);
+            }
+        }
+    }
+
     private struct RenderData
     {
         public Matrix3x2? OldMatrix;
@@ -1247,7 +1251,7 @@ public abstract class UIElement : IFullCloneable, IList<Node<UIElement>>
 
         public RenderData(UIElement element)
         {
-            ShouldRender = element.IsLayoutReady && !element.Hidden;
+            ShouldRender = element is { IsLayoutReady: true, Hidden: false };
         }
     }
 

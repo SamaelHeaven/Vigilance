@@ -29,7 +29,7 @@ internal struct Style
     internal ValueBufferEdge Padding;
     internal ValueBufferEdge Position;
     internal Align AlignContent = Align.Start;
-    internal Align AlignItems = Align.Stretch;
+    internal Align AlignItems = Align.Start;
     internal Align AlignSelf;
 
     // Yoga specific properties, not compatible with flexbox specification
