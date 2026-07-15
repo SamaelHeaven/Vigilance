@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using Raylib_cs;
 using Vigilance.Core;
-using Vigilance.Logging;
 using Vigilance.Math;
 
 namespace Vigilance.Drawing;
