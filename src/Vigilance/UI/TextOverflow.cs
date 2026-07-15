@@ -1,6 +1,6 @@
 namespace Vigilance.UI;
 
-public enum TextOverflow : byte
+public enum TextOverflow : sbyte
 {
     Wrap,
     Clip,

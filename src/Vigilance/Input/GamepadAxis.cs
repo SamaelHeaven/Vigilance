@@ -1,6 +1,6 @@
 ﻿namespace Vigilance.Input;
 
-public enum GamepadAxis : byte
+public enum GamepadAxis : sbyte
 {
     LeftX = Raylib_cs.GamepadAxis.LeftX,
     LeftY = Raylib_cs.GamepadAxis.LeftY,

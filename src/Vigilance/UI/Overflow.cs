@@ -1,6 +1,6 @@
 namespace Vigilance.UI;
 
-public enum Overflow : byte
+public enum Overflow : sbyte
 {
     Visible,
     Hidden,

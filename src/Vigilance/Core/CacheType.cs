@@ -1,6 +1,6 @@
 namespace Vigilance.Core;
 
-public enum CacheType : byte
+public enum CacheType : sbyte
 {
     None,
     Weak,

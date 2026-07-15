@@ -2,7 +2,7 @@ using Box2D.NET;
 
 namespace Vigilance.Physics;
 
-public enum BodyType : byte
+public enum BodyType : sbyte
 {
     Static = B2BodyType.b2_staticBody,
     Kinematic = B2BodyType.b2_kinematicBody,

@@ -1,8 +1,8 @@
 namespace Vigilance.UI;
 
-public enum Wrap : byte
+public enum Wrap : sbyte
 {
-    NoWrap = FlexLayoutSharp.Wrap.NoWrap,
-    Wrap = FlexLayoutSharp.Wrap.Wrap,
-    WrapReverse = FlexLayoutSharp.Wrap.WrapReverse,
+    NoWrap = FlexLayout.Wrap.NoWrap,
+    Wrap = FlexLayout.Wrap.Wrap,
+    WrapReverse = FlexLayout.Wrap.WrapReverse,
 }

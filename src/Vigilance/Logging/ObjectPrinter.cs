@@ -9,7 +9,7 @@ namespace Vigilance.Logging;
 
 public static class ObjectPrinter
 {
-    public enum FilterType : byte
+    public enum FilterType : sbyte
     {
         None,
         Include,

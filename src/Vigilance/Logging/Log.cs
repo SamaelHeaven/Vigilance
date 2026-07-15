@@ -62,7 +62,7 @@ public static unsafe partial class Log
         Info(message);
     }
 
-    public static void Invoke<T>(T value)
+    public static void Invoke<T>(in T value)
     {
         Invoke(value is Exception ? LogLevel.Error : LogLevel.Info, value);
     }
@@ -72,7 +72,7 @@ public static unsafe partial class Log
         Invoke(LogLevel.Info, handler.GetFormattedText());
     }
 
-    public static void Invoke<T>(LogLevel level, T value)
+    public static void Invoke<T>(LogLevel level, in T value)
     {
         if (LogLevel > level)
             return;
@@ -106,7 +106,7 @@ public static unsafe partial class Log
         Invoke(level, handler.GetFormattedText());
     }
 
-    public static void Trace<T>(T value)
+    public static void Trace<T>(in T value)
     {
         Invoke(LogLevel.Trace, value);
     }
@@ -116,7 +116,7 @@ public static unsafe partial class Log
         Invoke(LogLevel.Trace, handler.GetFormattedText());
     }
 
-    public static void Debug<T>(T value)
+    public static void Debug<T>(in T value)
     {
         Invoke(LogLevel.Debug, value);
     }
@@ -126,7 +126,7 @@ public static unsafe partial class Log
         Invoke(LogLevel.Debug, handler.GetFormattedText());
     }
 
-    public static void Info<T>(T value)
+    public static void Info<T>(in T value)
     {
         Invoke(LogLevel.Info, value);
     }
@@ -136,7 +136,7 @@ public static unsafe partial class Log
         Invoke(LogLevel.Info, handler.GetFormattedText());
     }
 
-    public static void Warning<T>(T value)
+    public static void Warning<T>(in T value)
     {
         Invoke(LogLevel.Warning, value);
     }
@@ -146,7 +146,7 @@ public static unsafe partial class Log
         Invoke(LogLevel.Warning, handler.GetFormattedText());
     }
 
-    public static void Error<T>(T value)
+    public static void Error<T>(in T value)
     {
         Invoke(LogLevel.Error, value);
     }
@@ -156,7 +156,7 @@ public static unsafe partial class Log
         Invoke(LogLevel.Error, handler.GetFormattedText());
     }
 
-    public static void Fatal<T>(T value)
+    public static void Fatal<T>(in T value)
     {
         Invoke(LogLevel.Fatal, value);
     }

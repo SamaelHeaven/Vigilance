@@ -50,8 +50,10 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release
 
-      - name: Pack the NuGet package
-        run: dotnet pack --configuration Release --output ./nupkgs
+      - name: Pack the NuGet packages
+        run: |
+          dotnet pack --configuration Release --output ./nupkgs
+          dotnet pack --configuration Release --output ./nupkgs -p:VigilanceDebug=true
 
       - name: Publish to NuGet
         run: dotnet nuget push ./nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json

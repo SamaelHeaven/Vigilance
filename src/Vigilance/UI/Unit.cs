@@ -1,5 +1,5 @@
 using System.Runtime.CompilerServices;
-using FlexLayoutSharp;
+using Vigilance.FlexLayout;
 
 namespace Vigilance.UI;
 
@@ -64,23 +64,23 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     internal static Unit FromValue(Value value)
     {
-        var type = value.unit switch
+        var type = value.Unit switch
         {
-            FlexLayoutSharp.Unit.Auto => UnitType.Auto,
-            FlexLayoutSharp.Unit.Percent => UnitType.Percent,
-            FlexLayoutSharp.Unit.Point => UnitType.Fixed,
+            FlexLayout.Unit.Auto => UnitType.Auto,
+            FlexLayout.Unit.Percent => UnitType.Percent,
+            FlexLayout.Unit.Point => UnitType.Fixed,
             _ => UnitType.Undefined,
         };
-        return new Unit(type, value.value);
+        return new Unit(type, value.Number);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node node,
+        UINode node,
         Unit value,
-        Action<Node> setAuto,
-        Action<Node, float> setFixed,
-        Action<Node, float> setPercent
+        Action<UINode> setAuto,
+        Action<UINode, float> setFixed,
+        Action<UINode, float> setPercent
     )
     {
         switch (value.Type)
@@ -99,7 +99,12 @@ public record struct Unit(UnitType Type, float Value = 0)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void SetUnit(Node node, Unit value, Action<Node, float> setFixed, Action<Node, float> setPercent)
+    internal static void SetUnit(
+        UINode node,
+        Unit value,
+        Action<UINode, float> setFixed,
+        Action<UINode, float> setPercent
+    )
     {
         switch (value.Type)
         {
@@ -118,12 +123,36 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node node,
+        UINode node,
+        Unit value,
+        Gutter gutter,
+        Action<UINode, Gutter, float> setFixed,
+        Action<UINode, Gutter, float> setPercent
+    )
+    {
+        switch (value.Type)
+        {
+            case UnitType.Undefined:
+            case UnitType.Auto:
+                setFixed.Invoke(node, gutter, float.NaN);
+                break;
+            case UnitType.Fixed:
+                setFixed.Invoke(node, gutter, value.Value);
+                break;
+            case UnitType.Percent:
+                setPercent.Invoke(node, gutter, value.Value);
+                break;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SetUnit(
+        UINode node,
         Unit value,
         Edge edge,
-        Action<Node, Edge> setAuto,
-        Action<Node, Edge, float> setFixed,
-        Action<Node, Edge, float> setPercent
+        Action<UINode, Edge> setAuto,
+        Action<UINode, Edge, float> setFixed,
+        Action<UINode, Edge, float> setPercent
     )
     {
         switch (value.Type)
@@ -145,11 +174,11 @@ public record struct Unit(UnitType Type, float Value = 0)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void SetUnit(
-        Node node,
+        UINode node,
         Unit value,
         Edge edge,
-        Action<Node, Edge, float> setFixed,
-        Action<Node, Edge, float> setPercent
+        Action<UINode, Edge, float> setFixed,
+        Action<UINode, Edge, float> setPercent
     )
     {
         switch (value.Type)
@@ -168,7 +197,7 @@ public record struct Unit(UnitType Type, float Value = 0)
     }
 }
 
-public enum UnitType : byte
+public enum UnitType : sbyte
 {
     Undefined,
     Auto,

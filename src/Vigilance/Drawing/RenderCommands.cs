@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Vigilance.Collections;
 using Vigilance.Core;
+using Vigilance.Logging;
 
 namespace Vigilance.Drawing;
 
@@ -64,18 +65,20 @@ public readonly ref partial struct RenderCommands
         var scene = Scene;
         ref var commands = ref scene.RenderCommands;
         commands.Sort();
-        try
-        {
-            foreach (ref var command in commands.AsSpan())
+        foreach (ref var command in commands.AsSpan())
+            try
+            {
                 command.Invoke(scene);
-        }
-        finally
-        {
-            commands.Clear();
-            scene.RenderDataList.Clear();
-            foreach (var table in Scene.RenderComponentsList)
-                table.Clear();
-        }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+        commands.Clear();
+        scene.RenderDataList.Clear();
+        foreach (var table in Scene.RenderComponentsList)
+            table.Clear();
     }
 }
 

@@ -1,6 +1,8 @@
+using ZLinq;
+
 namespace Vigilance.Core;
 
-public enum Platform : byte
+public enum Platform : sbyte
 {
     Unknown,
     Desktop,
@@ -9,7 +11,9 @@ public enum Platform : byte
 
 public static class PlatformExtensions
 {
-    private static readonly Platform _current = Enum.GetValues<Platform>()
+    private static readonly Platform _current = Platform
+        .Values()
+        .AsValueEnumerable()
         .FirstOrDefault(platform => platform.IsCurrent);
 
     extension(Platform platform)

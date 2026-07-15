@@ -16,7 +16,8 @@ public record struct Vector2
         IDivisionOperators<Vector2, Vector2, Vector2>,
         IDivisionOperators<Vector2, float, Vector2>,
         IUnaryNegationOperators<Vector2, Vector2>,
-        IUnaryPlusOperators<Vector2, Vector2>
+        IUnaryPlusOperators<Vector2, Vector2>,
+        IComparisonOperators<Vector2, Vector2, bool>
 {
     public float X { get; set; }
     public float Y { get; set; }
@@ -168,6 +169,54 @@ public record struct Vector2
     public static Vector2 operator /(Vector2 v, float f)
     {
         return f == 0 ? Zero : new Vector2(v.X / f, v.Y / f);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator <(Vector2 a, Vector2 b)
+    {
+        return a.X < b.X && a.Y < b.Y;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator <=(Vector2 a, Vector2 b)
+    {
+        return a.X <= b.X && a.Y <= b.Y;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator >(Vector2 a, Vector2 b)
+    {
+        return a.X > b.X && a.Y > b.Y;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator >=(Vector2 a, Vector2 b)
+    {
+        return a.X >= b.X && a.Y >= b.Y;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator <(Vector2 v, float f)
+    {
+        return v.X < f && v.Y < f;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator <=(Vector2 v, float f)
+    {
+        return v.X <= f && v.Y <= f;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator >(Vector2 v, float f)
+    {
+        return v.X > f && v.Y > f;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator >=(Vector2 v, float f)
+    {
+        return v.X >= f && v.Y >= f;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

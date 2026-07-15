@@ -1,7 +1,7 @@
 namespace Vigilance.Physics;
 
 [Flags]
-public enum DebugDrawFlags
+public enum DebugDrawFlags : ushort
 {
     None = 0,
     Shapes = 1 << 0,

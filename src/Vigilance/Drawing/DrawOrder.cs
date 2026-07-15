@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-public enum DrawOrder : byte
+public enum DrawOrder : sbyte
 {
     FillThenStroke,
     StrokeThenFill,

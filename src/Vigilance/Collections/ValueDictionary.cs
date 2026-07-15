@@ -784,7 +784,7 @@ public struct ValueDictionary<TKey, TValue>
         return TryGetValue(key, out value);
     }
 
-    private enum InsertionBehavior : byte
+    private enum InsertionBehavior : sbyte
     {
         None = 0,
         OverwriteExisting = 1,

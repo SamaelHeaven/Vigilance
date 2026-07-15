@@ -1,8 +1,8 @@
-using FlexLayoutSharp;
+using Vigilance.FlexLayout;
 
 namespace Vigilance.UI;
 
-public enum Direction : byte
+public enum Direction : sbyte
 {
     TopToBottom = FlexDirection.Column,
     BottomToTop = FlexDirection.ColumnReverse,

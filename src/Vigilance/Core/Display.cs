@@ -16,6 +16,7 @@ public static unsafe class Display
     private static Vector2? _position = _config.Position;
     private static Viewport _viewport = _config.Viewport;
     private static RenderingMode _renderingMode = _config.RenderingMode;
+    private static Vector2 _renderSize;
     private static Image? _icon;
     private static Box _previousScreen;
     private static bool _resetScreen;
@@ -420,14 +421,13 @@ public static unsafe class Display
 
     public static WritableImage<PixelR8G8B8A8> Screenshot()
     {
-        var width = ScreenWidth;
-        var height = ScreenHeight;
+        var width = (int)_renderSize.X;
+        var height = (int)_renderSize.Y;
         Graphics.ResetCurrentBuffer();
         Graphics.DrawCurrentBuffer();
-        var data = Rlgl.ReadScreenPixels(width, height);
         var image = new Raylib_cs.Image
         {
-            Data = data,
+            Data = Rlgl.ReadScreenPixels(width, height),
             Width = width,
             Height = height,
             Mipmaps = 1,
@@ -498,6 +498,7 @@ public static unsafe class Display
             Platform.Desktop.IsCurrent && Fullscreen
                 ? new Vector2(MonitorWidth, MonitorHeight)
                 : new Vector2(Raylib.GetScreenWidth(), Raylib.GetScreenHeight());
+        _renderSize = new Vector2(Raylib.GetRenderWidth(), Raylib.GetRenderHeight());
         if (!_resetScreen)
             return;
         _resetScreen = false;

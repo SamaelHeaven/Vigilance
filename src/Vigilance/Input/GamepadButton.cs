@@ -1,6 +1,6 @@
 ﻿namespace Vigilance.Input;
 
-public enum GamepadButton : byte
+public enum GamepadButton : sbyte
 {
     DPadUp = Raylib_cs.GamepadButton.LeftFaceUp,
     DPadRight = Raylib_cs.GamepadButton.LeftFaceRight,

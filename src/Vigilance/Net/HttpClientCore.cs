@@ -11,7 +11,7 @@ internal sealed class HttpClientCore : IHttpClient
         HttpResponse response = null!;
         try
         {
-            response = new HttpResponse();
+            response = new HttpResponse { Request = request };
             using var requestMessage = new HttpRequestMessage();
             requestMessage.Method = new HttpMethod(request.Method);
             requestMessage.RequestUri = new Uri(request.Url);
@@ -50,11 +50,11 @@ internal sealed class HttpClientCore : IHttpClient
         }
         catch (Exception e)
         {
-            response = new HttpResponse { StatusText = e.Message };
+            response = new HttpResponse { Request = request, StatusText = e.Message };
         }
         finally
         {
-            Http.CompleteFetch(request, response);
+            Http.CompleteFetch(response);
         }
     }
 }

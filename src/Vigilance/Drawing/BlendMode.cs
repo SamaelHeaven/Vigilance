@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace Vigilance.Drawing;
 
-public enum BlendFactor : byte
+public enum BlendFactor : sbyte
 {
     Zero,
     One,
@@ -16,7 +16,7 @@ public enum BlendFactor : byte
     OneMinusDstColor,
 }
 
-public enum BlendEquation : byte
+public enum BlendEquation : sbyte
 {
     Add,
     Subtract,

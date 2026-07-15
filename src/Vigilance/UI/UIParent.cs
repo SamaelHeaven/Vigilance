@@ -26,6 +26,7 @@ public abstract class UIParent : UIElement
         }
     }
 
+    [OverloadResolutionPriority(1)]
     public UIParent this[params ReadOnlySpan<UIElement?> elements]
     {
         get
@@ -63,9 +64,6 @@ public abstract class UIParent : UIElement
         element.Remove();
         _childrenList.Add(element);
         element.Parent = this;
-        element.ApplyDeclaredMargin();
-        if (!IsLayoutCustom)
-            Node.AddChild(element.Node);
         MarkDirty();
     }
 
@@ -86,9 +84,6 @@ public abstract class UIParent : UIElement
         _childrenList.Insert(index, element);
         element.Remove();
         element.Parent = this;
-        element.ApplyDeclaredMargin();
-        if (!IsLayoutCustom)
-            Node.InsertChild(element.Node, index);
         MarkDirty();
     }
 
@@ -108,10 +103,7 @@ public abstract class UIParent : UIElement
         _childrenList[index].Remove();
         element.Remove();
         element.Parent = this;
-        element.ApplyDeclaredMargin();
         _childrenList[index] = element;
-        if (!IsLayoutCustom)
-            Node.ReplaceChild(index, element.Node);
         MarkDirty();
     }
 
@@ -166,22 +158,21 @@ public abstract class UIParent : UIElement
         _isFlushing = false;
     }
 
-    internal void Remove(UIElement element)
+    internal bool Remove(UIElement element)
     {
         if (IsDeferred)
         {
             _childrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Remove, element));
-            return;
+            return false;
         }
 
-        _childrenList.Remove(element);
+        var result = _childrenList.Remove(element);
         element.Parent = null;
-        if (!IsLayoutCustom)
-            Node.RemoveChild(element.Node);
         MarkDirty();
+        return result;
     }
 
-    internal enum ChildrenOperationType : byte
+    internal enum ChildrenOperationType : sbyte
     {
         Add,
         Remove,

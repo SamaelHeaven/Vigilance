@@ -7,7 +7,7 @@ namespace Vigilance.Core;
 
 public abstract class Table
 {
-    public enum EventType : byte
+    public enum EventType : sbyte
     {
         Add,
         Set,
@@ -491,7 +491,7 @@ public sealed class Table<T>
         _sparseChunks[chunkIndex] = chunk;
     }
 
-    private enum OperationType : byte
+    private enum OperationType : sbyte
     {
         Set,
         Remove,

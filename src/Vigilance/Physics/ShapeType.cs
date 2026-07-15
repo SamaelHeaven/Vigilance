@@ -2,7 +2,7 @@ using Box2D.NET;
 
 namespace Vigilance.Physics;
 
-public enum ShapeType : byte
+public enum ShapeType : sbyte
 {
     Circle = B2ShapeType.b2_circleShape,
     Capsule = B2ShapeType.b2_capsuleShape,

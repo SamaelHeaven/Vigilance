@@ -24,6 +24,11 @@ public static class GenericExtensions
         {
             return new SingletonEnumerable<T>(in value);
         }
+
+        public ValueEnumerable<SingletonEnumerable<T>.Enumerator, T> AsValueSingleton()
+        {
+            return new SingletonEnumerable<T>(in value).AsValueEnumerable();
+        }
     }
 }
 

@@ -8,7 +8,6 @@ namespace Vigilance.Input;
 
 public static class Mouse
 {
-    private static readonly MouseButton[] _buttonValues = Enum.GetValues<MouseButton>();
     private static ValueList<MouseButton> _currentButtons = [];
     private static ValueList<MouseButton> _downButtons = [];
     private static ValueList<MouseButton> _pressedButtons = [];
@@ -118,7 +117,7 @@ public static class Mouse
     {
         _downButtons.Clear();
         _upButtons.Clear();
-        _upButtons.AddRange(_buttonValues);
+        _upButtons.AddRange(MouseButton.Values());
         _pressedButtons.Clear();
         _releasedButtons.Clear();
         _scroll = Vector2.Zero;
@@ -128,17 +127,18 @@ public static class Mouse
     {
         var mousePosition = Raylib.GetMousePosition();
         _screenPosition = ((Vector2)mousePosition).Clamp(Vector2.Zero, Display.ScreenSize).Round();
-        OnScreen =
-            OperatingSystem.IsMacOS() || Platform.Web.IsCurrent
+        OnScreen = Platform.Desktop.IsCurrent
+            ? OperatingSystem.IsMacOS()
                 ? mousePosition is { X: >= 0, Y: >= 0 }
                     && mousePosition.X <= Display.ScreenWidth
                     && mousePosition.Y <= Display.ScreenHeight
-                : Raylib.IsCursorOnScreen();
+                : Raylib.IsCursorOnScreen()
+            : Display.Focused;
         _scroll = Raylib.GetMouseWheelMoveV();
         if (Platform.Web.IsCurrent)
             _scroll.X = -_scroll.X;
         _currentButtons.Clear();
-        foreach (var button in _buttonValues)
+        foreach (var button in MouseButton.Values())
             if (Raylib.IsMouseButtonDown((Raylib_cs.MouseButton)button))
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
@@ -150,7 +150,7 @@ public static class Mouse
         _downButtons.Clear();
         _downButtons.AddRange(_currentButtons);
         _upButtons.Clear();
-        _upButtons.AddRange(_buttonValues);
+        _upButtons.AddRange(MouseButton.Values());
         _upButtons.RemoveAll(_currentButtons);
     }
 }

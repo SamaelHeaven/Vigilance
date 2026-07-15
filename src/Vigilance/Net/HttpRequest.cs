@@ -4,13 +4,16 @@ namespace Vigilance.Net;
 
 public sealed class HttpRequest(string url, string method, Action<HttpResponse>? onComplete)
 {
+    public HttpRequest()
+        : this("", null) { }
+
     public HttpRequest(string url, Action<HttpResponse>? onComplete)
         : this(url, "GET", onComplete) { }
 
-    public string Url { get; } = url;
-    public string Method { get; init; } = method;
+    public string Url { get; set; } = url;
+    public string Method { get; set; } = method;
     public TimeSpan Timeout { get; set; }
-    public HttpHeaders Headers { get; init; } = new();
+    public HttpHeaders Headers { get; set; } = [];
     public byte[]? Body { get; set; }
 
     public string Text

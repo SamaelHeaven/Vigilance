@@ -9,8 +9,6 @@ public sealed unsafe class Gamepad
 {
     private const int MaxGamepads = 4;
     private const string DefaultName = "Unknown gamepad";
-    private static readonly GamepadButton[] _buttonValues = Enum.GetValues<GamepadButton>();
-    private static readonly GamepadAxis[] _axisValues = Enum.GetValues<GamepadAxis>();
     private static readonly Gamepad[] _gamepads = GetGamepads();
     private ValueDictionary<GamepadAxis, float> _axes;
     private ValueList<GamepadButton> _currentButtons = [];
@@ -23,7 +21,7 @@ public sealed unsafe class Gamepad
     {
         Id = id;
         _axes = [];
-        foreach (var axis in _axisValues)
+        foreach (var axis in GamepadAxis.Values())
             _axes.Add(axis, 0);
     }
 
@@ -103,18 +101,18 @@ public sealed unsafe class Gamepad
     private void Reset()
     {
         _upButtons.Clear();
-        _upButtons.AddRange(_buttonValues);
+        _upButtons.AddRange(GamepadButton.Values());
         _downButtons.Clear();
         _pressedButtons.Clear();
         _releasedButtons.Clear();
-        foreach (var axis in _axisValues)
+        foreach (var axis in GamepadAxis.Values())
             _axes[axis] = 0;
     }
 
     private void UpdateState()
     {
         _currentButtons.Clear();
-        foreach (var button in _buttonValues)
+        foreach (var button in GamepadButton.Values())
             if (Raylib.IsGamepadButtonDown(Id, (Raylib_cs.GamepadButton)button))
                 _currentButtons.Add(button);
         _pressedButtons.Clear();
@@ -126,9 +124,9 @@ public sealed unsafe class Gamepad
         _downButtons.Clear();
         _downButtons.AddRange(_currentButtons);
         _upButtons.Clear();
-        _upButtons.AddRange(_buttonValues);
+        _upButtons.AddRange(GamepadButton.Values());
         _upButtons.RemoveAll(_currentButtons);
-        foreach (var axis in _axisValues)
+        foreach (var axis in GamepadAxis.Values())
             _axes[axis] = Raylib.GetGamepadAxisMovement(Id, (Raylib_cs.GamepadAxis)axis);
     }
 }

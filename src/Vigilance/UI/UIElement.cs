@@ -1,38 +1,36 @@
 using System.Buffers;
+using System.Collections;
 using System.Numerics;
-using FlexLayoutSharp;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
+using Vigilance.FlexLayout;
 using Vigilance.Input;
 using Vigilance.Math;
 using ZLinq;
-using Display = FlexLayoutSharp.Display;
+using Display = Vigilance.FlexLayout.Display;
 using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
+public sealed class UINode : Node<UIElement.NodeStorage>
+{
+    internal UINode(UIElement element)
+        : base(new UIElement.NodeStorage(element)) { }
+}
+
 public abstract class UIElement : IFullCloneable
 {
     [Flags]
-    public enum CloneOptions
+    public enum CloneOptions : byte
     {
         None = 0,
         SkipChildren = 1 << 0,
         ClearSignals = 1 << 1,
     }
 
-    private Unit _appliedMarginBottom = Unit.Undefined;
-    private Unit _appliedMarginLeft = Unit.Undefined;
-    private Unit _appliedMarginRight = Unit.Undefined;
-    private Unit _appliedMarginTop = Unit.Undefined;
-
     private bool _click;
     private ValueList<IUIComponent> _components = [];
-    private Unit _marginBottom = Unit.Undefined;
-    private Unit _marginLeft = Unit.Undefined;
-    private Unit _marginRight = Unit.Undefined;
-    private Unit _marginTop = Unit.Undefined;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onBeginRenderHandlers;
     private Func<UIElement, bool>? _onClickHandlers;
     private Func<UIElement, bool>? _onCloneHandlers;
@@ -46,12 +44,12 @@ public abstract class UIElement : IFullCloneable
     private Func<UIElement, Graphics, CameraProvider, bool>? _onRenderHandlers;
     private Func<UIElement, bool>? _onUpdateHandlers;
     private RenderData _renderData;
-    internal Node Node = Flex.CreateDefaultNode();
 
     protected UIElement()
     {
         var measure = Measure;
-        Node.StyleSetAlignItems(FlexLayoutSharp.Align.FlexStart);
+        Node = new UINode(this);
+        Node.StyleSetAlignItems(FlexLayout.Align.Start);
         IsLayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
         if (IsLayoutCustom)
             Node.SetMeasureFunc(
@@ -63,6 +61,8 @@ public abstract class UIElement : IFullCloneable
             );
     }
 
+    internal UINode Node { get; private set; }
+
     public ReadOnlySpan<IUIComponent> Components
     {
         get => _components.AsSpan();
@@ -73,10 +73,6 @@ public abstract class UIElement : IFullCloneable
                 Attach(component);
         }
     }
-
-    public string Id { get; set; } = "";
-
-    public Attributes Attributes { get; private set; } = new();
 
     public float LayoutLeft => Node.LayoutGetLeft();
 
@@ -170,16 +166,16 @@ public abstract class UIElement : IFullCloneable
         get
         {
             foreach (var element in this.AncestorsAndSelf())
-                if (!(element.IsLayoutReady && element.Display != DisplayMode.None && !element.WasRenderedOutside))
+                if (element is not { IsLayoutReady: true, Hidden: false, WasRenderedOutside: false })
                     return false;
             return true;
         }
     }
 
-    public DisplayMode Display
+    public bool Hidden
     {
-        get => (DisplayMode)Node.StyleGetDisplay();
-        set => Node.StyleSetDisplay((Display)value);
+        get => Node.StyleGetDisplay() == Display.None;
+        set => Node.StyleSetDisplay(value ? Display.None : Display.Flex);
     }
 
     public Overflow Overflow { get; set; }
@@ -203,7 +199,7 @@ public abstract class UIElement : IFullCloneable
         }
     }
 
-    public Unit PaddingVertical
+    public Unit PaddingY
     {
         set
         {
@@ -212,7 +208,7 @@ public abstract class UIElement : IFullCloneable
         }
     }
 
-    public Unit PaddingHorizontal
+    public Unit PaddingX
     {
         set
         {
@@ -292,7 +288,7 @@ public abstract class UIElement : IFullCloneable
         }
     }
 
-    public Unit MarginVertical
+    public Unit MarginY
     {
         set
         {
@@ -301,7 +297,7 @@ public abstract class UIElement : IFullCloneable
         }
     }
 
-    public Unit MarginHorizontal
+    public Unit MarginX
     {
         set
         {
@@ -312,64 +308,67 @@ public abstract class UIElement : IFullCloneable
 
     public Unit MarginTop
     {
-        get => _marginTop;
+        get => Unit.FromValue(Node.StyleGetMargin(Edge.Top));
         set
         {
-            _marginTop = value;
-            if (!IsMarginManagedByGap())
-                ApplyDeclaredMargin();
-            else
-                MarkDirty();
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Top,
+                (node, e) => node.StyleSetMarginAuto(e),
+                (node, e, margin) => node.StyleSetMargin(e, margin),
+                (node, e, margin) => node.StyleSetMarginPercent(e, margin)
+            );
         }
     }
 
     public Unit MarginRight
     {
-        get => _marginRight;
+        get => Unit.FromValue(Node.StyleGetMargin(Edge.Right));
         set
         {
-            _marginRight = value;
-            if (!IsMarginManagedByGap())
-                ApplyDeclaredMargin();
-            else
-                MarkDirty();
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Right,
+                (node, e) => node.StyleSetMarginAuto(e),
+                (node, e, margin) => node.StyleSetMargin(e, margin),
+                (node, e, margin) => node.StyleSetMarginPercent(e, margin)
+            );
         }
     }
 
     public Unit MarginBottom
     {
-        get => _marginBottom;
+        get => Unit.FromValue(Node.StyleGetMargin(Edge.Bottom));
         set
         {
-            _marginBottom = value;
-            if (!IsMarginManagedByGap())
-                ApplyDeclaredMargin();
-            else
-                MarkDirty();
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Bottom,
+                (node, e) => node.StyleSetMarginAuto(e),
+                (node, e, margin) => node.StyleSetMargin(e, margin),
+                (node, e, margin) => node.StyleSetMarginPercent(e, margin)
+            );
         }
     }
 
     public Unit MarginLeft
     {
-        get => _marginLeft;
+        get => Unit.FromValue(Node.StyleGetMargin(Edge.Left));
         set
         {
-            _marginLeft = value;
-            if (!IsMarginManagedByGap())
-                ApplyDeclaredMargin();
-            else
-                MarkDirty();
+            Unit.SetUnit(
+                Node,
+                value,
+                Edge.Left,
+                (node, e) => node.StyleSetMarginAuto(e),
+                (node, e, margin) => node.StyleSetMargin(e, margin),
+                (node, e, margin) => node.StyleSetMarginPercent(e, margin)
+            );
         }
     }
-
-    internal Insets DeclaredMargin =>
-        new()
-        {
-            Top = _marginTop,
-            Right = _marginRight,
-            Bottom = _marginBottom,
-            Left = _marginLeft,
-        };
 
     public Unit Width
     {
@@ -478,7 +477,7 @@ public abstract class UIElement : IFullCloneable
     public Align AlignSelf
     {
         get => (Align)Node.StyleGetAlignSelf();
-        set => Node.StyleSetAlignSelf((FlexLayoutSharp.Align)value);
+        set => Node.StyleSetAlignSelf((FlexLayout.Align)value);
     }
 
     public Unit Basis
@@ -509,7 +508,7 @@ public abstract class UIElement : IFullCloneable
     public PositionType Position
     {
         get => (PositionType)Node.StyleGetPositionType();
-        set => Node.StyleSetPositionType((FlexLayoutSharp.PositionType)value);
+        set => Node.StyleSetPositionType((FlexLayout.PositionType)value);
     }
 
     public Insets Insets
@@ -677,32 +676,6 @@ public abstract class UIElement : IFullCloneable
         return ShallowClone(CloneOptions.None);
     }
 
-    internal bool ApplyDeclaredMargin()
-    {
-        return ApplyComputedMargin(DeclaredMargin);
-    }
-
-    internal bool ApplyComputedMargin(in Insets margin)
-    {
-        if (
-            _appliedMarginTop == margin.Top
-            && _appliedMarginRight == margin.Right
-            && _appliedMarginBottom == margin.Bottom
-            && _appliedMarginLeft == margin.Left
-        )
-            return false;
-        SetNodeMargin(Edge.Top, margin.Top);
-        SetNodeMargin(Edge.Right, margin.Right);
-        SetNodeMargin(Edge.Bottom, margin.Bottom);
-        SetNodeMargin(Edge.Left, margin.Left);
-        _appliedMarginTop = margin.Top;
-        _appliedMarginRight = margin.Right;
-        _appliedMarginBottom = margin.Bottom;
-        _appliedMarginLeft = margin.Left;
-        MarkDirty();
-        return true;
-    }
-
     internal object DeepClone(CloneOptions options)
     {
         ValueDictionary<UIElement, UIElement> cloneMap = default;
@@ -763,43 +736,7 @@ public abstract class UIElement : IFullCloneable
     public void CalculateLayout(float width = float.NaN, float height = float.NaN)
     {
         MarkReady();
-        var wrapMinSizeCapacity = 0;
-        foreach (var element in this.DescendantsAndSelf())
-        {
-            element.ApplyDeclaredMargin();
-            wrapMinSizeCapacity++;
-        }
-
-        var wrapMinSizes = ArrayPool<WrapMinSizeState>.Shared.Rent(wrapMinSizeCapacity);
-        try
-        {
-            var wrapMinSizeCount = PrepareWrapMinSizes(wrapMinSizes);
-            if (HasGapContainers())
-            {
-                bool changed;
-                do
-                {
-                    Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
-                    changed = false;
-                    foreach (var element in this.DescendantsAndSelf())
-                        if (element is UIContainer container)
-                            changed |= container.ApplyGapMargins();
-                } while (changed);
-            }
-            else
-            {
-                Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
-            }
-
-            var saved = wrapMinSizes.AsSpan(0, wrapMinSizeCount);
-            if (ApplyWrapMinSizeFloors(saved, width, height))
-                Flex.CalculateLayout(Node, width, height, FlexLayoutSharp.Direction.LTR);
-            RestoreWrapMinSizeDimensions(saved);
-        }
-        finally
-        {
-            ArrayPool<WrapMinSizeState>.Shared.Return(wrapMinSizes, true);
-        }
+        Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.LeftToRight);
     }
 
     public void Attach(IUIComponent component)
@@ -884,15 +821,15 @@ public abstract class UIElement : IFullCloneable
         OnClearSignals();
     }
 
-    public RenderTexture ToTexture(Vector2 size)
+    public RenderTexture ToTexture(Vector2 size, bool pool = true)
     {
-        return ToTexture(size.X, size.Y);
+        return ToTexture(size.X, size.Y, pool);
     }
 
-    public RenderTexture ToTexture(float width = float.NaN, float height = float.NaN)
+    public RenderTexture ToTexture(float width = float.NaN, float height = float.NaN, bool pool = true)
     {
         CalculateLayout(width, height);
-        var texture = new RenderTexture(LayoutSize);
+        var texture = new RenderTexture(LayoutSize, pool: pool);
         Render(texture.Graphics);
         return texture;
     }
@@ -931,122 +868,6 @@ public abstract class UIElement : IFullCloneable
     protected void MarkDirty()
     {
         Node.MarkAsDirty();
-    }
-
-    private bool IsMarginManagedByGap()
-    {
-        return Parent is UIContainer { HasGap: true };
-    }
-
-    private bool HasGapContainers()
-    {
-        foreach (var element in this.DescendantsAndSelf())
-            if (element is UIContainer { HasGap: true })
-                return true;
-        return false;
-    }
-
-    private int PrepareWrapMinSizes(WrapMinSizeState[] saved)
-    {
-        var count = 0;
-        foreach (var element in this.DescendantsAndSelf())
-        {
-            if (element is not UIContainer { Wrap: not Wrap.NoWrap } container)
-                continue;
-            if (!HasMinSize(container.MinWidth) && !HasMinSize(container.MinHeight))
-                continue;
-            saved[count++] = new WrapMinSizeState
-            {
-                Container = container,
-                MinWidth = container.MinWidth,
-                MinHeight = container.MinHeight,
-                Width = container.Width,
-                Height = container.Height,
-            };
-            container.MinWidth = Unit.Undefined;
-            container.MinHeight = Unit.Undefined;
-        }
-
-        return count;
-    }
-
-    private static bool ApplyWrapMinSizeFloors(
-        in ReadOnlySpan<WrapMinSizeState> saved,
-        float layoutWidth,
-        float layoutHeight
-    )
-    {
-        var needsRelayout = false;
-        foreach (var state in saved)
-        {
-            var container = state.Container;
-            container.MinWidth = state.MinWidth;
-            container.MinHeight = state.MinHeight;
-            var minWidth = ResolveMinSize(state.MinWidth, container, layoutWidth, layoutHeight, false);
-            if (minWidth > 0 && container.LayoutWidth + 0.5f < minWidth)
-            {
-                container.Width = Unit.Fixed(minWidth);
-                needsRelayout = true;
-            }
-
-            var minHeight = ResolveMinSize(state.MinHeight, container, layoutWidth, layoutHeight, true);
-            if (!(minHeight > 0) || !(container.LayoutHeight + 0.5f < minHeight))
-                continue;
-            container.Height = Unit.Fixed(minHeight);
-            needsRelayout = true;
-        }
-
-        return needsRelayout;
-    }
-
-    private static void RestoreWrapMinSizeDimensions(in ReadOnlySpan<WrapMinSizeState> saved)
-    {
-        foreach (var state in saved)
-        {
-            state.Container.Width = state.Width;
-            state.Container.Height = state.Height;
-            state.Container.MinWidth = state.MinWidth;
-            state.Container.MinHeight = state.MinHeight;
-        }
-    }
-
-    private static bool HasMinSize(Unit unit)
-    {
-        return unit.Type switch
-        {
-            UnitType.Fixed or UnitType.Percent => !float.IsNaN(unit.Value),
-            _ => false,
-        };
-    }
-
-    private static float ResolveMinSize(
-        Unit min,
-        UIContainer container,
-        float layoutWidth,
-        float layoutHeight,
-        bool crossAxis
-    )
-    {
-        if (!HasMinSize(min))
-            return 0;
-        var parentSize = crossAxis
-            ? container.Parent?.LayoutHeight ?? layoutHeight
-            : container.Parent?.LayoutWidth ?? layoutWidth;
-        if (float.IsNaN(parentSize))
-            parentSize = crossAxis ? container.LayoutHeight : container.LayoutWidth;
-        return min.Calculate(parentSize);
-    }
-
-    private void SetNodeMargin(Edge edge, Unit value)
-    {
-        Unit.SetUnit(
-            Node,
-            value,
-            edge,
-            static (node, e) => node.StyleSetMarginAuto(e),
-            static (node, e, margin) => node.StyleSetMargin(e, margin),
-            static (node, e, margin) => node.StyleSetMarginPercent(e, margin)
-        );
     }
 
     private static void Update(UIElement element, in Entity entity)
@@ -1245,7 +1066,11 @@ public abstract class UIElement : IFullCloneable
         }
 
         if (shouldSort)
-            stack.AsSpan(i, count - i).Sort((a, b) => b.ZIndex.CompareTo(a.ZIndex));
+        {
+            var span = stack.AsSpan(i, count - i);
+            span.AsValueEnumerable().OrderByDescending(e => e.ZIndex).CopyTo(span);
+        }
+
         element.OnBeginRender(graphics, camera);
         element.OnBeginRenderSignal.Invoke(element, graphics, camera);
         element.OnRender(graphics, camera);
@@ -1280,10 +1105,8 @@ public abstract class UIElement : IFullCloneable
         result._click = false;
         result.IsLayoutReady = false;
         result.Parent = null;
-        result.Node = Flex.CreateDefaultNode();
+        result.Node = new UINode(result);
         Flex.NodeCopyStyle(result.Node, element.Node);
-        result.ApplyDeclaredMargin();
-        result.Attributes = element.Attributes.ShallowClone();
         if (element.IsLayoutCustom)
             result.Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
@@ -1314,13 +1137,110 @@ public abstract class UIElement : IFullCloneable
             element.IsLayoutReady = true;
     }
 
-    private readonly struct WrapMinSizeState
+    public readonly struct NodeStorage : IList<Node<NodeStorage>>
     {
-        public required UIContainer Container { get; init; }
-        public required Unit MinWidth { get; init; }
-        public required Unit MinHeight { get; init; }
-        public required Unit Width { get; init; }
-        public required Unit Height { get; init; }
+        public UIElement Element { get; }
+
+        internal NodeStorage(UIElement element)
+        {
+            Element = element;
+        }
+
+        IEnumerator<Node<NodeStorage>> IEnumerable<Node<NodeStorage>>.GetEnumerator()
+        {
+            if (Element is not UIParent { IsLayoutCustom: false } parent)
+                yield break;
+            foreach (var child in parent.Children())
+                yield return child.Node;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable<Node<NodeStorage>>)this).GetEnumerator();
+        }
+
+        void ICollection<Node<NodeStorage>>.Add(Node<NodeStorage> item)
+        {
+            if (Element is not UIParent { IsLayoutCustom: false } parent)
+                throw new NotSupportedException();
+            parent.Add(item.Storage.Element);
+        }
+
+        void ICollection<Node<NodeStorage>>.Clear()
+        {
+            if (Element is not UIParent { IsLayoutCustom: false } parent)
+                throw new NotSupportedException();
+            parent.Clear();
+        }
+
+        bool ICollection<Node<NodeStorage>>.Contains(Node<NodeStorage> item)
+        {
+            if (Element is UIParent { IsLayoutCustom: false } parent)
+                return parent.Children().AsValueEnumerable().Contains(item.Storage.Element);
+            return false;
+        }
+
+        void ICollection<Node<NodeStorage>>.CopyTo(Node<NodeStorage>[] array, int arrayIndex)
+        {
+            if (Element is UIParent { IsLayoutCustom: false } parent)
+                parent
+                    .Children()
+                    .AsValueEnumerable()
+                    .Select(Node<NodeStorage> (p) => p.Node)
+                    .CopyTo(array.AsSpan(arrayIndex));
+        }
+
+        bool ICollection<Node<NodeStorage>>.Remove(Node<NodeStorage> item)
+        {
+            return Element is not UIParent { IsLayoutCustom: false } parent
+                ? throw new NotSupportedException()
+                : parent.Remove(item.Storage.Element);
+        }
+
+        int ICollection<Node<NodeStorage>>.Count =>
+            Element is not UIParent { IsLayoutCustom: false } parent ? 0 : parent.Children().Count;
+
+        bool ICollection<Node<NodeStorage>>.IsReadOnly => Element is not UIParent { IsLayoutCustom: false };
+
+        int IList<Node<NodeStorage>>.IndexOf(Node<NodeStorage> item)
+        {
+            if (Element is UIParent { IsLayoutCustom: false } parent)
+                return parent.IndexOf(item.Storage.Element);
+            return -1;
+        }
+
+        void IList<Node<NodeStorage>>.Insert(int index, Node<NodeStorage> item)
+        {
+            if (Element is not UIParent { IsLayoutCustom: false } parent)
+                throw new NotSupportedException();
+            parent.Insert(index, item.Storage.Element);
+        }
+
+        void IList<Node<NodeStorage>>.RemoveAt(int index)
+        {
+            if (Element is not UIParent { IsLayoutCustom: false } parent)
+                throw new NotSupportedException();
+            parent.Children()[index].Remove();
+        }
+
+        Node<NodeStorage> IList<Node<NodeStorage>>.this[int index]
+        {
+            get
+            {
+                if (Element is UIParent { IsLayoutCustom: false } parent)
+                    return parent.Children()[index].Node;
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+            set
+            {
+                if (Element is not UIParent { IsLayoutCustom: false } parent)
+                    throw new NotSupportedException();
+                var children = parent.Children();
+                if (index < children.Count)
+                    children[index].Remove();
+                parent.Insert(index, value.Storage.Element);
+            }
+        }
     }
 
     private struct RenderData
@@ -1337,11 +1257,11 @@ public abstract class UIElement : IFullCloneable
 
         public RenderData(UIElement element)
         {
-            ShouldRender = element.IsLayoutReady && element.Display != DisplayMode.None;
+            ShouldRender = element is { IsLayoutReady: true, Hidden: false };
         }
     }
 
-    private enum RenderPhase : byte
+    private enum RenderPhase : sbyte
     {
         Begin,
         End,
