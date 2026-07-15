@@ -14,6 +14,10 @@ public sealed unsafe class ObjectPool<
     where T : class, new()
 {
     private static readonly delegate* <T, void> _constructor;
+
+    [ThreadStatic]
+    private static ObjectPool<T>? _shared;
+
     private ValueStack<T> _pool = [];
 
     static ObjectPool()
@@ -22,7 +26,7 @@ public sealed unsafe class ObjectPool<
         _constructor = (delegate* <T, void>)constructor.MethodHandle.GetFunctionPointer();
     }
 
-    public static ObjectPool<T> Shared { get; } = new();
+    public static ObjectPool<T> Shared => _shared ??= new ObjectPool<T>();
 
     public int Count => _pool.Count;
 

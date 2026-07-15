@@ -33,7 +33,7 @@ public sealed class LogGenerator : SourceGenerator
         for (var i = 1; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var args = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n} t{n}"));
+            var args = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"in T{n} t{n}"));
             var interpolation = string.Join(" ", Enumerable.Range(0, i + 1).Select(n => "{t" + n + "}"));
             sb.AppendLine(
                 $$"""

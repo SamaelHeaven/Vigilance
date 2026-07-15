@@ -30,7 +30,6 @@ internal struct Style
     internal ValueBufferEdge Position;
     internal Align AlignContent = Align.Start;
     internal Align AlignItems = Align.Stretch;
-
     internal Align AlignSelf;
 
     // Yoga specific properties, not compatible with flexbox specification
@@ -40,10 +39,6 @@ internal struct Style
     internal Display Display = Display.Flex;
     internal float Flex = float.NaN;
     internal Value FlexBasis = CreateAutoValue();
-
-    // Spacing between flex items. GapColumn is the horizontal gutter (CSS
-    // column-gap), GapRow is the vertical gutter (CSS row-gap). Undefined means
-    // no gap.
     internal Value GapColumn = Value.UndefinedValue;
     internal Value GapRow = Value.UndefinedValue;
     internal FlexDirection FlexDirection = FlexDirection.Column;
