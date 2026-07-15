@@ -65,7 +65,7 @@ public sealed class InputAxis
                 || _gamepads
                     .AsValueEnumerable()
                     .Cross(_gamepadAxes.AsValueEnumerable())
-                    .Cross(DeadZone.AsSingleton().AsValueEnumerable())
+                    .Cross(DeadZone.AsValueSingleton())
                     .Any(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) - x.Right).Round(MidpointRounding.AwayFromZero) <= -1
                     );
@@ -78,7 +78,7 @@ public sealed class InputAxis
                 || _gamepads
                     .AsValueEnumerable()
                     .Cross(_gamepadAxes.AsValueEnumerable())
-                    .Cross(DeadZone.AsSingleton().AsValueEnumerable())
+                    .Cross(DeadZone.AsValueSingleton())
                     .Any(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) + x.Right).Round(MidpointRounding.AwayFromZero) >= 1
                     );
@@ -110,7 +110,7 @@ public sealed class InputAxis
                 var pair = _gamepads
                     .AsValueEnumerable()
                     .Cross(_gamepadAxes.AsValueEnumerable())
-                    .Cross(DeadZone.AsSingleton().AsValueEnumerable())
+                    .Cross(DeadZone.AsValueSingleton())
                     .Where(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) - x.Right).Round(MidpointRounding.AwayFromZero) <= -1
                     )
@@ -136,7 +136,7 @@ public sealed class InputAxis
                 var cross = _gamepads
                     .AsValueEnumerable()
                     .Cross(_gamepadAxes.AsValueEnumerable())
-                    .Cross(DeadZone.AsSingleton().AsValueEnumerable())
+                    .Cross(DeadZone.AsValueSingleton())
                     .Where(x =>
                         (int)(x.Left.Left.GetAxis(x.Left.Right) - x.Right).Round(MidpointRounding.AwayFromZero) >= 1
                     )
