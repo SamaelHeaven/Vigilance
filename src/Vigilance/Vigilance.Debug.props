@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <LibsPath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)libs\'))</LibsPath>
+    <FreetypePath>$(LibsPath)freetype.a</FreetypePath>
+    <RaylibPath>$(LibsPath)raylib.a</RaylibPath>
+    <DefineConstants>$(DefineConstants);VIGILANCE_ASSERTS</DefineConstants>
+  </PropertyGroup>
+</Project>

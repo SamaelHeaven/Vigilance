@@ -851,7 +851,7 @@ public readonly unsafe partial record struct Entity
         Scene.Destroy(this);
     }
 
-    [Conditional("DEBUG")]
+    [Conditional("VIGILANCE_ASSERTS")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AssertValid()
     {

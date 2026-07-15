@@ -14,6 +14,11 @@
     <IsAotCompatible>true</IsAotCompatible>
     <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
     <LibsPath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..\..\libs\'))</LibsPath>
+    <DefineConstants Condition="'$(Configuration)' == 'Debug'">$(DefineConstants);VIGILANCE_ASSERTS</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(VigilanceDebug)' == 'true'">
+    <PackageId>Vigilance.Debug</PackageId>
+    <DefineConstants>$(DefineConstants);VIGILANCE_ASSERTS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Box2D.NET" Version="3.1.654" />
@@ -31,7 +36,7 @@
     />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Vigilance.props" Pack="true" PackagePath="build\Vigilance.props" />
+    <None Include="$(PackageId).props" Pack="true" PackagePath="build\$(PackageId).props" />
     <None Include="$(MSBuildThisFileDirectory)..\..\README.MD" Pack="true" PackagePath="README.MD" />
     <None Include="$(LibsPath)\**\*" Pack="true" PackagePath="build\libs\" />
     <EmbeddedResource Include="Resources\**\*">

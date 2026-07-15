@@ -7,7 +7,7 @@ namespace Vigilance.Core;
 
 public static class Debug
 {
-    [Conditional("DEBUG")]
+    [Conditional("VIGILANCE_ASSERTS")]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Assert(
         [DoesNotReturnIf(false)] bool condition,
