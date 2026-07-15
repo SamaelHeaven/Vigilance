@@ -1136,9 +1136,14 @@ public abstract class UIElement : IFullCloneable
             element.IsLayoutReady = true;
     }
 
-    public readonly struct NodeStorage(UIElement element) : IList<Node<NodeStorage>>
+    public readonly struct NodeStorage : IList<Node<NodeStorage>>
     {
-        public UIElement Element { get; } = element;
+        public UIElement Element { get; }
+
+        internal NodeStorage(UIElement element)
+        {
+            Element = element;
+        }
 
         IEnumerator<Node<NodeStorage>> IEnumerable<Node<NodeStorage>>.GetEnumerator()
         {
