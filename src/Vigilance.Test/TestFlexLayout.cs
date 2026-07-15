@@ -8,14 +8,14 @@ namespace Vigilance.Test;
 [TestFixture]
 public sealed class TestFlexLayout
 {
-    private sealed class TestNode : Node<TestNode.Children>
+    private sealed class TestStorage : List<Node<TestStorage>>;
+
+    private sealed class TestNode : Node<TestStorage>
     {
         public TestNode()
             : base([]) { }
 
         public object? Context { get; set; }
-
-        public sealed class Children : List<Node<Children>>;
     }
 
     private static void AssertFloatEqual(float expect, float real)
@@ -2959,7 +2959,7 @@ public sealed class TestFlexLayout
     }
 
     private static Size _measure(
-        Node<TestNode.Children> node,
+        Node<TestStorage> node,
         float width,
         MeasureMode widthMode,
         float height,
@@ -3700,7 +3700,7 @@ public sealed class TestFlexLayout
         AssertFloatEqual(50, rootChild0.LayoutGetHeight());
     }
 
-    private static float BaselineFunc(Node<TestNode.Children> node, float width, float height)
+    private static float BaselineFunc(Node<TestStorage> node, float width, float height)
     {
         return (float)((TestNode)node).Context!;
     }
@@ -9492,7 +9492,7 @@ public sealed class TestFlexLayout
     }
 
     private static Size MeasureMax(
-        Node<TestNode.Children> node,
+        Node<TestStorage> node,
         float width,
         MeasureMode widthMode,
         float height,
@@ -9511,7 +9511,7 @@ public sealed class TestFlexLayout
     }
 
     private static Size MeasureMin(
-        Node<TestNode.Children> node,
+        Node<TestStorage> node,
         float width,
         MeasureMode widthMode,
         float height,
@@ -9530,7 +9530,7 @@ public sealed class TestFlexLayout
     }
 
     private static Size Measure8449(
-        Node<TestNode.Children> node,
+        Node<TestStorage> node,
         float width,
         MeasureMode widthMode,
         float height,
@@ -9691,7 +9691,7 @@ public sealed class TestFlexLayout
     }
 
     private static Size _measure2(
-        Node<TestNode.Children> node,
+        Node<TestStorage> node,
         float width,
         MeasureMode widthMode,
         float height,
@@ -13735,7 +13735,7 @@ public sealed class TestFlexLayout
     }
 
     private static Size _measure3(
-        Node<TestNode.Children> node,
+        Node<TestStorage> node,
         float width,
         MeasureMode widthMode,
         float height,
@@ -13752,7 +13752,7 @@ public sealed class TestFlexLayout
     }
 
     private static Size _simulate_wrapping_text(
-        Node<TestNode.Children> node,
+        Node<TestStorage> node,
         float width,
         MeasureMode widthMode,
         float height,
@@ -13765,7 +13765,7 @@ public sealed class TestFlexLayout
     }
 
     private static Size _measure_assert_negative(
-        Node<TestNode.Children> node,
+        Node<TestStorage> node,
         float width,
         MeasureMode widthMode,
         float height,

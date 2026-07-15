@@ -3,12 +3,12 @@ using ZLinq;
 
 namespace Vigilance.FlexLayout;
 
-public sealed class Node : Node<Node.Children>
+public sealed class Node : Node<Node.Storage>
 {
     public Node()
         : base([]) { }
 
-    public sealed class Children : List<Node<Children>>;
+    public new sealed class Storage : List<Node<Storage>>;
 }
 
 public abstract partial class Node<TStorage> : IStructEnumerable<Node<TStorage>.Enumerator, Node<TStorage>>
@@ -25,7 +25,7 @@ public abstract partial class Node<TStorage> : IStructEnumerable<Node<TStorage>.
     internal ValueBuffer2 ResolvedDimensions;
     internal TStorage Storage;
 
-    protected Node(TStorage storage)
+    protected Node(in TStorage storage)
     {
         Storage = storage;
         ResolvedDimensions[0] = Flex.ValueUndefined;
