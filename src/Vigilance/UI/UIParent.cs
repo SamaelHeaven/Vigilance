@@ -64,6 +64,7 @@ public abstract class UIParent : UIElement
         element.Remove();
         _childrenList.Add(element);
         element.Parent = this;
+        element.Node.Parent = Node;
         MarkDirty();
     }
 
@@ -84,6 +85,7 @@ public abstract class UIParent : UIElement
         _childrenList.Insert(index, element);
         element.Remove();
         element.Parent = this;
+        element.Node.Parent = Node;
         MarkDirty();
     }
 
@@ -103,6 +105,7 @@ public abstract class UIParent : UIElement
         _childrenList[index].Remove();
         element.Remove();
         element.Parent = this;
+        element.Node.Parent = Node;
         _childrenList[index] = element;
         MarkDirty();
     }
@@ -168,6 +171,7 @@ public abstract class UIParent : UIElement
 
         var result = _childrenList.Remove(element);
         element.Parent = null;
+        element.Node.Parent = null;
         MarkDirty();
         return result;
     }

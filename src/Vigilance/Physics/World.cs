@@ -153,8 +153,17 @@ public sealed class World : IDisposable
     public void Update(in TimeSpan? step = null)
     {
         B2Worlds.b2World_Step(Id, (float)(step ?? Time.FixedDelta).TotalSeconds, 4);
-        DispatchContactEvents();
-        DispatchSensorEvents();
+        var scene = (Scene?)Scene;
+        scene?.BeginDefer();
+        try
+        {
+            DispatchContactEvents();
+            DispatchSensorEvents();
+        }
+        finally
+        {
+            scene?.EndDefer();
+        }
     }
 
     public void Overlap(
