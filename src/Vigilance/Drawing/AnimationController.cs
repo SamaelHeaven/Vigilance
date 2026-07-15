@@ -33,7 +33,6 @@ public class AnimationController<TKey, TAnimation>
     where TKey : notnull
 {
     private readonly ValueDictionary<TKey, TAnimation> _animations;
-
     private TKey _current;
 
     [OverloadResolutionPriority(1)]
@@ -151,8 +150,8 @@ public class AnimationController<TKey, TAnimation>
             var value in _animations
                 .AsValueEnumerable()
                 .Cross(animation.AsValueSingleton())
-                .Where(pair => !EqualityComparer<TKey>.Default.Equals(pair.Left.Key, pair.Right))
-                .Select(pair => pair.Left.Value)
+                .Where(cross => !EqualityComparer<TKey>.Default.Equals(cross.Left.Key, cross.Right))
+                .Select(cross => cross.Left.Value)
         )
             value.Reset();
     }
