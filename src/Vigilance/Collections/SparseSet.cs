@@ -1,182 +1,69 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Vigilance.Core;
 using ZLinq;
 
 namespace Vigilance.Collections;
 
-public class EntitySparseSet<TItem> : EntitySparseSet<TItem, ValueList<TItem>>
-{
-    public EntitySparseSet(int sparseChunkSize = DefaultSparseChunkSize)
-        : base([], sparseChunkSize) { }
-}
-
-public class EntitySparseSet<TItem, TStorage> : SparseSet<Entity, TItem, TStorage>
-    where TStorage : IList<TItem>
-{
-    public EntitySparseSet(TStorage storage, int sparseChunkSize = DefaultSparseChunkSize)
-        : base(storage, entity => entity.Index, sparseChunkSize) { }
-}
-
-public class SparseSet<TKey, TItem> : SparseSet<TKey, TItem, ValueList<TItem>>
+public class SparseSet<TKey, TValue> : SparseSet<TKey, TValue, ValueList<TValue>>
 {
     public SparseSet(Func<TKey, int> keyIndexFunc, int sparseChunkSize = DefaultSparseChunkSize)
         : base([], keyIndexFunc, sparseChunkSize) { }
 }
 
 public class SparseSet<TKey, TValue, TStorage>
-    : IDictionary<TKey, TValue>,
+    : ISparseSet<TKey, TValue, TStorage>,
+        IDictionary<TKey, TValue>,
         IReadOnlyDictionary<TKey, TValue>,
         IReadOnlyList<KeyValuePair<TKey, TValue>>,
         IStructEnumerable<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>
     where TStorage : IList<TValue>
 {
     public const int DefaultSparseChunkSize = 2048;
-    private readonly ulong _fastModMultiplier;
-    private readonly Func<TKey, int> _keyIndexFunc;
-    private readonly int _sparseChunkSize;
-    private ValueList<TKey> _keys = [];
-    private ValueList<int[]?> _sparseChunks = [];
-    private TStorage _values;
+    private ValueSparseSet<TKey, TValue, TStorage> _sparseSet;
 
-    public SparseSet(TStorage storage, Func<TKey, int> keyIndexFunc, int sparseChunkSize = DefaultSparseChunkSize)
+    public SparseSet(in TStorage storage, Func<TKey, int> keyIndexFunc, int sparseChunkSize = DefaultSparseChunkSize)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(sparseChunkSize, 1);
         if (storage.Count != 0)
             throw new ArgumentException("Storage must be empty", nameof(storage));
-        _values = storage;
-        _keyIndexFunc = keyIndexFunc;
-        _sparseChunkSize = sparseChunkSize;
-        _fastModMultiplier = HashHelpers.GetFastModMultiplier((uint)sparseChunkSize);
+        _sparseSet = new ValueSparseSet<TKey, TValue, TStorage>(in storage, keyIndexFunc, sparseChunkSize);
     }
 
-    public ValueEnumerable Values
-    {
-        get
-        {
-            AssertValid();
-            return new ValueEnumerable(_values);
-        }
-    }
-
-    public ValueListView<TKey> Keys
-    {
-        get
-        {
-            AssertValid();
-            return _keys;
-        }
-    }
-
-    public TValue this[in TKey key]
-    {
-        get
-        {
-            AssertValid();
-            return !TryGetValue(key, out var item) ? throw new KeyNotFoundException(key?.ToString()) : item;
-        }
-        set
-        {
-            AssertValid();
-            var keyIndex = _keyIndexFunc.Invoke(key);
-            EnsureChunk(keyIndex);
-            var chunkIndex = keyIndex / _sparseChunkSize;
-            var withinChunk = WithinChunk(keyIndex);
-            var chunk = _sparseChunks[chunkIndex]!;
-            var sparseValue = chunk[withinChunk];
-            if (sparseValue == -1)
-            {
-                var index = _values.Count;
-                _values.Add(value);
-                _keys.Add(key);
-                chunk[withinChunk] = index;
-                return;
-            }
-
-            _values[sparseValue] = value;
-        }
-    }
-
-    ICollection<TValue> IDictionary<TKey, TValue>.Values
-    {
-        get
-        {
-            AssertValid();
-            return _values.AsReadOnly();
-        }
-    }
-
-    ICollection<TKey> IDictionary<TKey, TValue>.Keys
-    {
-        get
-        {
-            AssertValid();
-            return _keys.AsReadOnly();
-        }
-    }
+    public ValueListView<TKey> Keys => _sparseSet.Keys;
 
     void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
     {
-        AssertValid();
         if (ContainsKey(item.Key))
             throw new ArgumentException("Duplicate key", nameof(item));
         this[item.Key] = item.Value;
     }
 
-    public void Clear()
-    {
-        AssertValid();
-        _values.Clear();
-        _keys.Clear();
-        _sparseChunks.Clear();
-    }
-
     bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
     {
-        AssertValid();
         return TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
     }
 
     void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
     {
-        AssertValid();
         if ((uint)arrayIndex > (uint)array.Length)
             throw new ArgumentOutOfRangeException(nameof(arrayIndex));
         if (array.Length - arrayIndex < Count)
             throw new ArgumentException("The destination array is not large enough.", nameof(array));
         for (var i = 0; i < Count; i++)
-            array[arrayIndex + i] = new KeyValuePair<TKey, TValue>(_keys[i], _values[i]);
+            array[arrayIndex + i] = new KeyValuePair<TKey, TValue>(_sparseSet.Keys[i], _sparseSet.Values[i]);
     }
 
     bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
     {
-        AssertValid();
         return TryGetValue(item.Key, out var value)
             && EqualityComparer<TValue>.Default.Equals(value, item.Value)
             && Remove(item.Key);
     }
 
-    public int Count
-    {
-        get
-        {
-            AssertValid();
-            return _keys.Count;
-        }
-    }
-
-    bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly
-    {
-        get
-        {
-            AssertValid();
-            return false;
-        }
-    }
+    bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => false;
 
     void IDictionary<TKey, TValue>.Add(TKey key, TValue value)
     {
-        AssertValid();
         if (ContainsKey(key))
             throw new ArgumentException("Duplicate key", nameof(key));
         this[key] = value;
@@ -184,194 +71,104 @@ public class SparseSet<TKey, TValue, TStorage>
 
     bool IDictionary<TKey, TValue>.ContainsKey(TKey key)
     {
-        AssertValid();
         return ContainsKey(key);
     }
 
     bool IDictionary<TKey, TValue>.Remove(TKey key)
     {
-        AssertValid();
         return Remove(key);
     }
 
     bool IDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        AssertValid();
         return TryGetValue(key, out value);
     }
 
     TValue IDictionary<TKey, TValue>.this[TKey key]
     {
-        get
-        {
-            AssertValid();
-            return this[key];
-        }
-        set
-        {
-            AssertValid();
-            this[key] = value;
-        }
+        get => this[key];
+        set => this[key] = value;
     }
 
-    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => _keys.AsReadOnly();
+    ICollection<TValue> IDictionary<TKey, TValue>.Values => _sparseSet.Values.AsFastEnumerable();
 
-    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => _values.AsReadOnly();
+    ICollection<TKey> IDictionary<TKey, TValue>.Keys => _sparseSet.Keys.AsEnumerable().AsFastEnumerable();
+
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => _sparseSet.Keys.AsEnumerable().AsFastEnumerable();
+
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => _sparseSet.Values.AsFastEnumerable();
 
     bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        AssertValid();
         return TryGetValue(key, out value);
     }
 
-    TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key]
-    {
-        get
-        {
-            AssertValid();
-            return this[key];
-        }
-    }
+    TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
 
     bool IReadOnlyDictionary<TKey, TValue>.ContainsKey(TKey key)
     {
-        AssertValid();
         return ContainsKey(key);
     }
 
-    public KeyValuePair<TKey, TValue> this[int index]
+    public ISparseSet<TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+
+    [OverloadResolutionPriority(1)]
+    public TValue this[in TKey key]
     {
-        get
-        {
-            AssertValid();
-            return new KeyValuePair<TKey, TValue>(_keys[index], _values[index]);
-        }
+        get => _sparseSet[key];
+        set => _sparseSet[key] = value;
     }
 
-    public Enumerator GetEnumerator()
+    public void Clear()
     {
-        AssertValid();
-        return new Enumerator(this);
+        _sparseSet.Clear();
     }
 
-    public ValueEnumerable<
-        StructEnumerator<Enumerator, KeyValuePair<TKey, TValue>>,
-        KeyValuePair<TKey, TValue>
-    > AsValueEnumerable()
-    {
-        AssertValid();
-        return new StructEnumerator<Enumerator, KeyValuePair<TKey, TValue>>(GetEnumerator());
-    }
+    public int Count => _sparseSet.Count;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int WithinChunk(int keyIndex)
-    {
-        return (int)HashHelpers.FastMod((uint)keyIndex, (uint)_sparseChunkSize, _fastModMultiplier);
-    }
+    public KeyValuePair<TKey, TValue> this[int index] => _sparseSet[index];
 
     public bool ContainsKey(in TKey key)
     {
-        AssertValid();
-        var keyIndex = _keyIndexFunc.Invoke(key);
-        var chunkIndex = keyIndex / _sparseChunkSize;
-        if (chunkIndex >= _sparseChunks.Count)
-            return false;
-        var chunk = _sparseChunks[chunkIndex];
-        if (chunk == null)
-            return false;
-        var withinChunk = WithinChunk(keyIndex);
-        var sparseValue = chunk[withinChunk];
-        return sparseValue != -1;
+        return _sparseSet.ContainsKey(key);
     }
 
-    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue item)
+    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        AssertValid();
-        var keyIndex = _keyIndexFunc.Invoke(key);
-        var chunkIndex = keyIndex / _sparseChunkSize;
-        if (chunkIndex >= _sparseChunks.Count)
-        {
-            Unsafe.SkipInit(out item);
-            return false;
-        }
-
-        var chunk = _sparseChunks[chunkIndex];
-        if (chunk is null)
-        {
-            Unsafe.SkipInit(out item);
-            return false;
-        }
-
-        var withinChunk = WithinChunk(keyIndex);
-        var sparseValue = chunk[withinChunk];
-        if (sparseValue == -1)
-        {
-            Unsafe.SkipInit(out item);
-            return false;
-        }
-
-        item = _values[sparseValue];
-        return true;
+        return _sparseSet.TryGetValue(key, out value);
     }
 
     public bool Remove(in TKey key)
     {
-        AssertValid();
-        var keyIndex = _keyIndexFunc.Invoke(key);
-        var chunkIndex = keyIndex / _sparseChunkSize;
-        if (chunkIndex >= _sparseChunks.Count)
-            return false;
-        var chunk = _sparseChunks[chunkIndex];
-        if (chunk == null)
-            return false;
-        var withinChunk = WithinChunk(keyIndex);
-        var sparseValue = chunk[withinChunk];
-        if (sparseValue == -1)
-            return false;
-        var lastDenseIndex = _values.Count - 1;
-        if (sparseValue != lastDenseIndex)
-        {
-            _values[sparseValue] = _values[lastDenseIndex];
-            var movedKey = _keys[lastDenseIndex];
-            _keys[sparseValue] = movedKey;
-            var movedKeyIndex = _keyIndexFunc.Invoke(movedKey);
-            var movedChunkIndex = movedKeyIndex / _sparseChunkSize;
-            var movedWithinChunk = WithinChunk(movedKeyIndex);
-            var movedChunk = _sparseChunks[movedChunkIndex]!;
-            movedChunk[movedWithinChunk] = sparseValue;
-        }
-
-        _values.RemoveAt(lastDenseIndex);
-        _keys.RemoveAt(lastDenseIndex);
-        chunk[withinChunk] = -1;
-        return true;
+        return _sparseSet.Remove(key);
     }
 
     public int GetKeyIndex(in TKey key)
     {
-        AssertValid();
-        return _keyIndexFunc.Invoke(key);
+        return _sparseSet.GetKeyIndex(key);
     }
 
-    private void EnsureChunk(int index)
+    public Enumerator GetEnumerator()
     {
-        var chunkIndex = index / _sparseChunkSize;
-        while (_sparseChunks.Count <= chunkIndex)
-            _sparseChunks.Add(null);
-        if (_sparseChunks[chunkIndex] != null)
-            return;
-        var chunk = new int[_sparseChunkSize];
-        Array.Fill(chunk, -1);
-        _sparseChunks[chunkIndex] = chunk;
+        return new Enumerator(this);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void AssertValid()
+    ValueEnumerable<
+        StructEnumerator<Enumerator, KeyValuePair<TKey, TValue>>,
+        KeyValuePair<TKey, TValue>
+    > IStructEnumerable<Enumerator, KeyValuePair<TKey, TValue>>.AsValueEnumerable()
     {
-        Debug.Assert(_values.Count == _keys.Count);
+        return new StructEnumerator<Enumerator, KeyValuePair<TKey, TValue>>(GetEnumerator());
     }
 
-    public struct Enumerator : IStructEnumerator<KeyValuePair<TKey, TValue>>
+    public ValueEnumerable<Enumerator, KeyValuePair<TKey, TValue>> AsValueEnumerable()
+    {
+        return new ValueEnumerable<Enumerator, KeyValuePair<TKey, TValue>>(GetEnumerator());
+    }
+
+    public struct Enumerator
+        : IStructEnumerator<KeyValuePair<TKey, TValue>>,
+            IValueEnumerator<KeyValuePair<TKey, TValue>>
     {
         private readonly SparseSet<TKey, TValue, TStorage> _sparseSet;
         private int _index;
@@ -384,10 +181,9 @@ public class SparseSet<TKey, TValue, TStorage>
 
         public bool MoveNext()
         {
-            _sparseSet.AssertValid();
-            if ((uint)_index < (uint)_sparseSet._keys.Count)
+            if ((uint)_index < (uint)_sparseSet.Keys.Count)
             {
-                Current = new KeyValuePair<TKey, TValue>(_sparseSet._keys[_index], _sparseSet._values[_index]);
+                Current = new KeyValuePair<TKey, TValue>(_sparseSet.Keys[_index], _sparseSet.Values[_index]);
                 _index++;
                 return true;
             }
@@ -406,99 +202,31 @@ public class SparseSet<TKey, TValue, TStorage>
         }
 
         public void Dispose() { }
-    }
 
-    public readonly struct ValueEnumerable : IStructEnumerable<ValueEnumerable.Enumerator, TValue>
-    {
-        private readonly TStorage _values;
-
-        internal ValueEnumerable(TStorage values)
+        public bool TryGetNext(out KeyValuePair<TKey, TValue> current)
         {
-            _values = values;
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
         }
 
-        public Enumerator GetEnumerator()
+        public bool TryGetNonEnumeratedCount(out int count)
         {
-            return new Enumerator(_values);
+            count = _sparseSet.Count;
+            return true;
         }
 
-        public ValueEnumerable<Enumerator, TValue> AsValueEnumerable()
+        public bool TryGetSpan(out ReadOnlySpan<KeyValuePair<TKey, TValue>> span)
         {
-            return new ValueEnumerable<Enumerator, TValue>(GetEnumerator());
+            span = default;
+            return false;
         }
 
-        ValueEnumerable<StructEnumerator<Enumerator, TValue>, TValue> IStructEnumerable<
-            Enumerator,
-            TValue
-        >.AsValueEnumerable()
+        public bool TryCopyTo(scoped Span<KeyValuePair<TKey, TValue>> destination, Index offset)
         {
-            return new StructEnumerator<Enumerator, TValue>(GetEnumerator());
-        }
-
-        [SuppressMessage("ReSharper", "MemberHidesStaticFromOuterClass")]
-        public struct Enumerator : IStructEnumerator<TValue>, IValueEnumerator<TValue>
-        {
-            private readonly TStorage _values;
-            private int _index;
-
-            internal Enumerator(TStorage values)
-            {
-                _values = values;
-                Reset();
-            }
-
-            public bool MoveNext()
-            {
-                if ((uint)_index < (uint)_values.Count)
-                {
-                    Current = _values[_index];
-                    _index++;
-                    return true;
-                }
-
-                Current = default!;
-                _index = -1;
-                return false;
-            }
-
-            public TValue Current { get; private set; } = default!;
-
-            public bool TryGetNext(out TValue current)
-            {
-                if (MoveNext())
-                {
-                    current = Current;
-                    return true;
-                }
-
-                Unsafe.SkipInit(out current);
-                return false;
-            }
-
-            public bool TryGetNonEnumeratedCount(out int count)
-            {
-                count = _values.Count;
-                return true;
-            }
-
-            public bool TryGetSpan(out ReadOnlySpan<TValue> span)
-            {
-                span = default;
-                return false;
-            }
-
-            public bool TryCopyTo(scoped Span<TValue> destination, Index offset)
-            {
-                return false;
-            }
-
-            public void Reset()
-            {
-                _index = 0;
-                Current = default!;
-            }
-
-            public void Dispose() { }
+            return false;
         }
     }
 }

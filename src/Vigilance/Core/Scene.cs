@@ -501,7 +501,6 @@ public sealed unsafe partial class Scene
         {
             BeginDefer();
             {
-                // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
                 foreach (var entity in entities)
                 {
                     _destroyedEntities.Count = _destroyedEntities.Count.Max(entity.Index + 1);
@@ -921,7 +920,15 @@ public sealed unsafe partial class Scene
             return new TableEnumerator(_scene, _withHidden);
         }
 
-        public ValueEnumerable<StructEnumerator<TableEnumerator, Table>, Table> AsValueEnumerable()
+        public ValueEnumerable<TableEnumerator, Table> AsValueEnumerable()
+        {
+            return new ValueEnumerable<TableEnumerator, Table>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<TableEnumerator, Table>, Table> IStructEnumerable<
+            TableEnumerator,
+            Table
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<TableEnumerator, Table>(GetEnumerator());
         }
@@ -933,7 +940,7 @@ public sealed unsafe partial class Scene
         }
     }
 
-    public struct TableEnumerator : IStructEnumerator<Table>
+    public struct TableEnumerator : IStructEnumerator<Table>, IValueEnumerator<Table>
     {
         private readonly Scene _scene;
         private readonly bool _withHidden;
@@ -975,6 +982,38 @@ public sealed unsafe partial class Scene
         public Table Current { get; private set; } = null!;
 
         public void Dispose() { }
+
+        public bool TryGetNext(out Table current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            if (!_withHidden)
+            {
+                count = 0;
+                return false;
+            }
+
+            count = _scene._tables.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<Table> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<Table> destination, Index offset)
+        {
+            return false;
+        }
     }
 
     public struct TableEnumerable<T> : IStructEnumerable<TableEnumerator<T>, Table>

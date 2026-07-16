@@ -197,10 +197,15 @@ public sealed class Table<T>
         return new Enumerator(this);
     }
 
-    public ValueEnumerable<
-        StructEnumerator<Enumerator, KeyValuePair<Entity, T>>,
+    public ValueEnumerable<Enumerator, KeyValuePair<Entity, T>> AsValueEnumerable()
+    {
+        return new ValueEnumerable<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
+    }
+
+    ValueEnumerable<StructEnumerator<Enumerator, KeyValuePair<Entity, T>>, KeyValuePair<Entity, T>> IStructEnumerable<
+        Enumerator,
         KeyValuePair<Entity, T>
-    > AsValueEnumerable()
+    >.AsValueEnumerable()
     {
         return new StructEnumerator<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
     }
@@ -499,7 +504,7 @@ public sealed class Table<T>
 
     private readonly record struct Operation(ulong EntityId, T Value, OperationType Type, Flags Flags);
 
-    public struct Enumerator : IStructEnumerator<KeyValuePair<Entity, T>>
+    public struct Enumerator : IStructEnumerator<KeyValuePair<Entity, T>>, IValueEnumerator<KeyValuePair<Entity, T>>
     {
         private readonly Table<T> _table;
         private int _index;
@@ -536,5 +541,31 @@ public sealed class Table<T>
         }
 
         public void Dispose() { }
+
+        public bool TryGetNext(out KeyValuePair<Entity, T> current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _table._entityIds.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<KeyValuePair<Entity, T>> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<KeyValuePair<Entity, T>> destination, Index offset)
+        {
+            return false;
+        }
     }
 }
