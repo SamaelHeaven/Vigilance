@@ -11,21 +11,21 @@ namespace Vigilance.Core;
 
 public sealed unsafe partial class Scene
 {
-    private Collections.ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
+    private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
     private int _deferredCount;
     private Action<Entity>? _destroyAction;
-    private Collections.ValueList<bool> _destroyedEntities = [];
-    private Collections.ValueList<(int Index, int Version)> _entities = [];
-    private Collections.ValueQueue<Event> _events = [];
+    private ValueList<bool> _destroyedEntities = [];
+    private ValueList<(int Index, int Version)> _entities = [];
+    private ValueQueue<Event> _events = [];
     private Action? _fixedUpdateAction;
-    private Collections.ValueQueue<int> _freeIndices = [];
+    private ValueQueue<int> _freeIndices = [];
     private Action? _initializeAction;
     private Action<Entity>? _instantiateAction;
     private bool _isClearing;
     private bool _isFlushing;
-    private Collections.ValueDictionary<Type, Delegate> _listeners = [];
-    private Collections.ValueDictionary<string, ulong> _nameMap = [];
+    private ValueDictionary<Type, Delegate> _listeners = [];
+    private ValueDictionary<string, ulong> _nameMap = [];
     private Action? _onDispose;
     private Action? _postFixedUpdateAction;
     private Action? _postRenderAction;
@@ -34,12 +34,12 @@ public sealed unsafe partial class Scene
     private Action? _preRenderAction;
     private Action? _preUpdateAction;
     private Action<RenderCommands>? _renderAction;
-    private Collections.ValueList<RenderComponents?> _sparseRenderComponentsList = [];
-    private Collections.ValueList<Table?> _sparseTables = [];
+    private ValueList<RenderComponents?> _sparseRenderComponentsList = [];
+    private ValueList<Table?> _sparseTables = [];
     private Action? _startAction;
     private Action? _stopAction;
-    private Collections.ValueStack<int> _suspendStack = [];
-    private ValueList<IGameSystem> _systems = [];
+    private ValueStack<int> _suspendStack = [];
+    private IGameSystem[] _systems = [];
     private ValueList<Table> _tables = [];
     private Action<Scene>? _transitionToAction;
     private Action? _updateAction;
@@ -638,7 +638,7 @@ public sealed unsafe partial class Scene
 
     internal bool IsValid(in Entity entity)
     {
-        if ((uint)entity.Index == 0 || entity.Index >= _entities.Count)
+        if (entity.Index == 0 || (uint)entity.Index >= (uint)_entities.Count)
             return false;
         var info = _entities[entity.Index];
         return info.Index == entity.Index && info.Version == entity.Version;
@@ -648,7 +648,7 @@ public sealed unsafe partial class Scene
     {
         if (!IsConfigured)
         {
-            _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToValueList();
+            _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToArray();
             foreach (var system in _systems)
                 system.Configure(this);
             IsConfigured = true;
@@ -1086,7 +1086,7 @@ public sealed unsafe partial class Scene
 
         public bool MoveNext()
         {
-            if ((uint)_index < (uint)_scene._systems.Count)
+            if ((uint)_index < (uint)_scene._systems.Length)
             {
                 Current = _scene._systems[_index];
                 _index++;
@@ -1119,19 +1119,19 @@ public sealed unsafe partial class Scene
 
         public bool TryGetNonEnumeratedCount(out int count)
         {
-            count = _scene._systems.Count;
+            count = _scene._systems.Length;
             return true;
         }
 
         public bool TryGetSpan(out ReadOnlySpan<IGameSystem> span)
         {
-            span = _scene._systems.AsSpan();
+            span = _scene._systems;
             return true;
         }
 
         public bool TryCopyTo(scoped Span<IGameSystem> destination, Index offset)
         {
-            return _scene._systems.AsSpan().TryCopyTo(destination, offset);
+            return _scene._systems.TryCopyTo(destination, offset);
         }
     }
 
