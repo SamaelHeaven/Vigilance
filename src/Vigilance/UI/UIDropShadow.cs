@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Color = Vigilance.Drawing.Color;
@@ -21,6 +22,10 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
     private RenderTexture? _renderTexture;
     private Texture _texture = null!;
 
+    public UIDropShadow()
+        : this() { }
+
+    [OverloadResolutionPriority(1)]
     public UIDropShadow(int blur = 1, Color? color = null)
     {
         Color = color ?? Color.Black;
@@ -122,6 +127,7 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
     {
         var clone = element.ShallowClone();
         clone.ResetLayoutAndTransform();
+        clone.Size = element.LayoutSize;
         using var elementTexture = RenderSilhouetteSource(clone, element.LayoutSize);
         var width = elementTexture.ScaledWidth + offset * 2;
         var height = elementTexture.ScaledHeight + offset * 2;

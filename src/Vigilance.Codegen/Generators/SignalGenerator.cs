@@ -36,7 +36,7 @@ public sealed class SignalGenerator : SourceGenerator
             {
                 private readonly ref Func<{{funcTypeParams}}bool>? _handlers = ref handlers;
                 
-                public ref Func<{{funcTypeParams}}bool> Handlers => ref _handlers!;
+                public ref Func<{{funcTypeParams}}bool>? Handlers => ref _handlers;
                 
                 public Func<{{funcTypeParams}}bool> Subscribe(Func<{{funcTypeParams}}bool> handler)
                 {

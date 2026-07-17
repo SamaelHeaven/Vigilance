@@ -1,5 +1,6 @@
 #pragma warning disable CS9084
 
+using System.Buffers;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
@@ -13,6 +14,9 @@ public abstract class UIParent : UIElement
     private ValueQueue<ChildrenOperation> _childrenOperations = [];
     private int _deferredCount;
     private bool _isFlushing;
+    private UIElement[]? _reconcileSnapshot;
+    private int _reconcileSnapshotCount;
+    private bool _suppressDirty;
     private ValueStack<int> _suspendStack = [];
 
     public bool IsDeferred => _deferredCount != 0;
@@ -65,7 +69,7 @@ public abstract class UIParent : UIElement
         _childrenList.Add(element);
         element.Parent = this;
         element.Node.Parent = Node;
-        MarkDirty();
+        MarkStructureDirty();
     }
 
     public void Add(params ReadOnlySpan<UIElement?> elements)
@@ -86,7 +90,7 @@ public abstract class UIParent : UIElement
         element.Remove();
         element.Parent = this;
         element.Node.Parent = Node;
-        MarkDirty();
+        MarkStructureDirty();
     }
 
     public int IndexOf(UIElement element)
@@ -107,13 +111,25 @@ public abstract class UIParent : UIElement
         element.Parent = this;
         element.Node.Parent = Node;
         _childrenList[index] = element;
-        MarkDirty();
+        MarkStructureDirty();
     }
 
     public void Clear()
     {
-        foreach (var element in Children())
-            element.Remove();
+        if (IsDeferred)
+        {
+            _childrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Clear, this));
+            return;
+        }
+
+        foreach (var element in _childrenList)
+        {
+            element.Parent = null;
+            element.Node.Parent = null;
+        }
+
+        _childrenList.Clear();
+        MarkStructureDirty();
     }
 
     public void BeginDefer()
@@ -149,6 +165,9 @@ public abstract class UIParent : UIElement
         _deferredCount = 0;
         _suspendStack = [];
         _isFlushing = false;
+        _reconcileSnapshot = null;
+        _reconcileSnapshotCount = 0;
+        _suppressDirty = false;
     }
 
     private void TryFlush()
@@ -159,6 +178,44 @@ public abstract class UIParent : UIElement
         while (_childrenOperations.TryDequeue(out var operation))
             operation.Execute(this);
         _isFlushing = false;
+    }
+
+    private void MarkStructureDirty()
+    {
+        if (!_suppressDirty)
+            MarkDirty();
+    }
+
+    internal void BeginReconcile(ReconcileSession session)
+    {
+        var count = _childrenList.Count;
+        var snapshot = ArrayPool<UIElement>.Shared.Rent(count);
+        _childrenList.AsSpan().CopyTo(snapshot);
+        _reconcileSnapshot = snapshot;
+        _reconcileSnapshotCount = count;
+        _suppressDirty = true;
+        Clear();
+        session.Register(this);
+    }
+
+    internal void EndReconcile()
+    {
+        _suppressDirty = false;
+        var snapshot = _reconcileSnapshot;
+        if (snapshot is null)
+            return;
+        var current = _childrenList.AsSpan();
+        var old = snapshot.AsSpan(0, _reconcileSnapshotCount);
+        var changed = current.Length != old.Length;
+        for (var i = 0; !changed && i < current.Length; i++)
+            if (!ReferenceEquals(current[i], old[i]))
+                changed = true;
+        if (changed)
+            MarkDirty();
+        Array.Clear(snapshot, 0, _reconcileSnapshotCount);
+        ArrayPool<UIElement>.Shared.Return(snapshot);
+        _reconcileSnapshot = null;
+        _reconcileSnapshotCount = 0;
     }
 
     internal bool Remove(UIElement element)
@@ -172,7 +229,7 @@ public abstract class UIParent : UIElement
         var result = _childrenList.Remove(element);
         element.Parent = null;
         element.Node.Parent = null;
-        MarkDirty();
+        MarkStructureDirty();
         return result;
     }
 
@@ -180,6 +237,7 @@ public abstract class UIParent : UIElement
     {
         Add,
         Remove,
+        Clear,
         Insert,
         Replace,
     }
@@ -199,6 +257,9 @@ public abstract class UIParent : UIElement
                     break;
                 case ChildrenOperationType.Remove:
                     parent.Remove(Element!);
+                    break;
+                case ChildrenOperationType.Clear:
+                    parent.Clear();
                     break;
                 case ChildrenOperationType.Insert:
                     parent.Insert(Index, Element!);

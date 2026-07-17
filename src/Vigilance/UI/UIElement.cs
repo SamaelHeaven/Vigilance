@@ -1,6 +1,8 @@
 using System.Buffers;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
@@ -27,16 +29,20 @@ public abstract class UIElement : IFullCloneable
         None = 0,
         SkipChildren = 1 << 0,
         ClearSignals = 1 << 1,
+        DeepDefault = None,
+        ShallowDefault = SkipChildren,
     }
 
     private bool _click;
     private ValueList<IUIComponent> _components = [];
+    private uint _immediateGeneration;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onBeginRenderHandlers;
     private Func<UIElement, bool>? _onClickHandlers;
     private Func<UIElement, bool>? _onCloneHandlers;
     private Func<UIElement, bool>? _onDirtyHandlers;
     private Func<UIElement, bool>? _onDisabledUpdateHandlers;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onEndRenderHandlers;
+    private Func<UIElement, bool>? _onImmediateHandlers;
     private Func<UIElement, bool>? _onMouseEnterHandlers;
     private Func<UIElement, bool>? _onMouseLeaveHandlers;
     private Func<UIElement, bool>? _onPressHandlers;
@@ -44,12 +50,18 @@ public abstract class UIElement : IFullCloneable
     private Func<UIElement, Graphics, CameraProvider, bool>? _onRenderHandlers;
     private Func<UIElement, bool>? _onUpdateHandlers;
     private RenderData _renderData;
+    internal ValueDictionary<ImmediateCounter, uint> ImmediateCounters = new(ImmediateCounterComparer.Instance);
+    internal ValueDictionary<ImmediateEntry, ImmediateValue> ImmediateEntries = new(ImmediateEntryComparer.Instance);
+
+    internal UINode Node;
 
     protected UIElement()
     {
-        var measure = Measure;
         Node = new UINode(this);
         Node.StyleSetAlignItems(FlexLayout.Align.Start);
+        var onImmediate = OnImmediate;
+        IsImmediate = onImmediate.Method.DeclaringType != typeof(UIElement);
+        var measure = Measure;
         IsLayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
         if (IsLayoutCustom)
             Node.SetMeasureFunc(
@@ -60,8 +72,6 @@ public abstract class UIElement : IFullCloneable
                 }
             );
     }
-
-    internal UINode Node { get; private set; }
 
     public ReadOnlySpan<IUIComponent> Components
     {
@@ -124,6 +134,10 @@ public abstract class UIElement : IFullCloneable
         new(Translate.Calculate(LayoutSize), Scale, Rotation, PivotPoint.Calculate(LayoutSize));
 
     public bool IsLayoutCustom { get; }
+
+    public bool IsImmediate => field || OnImmediateSignal.Handlers is not null;
+
+    public bool IsClicked { get; private set; }
 
     public bool IsDirty => Node.IsDirty;
 
@@ -642,6 +656,8 @@ public abstract class UIElement : IFullCloneable
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
+    public Signal<UIElement> OnImmediateSignal => new(ref _onImmediateHandlers);
+
     public Signal<UIElement> OnUpdateSignal => new(ref _onUpdateHandlers);
 
     public Signal<UIElement> OnDisabledUpdateSignal => new(ref _onDisabledUpdateHandlers);
@@ -668,12 +684,12 @@ public abstract class UIElement : IFullCloneable
 
     object IDeepCloneable.DeepClone()
     {
-        return DeepClone(CloneOptions.None);
+        return DeepClone(CloneOptions.DeepDefault);
     }
 
     object IShallowCloneable.ShallowClone()
     {
-        return ShallowClone(CloneOptions.None);
+        return ShallowClone(CloneOptions.ShallowDefault);
     }
 
     internal object DeepClone(CloneOptions options)
@@ -712,8 +728,8 @@ public abstract class UIElement : IFullCloneable
     internal object ShallowClone(CloneOptions options)
     {
         var clone = Clone(this, options);
-        clone._components = clone._components.AsValueEnumerable().ToValueList();
-        if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
+        clone._components = clone._components.ToValueList();
+        if ((options & CloneOptions.SkipChildren) == 0 && clone is UIParent parent)
             foreach (var child in this.Children())
                 parent.Add(child);
         if ((options & CloneOptions.ClearSignals) != 0)
@@ -747,8 +763,97 @@ public abstract class UIElement : IFullCloneable
 
     public void Detach(IUIComponent component)
     {
-        component.Detach(this);
         _components.Remove(component);
+        component.Detach(this);
+    }
+
+    public void DetachAll()
+    {
+        using var pool = _components.AsValueEnumerable().ToArrayPool();
+        _components.Clear();
+        foreach (var component in pool.Span)
+            component.Detach(this);
+    }
+
+    public T Immediate<T>(object? key, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        where T : new()
+    {
+        return Immediate<T>(new ImmediateKey(key), file, line);
+    }
+
+    [OverloadResolutionPriority(1)]
+    public T Immediate<T>(ImmediateKey? key = null, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        where T : new()
+    {
+        return Immediate(() => new T(), key, file, line);
+    }
+
+    public T Immediate<T>(
+        Func<T> factory,
+        object? key,
+        [CallerFilePath] string file = "",
+        [CallerLineNumber] int line = 0
+    )
+    {
+        return Immediate(factory, new ImmediateKey(key), file, line);
+    }
+
+    [OverloadResolutionPriority(1)]
+    public T Immediate<T>(
+        Func<T> factory,
+        ImmediateKey? key = null,
+        [CallerFilePath] string file = "",
+        [CallerLineNumber] int line = 0
+    )
+    {
+        ImmediateKey keyValue;
+        if (key.HasValue)
+        {
+            keyValue = key.Value;
+        }
+        else
+        {
+            ref var counter = ref ImmediateCounters.GetValueRefOrAddDefault(
+                new ImmediateCounter(typeof(T), file, line),
+                out _
+            );
+            keyValue = ImmediateKey.FromCounter(counter++);
+        }
+
+        ref var entryRef = ref ImmediateEntries.GetValueRefOrAddDefault(
+            new ImmediateEntry(keyValue, typeof(T), file, line),
+            out var exists
+        );
+        if (!exists)
+            entryRef.Value = factory.Invoke()!;
+        entryRef.Generation = _immediateGeneration;
+        var entry = (T)entryRef.Value;
+        switch (entry)
+        {
+            case UIElement element:
+            {
+                if (!element.IsImmediate)
+                {
+                    element.ImmediateCounters.Clear();
+                    element.DetachAll();
+                    if (element is UIParent parent)
+                    {
+                        if (ReconcileSession.Current is { } session)
+                            parent.BeginReconcile(session);
+                        else
+                            parent.Clear();
+                    }
+                }
+
+                (this as UIParent)?.Add(element);
+                break;
+            }
+            case IUIComponent component:
+                Attach(component);
+                break;
+        }
+
+        return entry;
     }
 
     public void Update()
@@ -759,7 +864,7 @@ public abstract class UIElement : IFullCloneable
     public void Update(in Entity entity)
     {
         Entity = entity;
-        if (!IsLayoutReady)
+        if (!IsImmediate && !IsLayoutReady)
             return;
         foreach (var element in this.DescendantsPostOrderAndSelf())
             Update(element, entity);
@@ -806,6 +911,7 @@ public abstract class UIElement : IFullCloneable
 
     public void ClearSignals()
     {
+        OnImmediateSignal.Clear();
         OnUpdateSignal.Clear();
         OnDisabledUpdateSignal.Clear();
         OnDirtySignal.Clear();
@@ -829,10 +935,15 @@ public abstract class UIElement : IFullCloneable
     public RenderTexture ToTexture(float width = float.NaN, float height = float.NaN, bool pool = true)
     {
         CalculateLayout(width, height);
-        var texture = new RenderTexture(LayoutSize, pool: pool);
+        var texture = new RenderTexture(
+            new Vector2(float.IsNaN(width) ? LayoutWidth : width, float.IsNaN(height) ? LayoutHeight : height),
+            pool: pool
+        );
         Render(texture.Graphics);
         return texture;
     }
+
+    protected virtual void OnImmediate() { }
 
     protected virtual void OnUpdate() { }
 
@@ -874,21 +985,32 @@ public abstract class UIElement : IFullCloneable
     {
         element.Entity = entity;
         if (!element.IsLayoutReady)
+        {
+            if (element.IsImmediate)
+                element.RunImmediate();
             return;
+        }
+
         var oldMouseInside = element.IsMouseInside;
         element.IsMouseInside =
             element.RenderedGraphics == Renderer.Graphics
             && Mouse.OnScreen
             && element.IsVisible
             && Collision.CheckPointQuad(Mouse.Position, element.RenderedBounds);
-        if (element.IsDisabled || entity is { IsNull: false, IsDisabled: true })
+        var disabled = element.IsDisabled || entity is { IsNull: false, IsDisabled: true };
+        if (disabled)
         {
             element._click = false;
+            element.IsClicked = false;
             element.OnDisabledUpdate();
             element.OnDisabledUpdateSignal.Invoke(element);
             return;
         }
 
+        element.IsClicked =
+            Mouse.IsButtonReleased(MouseButton.Left) && element is { _click: true, IsMouseInside: true };
+        if (element.IsImmediate)
+            element.RunImmediate();
         element.OnUpdate();
         element.OnUpdateSignal.Invoke(element);
         switch (oldMouseInside)
@@ -927,6 +1049,41 @@ public abstract class UIElement : IFullCloneable
                 element.OnRelease();
                 element.OnReleaseSignal.Invoke(element);
             }
+        }
+    }
+
+    private void RunImmediate()
+    {
+        ImmediateCounters.Clear();
+        foreach (var element in this.DescendantsAndSelf())
+            element._immediateGeneration++;
+        DetachAll();
+        var session = ReconcileSession.Begin();
+        try
+        {
+            if (this is UIParent parent)
+                parent.BeginReconcile(session);
+            OnImmediate();
+            OnImmediateSignal.Invoke(this);
+        }
+        finally
+        {
+            session.End();
+        }
+
+        foreach (var element in this.DescendantsAndSelf())
+        {
+            if (element.ImmediateEntries.Count == 0)
+                continue;
+            var generation = element._immediateGeneration;
+            using var stale = element
+                .ImmediateEntries.AsValueEnumerable()
+                .Cross(generation.AsValueSingleton())
+                .Where(cross => cross.Left.Value.Generation != cross.Right)
+                .Select(cross => cross.Left.Key)
+                .ToArrayPool();
+            foreach (ref var entry in stale.Span)
+                element.ImmediateEntries.Remove(entry);
         }
     }
 
@@ -1103,9 +1260,12 @@ public abstract class UIElement : IFullCloneable
     {
         var result = (UIElement)element.MemberwiseClone();
         result._click = false;
+        result._immediateGeneration = 0;
         result.IsLayoutReady = false;
         result.Parent = null;
         result.Node = new UINode(result);
+        result.ImmediateEntries = new ValueDictionary<ImmediateEntry, ImmediateValue>(ImmediateEntryComparer.Instance);
+        result.ImmediateCounters = new ValueDictionary<ImmediateCounter, uint>(ImmediateCounterComparer.Instance);
         Flex.NodeCopyStyle(result.Node, element.Node);
         if (element.IsLayoutCustom)
             result.Node.SetMeasureFunc(
@@ -1240,6 +1400,138 @@ public abstract class UIElement : IFullCloneable
                     children[index].Remove();
                 parent.Insert(index, value.Storage.Element);
             }
+        }
+    }
+
+    [SuppressMessage("ReSharper", "NotAccessedField.Local")]
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
+    public readonly record struct ImmediateKey
+    {
+        private readonly long _numericKey;
+        private readonly object? _objectKey;
+
+        public ImmediateKey(long key = 0)
+        {
+            _numericKey = key;
+        }
+
+        public ImmediateKey(object? key)
+        {
+            _objectKey = key;
+        }
+
+        private uint CounterKey { get; init; }
+
+        internal static ImmediateKey FromCounter(uint count)
+        {
+            return new ImmediateKey { CounterKey = count };
+        }
+
+        public static implicit operator ImmediateKey(string? key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(char key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(bool key)
+        {
+            return new ImmediateKey(key ? 1 : 0);
+        }
+
+        public static implicit operator ImmediateKey(sbyte key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(short key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(int key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(long key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(byte key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(ushort key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(uint key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(ulong key)
+        {
+            return new ImmediateKey((long)key);
+        }
+
+        public static implicit operator ImmediateKey(float key)
+        {
+            return new ImmediateKey(BitConverter.DoubleToInt64Bits(key));
+        }
+
+        public static implicit operator ImmediateKey(double key)
+        {
+            return new ImmediateKey(BitConverter.DoubleToInt64Bits(key));
+        }
+    }
+
+    [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
+    internal readonly record struct ImmediateEntry(ImmediateKey Key, Type Type, string File, int Line);
+
+    internal struct ImmediateValue
+    {
+        public object Value;
+        public uint Generation;
+    }
+
+    [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
+    internal readonly record struct ImmediateCounter(Type Type, string File, int Line);
+
+    private sealed class ImmediateEntryComparer : IEqualityComparer<ImmediateEntry>
+    {
+        public static readonly ImmediateEntryComparer Instance = new();
+
+        public bool Equals(ImmediateEntry x, ImmediateEntry y)
+        {
+            return x.Line == y.Line && x.Type == y.Type && x.Key == y.Key && ReferenceEquals(x.File, y.File);
+        }
+
+        public int GetHashCode(ImmediateEntry obj)
+        {
+            return HashCode.Combine(obj.Line, obj.Type, obj.Key, RuntimeHelpers.GetHashCode(obj.File));
+        }
+    }
+
+    private sealed class ImmediateCounterComparer : IEqualityComparer<ImmediateCounter>
+    {
+        public static readonly ImmediateCounterComparer Instance = new();
+
+        public bool Equals(ImmediateCounter x, ImmediateCounter y)
+        {
+            return x.Line == y.Line && x.Type == y.Type && ReferenceEquals(x.File, y.File);
+        }
+
+        public int GetHashCode(ImmediateCounter obj)
+        {
+            return HashCode.Combine(obj.Line, obj.Type, RuntimeHelpers.GetHashCode(obj.File));
         }
     }
 
@@ -1399,6 +1691,11 @@ public static partial class UIElementExtensions
         public Action<T> With
         {
             set => value.Invoke(element);
+        }
+
+        public Action<T> OnImmediate
+        {
+            set => element.OnImmediateSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnUpdate
