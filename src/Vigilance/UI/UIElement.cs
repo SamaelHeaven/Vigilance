@@ -806,6 +806,7 @@ public abstract class UIElement : IFullCloneable
         [CallerLineNumber] int line = 0
     )
     {
+        Debug.Assert(string.IsInterned(file) is not null);
         ImmediateKey keyValue;
         if (key.HasValue)
         {
