@@ -78,9 +78,9 @@ public abstract class UIElement : IFullCloneable
         get => _components.AsSpan();
         init
         {
-            _components.EnsureCapacity(value.Length);
+            _components.AddRange(value);
             foreach (var component in value)
-                Attach(component);
+                component.Attach(this);
         }
     }
 
@@ -135,7 +135,7 @@ public abstract class UIElement : IFullCloneable
 
     public bool IsLayoutCustom { get; }
 
-    public bool IsImmediate => field || OnImmediateSignal.Handlers is not null;
+    public bool IsImmediate => field || _onImmediateHandlers is not null;
 
     public bool IsClicked { get; private set; }
 
