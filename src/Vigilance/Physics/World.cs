@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Box2D.NET;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Logging;
@@ -7,13 +8,16 @@ using Vigilance.Math;
 
 namespace Vigilance.Physics;
 
-public sealed class World : IDisposable
+public sealed class World
 {
     public const float PixelsPerMeter = 50f;
     public const float PixelsToMeter = 1f / PixelsPerMeter;
+    private static ValueList<WeakReference<World>> _worlds = [];
+    private static ValueList<WeakReference<Scene>?> _scenes = [];
     private static WorldConfig _config = new();
     internal readonly B2WorldId Id;
     private bool _disposed;
+    private int _index;
     private Action<Shape, Shape>? _onContactBegin;
     private Action<Shape, Shape>? _onContactEnd;
     private Action<ContactHit>? _onContactHit;
@@ -22,35 +26,29 @@ public sealed class World : IDisposable
     private Action<Shape, Shape>? _onSensorEnd;
 
     public World()
+        : this(null) { }
+
+    public World(Scene? scene = null)
     {
+        Scene = scene!;
         var def = B2Types.b2DefaultWorldDef();
         def.gravity = PixelsToMeters(DefaultGravity).B2Vec2;
         Id = B2Worlds.b2CreateWorld(def);
-        var worldRef = new WeakReference<World>(this);
-        B2Worlds.b2World_SetUserData(Id, new B2UserData(worldRef));
+        _index = _worlds.Count;
+        _worlds.Add(new WeakReference<World>(this));
+        _scenes.Add(scene is null ? null : new WeakReference<Scene>(scene));
+        B2Worlds.b2World_SetUserData(Id, new B2UserData(_index));
         B2Worlds.b2World_SetCustomFilterCallback(Id, FilterCallback, null);
-    }
-
-    public World(Scene scene)
-        : this()
-    {
-        Scene = scene;
     }
 
     public static Vector2 DefaultGravity { get; set; } = _config.DefaultGravity;
 
-    public Scene Scene { get; private set; } = null!;
+    public Scene Scene { get; private set; }
 
     public Vector2 Gravity
     {
         get => MetersToPixels(new Vector2(B2Worlds.b2World_GetGravity(Id)));
         set => B2Worlds.b2World_SetGravity(Id, PixelsToMeters(value).B2Vec2);
-    }
-
-    public void Dispose()
-    {
-        ReleaseUnmanagedResources();
-        GC.SuppressFinalize(this);
     }
 
     ~World()
@@ -64,6 +62,21 @@ public sealed class World : IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        var last = _worlds.Count - 1;
+        if (_index != last)
+        {
+            var lastWorld = _worlds[last];
+            _worlds[_index] = lastWorld;
+            _scenes[_index] = _scenes[last];
+            if (lastWorld.TryGetTarget(out var world))
+            {
+                world._index = _index;
+                B2Worlds.b2World_SetUserData(world.Id, new B2UserData(_index));
+            }
+        }
+
+        _worlds.RemoveAt(last);
+        _scenes.RemoveAt(last);
         Scene = null!;
         _onFilter = null;
         _onContactBegin = null;
@@ -74,14 +87,22 @@ public sealed class World : IDisposable
         B2Worlds.b2DestroyWorld(Id);
     }
 
-    internal static World? Get(B2WorldId worldId)
+    internal static World? GetWorld(B2WorldId worldId)
     {
-        if (
-            B2Worlds.b2World_GetUserData(worldId).oValue is WeakReference<World> worldRef
-            && worldRef.TryGetTarget(out var world)
-        )
-            return world;
-        return null;
+        var index = (int)B2Worlds.b2World_GetUserData(worldId).iValue;
+        if ((uint)index >= (uint)_worlds.Count)
+            return null;
+        var worldRef = _worlds[index];
+        return worldRef.TryGetTarget(out var world) ? world : null;
+    }
+
+    internal static Scene? GetScene(B2WorldId worldId)
+    {
+        var index = (int)B2Worlds.b2World_GetUserData(worldId).iValue;
+        if ((uint)index >= (uint)_scenes.Count)
+            return null;
+        var sceneRef = _scenes[index];
+        return sceneRef is not null && sceneRef.TryGetTarget(out var world) ? world : null;
     }
 
     internal static void Initialize()

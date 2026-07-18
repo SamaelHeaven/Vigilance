@@ -43,7 +43,6 @@ public sealed unsafe partial class Scene
     private ValueList<Table> _tables = [];
     private Action<Scene>? _transitionToAction;
     private Action? _updateAction;
-    private World? _world;
     internal Table<Child> ChildTable;
     internal Table<Disabled> DisabledTable;
     internal Action<Graphics, Texture, Box>? DrawScreenAction;
@@ -91,21 +90,7 @@ public sealed unsafe partial class Scene
 
     public GameSystemsFunc SystemsFunc { get; }
     public Camera Camera { get; } = new();
-
-    public World World
-    {
-        get
-        {
-            if (_world is not null)
-                return _world;
-            _world = new World(this);
-#pragma warning disable CA1816
-            GC.SuppressFinalize(_world);
-            return _world;
-#pragma warning restore CA1816
-        }
-    }
-
+    public World World => field ??= new World(this);
     public bool IsConfigured { get; private set; }
     public bool IsInitialized { get; private set; }
     public bool IsStarted { get; private set; }
@@ -762,11 +747,7 @@ public sealed unsafe partial class Scene
 
     ~Scene()
     {
-        Game.Defer(() =>
-        {
-            _onDispose?.SafeInvoke();
-            _world?.Dispose();
-        });
+        Game.Defer(() => _onDispose?.SafeInvoke());
     }
 
     public void OnInstantiate(Action action)

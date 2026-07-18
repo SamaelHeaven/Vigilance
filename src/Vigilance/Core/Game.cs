@@ -128,8 +128,8 @@ public static unsafe class Game
     {
         GC.Collect();
         GC.WaitForPendingFinalizers();
-        GC.Collect();
         UpdateActions();
+        GC.Collect();
     }
 
     private static void UpdateActions()
