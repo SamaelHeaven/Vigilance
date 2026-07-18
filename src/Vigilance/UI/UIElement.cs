@@ -29,8 +29,8 @@ public abstract class UIElement : IFullCloneable
         None = 0,
         SkipChildren = 1 << 0,
         ClearSignals = 1 << 1,
-        DeepDefault = None,
-        ShallowDefault = SkipChildren,
+        DeepDefaults = None,
+        ShallowDefaults = SkipChildren,
     }
 
     private bool _click;
@@ -684,12 +684,12 @@ public abstract class UIElement : IFullCloneable
 
     object IDeepCloneable.DeepClone()
     {
-        return DeepClone(CloneOptions.DeepDefault);
+        return DeepClone(CloneOptions.DeepDefaults);
     }
 
     object IShallowCloneable.ShallowClone()
     {
-        return ShallowClone(CloneOptions.ShallowDefault);
+        return ShallowClone(CloneOptions.ShallowDefaults);
     }
 
     internal object DeepClone(CloneOptions options)

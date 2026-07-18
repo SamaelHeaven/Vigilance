@@ -17,7 +17,7 @@ public abstract class Table
     [Flags]
     public enum Flags : byte
     {
-        Default = 0,
+        None = 0,
         SilentOnImmutable = 1 << 0,
         ForceMutable = 1 << 1,
     }
@@ -60,11 +60,11 @@ public abstract class Table
 
     public abstract bool TryGet(in Entity entity, out object component);
 
-    public abstract void Set(in Entity entity, object component, Flags flags = Flags.Default);
+    public abstract void Set(in Entity entity, object component, Flags flags = Flags.None);
 
-    public abstract bool Remove(in Entity entity, Flags flags = Flags.Default);
+    public abstract bool Remove(in Entity entity, Flags flags = Flags.None);
 
-    public abstract bool Remove(in Entity entity, out object component, Flags flags = Flags.Default);
+    public abstract bool Remove(in Entity entity, out object component, Flags flags = Flags.None);
 
     internal abstract void DequeueOperation();
 
@@ -301,24 +301,24 @@ public sealed class Table<T>
         return true;
     }
 
-    public override void Set(in Entity entity, object component, Flags flags = Flags.Default)
+    public override void Set(in Entity entity, object component, Flags flags = Flags.None)
     {
         Set(entity, (T)component, flags);
     }
 
-    public override bool Remove(in Entity entity, Flags flags = Flags.Default)
+    public override bool Remove(in Entity entity, Flags flags = Flags.None)
     {
         return Remove(entity, out _, flags);
     }
 
-    public override bool Remove(in Entity entity, out object component, Flags flags = Flags.Default)
+    public override bool Remove(in Entity entity, out object component, Flags flags = Flags.None)
     {
         var result = Remove(entity, out var value, flags);
         component = result ? value! : null!;
         return result;
     }
 
-    public bool Remove(in Entity entity, out T component, Flags flags = Flags.Default)
+    public bool Remove(in Entity entity, out T component, Flags flags = Flags.None)
     {
         Unsafe.SkipInit(out component);
         if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
@@ -388,7 +388,7 @@ public sealed class Table<T>
         return new ComponentRef<T>(ref _components[denseIndex]);
     }
 
-    public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.Default)
+    public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.None)
     {
         if (SetImmutable && AddImmutable && (flags & Flags.ForceMutable) == 0)
             if ((flags & Flags.SilentOnImmutable) != 0)
