@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Vigilance.Core;
 using Vigilance.Drawing;
+using Vigilance.Math;
 using Color = Vigilance.Drawing.Color;
 using Vector2 = Vigilance.Math.Vector2;
 
@@ -15,7 +16,7 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
     );
 
     private int _blur;
-    private bool _isRebuilding;
+    private bool _isDeep;
     private bool _isTextureUsed;
     private Func<UIElement, Graphics, CameraProvider, bool> _onBeginRenderHandler = null!;
     private Func<UIElement, bool> _onDirtyHandler = null!;
@@ -26,10 +27,11 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
         : this() { }
 
     [OverloadResolutionPriority(1)]
-    public UIDropShadow(int blur = 1, Color? color = null)
+    public UIDropShadow(int blur = 1, Color? color = null, bool isDeep = false)
     {
         Color = color ?? Color.Black;
         Blur = blur;
+        IsDeep = isDeep;
         Initialize();
     }
 
@@ -37,6 +39,22 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
     public bool IsTextureDirty { get; private set; }
     public BlendMode BlendMode { get; set; } = Drawing.Drawing.DefaultBlendMode;
     public Shader Shader { get; set; } = Drawing.Drawing.DefaultShader;
+    public Vector2 Position { get; set; } = Vector2.Zero;
+    public Vector2 Scale { get; set; } = Vector2.One;
+    public float Rotation { get; set; } = 0;
+    public Vector2 PivotPoint { get; set; } = Vector2.Zero;
+
+    public Transform Transform
+    {
+        get => new(Position, Scale, Rotation, PivotPoint);
+        set
+        {
+            Position = value.Position;
+            Scale = value.Scale;
+            Rotation = value.Rotation;
+            PivotPoint = value.PivotPoint;
+        }
+    }
 
     public Texture Texture
     {
@@ -58,6 +76,20 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
             MarkTextureDirty();
         }
     }
+
+    public bool IsDeep
+    {
+        get => _isDeep;
+        set
+        {
+            if (_isDeep == value)
+                return;
+            _isDeep = value;
+            MarkTextureDirty();
+        }
+    }
+
+    public int BlurOffset => GetBlurOffset(_blur);
 
     object IDeepCloneable.DeepClone()
     {
@@ -83,6 +115,11 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
         element.OnBeginRenderSignal.Unsubscribe(_onBeginRenderHandler);
     }
 
+    public static int GetBlurOffset(int blur)
+    {
+        return 1 + blur * 3;
+    }
+
     public void MarkTextureDirty()
     {
         IsTextureDirty = true;
@@ -104,20 +141,19 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
 
     private bool BeginRender(UIElement element, Graphics graphics, CameraProvider camera)
     {
-        if (_isRebuilding)
-            return false;
-        var offset = 1 + _blur * 3;
+        var offset = BlurOffset;
         if (IsTextureDirty)
         {
             IsTextureDirty = false;
             RebuildTexture(element, offset);
         }
 
-        var previousClip = graphics.SetClip(null);
         var previousBlendMode = graphics.SetBlendMode(BlendMode);
         var previousShader = graphics.SetShader(Shader);
+        graphics.PushMatrix();
+        graphics.Transform(Transform);
         graphics.DrawTexture(_texture, element.LayoutPosition - offset, null, Color, camera: camera);
-        graphics.SetClip(previousClip);
+        graphics.PopMatrix();
         graphics.SetBlendMode(previousBlendMode);
         graphics.SetShader(previousShader);
         return false;
@@ -125,10 +161,12 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
 
     private void RebuildTexture(UIElement element, int offset)
     {
-        var clone = element.ShallowClone();
+        Detach(element);
+        var clone = _isDeep ? element.DeepClone() : element.ShallowClone();
         clone.ResetLayoutAndTransform();
         clone.Size = element.LayoutSize;
-        using var elementTexture = RenderSilhouetteSource(clone, element.LayoutSize);
+        using var elementTexture = clone.ToTexture(element.LayoutSize);
+        Attach(element);
         var width = elementTexture.ScaledWidth + offset * 2;
         var height = elementTexture.ScaledHeight + offset * 2;
         var silhouette = new RenderTexture(width, height);
@@ -160,19 +198,6 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
         _renderTexture = result;
         _texture = result.Texture;
         _isTextureUsed = false;
-    }
-
-    private RenderTexture RenderSilhouetteSource(UIElement clone, Vector2 size)
-    {
-        _isRebuilding = true;
-        try
-        {
-            return clone.ToTexture(size);
-        }
-        finally
-        {
-            _isRebuilding = false;
-        }
     }
 
     private RenderTexture RenderBlurPass(RenderTexture source, Vector2 direction, int radius, float sigma)

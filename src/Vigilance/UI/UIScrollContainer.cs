@@ -10,6 +10,7 @@ namespace Vigilance.UI;
 
 public class UIScrollContainer : UIContainer
 {
+    private bool _layout = false;
     private Rectangle _scrollBarThumbRectangle = new();
     private Rectangle _scrollBarTrackRectangle = new();
     private float? _thumbMouseDownX = null;
@@ -214,14 +215,17 @@ public class UIScrollContainer : UIContainer
 
     public bool IsMouseInsideNestedScrollContainer { get; set; }
 
-    private void Update(bool input)
+    protected override void OnLayout()
     {
+        if (_layout)
+            return;
+        _layout = true;
         var offset = Vector2.Zero;
         var size = Vector2.Zero;
         var direction = Direction;
         var mousePosition = Mouse.Position;
-        var mousePressed = !input && Mouse.IsButtonPressed(MouseButton.Left);
-        var mouseReleased = !input && Mouse.IsButtonReleased(MouseButton.Left);
+        var mousePressed = Mouse.IsButtonPressed(MouseButton.Left);
+        var mouseReleased = Mouse.IsButtonReleased(MouseButton.Left);
         foreach (
             var element in Children().AsValueEnumerable().Where(element => element.Position != PositionType.Absolute)
         )
@@ -240,10 +244,8 @@ public class UIScrollContainer : UIContainer
             .Any();
 
         var scroll =
-            !input && IsMouseInside && !IsMouseInsideNestedScrollContainer
-                ? Mouse.Scroll * MouseScrollForce
-                : Vector2.Zero;
-        if (!input && _thumbMouseDownY.HasValue)
+            IsMouseInside && !IsMouseInsideNestedScrollContainer ? Mouse.Scroll * MouseScrollForce : Vector2.Zero;
+        if (_thumbMouseDownY.HasValue)
         {
             var deltaY = mousePosition.Y - _thumbMouseDownY.Value;
             var trackBox = GetScrollBarTrackBox(ScrollBarDirection.Vertical);
@@ -255,7 +257,7 @@ public class UIScrollContainer : UIContainer
             _thumbMouseDownY = mousePosition.Y;
         }
 
-        if (!input && _thumbMouseDownX.HasValue)
+        if (_thumbMouseDownX.HasValue)
         {
             var deltaX = mousePosition.X - _thumbMouseDownX.Value;
             var trackBox = GetScrollBarTrackBox(ScrollBarDirection.Horizontal);
@@ -267,7 +269,7 @@ public class UIScrollContainer : UIContainer
             _thumbMouseDownX = mousePosition.X;
         }
 
-        if (!input && IsMouseInside && mousePressed)
+        if (IsMouseInside && mousePressed)
         {
             if (Collision.CheckPointQuad(mousePosition, RenderedHorizontalScrollBarThumbBounds))
                 _thumbMouseDownX = mousePosition.X;
@@ -275,7 +277,7 @@ public class UIScrollContainer : UIContainer
                 _thumbMouseDownY = mousePosition.Y;
         }
 
-        if (!input && mouseReleased)
+        if (mouseReleased)
         {
             _thumbMouseDownX = null;
             _thumbMouseDownY = null;
@@ -306,14 +308,8 @@ public class UIScrollContainer : UIContainer
         ScrollOffset = -offset;
     }
 
-    protected override void OnUpdate()
-    {
-        Update(input: false);
-    }
-
     protected override void OnRender(Graphics graphics, CameraProvider camera)
     {
-        Update(input: true);
         graphics.PushMatrix();
         graphics.Translate(ScrollOffset);
     }
@@ -346,11 +342,14 @@ public class UIScrollContainer : UIContainer
             RenderedHorizontalScrollBarThumbBounds = box.Transform(matrix);
         }
 
-        if (!verticalVisible)
-            return;
-        box = GetScrollBarThumbBox(ScrollBarDirection.Vertical);
-        RenderScrollBarThumb(graphics, box, camera);
-        RenderedVerticalScrollBarThumbBounds = box.Transform(matrix);
+        if (verticalVisible)
+        {
+            box = GetScrollBarThumbBox(ScrollBarDirection.Vertical);
+            RenderScrollBarThumb(graphics, box, camera);
+            RenderedVerticalScrollBarThumbBounds = box.Transform(matrix);
+        }
+
+        _layout = false;
     }
 
     protected override void OnClone()

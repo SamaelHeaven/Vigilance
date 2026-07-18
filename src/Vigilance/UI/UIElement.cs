@@ -43,6 +43,7 @@ public abstract class UIElement : IFullCloneable
     private Func<UIElement, bool>? _onDisabledUpdateHandlers;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onEndRenderHandlers;
     private Func<UIElement, bool>? _onImmediateHandlers;
+    private Func<UIElement, bool>? _onLayoutHandlers;
     private Func<UIElement, bool>? _onMouseEnterHandlers;
     private Func<UIElement, bool>? _onMouseLeaveHandlers;
     private Func<UIElement, bool>? _onPressHandlers;
@@ -664,6 +665,8 @@ public abstract class UIElement : IFullCloneable
 
     public Signal<UIElement> OnDirtySignal => new(ref _onDirtyHandlers);
 
+    public Signal<UIElement> OnLayoutSignal => new(ref _onLayoutHandlers);
+
     public Signal<UIElement> OnMouseEnterSignal => new(ref _onMouseEnterHandlers);
 
     public Signal<UIElement> OnMouseLeaveSignal => new(ref _onMouseLeaveHandlers);
@@ -694,35 +697,33 @@ public abstract class UIElement : IFullCloneable
 
     internal object DeepClone(CloneOptions options)
     {
-        ValueDictionary<UIElement, UIElement> cloneMap = default;
-        var hasCloneMap = false;
-        UIElement clone = null!;
+        if ((options & CloneOptions.SkipChildren) != 0)
+        {
+            var self = Clone(this, options);
+            DeepCloneComponents(self);
+            if ((options & CloneOptions.ClearSignals) != 0)
+                self.ClearSignals();
+            self.OnClone();
+            OnCloneSignal.Invoke(self);
+            return self;
+        }
+
+        var cloneMap = new ValueDictionary<UIElement, UIElement>(this.DescendantsAndSelf().Count());
         foreach (var node in this.DescendantsPostOrderAndSelf())
         {
-            clone = Clone(node, options);
+            var clone = Clone(node, options);
             DeepCloneComponents(clone);
-            if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
+            if (clone is UIParent parent)
                 foreach (var child in node.Children())
-                {
-                    if (!hasCloneMap)
-                    {
-                        cloneMap = new ValueDictionary<UIElement, UIElement>(this.DescendantsAndSelf().Count());
-                        hasCloneMap = true;
-                    }
-
                     parent.Add(cloneMap[child]);
-                }
-
             if ((options & CloneOptions.ClearSignals) != 0)
                 clone.ClearSignals();
             clone.OnClone();
             OnCloneSignal.Invoke(clone);
-            if ((options & CloneOptions.SkipChildren) == 0)
-                break;
             cloneMap[node] = clone;
         }
 
-        return hasCloneMap ? cloneMap[this] : clone;
+        return cloneMap[this];
     }
 
     internal object ShallowClone(CloneOptions options)
@@ -753,6 +754,11 @@ public abstract class UIElement : IFullCloneable
     {
         MarkReady();
         Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.LeftToRight);
+        foreach (var element in this.DescendantsPostOrderAndSelf())
+        {
+            element.OnLayout();
+            element.OnLayoutSignal.Invoke(element);
+        }
     }
 
     public void Attach(IUIComponent component)
@@ -916,6 +922,7 @@ public abstract class UIElement : IFullCloneable
         OnUpdateSignal.Clear();
         OnDisabledUpdateSignal.Clear();
         OnDirtySignal.Clear();
+        OnLayoutSignal.Clear();
         OnMouseEnterSignal.Clear();
         OnMouseLeaveSignal.Clear();
         OnClickSignal.Clear();
@@ -951,6 +958,8 @@ public abstract class UIElement : IFullCloneable
     protected virtual void OnDisabledUpdate() { }
 
     protected virtual void OnDirty() { }
+
+    protected virtual void OnLayout() { }
 
     protected virtual void OnMouseEnter() { }
 
@@ -1712,6 +1721,11 @@ public static partial class UIElementExtensions
         public Action<T> OnDirty
         {
             set => element.OnDirtySignal.Subscribe(e => value.Invoke((T)e));
+        }
+
+        public Action<T> OnLayout
+        {
+            set => element.OnLayoutSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnMouseEnter
