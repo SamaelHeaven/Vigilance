@@ -3,6 +3,7 @@
 // ReSharper disable ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
 
 using System.Runtime.CompilerServices;
+using Vigilance.Collections;
 using Vigilance.Core;
 
 namespace Vigilance.FlexLayout;
@@ -91,22 +92,32 @@ public static partial class Flex
     internal static readonly Value ValueUndefined = new(float.NaN, Unit.Undefined);
     internal static readonly Value ValueAuto = new(float.NaN, Unit.Auto);
     internal static int CurrentGenerationCount = 0;
-    internal static readonly InlineArray4<Edge> Leading;
-    internal static readonly InlineArray4<Edge> Trailing;
-    internal static readonly InlineArray4<Edge> Pos;
-    internal static readonly InlineArray4<Dimension> Dim;
 
-    static Flex()
-    {
-        ReadOnlySpan<Edge> leading = [Edge.Top, Edge.Bottom, Edge.Left, Edge.Right];
-        leading.CopyTo(Leading);
-        ReadOnlySpan<Edge> trailing = [Edge.Bottom, Edge.Top, Edge.Right, Edge.Left];
-        trailing.CopyTo(Trailing);
-        ReadOnlySpan<Edge> pos = [Edge.Top, Edge.Bottom, Edge.Left, Edge.Right];
-        pos.CopyTo(Pos);
-        ReadOnlySpan<Dimension> dim = [Dimension.Height, Dimension.Height, Dimension.Width, Dimension.Width];
-        dim.CopyTo(Dim);
-    }
+    internal static readonly InlineList<InlineArray4<Edge>, Edge> Leading =
+    [
+        Edge.Top,
+        Edge.Bottom,
+        Edge.Left,
+        Edge.Right,
+    ];
+
+    internal static readonly InlineList<InlineArray4<Edge>, Edge> Trailing =
+    [
+        Edge.Bottom,
+        Edge.Top,
+        Edge.Right,
+        Edge.Left,
+    ];
+
+    internal static readonly InlineList<InlineArray4<Edge>, Edge> Pos = [Edge.Top, Edge.Bottom, Edge.Left, Edge.Right];
+
+    internal static readonly InlineList<InlineArray4<Dimension>, Dimension> Dim =
+    [
+        Dimension.Height,
+        Dimension.Height,
+        Dimension.Width,
+        Dimension.Width,
+    ];
 
     internal static bool Feq(float a, float b)
     {
@@ -123,7 +134,7 @@ public static partial class Flex
         return Feq(v1.Number, v2.Number);
     }
 
-    internal static Value ComputedEdgeValue(ReadOnlySpan<Value> edges, Edge edge, Value defaultValue)
+    internal static Value ComputedEdgeValue(in ReadOnlySpan<Value> edges, Edge edge, Value defaultValue)
     {
         if (edges[(int)edge].Unit != Unit.Undefined)
         {
