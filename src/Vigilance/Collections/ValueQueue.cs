@@ -5,6 +5,7 @@ using ZLinq;
 
 namespace Vigilance.Collections;
 
+[CollectionBuilder(typeof(ValueQueueBuilder), nameof(ValueQueueBuilder.Create))]
 public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQueue<T>.Enumerator, T>
 {
     private T[] _items;
@@ -34,6 +35,15 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
     {
         ArgumentNullException.ThrowIfNull(collection);
         _items = collection.ToValueList().AsArray(out var length);
+        Count = length;
+        if (Count != _items.Length)
+            _tail = Count;
+    }
+
+    [OverloadResolutionPriority(1)]
+    public ValueQueue(in ReadOnlySpan<T> span)
+    {
+        _items = span.AsValueEnumerable().ToValueList().AsArray(out var length);
         Count = length;
         if (Count != _items.Length)
             _tail = Count;
@@ -375,5 +385,13 @@ public struct ValueQueue<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueQue
                 array.AsSpan(0, remaining).CopyTo(destination[firstPart..]);
             return true;
         }
+    }
+}
+
+public static class ValueQueueBuilder
+{
+    public static ValueQueue<T> Create<T>(ReadOnlySpan<T> span)
+    {
+        return new ValueQueue<T>(span);
     }
 }

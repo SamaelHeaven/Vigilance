@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Box2D.NET;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Math;
 
@@ -8,11 +9,10 @@ namespace Vigilance.Physics;
 
 public record struct PolygonShape
 {
-    public InlineArray8<Vector2> Vertices { get; set; }
-    public InlineArray8<Vector2> Normals { get; set; }
+    public InlineList<InlineArray8<Vector2>, Vector2> Vertices { get; set; }
+    public InlineList<InlineArray8<Vector2>, Vector2> Normals { get; set; }
     public Vector2 Centroid { get; set; }
     public float Radius { get; set; }
-    public int Count { get; set; }
 
     internal readonly B2Polygon B2Polygon
     {
@@ -20,15 +20,16 @@ public record struct PolygonShape
         {
             var vertices = Vertices;
             var normals = Normals;
-            for (var i = 0; i < Count; i++)
+            Debug.Assert(vertices.Count == Normals.Count);
+            for (var i = 0; i < vertices.Count; i++)
                 vertices[i] = World.PixelsToMeters(vertices[i]);
             return new B2Polygon
             {
-                vertices = Unsafe.As<InlineArray8<Vector2>, B2FixedArray8<B2Vec2>>(ref vertices),
-                normals = Unsafe.As<InlineArray8<Vector2>, B2FixedArray8<B2Vec2>>(ref normals),
+                vertices = Unsafe.As<InlineList<InlineArray8<Vector2>, Vector2>, B2FixedArray8<B2Vec2>>(ref vertices),
+                normals = Unsafe.As<InlineList<InlineArray8<Vector2>, Vector2>, B2FixedArray8<B2Vec2>>(ref normals),
                 centroid = World.PixelsToMeters(Centroid).B2Vec2,
                 radius = World.PixelsToMeters(Radius),
-                count = Count,
+                count = vertices.Count,
             };
         }
     }
@@ -130,9 +131,9 @@ public record struct PolygonShape
 
     internal readonly B2ShapeProxy MakeProxy()
     {
-        var proxy = new B2ShapeProxy { count = Count, radius = World.PixelsToMeters(Radius) };
+        var proxy = new B2ShapeProxy { count = Vertices.Count, radius = World.PixelsToMeters(Radius) };
         ref var pts = ref Unsafe.As<B2FixedArray8<B2Vec2>, InlineArray8<Vector2>>(ref proxy.points);
-        for (var i = 0; i < Count; i++)
+        for (var i = 0; i < Vertices.Count; i++)
             pts[i] = World.PixelsToMeters(Vertices[i]);
         return proxy;
     }

@@ -122,9 +122,16 @@ public static class KeyExtensions
             get
             {
                 Game.ThrowIfNotRunning();
-                var name = Utf8Ptr.GetString(Raylib.GetKeyName((KeyboardKey)key)).ToUpper();
+                if (Platform.Web.IsCurrent)
+                    return key.ToString();
+                var name = Utf8Ptr.GetString(Raylib.GetKeyName((KeyboardKey)key));
                 return name.IsEmpty ? key.ToString() : name;
             }
+        }
+
+        public Button AsButton()
+        {
+            return Button.From(key);
         }
     }
 }

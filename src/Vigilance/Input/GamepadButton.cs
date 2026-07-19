@@ -50,5 +50,10 @@ public static class GamepadButtonExtensions
                 };
             }
         }
+
+        public Button AsButton(Gamepads gamepads = Gamepads.All)
+        {
+            return Button.From(button, gamepads);
+        }
     }
 }

@@ -12,9 +12,9 @@ public sealed class World
 {
     public const float PixelsPerMeter = 50f;
     public const float PixelsToMeter = 1f / PixelsPerMeter;
-    private static ValueList<WeakReference<World>> _worlds = [];
-    private static ValueList<WeakReference<Scene>?> _scenes = [];
     private static WorldConfig _config = new();
+    private static InlineList<InlineArray128<WeakReference<Scene>?>, WeakReference<Scene>?> _scenes = [];
+    private static InlineList<InlineArray128<WeakReference<World>>, WeakReference<World>> _worlds = [];
     internal readonly B2WorldId Id;
     private bool _disposed;
     private int _index;

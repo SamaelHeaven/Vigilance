@@ -16,7 +16,10 @@ public sealed unsafe class SpriteBatch : SpriteBatch<SpriteInstance>
     private int _configuredInstanceBufferVersion = -1;
 
     public SpriteBatch(Texture texture, Shader? shader = null)
-        : base(texture, shader ?? DefaultShader)
+        : this([], texture, shader) { }
+
+    public SpriteBatch(in ReadOnlySpan<SpriteInstance> instances, Texture texture, Shader? shader = null)
+        : base(instances, texture, shader ?? DefaultShader)
     {
         var index = 0u;
         var offset = 0;
@@ -136,10 +139,11 @@ public abstract class SpriteBatch<TInstance>
         IValueListView<TInstance>
     where TInstance : unmanaged
 {
-    protected readonly VertexBuffer<TInstance> InstanceBuffer = [];
+    protected readonly VertexBuffer<TInstance> InstanceBuffer;
 
-    protected SpriteBatch(Texture texture, Shader shader)
+    protected SpriteBatch(in ReadOnlySpan<TInstance> instances, Texture texture, Shader shader)
     {
+        InstanceBuffer = new VertexBuffer<TInstance>(instances);
         Texture = texture;
         Shader = shader;
     }

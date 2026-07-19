@@ -5,6 +5,7 @@ using ZLinq;
 
 namespace Vigilance.Collections;
 
+[CollectionBuilder(typeof(ValueDictionaryBuilder), nameof(ValueDictionaryBuilder.Create))]
 public struct ValueDictionary<TKey, TValue>
     : IDictionary<TKey, TValue>,
         IReadOnlyDictionary<TKey, TValue>,
@@ -1069,6 +1070,15 @@ public struct ValueDictionary<TKey, TValue>
 
             public void Dispose() { }
         }
+    }
+}
+
+public static class ValueDictionaryBuilder
+{
+    public static ValueDictionary<TKey, TValue> Create<TKey, TValue>(ReadOnlySpan<KeyValuePair<TKey, TValue>> span)
+        where TKey : notnull
+    {
+        return span.AsValueEnumerable().ToValueDictionary();
     }
 }
 

@@ -74,6 +74,7 @@ public abstract class UIParent : UIElement
 
     public void Add(params ReadOnlySpan<UIElement?> elements)
     {
+        _childrenList.EnsureCapacity(_childrenList.Count + elements.Length);
         foreach (var element in elements)
             Add(element);
     }

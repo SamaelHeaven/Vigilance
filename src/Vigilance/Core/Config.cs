@@ -52,7 +52,7 @@ public sealed class ConfigBuilder
         return this;
     }
 
-    public Config Build()
+    public Config Create()
     {
         return new Config(_configs);
     }
