@@ -1,5 +1,6 @@
 using Vigilance.Core;
 using Vigilance.Drawing;
+using Vigilance.Logging;
 using Vigilance.UI;
 
 namespace Vigilance.Systems;
@@ -11,12 +12,22 @@ public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDi
     public override void Update()
     {
         foreach (var (entity, element) in AssignableEntries<UIElement>())
-        {
-            if (!element.IsLayoutReady)
+            try
+            {
+                if (!element.IsLayoutReady)
+                {
+                    if (element.IsImmediate)
+                        element.Update(entity);
+                    element.CalculateLayout();
+                }
+
+                element.Update(entity);
                 element.CalculateLayout();
-            element.Update(entity);
-            element.CalculateLayout();
-        }
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     public override void Render(RenderCommands commands)

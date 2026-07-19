@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Raylib_cs;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -44,6 +45,7 @@ public static class VertexBuffer
     }
 }
 
+[CollectionBuilder(typeof(VertexBufferBuilder), nameof(VertexBufferBuilder.Create))]
 public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDisposable
     where T : unmanaged
 {
@@ -257,5 +259,14 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     ~VertexBuffer()
     {
         ReleaseUnmanagedResources();
+    }
+}
+
+public static class VertexBufferBuilder
+{
+    public static VertexBuffer<T> Create<T>(ReadOnlySpan<T> span)
+        where T : unmanaged
+    {
+        return new VertexBuffer<T>(span);
     }
 }

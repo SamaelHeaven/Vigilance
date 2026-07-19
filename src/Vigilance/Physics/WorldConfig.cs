@@ -6,6 +6,7 @@ namespace Vigilance.Physics;
 public sealed class WorldConfig
 {
     public Vector2 DefaultGravity { get; set; } = new(0, World.MetersToPixels(9.807f));
+    public bool DefaultMultithreaded { get; set; } = true;
 }
 
 public static class WorldConfigExtensions

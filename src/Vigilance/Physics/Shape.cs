@@ -13,9 +13,9 @@ public readonly record struct Shape
         _id = id;
     }
 
-    public World World => World.Get(B2Shapes.b2Shape_GetWorld(_id))!;
+    public World World => World.GetWorld(B2Shapes.b2Shape_GetWorld(_id))!;
 
-    public Scene Scene => World.Scene;
+    public Scene Scene => World.GetScene(B2Shapes.b2Shape_GetWorld(_id))!;
 
     public Body Body => new(B2Shapes.b2Shape_GetBody(_id));
 

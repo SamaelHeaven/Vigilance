@@ -17,7 +17,7 @@ public abstract class Table
     [Flags]
     public enum Flags : byte
     {
-        Default = 0,
+        None = 0,
         SilentOnImmutable = 1 << 0,
         ForceMutable = 1 << 1,
     }
@@ -60,11 +60,11 @@ public abstract class Table
 
     public abstract bool TryGet(in Entity entity, out object component);
 
-    public abstract void Set(in Entity entity, object component, Flags flags = Flags.Default);
+    public abstract void Set(in Entity entity, object component, Flags flags = Flags.None);
 
-    public abstract bool Remove(in Entity entity, Flags flags = Flags.Default);
+    public abstract bool Remove(in Entity entity, Flags flags = Flags.None);
 
-    public abstract bool Remove(in Entity entity, out object component, Flags flags = Flags.Default);
+    public abstract bool Remove(in Entity entity, out object component, Flags flags = Flags.None);
 
     internal abstract void DequeueOperation();
 
@@ -197,12 +197,17 @@ public sealed class Table<T>
         return new Enumerator(this);
     }
 
-    public ValueEnumerable<
-        StructEnumerator<Enumerator, KeyValuePair<Entity, T>>,
+    ValueEnumerable<StructEnumerator<Enumerator, KeyValuePair<Entity, T>>, KeyValuePair<Entity, T>> IStructEnumerable<
+        Enumerator,
         KeyValuePair<Entity, T>
-    > AsValueEnumerable()
+    >.AsValueEnumerable()
     {
         return new StructEnumerator<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
+    }
+
+    public ValueEnumerable<Enumerator, KeyValuePair<Entity, T>> AsValueEnumerable()
+    {
+        return new ValueEnumerable<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
     }
 
     public void Enqueue(in Event<T> tableEvent)
@@ -296,24 +301,24 @@ public sealed class Table<T>
         return true;
     }
 
-    public override void Set(in Entity entity, object component, Flags flags = Flags.Default)
+    public override void Set(in Entity entity, object component, Flags flags = Flags.None)
     {
         Set(entity, (T)component, flags);
     }
 
-    public override bool Remove(in Entity entity, Flags flags = Flags.Default)
+    public override bool Remove(in Entity entity, Flags flags = Flags.None)
     {
         return Remove(entity, out _, flags);
     }
 
-    public override bool Remove(in Entity entity, out object component, Flags flags = Flags.Default)
+    public override bool Remove(in Entity entity, out object component, Flags flags = Flags.None)
     {
         var result = Remove(entity, out var value, flags);
         component = result ? value! : null!;
         return result;
     }
 
-    public bool Remove(in Entity entity, out T component, Flags flags = Flags.Default)
+    public bool Remove(in Entity entity, out T component, Flags flags = Flags.None)
     {
         Unsafe.SkipInit(out component);
         if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
@@ -383,7 +388,7 @@ public sealed class Table<T>
         return new ComponentRef<T>(ref _components[denseIndex]);
     }
 
-    public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.Default)
+    public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.None)
     {
         if (SetImmutable && AddImmutable && (flags & Flags.ForceMutable) == 0)
             if ((flags & Flags.SilentOnImmutable) != 0)
@@ -499,7 +504,7 @@ public sealed class Table<T>
 
     private readonly record struct Operation(ulong EntityId, T Value, OperationType Type, Flags Flags);
 
-    public struct Enumerator : IStructEnumerator<KeyValuePair<Entity, T>>
+    public struct Enumerator : IStructEnumerator<KeyValuePair<Entity, T>>, IValueEnumerator<KeyValuePair<Entity, T>>
     {
         private readonly Table<T> _table;
         private int _index;
@@ -536,5 +541,31 @@ public sealed class Table<T>
         }
 
         public void Dispose() { }
+
+        public bool TryGetNext(out KeyValuePair<Entity, T> current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _table._entityIds.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<KeyValuePair<Entity, T>> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<KeyValuePair<Entity, T>> destination, Index offset)
+        {
+            return false;
+        }
     }
 }

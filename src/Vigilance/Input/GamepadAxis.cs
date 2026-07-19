@@ -14,6 +14,24 @@ public static class GamepadAxisExtensions
 {
     extension(GamepadAxis axis)
     {
-        public int JSValue => (int)axis;
+        public int JSValue
+        {
+            get
+            {
+                return axis switch
+                {
+                    GamepadAxis.LeftX => 0,
+                    GamepadAxis.LeftY => 1,
+                    GamepadAxis.RightX => 2,
+                    GamepadAxis.RightY => 3,
+                    _ => -1,
+                };
+            }
+        }
+
+        public Axis AsAxis(Gamepads gamepads = Gamepads.All, float deadZone = 0)
+        {
+            return Axis.From(axis, gamepads, deadZone);
+        }
     }
 }

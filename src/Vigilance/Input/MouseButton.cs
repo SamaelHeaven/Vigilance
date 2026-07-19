@@ -10,3 +10,14 @@ public enum MouseButton : sbyte
     Forward = Raylib_cs.MouseButton.Forward,
     Back = Raylib_cs.MouseButton.Back,
 }
+
+public static class MouseButtonExtensions
+{
+    extension(MouseButton button)
+    {
+        public Button AsButton()
+        {
+            return Button.From(button);
+        }
+    }
+}

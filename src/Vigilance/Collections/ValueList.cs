@@ -6,6 +6,7 @@ using ZLinq;
 
 namespace Vigilance.Collections;
 
+[CollectionBuilder(typeof(ValueListBuilder), nameof(ValueListBuilder.Create))]
 public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator, T>, IReadOnlySpan<T>
 {
     private const int DefaultCapacity = 4;
@@ -757,6 +758,14 @@ public struct ValueList<T> : IList<T>, IStructEnumerable<ValueList<T>.Enumerator
         {
             return _list.AsSpan().TryCopyTo(destination, offset);
         }
+    }
+}
+
+public static class ValueListBuilder
+{
+    public static ValueList<T> Create<T>(ReadOnlySpan<T> span)
+    {
+        return span.AsValueEnumerable().ToValueList();
     }
 }
 

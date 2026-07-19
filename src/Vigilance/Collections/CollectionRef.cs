@@ -1238,7 +1238,8 @@ public ref struct ValueHashSetRef<T> : ISet<T>, IReadOnlySet<T>, IStructEnumerab
 }
 
 public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
-    : IDictionary<TKey, TValue>,
+    : ISparseSet<TKey, TValue, TStorage>,
+        IDictionary<TKey, TValue>,
         IReadOnlyDictionary<TKey, TValue>,
         IReadOnlyList<KeyValuePair<TKey, TValue>>,
         IStructEnumerable<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>
@@ -1265,7 +1266,7 @@ public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
         _ref = ref sparseSet;
     }
 
-    public readonly ValueSparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _ref.Values;
+    public readonly ISparseSet<TValue, TStorage>.ValueEnumerable Values => _ref.Values;
 
     public readonly ValueListView<TKey> Keys => _ref.Keys;
 
@@ -1310,11 +1311,24 @@ public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
     }
 
     public readonly ValueEnumerable<
-        StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+        ValueSparseSet<TKey, TValue, TStorage>.Enumerator,
         KeyValuePair<TKey, TValue>
     > AsValueEnumerable()
     {
         return _ref.AsValueEnumerable();
+    }
+
+    readonly ValueEnumerable<
+        StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+        KeyValuePair<TKey, TValue>
+    > IStructEnumerable<
+        ValueSparseSet<TKey, TValue, TStorage>.Enumerator,
+        KeyValuePair<TKey, TValue>
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>(
+            GetEnumerator()
+        );
     }
 
     public readonly ValueSparseSetView<TKey, TValue, TStorage>.Enumerable AsEnumerable()

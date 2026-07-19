@@ -90,7 +90,7 @@ public sealed class SceneGenerator : SourceGenerator
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var type = i == 0 ? "T0" : $"({typeParams})";
+            var type = i == 0 ? "T0" : NamedTuple(false, Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList());
             var current =
                 i == 0
                     ? "_field0"
@@ -119,7 +119,7 @@ public sealed class SceneGenerator : SourceGenerator
         for (var i = 0; i < 15; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var type = $"(Entity, {typeParams})";
+            var type = NamedTuple(true, Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList());
             var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"));
             var current = $"(_entity, {getFields})";
             var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
@@ -137,12 +137,13 @@ public sealed class SceneGenerator : SourceGenerator
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var componentRefs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"ComponentRef<T{n}>"));
-            var type = i == 0 ? "ComponentRef<T0>" : $"RefTuple<{componentRefs}>";
+            var type = i == 0 ? "ComponentRef<T0>" : $"ComponentTuple<{typeParams}>";
             var fields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"));
-            var current = i == 0 ? "_field0" : $"new RefTuple<{componentRefs}>({fields})";
+            var current = i == 0 ? "_field0" : $"new ComponentTuple<{typeParams}>({fields})";
             var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
-            sb.AppendLine(RefQueryIterator("RefComponent", type, current, tables, $"<{typeParams}>", true));
+            sb.AppendLine(
+                RefQueryIterator("RefComponent", type, current, tables, "RefComponents", $"<{typeParams}>", true)
+            );
         }
 
         sb.EndRegion();
@@ -154,13 +155,11 @@ public sealed class SceneGenerator : SourceGenerator
         for (var i = 0; i < 15; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var componentRefs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"ComponentRef<T{n}>"));
-            var tupleTypes = $"Entity, {componentRefs}";
             var fields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"));
-            var type = $"RefTuple<{tupleTypes}>";
-            var current = $"new RefTuple<{tupleTypes}>(_entity, {fields})";
+            var type = $"EntryTuple<{typeParams}>";
+            var current = $"new EntryTuple<{typeParams}>(_entity, {fields})";
             var tables = Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList();
-            sb.AppendLine(RefQueryIterator("RefEntry", type, current, tables, $"<{typeParams}>"));
+            sb.AppendLine(RefQueryIterator("RefEntry", type, current, tables, "RefEntries", $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -212,7 +211,7 @@ public sealed class SceneGenerator : SourceGenerator
         sb.AppendLine(
             AssignableQueryIterator(
                 "AssignableEntries",
-                "(Entity, T0)",
+                "(Entity Entity, T0 Component)",
                 "AssignableEntries",
                 "(_entity, (T0)_component)",
                 "TableEntry1Enumerator",
@@ -239,7 +238,7 @@ public sealed class SceneGenerator : SourceGenerator
         sb.BeginRegion("TableComponents");
         for (var i = 0; i < 16; i++)
         {
-            var type = i == 0 ? "object" : $"({string.Join(", ", Enumerable.Range(0, i + 1).Select(_ => "object"))})";
+            var type = i == 0 ? "object" : NamedTuple(false, Enumerable.Range(0, i + 1).Select(_ => "object").ToList());
             var current =
                 i == 0 ? "_field0" : $"({string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"))})";
             sb.AppendLine(TableQueryIterator("TableComponent", type, "Components", current, i + 1, noEntity: true));
@@ -253,16 +252,24 @@ public sealed class SceneGenerator : SourceGenerator
         sb.BeginRegion("TableEntries");
         for (var i = 0; i < 15; i++)
         {
-            var type =
-                i == 0
-                    ? "(Entity, object)"
-                    : $"(Entity, {string.Join(", ", Enumerable.Range(0, i + 1).Select(_ => "object"))})";
+            var type = NamedTuple(true, Enumerable.Range(0, i + 1).Select(_ => "object").ToList());
             var getFields = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"_field{n}"));
             var current = $"(_entity, {getFields})";
             sb.AppendLine(TableQueryIterator("TableEntry", type, "Entries", current, i + 1));
         }
 
         sb.EndRegion();
+    }
+
+    private static string NamedTuple(bool hasEntity, IReadOnlyList<string> componentTypes)
+    {
+        var parts = new List<string>();
+        if (hasEntity)
+            parts.Add("Entity Entity");
+        parts.AddRange(
+            componentTypes.Select((t, n) => $"{t} Component{(componentTypes.Count == 1 ? "" : (n + 1).ToString())}")
+        );
+        return $"({string.Join(", ", parts)})";
     }
 
     private static string QueryIterator(
@@ -575,6 +582,7 @@ public sealed class SceneGenerator : SourceGenerator
         string type,
         string current,
         List<string> tables,
+        string methodName,
         string typeParams = "",
         bool noEntity = false
     )
@@ -706,6 +714,11 @@ public sealed class SceneGenerator : SourceGenerator
                             _scene.EndDefer();
                         _disposed = true;
                     }
+                }
+
+                public {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
+                    ThrowIfNotConfigured();
+                    return new {{name}}Enumerable{{typeParams}}(this);
                 }
 
             """;

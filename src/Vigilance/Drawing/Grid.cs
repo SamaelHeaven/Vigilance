@@ -81,28 +81,34 @@ public static class GridExtensions
         {
             var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
             var thickValue = thick ?? Drawing.DefaultStrokeWidth.Or(1);
+            var culling = graphics.Culling();
             if (
                 colorValue == Color.Transparent
                 || thickValue <= 0
-                || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera, thickValue * 0.5f))
+                || (culling && !graphics.IsBoxInBounds(position, size, camera, thickValue * 0.5f))
             )
                 return;
             cellSize = cellSize.Max(1);
+            var halfThick = thickValue * 0.5f;
             graphics.BeginDrawing(camera);
             for (var x = position.X; x <= position.X + size.X; x += cellSize)
-                Raylib.DrawLineEx(
-                    new Vector2(x, position.Y),
-                    new Vector2(x, position.Y + size.Y),
-                    thickValue,
-                    colorValue.RColor
-                );
+            {
+                var start = new Vector2(x, position.Y);
+                var end = new Vector2(x, position.Y + size.Y);
+                if (culling && !graphics.IsPolygonInBounds(new Quad(start, start, end, end), camera, halfThick))
+                    continue;
+                Raylib.DrawLineEx(start, end, thickValue, colorValue.RColor);
+            }
+
             for (var y = position.Y; y <= position.Y + size.Y; y += cellSize)
-                Raylib.DrawLineEx(
-                    new Vector2(position.X, y),
-                    new Vector2(position.X + size.X, y),
-                    thickValue,
-                    colorValue.RColor
-                );
+            {
+                var start = new Vector2(position.X, y);
+                var end = new Vector2(position.X + size.X, y);
+                if (culling && !graphics.IsPolygonInBounds(new Quad(start, start, end, end), camera, halfThick))
+                    continue;
+                Raylib.DrawLineEx(start, end, thickValue, colorValue.RColor);
+            }
+
             graphics.EndDrawing();
         }
 

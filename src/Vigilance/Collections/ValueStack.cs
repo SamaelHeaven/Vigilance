@@ -5,6 +5,7 @@ using ZLinq;
 
 namespace Vigilance.Collections;
 
+[CollectionBuilder(typeof(ValueStackBuilder), nameof(ValueStackBuilder.Create))]
 public struct ValueStack<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueStack<T>.Enumerator, T>
 {
     private const int DefaultCapacity = 4;
@@ -31,6 +32,13 @@ public struct ValueStack<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueSta
     public ValueStack(IEnumerable<T> collection)
     {
         _items = collection.ToValueList().AsArray(out var length);
+        Count = length;
+    }
+
+    [OverloadResolutionPriority(1)]
+    public ValueStack(in ReadOnlySpan<T> span)
+    {
+        _items = span.AsValueEnumerable().ToValueList().AsArray(out var length);
         Count = length;
     }
 
@@ -324,5 +332,13 @@ public struct ValueStack<T> : IReadOnlyCollection<T>, IStructEnumerable<ValueSta
                 destination[i] = array[sourceIndex - i];
             return true;
         }
+    }
+}
+
+public static class ValueStackBuilder
+{
+    public static ValueStack<T> Create<T>(ReadOnlySpan<T> span)
+    {
+        return new ValueStack<T>(span);
     }
 }

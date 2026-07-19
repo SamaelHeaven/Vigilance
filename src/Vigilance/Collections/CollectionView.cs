@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Vigilance.Core;
 using ZLinq;
 using ZLinq.Linq;
 
@@ -271,6 +272,14 @@ public interface ISparseSetView<TKey, TValue, TStorage>
     where TStorage : IList<TValue>
 {
     int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+}
+
+public interface IEntitySparseSetView<TValue, TStorage>
+    : IStructEnumerable<EntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>,
+        IReadOnlyCollection<KeyValuePair<Entity, TValue>>
+    where TStorage : IList<TValue>
+{
+    int IReadOnlyCollection<KeyValuePair<Entity, TValue>>.Count => AsValueEnumerable().Count();
 }
 
 public interface IValueSparseSetView<TKey, TValue, TStorage>
@@ -975,7 +984,7 @@ public readonly record struct SparseSetView<TKey, TValue, TStorage>
         _sparseSet = sparseSet;
     }
 
-    public SparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+    public ISparseSet<TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
 
     public ValueListView<TKey> Keys => _sparseSet.Keys;
 
@@ -1006,10 +1015,17 @@ public readonly record struct SparseSetView<TKey, TValue, TStorage>
         return _sparseSet.GetEnumerator();
     }
 
-    public ValueEnumerable<
+    ValueEnumerable<
         StructEnumerator<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
         KeyValuePair<TKey, TValue>
-    > AsValueEnumerable()
+    > IStructEnumerable<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>.AsValueEnumerable()
+    {
+        return new StructEnumerator<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>(
+            GetEnumerator()
+        );
+    }
+
+    public ValueEnumerable<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>> AsValueEnumerable()
     {
         return _sparseSet.AsValueEnumerable();
     }
@@ -1035,6 +1051,91 @@ public readonly record struct SparseSetView<TKey, TValue, TStorage>
     }
 }
 
+public readonly record struct EntitySparseSetView<TValue, TStorage>
+    : IEntitySparseSetView<TValue, TStorage>,
+        IReadOnlyDictionary<Entity, TValue>,
+        IReadOnlyList<KeyValuePair<Entity, TValue>>
+    where TStorage : IList<TValue>
+{
+    private readonly EntitySparseSet<TValue, TStorage> _sparseSet;
+
+    public EntitySparseSetView(EntitySparseSet<TValue, TStorage> sparseSet)
+    {
+        _sparseSet = sparseSet;
+    }
+
+    public Scene Scene => _sparseSet.Scene;
+
+    public ISparseSet<TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+
+    public EntitySparseSet<TValue, TStorage>.KeyEnumerable Keys => _sparseSet.Keys;
+
+    public TValue this[in Entity key] => _sparseSet[key];
+
+    public int Count => _sparseSet.Count;
+
+    public EntitySparseSet<TValue, TStorage>.Enumerator GetEnumerator()
+    {
+        return _sparseSet.GetEnumerator();
+    }
+
+    ValueEnumerable<
+        StructEnumerator<EntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>,
+        KeyValuePair<Entity, TValue>
+    > IStructEnumerable<EntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>.AsValueEnumerable()
+    {
+        return new StructEnumerator<EntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>(
+            GetEnumerator()
+        );
+    }
+
+    IEnumerable<Entity> IReadOnlyDictionary<Entity, TValue>.Keys => Keys;
+
+    IEnumerable<TValue> IReadOnlyDictionary<Entity, TValue>.Values => Values;
+
+    bool IReadOnlyDictionary<Entity, TValue>.ContainsKey(Entity key)
+    {
+        return ContainsKey(key);
+    }
+
+    bool IReadOnlyDictionary<Entity, TValue>.TryGetValue(Entity key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return TryGetValue(key, out value);
+    }
+
+    TValue IReadOnlyDictionary<Entity, TValue>.this[Entity key] => this[key];
+
+    public KeyValuePair<Entity, TValue> this[int index] => _sparseSet[index];
+
+    public ValueEnumerable<
+        EntitySparseSet<TValue, TStorage>.Enumerator,
+        KeyValuePair<Entity, TValue>
+    > AsValueEnumerable()
+    {
+        return _sparseSet.AsValueEnumerable();
+    }
+
+    public bool ContainsKey(in Entity key)
+    {
+        return _sparseSet.ContainsKey(key);
+    }
+
+    public bool TryGetValue(in Entity key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return _sparseSet.TryGetValue(key, out value);
+    }
+
+    public int GetKeyIndex(in Entity key)
+    {
+        return _sparseSet.GetKeyIndex(key);
+    }
+
+    public static implicit operator EntitySparseSetView<TValue, TStorage>(EntitySparseSet<TValue, TStorage> sparseSet)
+    {
+        return new EntitySparseSetView<TValue, TStorage>(sparseSet);
+    }
+}
+
 public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
     : IValueSparseSetView<TKey, TValue, TStorage>,
         IReadOnlyDictionary<TKey, TValue>,
@@ -1048,7 +1149,7 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
         _sparseSet = ref sparseSet;
     }
 
-    public ValueSparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+    public ISparseSet<TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
 
     public ValueListView<TKey> Keys => _sparseSet.Keys;
 
@@ -1094,11 +1195,24 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
     }
 
     public ValueEnumerable<
-        StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+        ValueSparseSet<TKey, TValue, TStorage>.Enumerator,
         KeyValuePair<TKey, TValue>
     > AsValueEnumerable()
     {
         return _sparseSet.AsValueEnumerable();
+    }
+
+    ValueEnumerable<
+        StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+        KeyValuePair<TKey, TValue>
+    > IStructEnumerable<
+        ValueSparseSet<TKey, TValue, TStorage>.Enumerator,
+        KeyValuePair<TKey, TValue>
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>(
+            GetEnumerator()
+        );
     }
 
     IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys.AsEnumerable();
@@ -1169,7 +1283,7 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
             _sparseSet = sparseSet;
         }
 
-        public ValueSparseSet<TKey, TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+        public ISparseSet<TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
 
         public ValueListView<TKey> Keys => _sparseSet.Keys;
 
@@ -1200,8 +1314,21 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
             return _sparseSet.GetEnumerator();
         }
 
-        public ValueEnumerable<
+        ValueEnumerable<
             StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
+            KeyValuePair<TKey, TValue>
+        > IStructEnumerable<
+            ValueSparseSet<TKey, TValue, TStorage>.Enumerator,
+            KeyValuePair<TKey, TValue>
+        >.AsValueEnumerable()
+        {
+            return new StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>(
+                GetEnumerator()
+            );
+        }
+
+        public ValueEnumerable<
+            ValueSparseSet<TKey, TValue, TStorage>.Enumerator,
             KeyValuePair<TKey, TValue>
         > AsValueEnumerable()
         {
@@ -1799,6 +1926,14 @@ public static class CollectionViewExtensions
 
     public static ValueSparseSetView<TKey, TValue, TStorage> AsView<TKey, TValue, TStorage>(
         in this ValueSparseSet<TKey, TValue, TStorage> sparseSet
+    )
+        where TStorage : IList<TValue>
+    {
+        return sparseSet;
+    }
+
+    public static EntitySparseSetView<TValue, TStorage> AsView<TValue, TStorage>(
+        this EntitySparseSet<TValue, TStorage> sparseSet
     )
         where TStorage : IList<TValue>
     {

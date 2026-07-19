@@ -1,11 +1,14 @@
 using System.Buffers;
 using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.FlexLayout;
 using Vigilance.Input;
+using Vigilance.Logging;
 using Vigilance.Math;
 using ZLinq;
 using Display = Vigilance.FlexLayout.Display;
@@ -27,50 +30,70 @@ public abstract class UIElement : IFullCloneable
         None = 0,
         SkipChildren = 1 << 0,
         ClearSignals = 1 << 1,
+        DeepDefaults = None,
+        ShallowDefaults = SkipChildren,
     }
 
     private bool _click;
     private ValueList<IUIComponent> _components = [];
+    private uint _immediateGeneration;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onBeginRenderHandlers;
     private Func<UIElement, bool>? _onClickHandlers;
     private Func<UIElement, bool>? _onCloneHandlers;
     private Func<UIElement, bool>? _onDirtyHandlers;
     private Func<UIElement, bool>? _onDisabledUpdateHandlers;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onEndRenderHandlers;
+    private Func<UIElement, bool>? _onImmediateHandlers;
+    private Func<UIElement, bool>? _onLayoutHandlers;
     private Func<UIElement, bool>? _onMouseEnterHandlers;
     private Func<UIElement, bool>? _onMouseLeaveHandlers;
     private Func<UIElement, bool>? _onPressHandlers;
     private Func<UIElement, bool>? _onReleaseHandlers;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onRenderHandlers;
+    private Func<UIElement, bool>? _onResetLayoutAndTransformHandlers;
     private Func<UIElement, bool>? _onUpdateHandlers;
     private RenderData _renderData;
+    internal ValueDictionary<ImmediateCounter, uint> ImmediateCounters = new(ImmediateCounterComparer.Instance);
+    internal ValueDictionary<ImmediateEntry, ImmediateValue> ImmediateEntries = new(ImmediateEntryComparer.Instance);
+
+    internal UINode Node;
 
     protected UIElement()
     {
-        var measure = Measure;
         Node = new UINode(this);
         Node.StyleSetAlignItems(FlexLayout.Align.Start);
+        var onImmediate = OnImmediate;
+        IsImmediate = onImmediate.Method.DeclaringType != typeof(UIElement);
+        var measure = Measure;
         IsLayoutCustom = this is not UIContainer && measure.Method.DeclaringType != typeof(UIElement);
         if (IsLayoutCustom)
             Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
                 {
-                    var size = Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
+                    Vector2 size;
+                    try
+                    {
+                        size = Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e);
+                        size = Vector2.NaN;
+                    }
+
                     return new Size(size.X, size.Y);
                 }
             );
     }
-
-    internal UINode Node { get; private set; }
 
     public ReadOnlySpan<IUIComponent> Components
     {
         get => _components.AsSpan();
         init
         {
-            _components.EnsureCapacity(value.Length);
+            _components.AddRange(value);
             foreach (var component in value)
-                Attach(component);
+                component.Attach(this);
         }
     }
 
@@ -124,6 +147,10 @@ public abstract class UIElement : IFullCloneable
         new(Translate.Calculate(LayoutSize), Scale, Rotation, PivotPoint.Calculate(LayoutSize));
 
     public bool IsLayoutCustom { get; }
+
+    public bool IsImmediate => field || _onImmediateHandlers is not null;
+
+    public bool IsClicked { get; private set; }
 
     public bool IsDirty => Node.IsDirty;
 
@@ -642,11 +669,15 @@ public abstract class UIElement : IFullCloneable
         set => PivotPoint = new Dimensions(PivotPoint.X, value);
     }
 
+    public Signal<UIElement> OnImmediateSignal => new(ref _onImmediateHandlers);
+
     public Signal<UIElement> OnUpdateSignal => new(ref _onUpdateHandlers);
 
     public Signal<UIElement> OnDisabledUpdateSignal => new(ref _onDisabledUpdateHandlers);
 
     public Signal<UIElement> OnDirtySignal => new(ref _onDirtyHandlers);
+
+    public Signal<UIElement> OnLayoutSignal => new(ref _onLayoutHandlers);
 
     public Signal<UIElement> OnMouseEnterSignal => new(ref _onMouseEnterHandlers);
 
@@ -660,6 +691,8 @@ public abstract class UIElement : IFullCloneable
 
     public Signal<UIElement> OnCloneSignal => new(ref _onCloneHandlers);
 
+    public Signal<UIElement> OnResetLayoutAndTransformSignal => new(ref _onResetLayoutAndTransformHandlers);
+
     public Signal<UIElement, Graphics, CameraProvider> OnBeginRenderSignal => new(ref _onBeginRenderHandlers);
 
     public Signal<UIElement, Graphics, CameraProvider> OnRenderSignal => new(ref _onRenderHandlers);
@@ -668,58 +701,80 @@ public abstract class UIElement : IFullCloneable
 
     object IDeepCloneable.DeepClone()
     {
-        return DeepClone(CloneOptions.None);
+        return DeepClone(CloneOptions.DeepDefaults);
     }
 
     object IShallowCloneable.ShallowClone()
     {
-        return ShallowClone(CloneOptions.None);
+        return ShallowClone(CloneOptions.ShallowDefaults);
     }
 
     internal object DeepClone(CloneOptions options)
     {
-        ValueDictionary<UIElement, UIElement> cloneMap = default;
-        var hasCloneMap = false;
-        UIElement clone = null!;
+        if ((options & CloneOptions.SkipChildren) != 0)
+        {
+            var self = Clone(this, options);
+            DeepCloneComponents(self);
+            if ((options & CloneOptions.ClearSignals) != 0)
+                self.ClearSignals();
+            try
+            {
+                self.OnClone();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            OnCloneSignal.SafeInvoke(self);
+            return self;
+        }
+
+        var cloneMap = new ValueDictionary<UIElement, UIElement>(this.DescendantsAndSelf().Count());
         foreach (var node in this.DescendantsPostOrderAndSelf())
         {
-            clone = Clone(node, options);
+            var clone = Clone(node, options);
             DeepCloneComponents(clone);
-            if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
+            if (clone is UIParent parent)
                 foreach (var child in node.Children())
-                {
-                    if (!hasCloneMap)
-                    {
-                        cloneMap = new ValueDictionary<UIElement, UIElement>(this.DescendantsAndSelf().Count());
-                        hasCloneMap = true;
-                    }
-
                     parent.Add(cloneMap[child]);
-                }
-
             if ((options & CloneOptions.ClearSignals) != 0)
                 clone.ClearSignals();
-            clone.OnClone();
-            OnCloneSignal.Invoke(clone);
-            if ((options & CloneOptions.SkipChildren) == 0)
-                break;
+            try
+            {
+                clone.OnClone();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            OnCloneSignal.SafeInvoke(clone);
             cloneMap[node] = clone;
         }
 
-        return hasCloneMap ? cloneMap[this] : clone;
+        return cloneMap[this];
     }
 
     internal object ShallowClone(CloneOptions options)
     {
         var clone = Clone(this, options);
-        clone._components = clone._components.AsValueEnumerable().ToValueList();
-        if ((options & CloneOptions.SkipChildren) != 0 && clone is UIParent parent)
+        clone._components = clone._components.ToValueList();
+        if ((options & CloneOptions.SkipChildren) == 0 && clone is UIParent parent)
             foreach (var child in this.Children())
                 parent.Add(child);
         if ((options & CloneOptions.ClearSignals) != 0)
             clone.ClearSignals();
-        clone.OnClone();
-        OnCloneSignal.Invoke(clone);
+        try
+        {
+            clone.OnClone();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        OnCloneSignal.SafeInvoke(clone);
         return clone;
     }
 
@@ -737,18 +792,142 @@ public abstract class UIElement : IFullCloneable
     {
         MarkReady();
         Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.LeftToRight);
+        foreach (var element in this.DescendantsPostOrderAndSelf())
+        {
+            try
+            {
+                element.OnLayout();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            element.OnLayoutSignal.SafeInvoke(element);
+        }
     }
 
     public void Attach(IUIComponent component)
     {
         _components.Add(component);
-        component.Attach(this);
+        try
+        {
+            component.Attach(this);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
     }
 
     public void Detach(IUIComponent component)
     {
-        component.Detach(this);
         _components.Remove(component);
+        try
+        {
+            component.Detach(this);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+    }
+
+    public void DetachAll()
+    {
+        using var pool = _components.AsValueEnumerable().ToArrayPool();
+        _components.Clear();
+        foreach (var component in pool.Span)
+            try
+            {
+                component.Detach(this);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+    }
+
+    public T Immediate<T>(object? key, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        where T : new()
+    {
+        return Immediate<T>(new ImmediateKey(key), file, line);
+    }
+
+    [OverloadResolutionPriority(1)]
+    public T Immediate<T>(ImmediateKey? key = null, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        where T : new()
+    {
+        return Immediate(() => new T(), key, file, line);
+    }
+
+    public T Immediate<T>(
+        Func<T> factory,
+        object? key,
+        [CallerFilePath] string file = "",
+        [CallerLineNumber] int line = 0
+    )
+    {
+        return Immediate(factory, new ImmediateKey(key), file, line);
+    }
+
+    [OverloadResolutionPriority(1)]
+    public T Immediate<T>(
+        Func<T> factory,
+        ImmediateKey? key = null,
+        [CallerFilePath] string file = "",
+        [CallerLineNumber] int line = 0
+    )
+    {
+        Debug.Assert(string.IsInterned(file) is not null);
+        ImmediateKey keyValue;
+        if (key.HasValue)
+        {
+            keyValue = key.Value;
+        }
+        else
+        {
+            ref var counter = ref ImmediateCounters.GetValueRefOrAddDefault(
+                new ImmediateCounter(typeof(T), file, line),
+                out _
+            );
+            keyValue = ImmediateKey.FromCounter(counter++);
+        }
+
+        ref var entryRef = ref ImmediateEntries.GetValueRefOrAddDefault(
+            new ImmediateEntry(keyValue, typeof(T), file, line),
+            out var exists
+        );
+        if (!exists)
+            entryRef.Value = factory.Invoke()!;
+        entryRef.Generation = _immediateGeneration;
+        var entry = (T)entryRef.Value;
+        switch (entry)
+        {
+            case UIElement element:
+            {
+                if (!element.IsImmediate)
+                {
+                    element.ImmediateCounters.Clear();
+                    element.DetachAll();
+                    if (element is UIParent parent)
+                    {
+                        if (ReconcileSession.Current is { } session)
+                            parent.BeginReconcile(session);
+                        else
+                            parent.Clear();
+                    }
+                }
+
+                (this as UIParent)?.Add(element);
+                break;
+            }
+            case IUIComponent component:
+                Attach(component);
+                break;
+        }
+
+        return entry;
     }
 
     public void Update()
@@ -759,7 +938,7 @@ public abstract class UIElement : IFullCloneable
     public void Update(in Entity entity)
     {
         Entity = entity;
-        if (!IsLayoutReady)
+        if (!IsImmediate && !IsLayoutReady)
             return;
         foreach (var element in this.DescendantsPostOrderAndSelf())
             Update(element, entity);
@@ -802,23 +981,43 @@ public abstract class UIElement : IFullCloneable
         Skew = Vector2.Zero;
         Rotation = 0;
         PivotPoint = Vector2.Zero;
+        try
+        {
+            OnResetLayoutAndTransform();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        OnResetLayoutAndTransformSignal.SafeInvoke(this);
     }
 
     public void ClearSignals()
     {
+        OnImmediateSignal.Clear();
         OnUpdateSignal.Clear();
         OnDisabledUpdateSignal.Clear();
         OnDirtySignal.Clear();
+        OnLayoutSignal.Clear();
         OnMouseEnterSignal.Clear();
         OnMouseLeaveSignal.Clear();
         OnClickSignal.Clear();
         OnPressSignal.Clear();
         OnReleaseSignal.Clear();
         OnCloneSignal.Clear();
+        OnResetLayoutAndTransformSignal.Clear();
         OnBeginRenderSignal.Clear();
         OnRenderSignal.Clear();
         OnEndRenderSignal.Clear();
-        OnClearSignals();
+        try
+        {
+            OnClearSignals();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
     }
 
     public RenderTexture ToTexture(Vector2 size, bool pool = true)
@@ -829,16 +1028,23 @@ public abstract class UIElement : IFullCloneable
     public RenderTexture ToTexture(float width = float.NaN, float height = float.NaN, bool pool = true)
     {
         CalculateLayout(width, height);
-        var texture = new RenderTexture(LayoutSize, pool: pool);
+        var texture = new RenderTexture(
+            new Vector2(float.IsNaN(width) ? LayoutWidth : width, float.IsNaN(height) ? LayoutHeight : height),
+            pool: pool
+        );
         Render(texture.Graphics);
         return texture;
     }
+
+    protected virtual void OnImmediate() { }
 
     protected virtual void OnUpdate() { }
 
     protected virtual void OnDisabledUpdate() { }
 
     protected virtual void OnDirty() { }
+
+    protected virtual void OnLayout() { }
 
     protected virtual void OnMouseEnter() { }
 
@@ -851,6 +1057,8 @@ public abstract class UIElement : IFullCloneable
     protected virtual void OnRelease() { }
 
     protected virtual void OnClone() { }
+
+    protected virtual void OnResetLayoutAndTransform() { }
 
     protected virtual void OnBeginRender(Graphics graphics, CameraProvider camera) { }
 
@@ -874,32 +1082,75 @@ public abstract class UIElement : IFullCloneable
     {
         element.Entity = entity;
         if (!element.IsLayoutReady)
+        {
+            if (element.IsImmediate)
+                element.RunImmediate();
             return;
+        }
+
         var oldMouseInside = element.IsMouseInside;
         element.IsMouseInside =
             element.RenderedGraphics == Renderer.Graphics
             && Mouse.OnScreen
             && element.IsVisible
             && Collision.CheckPointQuad(Mouse.Position, element.RenderedBounds);
-        if (element.IsDisabled || entity is { IsNull: false, IsDisabled: true })
+        var disabled = element.IsDisabled || entity is { IsNull: false, IsDisabled: true };
+        if (disabled)
         {
             element._click = false;
-            element.OnDisabledUpdate();
-            element.OnDisabledUpdateSignal.Invoke(element);
+            element.IsClicked = false;
+            try
+            {
+                element.OnDisabledUpdate();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            element.OnDisabledUpdateSignal.SafeInvoke(element);
             return;
         }
 
-        element.OnUpdate();
-        element.OnUpdateSignal.Invoke(element);
+        element.IsClicked =
+            Mouse.IsButtonReleased(MouseButton.Left) && element is { _click: true, IsMouseInside: true };
+        if (element.IsImmediate)
+            element.RunImmediate();
+        try
+        {
+            element.OnUpdate();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        element.OnUpdateSignal.SafeInvoke(element);
         switch (oldMouseInside)
         {
             case false when element.IsMouseInside:
-                element.OnMouseEnter();
-                element.OnMouseEnterSignal.Invoke(element);
+                try
+                {
+                    element.OnMouseEnter();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+                element.OnMouseEnterSignal.SafeInvoke(element);
                 break;
             case true when !element.IsMouseInside:
-                element.OnMouseLeave();
-                element.OnMouseLeaveSignal.Invoke(element);
+                try
+                {
+                    element.OnMouseLeave();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+                element.OnMouseLeaveSignal.SafeInvoke(element);
                 break;
         }
 
@@ -908,8 +1159,16 @@ public abstract class UIElement : IFullCloneable
             element._click = element.IsMouseInside;
             if (element.IsMouseInside)
             {
-                element.OnPress();
-                element.OnPressSignal.Invoke(element);
+                try
+                {
+                    element.OnPress();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+                element.OnPressSignal.SafeInvoke(element);
             }
         }
 
@@ -918,15 +1177,74 @@ public abstract class UIElement : IFullCloneable
             element._click = element is { _click: true, IsMouseInside: true };
             if (element._click)
             {
-                element.OnClick();
-                element.OnClickSignal.Invoke(element);
+                try
+                {
+                    element.OnClick();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+                element.OnClickSignal.SafeInvoke(element);
             }
 
             if (element.IsMouseInside)
             {
-                element.OnRelease();
-                element.OnReleaseSignal.Invoke(element);
+                try
+                {
+                    element.OnRelease();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+                element.OnReleaseSignal.SafeInvoke(element);
             }
+        }
+    }
+
+    private void RunImmediate()
+    {
+        ImmediateCounters.Clear();
+        foreach (var element in this.DescendantsAndSelf())
+            element._immediateGeneration++;
+        DetachAll();
+        var session = ReconcileSession.Begin();
+        try
+        {
+            if (this is UIParent parent)
+                parent.BeginReconcile(session);
+            try
+            {
+                OnImmediate();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            OnImmediateSignal.SafeInvoke(this);
+        }
+        finally
+        {
+            session.End();
+        }
+
+        foreach (var element in this.DescendantsAndSelf())
+        {
+            if (element.ImmediateEntries.Count == 0)
+                continue;
+            var generation = element._immediateGeneration;
+            using var stale = element
+                .ImmediateEntries.AsValueEnumerable()
+                .Cross(generation.AsValueSingleton())
+                .Where(cross => cross.Left.Value.Generation != cross.Right)
+                .Select(cross => cross.Left.Key)
+                .ToArrayPool();
+            foreach (ref var entry in stale.Span)
+                element.ImmediateEntries.Remove(entry);
         }
     }
 
@@ -934,8 +1252,16 @@ public abstract class UIElement : IFullCloneable
     {
         if (!IsLayoutReady || !IsDirty)
             return;
-        OnDirty();
-        OnDirtySignal.Invoke(this);
+        try
+        {
+            OnDirty();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        OnDirtySignal.SafeInvoke(this);
     }
 
     private void Render(Graphics graphics, CameraProvider camera)
@@ -1071,10 +1397,26 @@ public abstract class UIElement : IFullCloneable
             span.AsValueEnumerable().OrderByDescending(e => e.ZIndex).CopyTo(span);
         }
 
-        element.OnBeginRender(graphics, camera);
-        element.OnBeginRenderSignal.Invoke(element, graphics, camera);
-        element.OnRender(graphics, camera);
-        element.OnRenderSignal.Invoke(element, graphics, camera);
+        try
+        {
+            element.OnBeginRender(graphics, camera);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        element.OnBeginRenderSignal.SafeInvoke(element, graphics, camera);
+        try
+        {
+            element.OnRender(graphics, camera);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        element.OnRenderSignal.SafeInvoke(element, graphics, camera);
     }
 
     private static void EndRender(UIElement element, Graphics graphics, CameraProvider camera)
@@ -1082,8 +1424,16 @@ public abstract class UIElement : IFullCloneable
         ref var data = ref element._renderData;
         if (!data.ShouldRender)
             return;
-        element.OnEndRenderSignal.Invoke(element, graphics, camera);
-        element.OnEndRender(graphics, camera);
+        element.OnEndRenderSignal.SafeInvoke(element, graphics, camera);
+        try
+        {
+            element.OnEndRender(graphics, camera);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
         if (element.ShapeTexture is not null)
@@ -1103,15 +1453,28 @@ public abstract class UIElement : IFullCloneable
     {
         var result = (UIElement)element.MemberwiseClone();
         result._click = false;
+        result._immediateGeneration = 0;
         result.IsLayoutReady = false;
         result.Parent = null;
         result.Node = new UINode(result);
+        result.ImmediateEntries = new ValueDictionary<ImmediateEntry, ImmediateValue>(ImmediateEntryComparer.Instance);
+        result.ImmediateCounters = new ValueDictionary<ImmediateCounter, uint>(ImmediateCounterComparer.Instance);
         Flex.NodeCopyStyle(result.Node, element.Node);
         if (element.IsLayoutCustom)
             result.Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
                 {
-                    var size = result.Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
+                    Vector2 size;
+                    try
+                    {
+                        size = result.Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e);
+                        size = Vector2.NaN;
+                    }
+
                     return new Size(size.X, size.Y);
                 }
             );
@@ -1126,7 +1489,15 @@ public abstract class UIElement : IFullCloneable
         var components = clone._components;
         clone._components = new ValueList<IUIComponent>(components.Count);
         foreach (var component in components)
-            component.Detach(clone);
+            try
+            {
+                component.Detach(clone);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
         foreach (var component in components)
             clone.Attach(Cloner.CloneOrSelf(component));
     }
@@ -1240,6 +1611,138 @@ public abstract class UIElement : IFullCloneable
                     children[index].Remove();
                 parent.Insert(index, value.Storage.Element);
             }
+        }
+    }
+
+    [SuppressMessage("ReSharper", "NotAccessedField.Local")]
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
+    public readonly record struct ImmediateKey
+    {
+        private readonly long _numericKey;
+        private readonly object? _objectKey;
+
+        public ImmediateKey(long key = 0)
+        {
+            _numericKey = key;
+        }
+
+        public ImmediateKey(object? key)
+        {
+            _objectKey = key;
+        }
+
+        private uint CounterKey { get; init; }
+
+        internal static ImmediateKey FromCounter(uint count)
+        {
+            return new ImmediateKey { CounterKey = count };
+        }
+
+        public static implicit operator ImmediateKey(string? key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(char key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(bool key)
+        {
+            return new ImmediateKey(key ? 1 : 0);
+        }
+
+        public static implicit operator ImmediateKey(sbyte key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(short key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(int key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(long key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(byte key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(ushort key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(uint key)
+        {
+            return new ImmediateKey(key);
+        }
+
+        public static implicit operator ImmediateKey(ulong key)
+        {
+            return new ImmediateKey((long)key);
+        }
+
+        public static implicit operator ImmediateKey(float key)
+        {
+            return new ImmediateKey(BitConverter.DoubleToInt64Bits(key));
+        }
+
+        public static implicit operator ImmediateKey(double key)
+        {
+            return new ImmediateKey(BitConverter.DoubleToInt64Bits(key));
+        }
+    }
+
+    [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
+    internal readonly record struct ImmediateEntry(ImmediateKey Key, Type Type, string File, int Line);
+
+    internal struct ImmediateValue
+    {
+        public object Value;
+        public uint Generation;
+    }
+
+    [SuppressMessage("ReSharper", "NotAccessedPositionalProperty.Global")]
+    internal readonly record struct ImmediateCounter(Type Type, string File, int Line);
+
+    private sealed class ImmediateEntryComparer : IEqualityComparer<ImmediateEntry>
+    {
+        public static readonly ImmediateEntryComparer Instance = new();
+
+        public bool Equals(ImmediateEntry x, ImmediateEntry y)
+        {
+            return x.Line == y.Line && x.Type == y.Type && x.Key == y.Key && ReferenceEquals(x.File, y.File);
+        }
+
+        public int GetHashCode(ImmediateEntry obj)
+        {
+            return HashCode.Combine(obj.Line, obj.Type, obj.Key, RuntimeHelpers.GetHashCode(obj.File));
+        }
+    }
+
+    private sealed class ImmediateCounterComparer : IEqualityComparer<ImmediateCounter>
+    {
+        public static readonly ImmediateCounterComparer Instance = new();
+
+        public bool Equals(ImmediateCounter x, ImmediateCounter y)
+        {
+            return x.Line == y.Line && x.Type == y.Type && ReferenceEquals(x.File, y.File);
+        }
+
+        public int GetHashCode(ImmediateCounter obj)
+        {
+            return HashCode.Combine(obj.Line, obj.Type, RuntimeHelpers.GetHashCode(obj.File));
         }
     }
 
@@ -1401,6 +1904,11 @@ public static partial class UIElementExtensions
             set => value.Invoke(element);
         }
 
+        public Action<T> OnImmediate
+        {
+            set => element.OnImmediateSignal.Subscribe(e => value.Invoke((T)e));
+        }
+
         public Action<T> OnUpdate
         {
             set => element.OnUpdateSignal.Subscribe(e => value.Invoke((T)e));
@@ -1414,6 +1922,11 @@ public static partial class UIElementExtensions
         public Action<T> OnDirty
         {
             set => element.OnDirtySignal.Subscribe(e => value.Invoke((T)e));
+        }
+
+        public Action<T> OnLayout
+        {
+            set => element.OnLayoutSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnMouseEnter
@@ -1444,6 +1957,11 @@ public static partial class UIElementExtensions
         public Action<T> OnClone
         {
             set => element.OnCloneSignal.Subscribe(e => value.Invoke((T)e));
+        }
+
+        public Action<T> OnResetLayoutAndTransform
+        {
+            set => element.OnResetLayoutAndTransformSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<UIElement, Graphics, CameraProvider> OnBeginRender

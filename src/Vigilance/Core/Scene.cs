@@ -11,21 +11,21 @@ namespace Vigilance.Core;
 
 public sealed unsafe partial class Scene
 {
-    private Collections.ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
+    private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
     private int _deferredCount;
     private Action<Entity>? _destroyAction;
-    private Collections.ValueList<bool> _destroyedEntities = [];
-    private Collections.ValueList<(int Index, int Version)> _entities = [];
-    private Collections.ValueQueue<Event> _events = [];
+    private ValueList<bool> _destroyedEntities = [];
+    private ValueList<(int Index, int Version)> _entities = [];
+    private ValueQueue<Event> _events = [];
     private Action? _fixedUpdateAction;
-    private Collections.ValueQueue<int> _freeIndices = [];
+    private ValueQueue<int> _freeIndices = [];
     private Action? _initializeAction;
     private Action<Entity>? _instantiateAction;
     private bool _isClearing;
     private bool _isFlushing;
-    private Collections.ValueDictionary<Type, Delegate> _listeners = [];
-    private Collections.ValueDictionary<string, ulong> _nameMap = [];
+    private ValueDictionary<Type, Delegate> _listeners = [];
+    private ValueDictionary<string, ulong> _nameMap = [];
     private Action? _onDispose;
     private Action? _postFixedUpdateAction;
     private Action? _postRenderAction;
@@ -34,16 +34,15 @@ public sealed unsafe partial class Scene
     private Action? _preRenderAction;
     private Action? _preUpdateAction;
     private Action<RenderCommands>? _renderAction;
-    private Collections.ValueList<RenderComponents?> _sparseRenderComponentsList = [];
-    private Collections.ValueList<Table?> _sparseTables = [];
+    private ValueList<RenderComponents?> _sparseRenderComponentsList = [];
+    private ValueList<Table?> _sparseTables = [];
     private Action? _startAction;
     private Action? _stopAction;
-    private Collections.ValueStack<int> _suspendStack = [];
-    private ValueList<IGameSystem> _systems = [];
+    private ValueStack<int> _suspendStack = [];
+    private IGameSystem[] _systems = [];
     private ValueList<Table> _tables = [];
     private Action<Scene>? _transitionToAction;
     private Action? _updateAction;
-    private World? _world;
     internal Table<Child> ChildTable;
     internal Table<Disabled> DisabledTable;
     internal Action<Graphics, Texture, Box>? DrawScreenAction;
@@ -91,21 +90,7 @@ public sealed unsafe partial class Scene
 
     public GameSystemsFunc SystemsFunc { get; }
     public Camera Camera { get; } = new();
-
-    public World World
-    {
-        get
-        {
-            if (_world is not null)
-                return _world;
-            _world = new World(this);
-#pragma warning disable CA1816
-            GC.SuppressFinalize(_world);
-            return _world;
-#pragma warning restore CA1816
-        }
-    }
-
+    public World World => field ??= new World(this);
     public bool IsConfigured { get; private set; }
     public bool IsInitialized { get; private set; }
     public bool IsStarted { get; private set; }
@@ -376,7 +361,7 @@ public sealed unsafe partial class Scene
         var type = typeof(T);
         if (!_listeners.TryGetValue(type, out var handlers))
             return;
-        Signal<T>.Invoke((Func<T, bool>)handlers, @event);
+        Signal<T>.SafeInvoke((Func<T, bool>)handlers, @event);
     }
 
     public void Enqueue<T>(in T @event)
@@ -400,7 +385,7 @@ public sealed unsafe partial class Scene
                 () =>
                 {
                     if (queue.TryDequeue(out var @event))
-                        Signal<T>.Invoke((Func<T, bool>)handlers, @event);
+                        Signal<T>.SafeInvoke((Func<T, bool>)handlers, @event);
                 }
             );
         }
@@ -501,7 +486,6 @@ public sealed unsafe partial class Scene
         {
             BeginDefer();
             {
-                // ReSharper disable once ForeachCanBePartlyConvertedToQueryUsingAnotherGetEnumerator
                 foreach (var entity in entities)
                 {
                     _destroyedEntities.Count = _destroyedEntities.Count.Max(entity.Index + 1);
@@ -638,7 +622,7 @@ public sealed unsafe partial class Scene
 
     internal bool IsValid(in Entity entity)
     {
-        if ((uint)entity.Index == 0 || entity.Index >= _entities.Count)
+        if (entity.Index == 0 || (uint)entity.Index >= (uint)_entities.Count)
             return false;
         var info = _entities[entity.Index];
         return info.Index == entity.Index && info.Version == entity.Version;
@@ -648,7 +632,7 @@ public sealed unsafe partial class Scene
     {
         if (!IsConfigured)
         {
-            _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToValueList();
+            _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToArray();
             foreach (var system in _systems)
                 system.Configure(this);
             IsConfigured = true;
@@ -763,11 +747,7 @@ public sealed unsafe partial class Scene
 
     ~Scene()
     {
-        Game.Defer(() =>
-        {
-            _onDispose?.SafeInvoke();
-            _world?.Dispose();
-        });
+        Game.Defer(() => _onDispose?.SafeInvoke());
     }
 
     public void OnInstantiate(Action action)
@@ -921,7 +901,15 @@ public sealed unsafe partial class Scene
             return new TableEnumerator(_scene, _withHidden);
         }
 
-        public ValueEnumerable<StructEnumerator<TableEnumerator, Table>, Table> AsValueEnumerable()
+        public ValueEnumerable<TableEnumerator, Table> AsValueEnumerable()
+        {
+            return new ValueEnumerable<TableEnumerator, Table>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<TableEnumerator, Table>, Table> IStructEnumerable<
+            TableEnumerator,
+            Table
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<TableEnumerator, Table>(GetEnumerator());
         }
@@ -933,7 +921,7 @@ public sealed unsafe partial class Scene
         }
     }
 
-    public struct TableEnumerator : IStructEnumerator<Table>
+    public struct TableEnumerator : IStructEnumerator<Table>, IValueEnumerator<Table>
     {
         private readonly Scene _scene;
         private readonly bool _withHidden;
@@ -975,6 +963,38 @@ public sealed unsafe partial class Scene
         public Table Current { get; private set; } = null!;
 
         public void Dispose() { }
+
+        public bool TryGetNext(out Table current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            if (!_withHidden)
+            {
+                count = 0;
+                return false;
+            }
+
+            count = _scene._tables.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<Table> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<Table> destination, Index offset)
+        {
+            return false;
+        }
     }
 
     public struct TableEnumerable<T> : IStructEnumerable<TableEnumerator<T>, Table>
@@ -1086,7 +1106,7 @@ public sealed unsafe partial class Scene
 
         public bool MoveNext()
         {
-            if ((uint)_index < (uint)_scene._systems.Count)
+            if ((uint)_index < (uint)_scene._systems.Length)
             {
                 Current = _scene._systems[_index];
                 _index++;
@@ -1119,19 +1139,19 @@ public sealed unsafe partial class Scene
 
         public bool TryGetNonEnumeratedCount(out int count)
         {
-            count = _scene._systems.Count;
+            count = _scene._systems.Length;
             return true;
         }
 
         public bool TryGetSpan(out ReadOnlySpan<IGameSystem> span)
         {
-            span = _scene._systems.AsSpan();
+            span = _scene._systems;
             return true;
         }
 
         public bool TryCopyTo(scoped Span<IGameSystem> destination, Index offset)
         {
-            return _scene._systems.AsSpan().TryCopyTo(destination, offset);
+            return _scene._systems.TryCopyTo(destination, offset);
         }
     }
 

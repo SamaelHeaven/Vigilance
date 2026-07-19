@@ -10,6 +10,7 @@ namespace Vigilance.UI;
 
 public class UIScrollContainer : UIContainer
 {
+    private bool _layout = false;
     private Rectangle _scrollBarThumbRectangle = new();
     private Rectangle _scrollBarTrackRectangle = new();
     private float? _thumbMouseDownX = null;
@@ -122,27 +123,31 @@ public class UIScrollContainer : UIContainer
         }
     }
 
-    public bool IsHorizontalScrollBarVisible =>
-        ResolveScrollBarVisible(
-            HorizontalScrollBarVisibility,
-            ChildrenLayoutSize.X,
-            LayoutSize.X,
-            RawVerticalScrollBarVisible ? ScrollBarSize.Y : 0
-        );
+    public bool IsHorizontalScrollBarVisible
+    {
+        get
+        {
+            return HorizontalScrollBarVisibility switch
+            {
+                ScrollBarVisibility.Visible => true,
+                ScrollBarVisibility.Hidden => false,
+                _ => ChildrenLayoutSize.X > LayoutSize.X,
+            };
+        }
+    }
 
-    public bool IsVerticalScrollBarVisible =>
-        ResolveScrollBarVisible(
-            VerticalScrollBarVisibility,
-            ChildrenLayoutSize.Y,
-            LayoutSize.Y,
-            RawHorizontalScrollBarVisible ? ScrollBarSize.X : 0
-        );
-
-    private bool RawHorizontalScrollBarVisible =>
-        ResolveScrollBarVisible(HorizontalScrollBarVisibility, ChildrenLayoutSize.X, LayoutSize.X, 0);
-
-    private bool RawVerticalScrollBarVisible =>
-        ResolveScrollBarVisible(VerticalScrollBarVisibility, ChildrenLayoutSize.Y, LayoutSize.Y, 0);
+    public bool IsVerticalScrollBarVisible
+    {
+        get
+        {
+            return VerticalScrollBarVisibility switch
+            {
+                ScrollBarVisibility.Visible => true,
+                ScrollBarVisibility.Hidden => false,
+                _ => ChildrenLayoutSize.Y > LayoutSize.Y,
+            };
+        }
+    }
 
     public Color ScrollBarTrackFill
     {
@@ -210,23 +215,11 @@ public class UIScrollContainer : UIContainer
 
     public bool IsMouseInsideNestedScrollContainer { get; set; }
 
-    private static bool ResolveScrollBarVisible(
-        ScrollBarVisibility visibility,
-        float contentSize,
-        float viewportSize,
-        float reservedForOppositeBar
-    )
+    protected override void OnLayout()
     {
-        return visibility switch
-        {
-            ScrollBarVisibility.Visible => true,
-            ScrollBarVisibility.Hidden => false,
-            _ => contentSize > viewportSize - reservedForOppositeBar,
-        };
-    }
-
-    protected override void OnUpdate()
-    {
+        if (_layout)
+            return;
+        _layout = true;
         var offset = Vector2.Zero;
         var size = Vector2.Zero;
         var direction = Direction;
@@ -349,11 +342,14 @@ public class UIScrollContainer : UIContainer
             RenderedHorizontalScrollBarThumbBounds = box.Transform(matrix);
         }
 
-        if (!verticalVisible)
-            return;
-        box = GetScrollBarThumbBox(ScrollBarDirection.Vertical);
-        RenderScrollBarThumb(graphics, box, camera);
-        RenderedVerticalScrollBarThumbBounds = box.Transform(matrix);
+        if (verticalVisible)
+        {
+            box = GetScrollBarThumbBox(ScrollBarDirection.Vertical);
+            RenderScrollBarThumb(graphics, box, camera);
+            RenderedVerticalScrollBarThumbBounds = box.Transform(matrix);
+        }
+
+        _layout = false;
     }
 
     protected override void OnClone()
@@ -420,7 +416,7 @@ public class UIScrollContainer : UIContainer
             size.X = (size.X - (verticalVisible ? barSize.Y : 0)).Max(0);
             var visibleRatio = size.X / contentSize.X.Max(1f);
             thumbSize.X = size.X.Min(visibleRatio * size.X);
-            var maxScroll = (contentSize.X - size.X).Max(1f);
+            var maxScroll = (contentSize.X - size.X + leftInset + rightInset).Max(1f);
             thumbOffset.X = -scroll.X / maxScroll * (size.X - thumbSize.X);
         }
 
@@ -429,7 +425,7 @@ public class UIScrollContainer : UIContainer
             size.Y = (size.Y - (horizontalVisible ? barSize.X : 0)).Max(0);
             var visibleRatio = size.Y / contentSize.Y.Max(1f);
             thumbSize.Y = size.Y.Min(visibleRatio * size.Y);
-            var maxScroll = (contentSize.Y - size.Y).Max(1f);
+            var maxScroll = (contentSize.Y - size.Y + topInset + bottomInset).Max(1f);
             thumbOffset.Y = -scroll.Y / maxScroll * (size.Y - thumbSize.Y);
         }
 
@@ -438,11 +434,11 @@ public class UIScrollContainer : UIContainer
         {
             ScrollBarDirection.Horizontal => new Box(
                 new Vector2(position.X + thumbOffset.X + leftInset, position.Y + size.Y - barSize.X + topInset),
-                new Vector2((thumbSize.X - leftInset - rightInset).Max(0), (barSize.X - topInset - bottomInset).Max(0))
+                new Vector2(thumbSize.X - rightInset, barSize.X - topInset - bottomInset)
             ),
             ScrollBarDirection.Vertical => new Box(
                 new Vector2(position.X + size.X - barSize.Y + leftInset, position.Y + thumbOffset.Y + topInset),
-                new Vector2((barSize.Y - leftInset - rightInset).Max(0), (thumbSize.Y - topInset - bottomInset).Max(0))
+                new Vector2(barSize.Y - leftInset - rightInset, thumbSize.Y - bottomInset)
             ),
             _ => throw new InvalidEnumArgumentException(nameof(direction), (int)direction, typeof(ScrollBarDirection)),
         };

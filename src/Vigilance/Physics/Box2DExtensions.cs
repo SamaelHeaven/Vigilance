@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Box2D.NET;
+using Vigilance.Collections;
 using Vigilance.Math;
 
 namespace Vigilance.Physics;
@@ -31,13 +32,13 @@ public static class Box2DExtensions
             );
             for (var i = 0; i < polygon.count; i++)
                 vertices[i] = World.MetersToPixels(vertices[i]);
+            var normals = Unsafe.As<B2FixedArray8<B2Vec2>, InlineArray8<Vector2>>(ref Unsafe.AsRef(in polygon.normals));
             return new PolygonShape
             {
-                Vertices = vertices,
-                Normals = Unsafe.As<B2FixedArray8<B2Vec2>, InlineArray8<Vector2>>(ref Unsafe.AsRef(in polygon.normals)),
+                Vertices = new InlineList<InlineArray8<Vector2>, Vector2>(vertices, polygon.count),
+                Normals = new InlineList<InlineArray8<Vector2>, Vector2>(normals, polygon.count),
                 Centroid = World.MetersToPixels(new Vector2(polygon.centroid)),
                 Radius = World.MetersToPixels(polygon.radius),
-                Count = polygon.count,
             };
         }
     }

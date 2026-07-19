@@ -2,7 +2,8 @@ namespace Vigilance.UI;
 
 public enum TextOverflow : sbyte
 {
-    Wrap,
+    WrapWords,
+    WrapCharacters,
     Clip,
     Ellipsis,
 }

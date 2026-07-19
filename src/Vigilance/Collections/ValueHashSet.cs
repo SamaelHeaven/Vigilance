@@ -6,6 +6,7 @@ using ZLinq;
 
 namespace Vigilance.Collections;
 
+[CollectionBuilder(typeof(ValueHashSetBuilder), nameof(ValueHashSetBuilder.Create))]
 public struct ValueHashSet<T> : ISet<T>, IReadOnlySet<T>, IStructEnumerable<ValueHashSet<T>.Enumerator, T>
 {
     private const int StackAllocThreshold = 100;
@@ -802,6 +803,14 @@ public struct ValueHashSet<T> : ISet<T>, IReadOnlySet<T>, IStructEnumerable<Valu
         {
             return false;
         }
+    }
+}
+
+public static class ValueHashSetBuilder
+{
+    public static ValueHashSet<T> Create<T>(ReadOnlySpan<T> span)
+    {
+        return span.AsValueEnumerable().ToValueHashSet();
     }
 }
 

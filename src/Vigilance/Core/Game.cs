@@ -128,8 +128,8 @@ public static unsafe class Game
     {
         GC.Collect();
         GC.WaitForPendingFinalizers();
-        GC.Collect();
         UpdateActions();
+        GC.Collect();
     }
 
     private static void UpdateActions()
@@ -159,13 +159,13 @@ public static unsafe class Game
 
     private static void UpdateExit()
     {
-        if (Input.Input.ExitButton?.IsPressed ?? false)
+        if (Input.Input.ExitInputs.IsPressed)
             Exit();
     }
 
     private static void UpdateFullscreen()
     {
-        if (Input.Input.FullscreenButton?.IsPressed ?? false)
+        if (Input.Input.FullscreenInputs.IsPressed)
             Display.ToggleFullscreen();
     }
 

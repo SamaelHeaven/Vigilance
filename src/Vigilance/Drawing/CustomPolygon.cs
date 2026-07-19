@@ -48,12 +48,7 @@ public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
         Fill = fill;
     }
 
-    public ValueListRef<Vector2> Points
-    {
-        get => _points.AsRef();
-        set => value.CopyTo(ref _points);
-    }
-
+    public ValueListRef<Vector2> Points => _points.AsRef();
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;

@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Box2D.NET;
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Logging;
@@ -7,13 +8,17 @@ using Vigilance.Math;
 
 namespace Vigilance.Physics;
 
-public sealed class World : IDisposable
+public sealed class World
 {
     public const float PixelsPerMeter = 50f;
     public const float PixelsToMeter = 1f / PixelsPerMeter;
     private static WorldConfig _config = new();
+    private static InlineList<InlineArray128<WeakReference<Scene>?>, WeakReference<Scene>?> _scenes = [];
+    private static InlineList<InlineArray128<WeakReference<World>>, WeakReference<World>> _worlds = [];
+    private readonly TaskFactory? _taskFactory;
     internal readonly B2WorldId Id;
     private bool _disposed;
+    private int _index;
     private Action<Shape, Shape>? _onContactBegin;
     private Action<Shape, Shape>? _onContactEnd;
     private Action<ContactHit>? _onContactHit;
@@ -22,35 +27,51 @@ public sealed class World : IDisposable
     private Action<Shape, Shape>? _onSensorEnd;
 
     public World()
+        : this(null) { }
+
+    public World(bool? multithreaded = null)
+        : this(null, multithreaded) { }
+
+    public World(Scene? scene = null, bool? multithreaded = null)
     {
+        Scene = scene!;
+        Multithreaded = (multithreaded ?? DefaultMultithreaded) && Platform.Desktop.IsCurrent;
+        _index = _worlds.Count;
         var def = B2Types.b2DefaultWorldDef();
+        def.userData = new B2UserData(_index);
         def.gravity = PixelsToMeters(DefaultGravity).B2Vec2;
+        if (Multithreaded)
+        {
+            _taskFactory = new TaskFactory(
+                CancellationToken.None,
+                TaskCreationOptions.DenyChildAttach,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default
+            );
+            def.workerCount = Environment.ProcessorCount;
+            def.enqueueTask = EnqueueTask;
+            def.finishTask = FinishTask;
+        }
+
         Id = B2Worlds.b2CreateWorld(def);
         var worldRef = new WeakReference<World>(this);
-        B2Worlds.b2World_SetUserData(Id, new B2UserData(worldRef));
-        B2Worlds.b2World_SetCustomFilterCallback(Id, FilterCallback, null);
-    }
-
-    public World(Scene scene)
-        : this()
-    {
-        Scene = scene;
+        _worlds.Add(worldRef);
+        _scenes.Add(scene is null ? null : new WeakReference<Scene>(scene));
+        B2Worlds.b2World_SetCustomFilterCallback(Id, FilterCallback, worldRef);
     }
 
     public static Vector2 DefaultGravity { get; set; } = _config.DefaultGravity;
 
-    public Scene Scene { get; private set; } = null!;
+    public bool DefaultMultithreaded { get; set; } = _config.DefaultMultithreaded;
+
+    public Scene Scene { get; private set; }
+
+    public bool Multithreaded { get; }
 
     public Vector2 Gravity
     {
         get => MetersToPixels(new Vector2(B2Worlds.b2World_GetGravity(Id)));
         set => B2Worlds.b2World_SetGravity(Id, PixelsToMeters(value).B2Vec2);
-    }
-
-    public void Dispose()
-    {
-        ReleaseUnmanagedResources();
-        GC.SuppressFinalize(this);
     }
 
     ~World()
@@ -64,6 +85,21 @@ public sealed class World : IDisposable
         if (_disposed)
             return;
         _disposed = true;
+        var last = _worlds.Count - 1;
+        if (_index != last)
+        {
+            var lastWorld = _worlds[last];
+            _worlds[_index] = lastWorld;
+            _scenes[_index] = _scenes[last];
+            if (lastWorld.TryGetTarget(out var world))
+            {
+                world._index = _index;
+                B2Worlds.b2World_SetUserData(world.Id, new B2UserData(_index));
+            }
+        }
+
+        _worlds.RemoveAt(last);
+        _scenes.RemoveAt(last);
         Scene = null!;
         _onFilter = null;
         _onContactBegin = null;
@@ -74,14 +110,22 @@ public sealed class World : IDisposable
         B2Worlds.b2DestroyWorld(Id);
     }
 
-    internal static World? Get(B2WorldId worldId)
+    internal static World? GetWorld(B2WorldId worldId)
     {
-        if (
-            B2Worlds.b2World_GetUserData(worldId).oValue is WeakReference<World> worldRef
-            && worldRef.TryGetTarget(out var world)
-        )
-            return world;
-        return null;
+        var index = (int)B2Worlds.b2World_GetUserData(worldId).iValue;
+        if ((uint)index >= (uint)_worlds.Count)
+            return null;
+        var worldRef = _worlds[index];
+        return worldRef.TryGetTarget(out var world) ? world : null;
+    }
+
+    internal static Scene? GetScene(B2WorldId worldId)
+    {
+        var index = (int)B2Worlds.b2World_GetUserData(worldId).iValue;
+        if ((uint)index >= (uint)_scenes.Count)
+            return null;
+        var sceneRef = _scenes[index];
+        return sceneRef is not null && sceneRef.TryGetTarget(out var world) ? world : null;
     }
 
     internal static void Initialize()
@@ -153,6 +197,7 @@ public sealed class World : IDisposable
     public void Update(in TimeSpan? step = null)
     {
         B2Worlds.b2World_Step(Id, (float)(step ?? Time.FixedDelta).TotalSeconds, 4);
+        // ReSharper disable once CanReplaceCastWithVariableType
         var scene = (Scene?)Scene;
         scene?.BeginDefer();
         try
@@ -559,7 +604,9 @@ public sealed class World : IDisposable
 
     private static bool FilterCallback(B2ShapeId shapeIdA, B2ShapeId shapeIdB, object context)
     {
-        var world = new Shape(shapeIdA).World;
+        var worldRef = (WeakReference<World>)context;
+        if (!worldRef.TryGetTarget(out var world))
+            return true;
         foreach (var func in Delegate.EnumerateInvocationList(world._onFilter))
             try
             {
@@ -572,6 +619,53 @@ public sealed class World : IDisposable
             }
 
         return true;
+    }
+
+    private Box2DTask EnqueueTask(
+        b2TaskCallback task,
+        int itemCount,
+        int minRange,
+        object taskContext,
+        object userContext
+    )
+    {
+        var taskCount = (itemCount + minRange - 1) / minRange;
+        var handle = new Box2DTask(taskCount);
+        uint workerIndex = 0;
+        for (var start = 0; start < itemCount; start += minRange)
+        {
+            var startIndex = start;
+            var endIndex = System.Math.Min(start + minRange, itemCount);
+            var index = workerIndex++;
+            _taskFactory?.StartNew(() =>
+            {
+                try
+                {
+                    task.Invoke(startIndex, endIndex, index, taskContext);
+                }
+                finally
+                {
+                    handle.Completion.Signal();
+                }
+            });
+        }
+
+        return handle;
+    }
+
+    private static void FinishTask(object task, object userContext)
+    {
+        ((Box2DTask)task).Completion.Wait();
+    }
+
+    private sealed class Box2DTask
+    {
+        public readonly CountdownEvent Completion;
+
+        public Box2DTask(int count)
+        {
+            Completion = new CountdownEvent(count);
+        }
     }
 
     private record DebugDrawContext(Graphics Graphics, Camera? Camera);
