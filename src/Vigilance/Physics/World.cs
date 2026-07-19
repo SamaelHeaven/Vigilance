@@ -15,6 +15,7 @@ public sealed class World
     private static WorldConfig _config = new();
     private static InlineList<InlineArray128<WeakReference<Scene>?>, WeakReference<Scene>?> _scenes = [];
     private static InlineList<InlineArray128<WeakReference<World>>, WeakReference<World>> _worlds = [];
+    private readonly TaskFactory? _taskFactory;
     internal readonly B2WorldId Id;
     private bool _disposed;
     private int _index;
@@ -28,22 +29,44 @@ public sealed class World
     public World()
         : this(null) { }
 
-    public World(Scene? scene = null)
+    public World(bool? multithreaded = null)
+        : this(null, multithreaded) { }
+
+    public World(Scene? scene = null, bool? multithreaded = null)
     {
         Scene = scene!;
-        var def = B2Types.b2DefaultWorldDef();
-        def.gravity = PixelsToMeters(DefaultGravity).B2Vec2;
-        Id = B2Worlds.b2CreateWorld(def);
+        Multithreaded = (multithreaded ?? DefaultMultithreaded) && Platform.Desktop.IsCurrent;
         _index = _worlds.Count;
-        _worlds.Add(new WeakReference<World>(this));
+        var def = B2Types.b2DefaultWorldDef();
+        def.userData = new B2UserData(_index);
+        def.gravity = PixelsToMeters(DefaultGravity).B2Vec2;
+        if (Multithreaded)
+        {
+            _taskFactory = new TaskFactory(
+                CancellationToken.None,
+                TaskCreationOptions.DenyChildAttach,
+                TaskContinuationOptions.None,
+                TaskScheduler.Default
+            );
+            def.workerCount = Environment.ProcessorCount;
+            def.enqueueTask = EnqueueTask;
+            def.finishTask = FinishTask;
+        }
+
+        Id = B2Worlds.b2CreateWorld(def);
+        var worldRef = new WeakReference<World>(this);
+        _worlds.Add(worldRef);
         _scenes.Add(scene is null ? null : new WeakReference<Scene>(scene));
-        B2Worlds.b2World_SetUserData(Id, new B2UserData(_index));
-        B2Worlds.b2World_SetCustomFilterCallback(Id, FilterCallback, null);
+        B2Worlds.b2World_SetCustomFilterCallback(Id, FilterCallback, worldRef);
     }
 
     public static Vector2 DefaultGravity { get; set; } = _config.DefaultGravity;
 
+    public bool DefaultMultithreaded { get; set; } = _config.DefaultMultithreaded;
+
     public Scene Scene { get; private set; }
+
+    public bool Multithreaded { get; }
 
     public Vector2 Gravity
     {
@@ -174,6 +197,7 @@ public sealed class World
     public void Update(in TimeSpan? step = null)
     {
         B2Worlds.b2World_Step(Id, (float)(step ?? Time.FixedDelta).TotalSeconds, 4);
+        // ReSharper disable once CanReplaceCastWithVariableType
         var scene = (Scene?)Scene;
         scene?.BeginDefer();
         try
@@ -580,7 +604,9 @@ public sealed class World
 
     private static bool FilterCallback(B2ShapeId shapeIdA, B2ShapeId shapeIdB, object context)
     {
-        var world = new Shape(shapeIdA).World;
+        var worldRef = (WeakReference<World>)context;
+        if (!worldRef.TryGetTarget(out var world))
+            return true;
         foreach (var func in Delegate.EnumerateInvocationList(world._onFilter))
             try
             {
@@ -593,6 +619,53 @@ public sealed class World
             }
 
         return true;
+    }
+
+    private Box2DTask EnqueueTask(
+        b2TaskCallback task,
+        int itemCount,
+        int minRange,
+        object taskContext,
+        object userContext
+    )
+    {
+        var taskCount = (itemCount + minRange - 1) / minRange;
+        var handle = new Box2DTask(taskCount);
+        uint workerIndex = 0;
+        for (var start = 0; start < itemCount; start += minRange)
+        {
+            var startIndex = start;
+            var endIndex = System.Math.Min(start + minRange, itemCount);
+            var index = workerIndex++;
+            _taskFactory?.StartNew(() =>
+            {
+                try
+                {
+                    task.Invoke(startIndex, endIndex, index, taskContext);
+                }
+                finally
+                {
+                    handle.Completion.Signal();
+                }
+            });
+        }
+
+        return handle;
+    }
+
+    private static void FinishTask(object task, object userContext)
+    {
+        ((Box2DTask)task).Completion.Wait();
+    }
+
+    private sealed class Box2DTask
+    {
+        public readonly CountdownEvent Completion;
+
+        public Box2DTask(int count)
+        {
+            Completion = new CountdownEvent(count);
+        }
     }
 
     private record DebugDrawContext(Graphics Graphics, Camera? Camera);
