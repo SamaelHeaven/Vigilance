@@ -16,6 +16,7 @@ public sealed class World
     private static InlineList<InlineArray128<WeakReference<Scene>?>, WeakReference<Scene>?> _scenes = [];
     private static InlineList<InlineArray128<WeakReference<World>>, WeakReference<World>> _worlds = [];
     private readonly TaskFactory? _taskFactory;
+    private readonly int _workerCount;
     internal readonly B2WorldId Id;
     private bool _disposed;
     private int _index;
@@ -48,7 +49,8 @@ public sealed class World
                 TaskContinuationOptions.None,
                 TaskScheduler.Default
             );
-            def.workerCount = Environment.ProcessorCount;
+            _workerCount = Environment.ProcessorCount;
+            def.workerCount = _workerCount;
             def.enqueueTask = EnqueueTask;
             def.finishTask = FinishTask;
         }
@@ -629,19 +631,23 @@ public sealed class World
         object userContext
     )
     {
-        var taskCount = (itemCount + minRange - 1) / minRange;
-        var handle = new Box2DTask(taskCount);
-        uint workerIndex = 0;
-        for (var start = 0; start < itemCount; start += minRange)
+        var chunkCount = System.Math.Clamp((itemCount + minRange - 1) / minRange, 1, _workerCount);
+        var handle = new Box2DTask(chunkCount);
+        var baseSize = itemCount / chunkCount;
+        var remainder = itemCount % chunkCount;
+        var start = 0;
+        for (uint chunk = 0; chunk < chunkCount; chunk++)
         {
+            var size = baseSize + (chunk < remainder ? 1 : 0);
             var startIndex = start;
-            var endIndex = System.Math.Min(start + minRange, itemCount);
-            var index = workerIndex++;
+            var endIndex = start + size;
+            start = endIndex;
+            var workerIndex = chunk;
             _taskFactory?.StartNew(() =>
             {
                 try
                 {
-                    task.Invoke(startIndex, endIndex, index, taskContext);
+                    task.Invoke(startIndex, endIndex, workerIndex, taskContext);
                 }
                 finally
                 {
@@ -655,7 +661,9 @@ public sealed class World
 
     private static void FinishTask(object task, object userContext)
     {
-        ((Box2DTask)task).Completion.Wait();
+        var handle = (Box2DTask)task;
+        handle.Completion.Wait();
+        handle.Completion.Dispose();
     }
 
     private sealed class Box2DTask
