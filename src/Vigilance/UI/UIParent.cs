@@ -10,7 +10,7 @@ namespace Vigilance.UI;
 
 public abstract class UIParent : UIElement
 {
-    private ValueList<UIElement> _childrenList = [];
+    private ValueList<UIElement> _children = [];
     private ValueQueue<ChildrenOperation> _childrenOperations = [];
     private int _deferredCount;
     private bool _isFlushing;
@@ -66,7 +66,7 @@ public abstract class UIParent : UIElement
         }
 
         element.Remove();
-        _childrenList.Add(element);
+        _children.Add(element);
         element.Parent = this;
         element.Node.Parent = Node;
         MarkStructureDirty();
@@ -74,7 +74,7 @@ public abstract class UIParent : UIElement
 
     public void Add(params ReadOnlySpan<UIElement?> elements)
     {
-        _childrenList.EnsureCapacity(_childrenList.Count + elements.Length);
+        _children.EnsureCapacity(_children.Count + elements.Length);
         foreach (var element in elements)
             Add(element);
     }
@@ -87,7 +87,7 @@ public abstract class UIParent : UIElement
             return;
         }
 
-        _childrenList.Insert(index, element);
+        _children.Insert(index, element);
         element.Remove();
         element.Parent = this;
         element.Node.Parent = Node;
@@ -96,7 +96,7 @@ public abstract class UIParent : UIElement
 
     public int IndexOf(UIElement element)
     {
-        return _childrenList.IndexOf(element);
+        return _children.IndexOf(element);
     }
 
     public void Replace(int index, UIElement element)
@@ -107,11 +107,11 @@ public abstract class UIParent : UIElement
             return;
         }
 
-        _childrenList[index].Remove();
+        _children[index].Remove();
         element.Remove();
         element.Parent = this;
         element.Node.Parent = Node;
-        _childrenList[index] = element;
+        _children[index] = element;
         MarkStructureDirty();
     }
 
@@ -123,13 +123,13 @@ public abstract class UIParent : UIElement
             return;
         }
 
-        foreach (var element in _childrenList)
+        foreach (var element in _children)
         {
             element.Parent = null;
             element.Node.Parent = null;
         }
 
-        _childrenList.Clear();
+        _children.Clear();
         MarkStructureDirty();
     }
 
@@ -161,7 +161,7 @@ public abstract class UIParent : UIElement
 
     internal void Clone(CloneOptions options)
     {
-        _childrenList = options.HasFlag(CloneOptions.SkipChildren) ? [] : new ValueList<UIElement>(_childrenList.Count);
+        _children = options.HasFlag(CloneOptions.SkipChildren) ? [] : new ValueList<UIElement>(_children.Count);
         _childrenOperations = [];
         _deferredCount = 0;
         _suspendStack = [];
@@ -189,9 +189,9 @@ public abstract class UIParent : UIElement
 
     internal void BeginReconcile(ReconcileSession session)
     {
-        var count = _childrenList.Count;
+        var count = _children.Count;
         var snapshot = ArrayPool<UIElement>.Shared.Rent(count);
-        _childrenList.AsSpan().CopyTo(snapshot);
+        _children.AsSpan().CopyTo(snapshot);
         _reconcileSnapshot = snapshot;
         _reconcileSnapshotCount = count;
         _suppressDirty = true;
@@ -205,7 +205,7 @@ public abstract class UIParent : UIElement
         var snapshot = _reconcileSnapshot;
         if (snapshot is null)
             return;
-        var current = _childrenList.AsSpan();
+        var current = _children.AsSpan();
         var old = snapshot.AsSpan(0, _reconcileSnapshotCount);
         var changed = current.Length != old.Length;
         for (var i = 0; !changed && i < current.Length; i++)
@@ -227,7 +227,7 @@ public abstract class UIParent : UIElement
             return false;
         }
 
-        var result = _childrenList.Remove(element);
+        var result = _children.Remove(element);
         element.Parent = null;
         element.Node.Parent = null;
         MarkStructureDirty();
@@ -303,9 +303,9 @@ public abstract class UIParent : UIElement
             return new StructEnumerator<ChildEnumerator, UIElement>(GetEnumerator());
         }
 
-        public int Count => _parent._childrenList.Count;
+        public int Count => _parent._children.Count;
 
-        public UIElement this[int index] => _parent._childrenList[index];
+        public UIElement this[int index] => _parent._children[index];
 
         public ref ChildEnumerable Deferred(bool deferred = true)
         {
@@ -344,9 +344,9 @@ public abstract class UIParent : UIElement
         {
             if (!_initialized)
                 Initialize();
-            if ((uint)_index < (uint)_parent._childrenList.Count)
+            if ((uint)_index < (uint)_parent._children.Count)
             {
-                Current = _parent._childrenList[_index];
+                Current = _parent._children[_index];
                 _index++;
                 return true;
             }
@@ -387,19 +387,19 @@ public abstract class UIParent : UIElement
 
         public bool TryGetNonEnumeratedCount(out int count)
         {
-            count = _parent._childrenList.Count;
+            count = _parent._children.Count;
             return true;
         }
 
         public bool TryGetSpan(out ReadOnlySpan<UIElement> span)
         {
-            span = _parent._childrenList.AsSpan();
+            span = _parent._children.AsSpan();
             return true;
         }
 
         public bool TryCopyTo(scoped Span<UIElement> destination, Index offset)
         {
-            return _parent._childrenList.AsSpan().TryCopyTo(destination, offset);
+            return _parent._children.AsSpan().TryCopyTo(destination, offset);
         }
     }
 }
