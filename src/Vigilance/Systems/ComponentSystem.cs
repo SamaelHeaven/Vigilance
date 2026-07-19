@@ -1,5 +1,6 @@
 using Vigilance.Core;
 using Vigilance.Drawing;
+using Vigilance.Logging;
 
 namespace Vigilance.Systems;
 
@@ -8,54 +9,117 @@ public sealed class ComponentSystem : GameSystem
     public override void PreUpdate()
     {
         foreach (var (entity, component) in AssignableEntries<IPreUpdatable>())
-            component.PreUpdate(entity);
+            try
+            {
+                component.PreUpdate(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     public override void Update()
     {
         foreach (var (entity, component) in AssignableEntries<IUpdatable>())
-            component.Update(entity);
+            try
+            {
+                component.Update(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     public override void PostUpdate()
     {
         foreach (var (entity, component) in AssignableEntries<IPostUpdatable>())
-            component.PostUpdate(entity);
+            try
+            {
+                component.PostUpdate(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     public override void PreFixedUpdate()
     {
         foreach (var (entity, component) in AssignableEntries<IPreFixedUpdatable>())
-            component.PreFixedUpdate(entity);
+            try
+            {
+                component.PreFixedUpdate(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     public override void FixedUpdate()
     {
         foreach (var (entity, component) in AssignableEntries<IFixedUpdatable>())
-            component.FixedUpdate(entity);
+            try
+            {
+                component.FixedUpdate(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     public override void PostFixedUpdate()
     {
         foreach (var (entity, component) in AssignableEntries<IPostFixedUpdatable>())
-            component.PostFixedUpdate(entity);
+            try
+            {
+                component.PostFixedUpdate(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     public override void PreRender()
     {
         foreach (var (entity, component) in AssignableEntries<IPreRenderable>())
-            component.PreRender(entity);
+            try
+            {
+                component.PreRender(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     public override void Render(RenderCommands commands)
     {
         foreach (var (entity, component) in AssignableEntries<IRenderable>())
-            component.Render(entity, commands);
+            try
+            {
+                component.Render(entity, commands);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     public override void PostRender()
     {
         foreach (var (entity, component) in AssignableEntries<IPostRenderable>())
-            component.PostRender(entity);
+            try
+            {
+                component.PostRender(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 }

@@ -361,7 +361,7 @@ public sealed unsafe partial class Scene
         var type = typeof(T);
         if (!_listeners.TryGetValue(type, out var handlers))
             return;
-        Signal<T>.Invoke((Func<T, bool>)handlers, @event);
+        Signal<T>.SafeInvoke((Func<T, bool>)handlers, @event);
     }
 
     public void Enqueue<T>(in T @event)
@@ -385,7 +385,7 @@ public sealed unsafe partial class Scene
                 () =>
                 {
                     if (queue.TryDequeue(out var @event))
-                        Signal<T>.Invoke((Func<T, bool>)handlers, @event);
+                        Signal<T>.SafeInvoke((Func<T, bool>)handlers, @event);
                 }
             );
         }

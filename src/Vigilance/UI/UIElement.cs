@@ -8,6 +8,7 @@ using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.FlexLayout;
 using Vigilance.Input;
+using Vigilance.Logging;
 using Vigilance.Math;
 using ZLinq;
 using Display = Vigilance.FlexLayout.Display;
@@ -49,6 +50,7 @@ public abstract class UIElement : IFullCloneable
     private Func<UIElement, bool>? _onPressHandlers;
     private Func<UIElement, bool>? _onReleaseHandlers;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onRenderHandlers;
+    private Func<UIElement, bool>? _onResetLayoutAndTransformHandlers;
     private Func<UIElement, bool>? _onUpdateHandlers;
     private RenderData _renderData;
     internal ValueDictionary<ImmediateCounter, uint> ImmediateCounters = new(ImmediateCounterComparer.Instance);
@@ -68,7 +70,17 @@ public abstract class UIElement : IFullCloneable
             Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
                 {
-                    var size = Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
+                    Vector2 size;
+                    try
+                    {
+                        size = Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e);
+                        size = Vector2.NaN;
+                    }
+
                     return new Size(size.X, size.Y);
                 }
             );
@@ -679,6 +691,8 @@ public abstract class UIElement : IFullCloneable
 
     public Signal<UIElement> OnCloneSignal => new(ref _onCloneHandlers);
 
+    public Signal<UIElement> OnResetLayoutAndTransformSignal => new(ref _onResetLayoutAndTransformHandlers);
+
     public Signal<UIElement, Graphics, CameraProvider> OnBeginRenderSignal => new(ref _onBeginRenderHandlers);
 
     public Signal<UIElement, Graphics, CameraProvider> OnRenderSignal => new(ref _onRenderHandlers);
@@ -703,8 +717,16 @@ public abstract class UIElement : IFullCloneable
             DeepCloneComponents(self);
             if ((options & CloneOptions.ClearSignals) != 0)
                 self.ClearSignals();
-            self.OnClone();
-            OnCloneSignal.Invoke(self);
+            try
+            {
+                self.OnClone();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            OnCloneSignal.SafeInvoke(self);
             return self;
         }
 
@@ -718,8 +740,16 @@ public abstract class UIElement : IFullCloneable
                     parent.Add(cloneMap[child]);
             if ((options & CloneOptions.ClearSignals) != 0)
                 clone.ClearSignals();
-            clone.OnClone();
-            OnCloneSignal.Invoke(clone);
+            try
+            {
+                clone.OnClone();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            OnCloneSignal.SafeInvoke(clone);
             cloneMap[node] = clone;
         }
 
@@ -735,8 +765,16 @@ public abstract class UIElement : IFullCloneable
                 parent.Add(child);
         if ((options & CloneOptions.ClearSignals) != 0)
             clone.ClearSignals();
-        clone.OnClone();
-        OnCloneSignal.Invoke(clone);
+        try
+        {
+            clone.OnClone();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        OnCloneSignal.SafeInvoke(clone);
         return clone;
     }
 
@@ -756,21 +794,43 @@ public abstract class UIElement : IFullCloneable
         Flex.CalculateLayout(Node, width, height, FlexLayout.Direction.LeftToRight);
         foreach (var element in this.DescendantsPostOrderAndSelf())
         {
-            element.OnLayout();
-            element.OnLayoutSignal.Invoke(element);
+            try
+            {
+                element.OnLayout();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            element.OnLayoutSignal.SafeInvoke(element);
         }
     }
 
     public void Attach(IUIComponent component)
     {
         _components.Add(component);
-        component.Attach(this);
+        try
+        {
+            component.Attach(this);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
     }
 
     public void Detach(IUIComponent component)
     {
         _components.Remove(component);
-        component.Detach(this);
+        try
+        {
+            component.Detach(this);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
     }
 
     public void DetachAll()
@@ -778,7 +838,14 @@ public abstract class UIElement : IFullCloneable
         using var pool = _components.AsValueEnumerable().ToArrayPool();
         _components.Clear();
         foreach (var component in pool.Span)
-            component.Detach(this);
+            try
+            {
+                component.Detach(this);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     public T Immediate<T>(object? key, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
@@ -914,6 +981,16 @@ public abstract class UIElement : IFullCloneable
         Skew = Vector2.Zero;
         Rotation = 0;
         PivotPoint = Vector2.Zero;
+        try
+        {
+            OnResetLayoutAndTransform();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        OnResetLayoutAndTransformSignal.SafeInvoke(this);
     }
 
     public void ClearSignals()
@@ -929,10 +1006,18 @@ public abstract class UIElement : IFullCloneable
         OnPressSignal.Clear();
         OnReleaseSignal.Clear();
         OnCloneSignal.Clear();
+        OnResetLayoutAndTransformSignal.Clear();
         OnBeginRenderSignal.Clear();
         OnRenderSignal.Clear();
         OnEndRenderSignal.Clear();
-        OnClearSignals();
+        try
+        {
+            OnClearSignals();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
     }
 
     public RenderTexture ToTexture(Vector2 size, bool pool = true)
@@ -973,6 +1058,8 @@ public abstract class UIElement : IFullCloneable
 
     protected virtual void OnClone() { }
 
+    protected virtual void OnResetLayoutAndTransform() { }
+
     protected virtual void OnBeginRender(Graphics graphics, CameraProvider camera) { }
 
     protected virtual void OnRender(Graphics graphics, CameraProvider camera) { }
@@ -1012,8 +1099,16 @@ public abstract class UIElement : IFullCloneable
         {
             element._click = false;
             element.IsClicked = false;
-            element.OnDisabledUpdate();
-            element.OnDisabledUpdateSignal.Invoke(element);
+            try
+            {
+                element.OnDisabledUpdate();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            element.OnDisabledUpdateSignal.SafeInvoke(element);
             return;
         }
 
@@ -1021,17 +1116,41 @@ public abstract class UIElement : IFullCloneable
             Mouse.IsButtonReleased(MouseButton.Left) && element is { _click: true, IsMouseInside: true };
         if (element.IsImmediate)
             element.RunImmediate();
-        element.OnUpdate();
-        element.OnUpdateSignal.Invoke(element);
+        try
+        {
+            element.OnUpdate();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        element.OnUpdateSignal.SafeInvoke(element);
         switch (oldMouseInside)
         {
             case false when element.IsMouseInside:
-                element.OnMouseEnter();
-                element.OnMouseEnterSignal.Invoke(element);
+                try
+                {
+                    element.OnMouseEnter();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+                element.OnMouseEnterSignal.SafeInvoke(element);
                 break;
             case true when !element.IsMouseInside:
-                element.OnMouseLeave();
-                element.OnMouseLeaveSignal.Invoke(element);
+                try
+                {
+                    element.OnMouseLeave();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+                element.OnMouseLeaveSignal.SafeInvoke(element);
                 break;
         }
 
@@ -1040,8 +1159,16 @@ public abstract class UIElement : IFullCloneable
             element._click = element.IsMouseInside;
             if (element.IsMouseInside)
             {
-                element.OnPress();
-                element.OnPressSignal.Invoke(element);
+                try
+                {
+                    element.OnPress();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+                element.OnPressSignal.SafeInvoke(element);
             }
         }
 
@@ -1050,14 +1177,30 @@ public abstract class UIElement : IFullCloneable
             element._click = element is { _click: true, IsMouseInside: true };
             if (element._click)
             {
-                element.OnClick();
-                element.OnClickSignal.Invoke(element);
+                try
+                {
+                    element.OnClick();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+                element.OnClickSignal.SafeInvoke(element);
             }
 
             if (element.IsMouseInside)
             {
-                element.OnRelease();
-                element.OnReleaseSignal.Invoke(element);
+                try
+                {
+                    element.OnRelease();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+                element.OnReleaseSignal.SafeInvoke(element);
             }
         }
     }
@@ -1073,8 +1216,16 @@ public abstract class UIElement : IFullCloneable
         {
             if (this is UIParent parent)
                 parent.BeginReconcile(session);
-            OnImmediate();
-            OnImmediateSignal.Invoke(this);
+            try
+            {
+                OnImmediate();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            OnImmediateSignal.SafeInvoke(this);
         }
         finally
         {
@@ -1101,8 +1252,16 @@ public abstract class UIElement : IFullCloneable
     {
         if (!IsLayoutReady || !IsDirty)
             return;
-        OnDirty();
-        OnDirtySignal.Invoke(this);
+        try
+        {
+            OnDirty();
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        OnDirtySignal.SafeInvoke(this);
     }
 
     private void Render(Graphics graphics, CameraProvider camera)
@@ -1238,10 +1397,26 @@ public abstract class UIElement : IFullCloneable
             span.AsValueEnumerable().OrderByDescending(e => e.ZIndex).CopyTo(span);
         }
 
-        element.OnBeginRender(graphics, camera);
-        element.OnBeginRenderSignal.Invoke(element, graphics, camera);
-        element.OnRender(graphics, camera);
-        element.OnRenderSignal.Invoke(element, graphics, camera);
+        try
+        {
+            element.OnBeginRender(graphics, camera);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        element.OnBeginRenderSignal.SafeInvoke(element, graphics, camera);
+        try
+        {
+            element.OnRender(graphics, camera);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        element.OnRenderSignal.SafeInvoke(element, graphics, camera);
     }
 
     private static void EndRender(UIElement element, Graphics graphics, CameraProvider camera)
@@ -1249,8 +1424,16 @@ public abstract class UIElement : IFullCloneable
         ref var data = ref element._renderData;
         if (!data.ShouldRender)
             return;
-        element.OnEndRenderSignal.Invoke(element, graphics, camera);
-        element.OnEndRender(graphics, camera);
+        element.OnEndRenderSignal.SafeInvoke(element, graphics, camera);
+        try
+        {
+            element.OnEndRender(graphics, camera);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
         if (element.ShapeTexture is not null)
@@ -1281,7 +1464,17 @@ public abstract class UIElement : IFullCloneable
             result.Node.SetMeasureFunc(
                 (_, width, widthMode, height, heightMode) =>
                 {
-                    var size = result.Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
+                    Vector2 size;
+                    try
+                    {
+                        size = result.Measure(width, (MeasureMode)widthMode, height, (MeasureMode)heightMode);
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e);
+                        size = Vector2.NaN;
+                    }
+
                     return new Size(size.X, size.Y);
                 }
             );
@@ -1296,7 +1489,15 @@ public abstract class UIElement : IFullCloneable
         var components = clone._components;
         clone._components = new ValueList<IUIComponent>(components.Count);
         foreach (var component in components)
-            component.Detach(clone);
+            try
+            {
+                component.Detach(clone);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
         foreach (var component in components)
             clone.Attach(Cloner.CloneOrSelf(component));
     }
@@ -1756,6 +1957,11 @@ public static partial class UIElementExtensions
         public Action<T> OnClone
         {
             set => element.OnCloneSignal.Subscribe(e => value.Invoke((T)e));
+        }
+
+        public Action<T> OnResetLayoutAndTransform
+        {
+            set => element.OnResetLayoutAndTransformSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<UIElement, Graphics, CameraProvider> OnBeginRender

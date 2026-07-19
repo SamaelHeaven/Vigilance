@@ -197,17 +197,17 @@ public sealed class Table<T>
         return new Enumerator(this);
     }
 
-    public ValueEnumerable<Enumerator, KeyValuePair<Entity, T>> AsValueEnumerable()
-    {
-        return new ValueEnumerable<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
-    }
-
     ValueEnumerable<StructEnumerator<Enumerator, KeyValuePair<Entity, T>>, KeyValuePair<Entity, T>> IStructEnumerable<
         Enumerator,
         KeyValuePair<Entity, T>
     >.AsValueEnumerable()
     {
         return new StructEnumerator<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
+    }
+
+    public ValueEnumerable<Enumerator, KeyValuePair<Entity, T>> AsValueEnumerable()
+    {
+        return new ValueEnumerable<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
     }
 
     public void Enqueue(in Event<T> tableEvent)

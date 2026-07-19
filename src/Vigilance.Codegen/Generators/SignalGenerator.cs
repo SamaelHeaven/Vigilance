@@ -10,6 +10,8 @@ public sealed class SignalGenerator : SourceGenerator
     {
         sb.AppendLine(
             """
+            using Vigilance.Logging;
+
             namespace Vigilance.Core;
 
             """
@@ -79,6 +81,28 @@ public sealed class SignalGenerator : SourceGenerator
                     foreach (var handler in Delegate.EnumerateInvocationList(handlers))
                         if (handler.Invoke({{invokeArgs}}))
                             return true;
+                    return false;
+                }
+
+                public bool SafeInvoke({{invokeParams}})
+                {
+                    return SafeInvoke(_handlers{{(invokeArgs == "" ? "" : $", {invokeArgs}")}});
+                }
+
+                public static bool SafeInvoke(Func<{{funcTypeParams}}bool>? handlers{{(
+                    invokeParams == "" ? "" : $", {invokeParams}"
+                )}})
+                {
+                    foreach (var handler in Delegate.EnumerateInvocationList(handlers))
+                        try
+                        {
+                            if (handler.Invoke({{invokeArgs}}))
+                                return true;
+                        }
+                        catch (System.Exception e)
+                        {
+                            Log.Error(e);
+                        }
                     return false;
                 }
             }

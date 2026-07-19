@@ -23,6 +23,8 @@ public sealed class GameSystemGenerator : SourceGenerator
         Entities(sb);
         Components(sb);
         Entries(sb);
+        RefComponents(sb);
+        RefEntries(sb);
         AssignableEntities(sb);
         AssignableComponents(sb);
         AssignableEntries(sb);
@@ -64,6 +66,30 @@ public sealed class GameSystemGenerator : SourceGenerator
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             sb.AppendLine(QueryIterator("Entry", "Entries", $"<{typeParams}>"));
+        }
+
+        sb.EndRegion();
+    }
+
+    private static void RefComponents(StringBuilder sb)
+    {
+        sb.BeginRegion("RefComponents");
+        for (var i = 0; i < 16; i++)
+        {
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            sb.AppendLine(QueryIterator("RefComponent", "RefComponents", $"<{typeParams}>"));
+        }
+
+        sb.EndRegion();
+    }
+
+    private static void RefEntries(StringBuilder sb)
+    {
+        sb.BeginRegion("RefEntries");
+        for (var i = 0; i < 15; i++)
+        {
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            sb.AppendLine(QueryIterator("RefEntry", "RefEntries", $"<{typeParams}>"));
         }
 
         sb.EndRegion();
