@@ -81,4 +81,119 @@ public abstract partial class Node<TStorage> : IStructEnumerable<Node<TStorage>.
 
         public void Dispose() { }
     }
+
+    public struct Traverser : ITraverser<Traverser, Node<TStorage>>
+    {
+        private Enumerator _enumerator;
+        private bool _hasEnumerator;
+
+        public Node<TStorage> Origin { get; }
+
+        internal Traverser(Node<TStorage> origin)
+        {
+            Origin = origin;
+        }
+
+        public Traverser ConvertToTraverser(Node<TStorage> next)
+        {
+            return new Traverser(next);
+        }
+
+        public bool TryGetChildCount(out int count)
+        {
+            count = Origin.ChildrenCount;
+            return true;
+        }
+
+        public bool TryGetHasChild(out bool hasChild)
+        {
+            hasChild = Origin.ChildrenCount > 0;
+            return true;
+        }
+
+        public bool TryGetParent(out Node<TStorage> parent)
+        {
+            parent = Origin.Parent!;
+            return Origin.Parent is not null;
+        }
+
+        public bool TryGetNextChild(out Node<TStorage> child)
+        {
+            if (!_hasEnumerator)
+            {
+                if (Origin.ChildrenCount == 0)
+                {
+                    child = null!;
+                    return false;
+                }
+
+                _enumerator = Origin.GetEnumerator();
+                _hasEnumerator = true;
+            }
+
+            if (_enumerator.MoveNext())
+            {
+                child = _enumerator.Current;
+                return true;
+            }
+
+            child = null!;
+            return false;
+        }
+
+        public bool TryGetNextSibling(out Node<TStorage> next)
+        {
+            BEGIN:
+            if (_hasEnumerator)
+            {
+                if (_enumerator.MoveNext())
+                {
+                    next = _enumerator.Current;
+                    return true;
+                }
+            }
+            else if (TryGetParent(out var parent))
+            {
+                _enumerator = parent.GetEnumerator();
+                _hasEnumerator = true;
+                while (_enumerator.MoveNext())
+                    if (_enumerator.Current == Origin)
+                        goto BEGIN;
+            }
+
+            next = null!;
+            return false;
+        }
+
+        public bool TryGetPreviousSibling(out Node<TStorage> previous)
+        {
+            BEGIN:
+            if (_hasEnumerator)
+            {
+                if (_enumerator.MoveNext())
+                {
+                    previous = _enumerator.Current;
+                    if (previous != Origin)
+                        return true;
+                }
+            }
+            else if (TryGetParent(out var parent))
+            {
+                _enumerator = parent.GetEnumerator();
+                _hasEnumerator = true;
+                goto BEGIN;
+            }
+
+            previous = null!;
+            return false;
+        }
+
+        public void Dispose()
+        {
+            if (!_hasEnumerator)
+                return;
+            _enumerator.Dispose();
+            _hasEnumerator = false;
+        }
+    }
 }

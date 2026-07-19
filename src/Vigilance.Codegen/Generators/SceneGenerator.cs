@@ -20,7 +20,7 @@ public sealed class SceneGenerator : SourceGenerator
 
             """
         );
-        Build(sb);
+        Create(sb);
         Entities(sb);
         Components(sb);
         Entries(sb);
@@ -35,9 +35,9 @@ public sealed class SceneGenerator : SourceGenerator
         sb.AppendLine("}");
     }
 
-    private static void Build(StringBuilder sb)
+    private static void Create(StringBuilder sb)
     {
-        sb.BeginRegion("Build");
+        sb.BeginRegion("Create");
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
@@ -45,7 +45,7 @@ public sealed class SceneGenerator : SourceGenerator
             var newArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"new T{n}()"));
             sb.AppendLine(
                 $$"""
-                    public static Scene Build<{{typeParams}}>(GameSystemsFunc? systems = null)
+                    public static Scene Create<{{typeParams}}>(GameSystemsFunc? systems = null)
                         {{wheres}}
                     {
                         return new Scene(() => {
