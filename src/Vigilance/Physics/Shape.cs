@@ -1,10 +1,11 @@
+using System.ComponentModel;
 using Box2D.NET;
 using Vigilance.Core;
 using Vigilance.Math;
 
 namespace Vigilance.Physics;
 
-public readonly record struct Shape
+public readonly record struct Shape : IShape
 {
     private readonly B2ShapeId _id;
 
@@ -103,6 +104,22 @@ public readonly record struct Shape
             var b2Polygon = value.B2Polygon;
             B2Shapes.b2Shape_SetPolygon(_id, ref b2Polygon);
         }
+    }
+
+    public ShapeProxy MakeProxy()
+    {
+        return Type switch
+        {
+            ShapeType.Circle => Circle.MakeProxy(),
+            ShapeType.Capsule => Capsule.MakeProxy(),
+            ShapeType.Segment => Segment.MakeProxy(),
+            ShapeType.Polygon => Polygon.MakeProxy(),
+            ShapeType.ChainSegment or _ => throw new InvalidEnumArgumentException(
+                nameof(Type),
+                (int)Type,
+                typeof(ShapeType)
+            ),
+        };
     }
 
     public bool TestPoint(Vector2 point)
