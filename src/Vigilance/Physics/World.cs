@@ -188,6 +188,16 @@ public sealed class World
         }
     }
 
+    public void Overlap(Box box, Action<Shape> callback, in ShapeFilter? filter = null)
+    {
+        Overlap(box.Position, box.Position + box.Size, callback, in filter);
+    }
+
+    public void Overlap(Box box, Func<Shape, bool> callback, in ShapeFilter? filter = null)
+    {
+        Overlap(box.Position, box.Position + box.Size, callback, in filter);
+    }
+
     public void Overlap(
         Vector2 lowerBound,
         Vector2 upperBound,
@@ -231,22 +241,24 @@ public sealed class World
         );
     }
 
-    public void Overlap(in CircleShape circle, Func<Shape, bool> callback, in ShapeFilter? filter = null)
+    public void Overlap<T>(in T shape, Func<Shape, bool> callback, in ShapeFilter? filter = null)
+        where T : IShape
     {
-        var proxy = circle.MakeProxy();
+        var proxy = shape.MakeProxy().B2ShapeProxy;
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
             Id,
             ref proxy,
             in b2Filter,
-            (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
+            (id, ctx) => ((Func<Shape, bool>)ctx!).Invoke(new Shape(id)),
             callback
         );
     }
 
-    public void Overlap(in CircleShape circle, Action<Shape> callback, in ShapeFilter? filter = null)
+    public void Overlap<T>(in T polygon, Action<Shape> callback, in ShapeFilter? filter = null)
+        where T : IShape
     {
-        var proxy = circle.MakeProxy();
+        var proxy = polygon.MakeProxy().B2ShapeProxy;
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
             Id,
@@ -254,67 +266,7 @@ public sealed class World
             in b2Filter,
             (id, ctx) =>
             {
-                ((Action<Shape>)ctx!)(new Shape(id));
-                return true;
-            },
-            callback
-        );
-    }
-
-    public void Overlap(in CapsuleShape capsule, Func<Shape, bool> callback, in ShapeFilter? filter = null)
-    {
-        var proxy = capsule.MakeProxy();
-        var b2Filter = filter.ToB2QueryFilter();
-        B2Worlds.b2World_OverlapShape(
-            Id,
-            ref proxy,
-            in b2Filter,
-            (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
-            callback
-        );
-    }
-
-    public void Overlap(in CapsuleShape capsule, Action<Shape> callback, in ShapeFilter? filter = null)
-    {
-        var proxy = capsule.MakeProxy();
-        var b2Filter = filter.ToB2QueryFilter();
-        B2Worlds.b2World_OverlapShape(
-            Id,
-            ref proxy,
-            in b2Filter,
-            (id, ctx) =>
-            {
-                ((Action<Shape>)ctx!)(new Shape(id));
-                return true;
-            },
-            callback
-        );
-    }
-
-    public void Overlap(in PolygonShape polygon, Func<Shape, bool> callback, in ShapeFilter? filter = null)
-    {
-        var proxy = polygon.MakeProxy();
-        var b2Filter = filter.ToB2QueryFilter();
-        B2Worlds.b2World_OverlapShape(
-            Id,
-            ref proxy,
-            in b2Filter,
-            (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
-            callback
-        );
-    }
-
-    public void Overlap(in PolygonShape polygon, Action<Shape> callback, in ShapeFilter? filter = null)
-    {
-        var proxy = polygon.MakeProxy();
-        var b2Filter = filter.ToB2QueryFilter();
-        B2Worlds.b2World_OverlapShape(
-            Id,
-            ref proxy,
-            in b2Filter,
-            (id, ctx) =>
-            {
-                ((Action<Shape>)ctx!)(new Shape(id));
+                ((Action<Shape>)ctx!).Invoke(new Shape(id));
                 return true;
             },
             callback

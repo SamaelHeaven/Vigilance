@@ -7,7 +7,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Physics;
 
-public record struct PolygonShape
+public record struct PolygonShape : IShape
 {
     public InlineList<InlineArray8<Vector2>, Vector2> Vertices { get; set; }
     public InlineList<InlineArray8<Vector2>, Vector2> Normals { get; set; }
@@ -32,6 +32,11 @@ public record struct PolygonShape
                 count = vertices.Count,
             };
         }
+    }
+
+    public readonly ShapeProxy MakeProxy()
+    {
+        return new ShapeProxy { Points = Vertices, Radius = Radius };
     }
 
     public static PolygonShape Make(in ReadOnlySpan<Vector2> points, float radius)
@@ -127,14 +132,5 @@ public record struct PolygonShape
                 World.PixelsToMeters(radius)
             )
             .ToPolygon();
-    }
-
-    internal readonly B2ShapeProxy MakeProxy()
-    {
-        var proxy = new B2ShapeProxy { count = Vertices.Count, radius = World.PixelsToMeters(Radius) };
-        ref var pts = ref Unsafe.As<B2FixedArray8<B2Vec2>, InlineArray8<Vector2>>(ref proxy.points);
-        for (var i = 0; i < Vertices.Count; i++)
-            pts[i] = World.PixelsToMeters(Vertices[i]);
-        return proxy;
     }
 }
