@@ -39,6 +39,11 @@ public record struct PolygonShape : IShape
         return new ShapeProxy { Points = Vertices, Radius = Radius };
     }
 
+    public static implicit operator ShapeProxy(in PolygonShape shape)
+    {
+        return shape.MakeProxy();
+    }
+
     public static PolygonShape Make(in ReadOnlySpan<Vector2> points, float radius)
     {
         Debug.Assert(points.Length <= 8);

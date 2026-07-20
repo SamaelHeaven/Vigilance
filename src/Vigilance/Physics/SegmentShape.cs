@@ -16,6 +16,11 @@ public record struct SegmentShape : IShape
         return new ShapeProxy { Points = [Point1, Point2] };
     }
 
+    public static implicit operator ShapeProxy(in SegmentShape shape)
+    {
+        return shape.MakeProxy();
+    }
+
     public static SegmentShape Make(Vector2 point1, Vector2 point2)
     {
         return new SegmentShape { Point1 = point1, Point2 = point2 };

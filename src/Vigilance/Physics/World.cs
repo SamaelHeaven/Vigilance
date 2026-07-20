@@ -241,10 +241,9 @@ public sealed class World
         );
     }
 
-    public void Overlap<T>(in T shape, Func<Shape, bool> callback, in ShapeFilter? filter = null)
-        where T : IShape
+    public void Overlap(in ShapeProxy shapeProxy, Func<Shape, bool> callback, in ShapeFilter? filter = null)
     {
-        var proxy = shape.MakeProxy().B2ShapeProxy;
+        var proxy = shapeProxy.B2ShapeProxy;
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
             Id,
@@ -255,10 +254,9 @@ public sealed class World
         );
     }
 
-    public void Overlap<T>(in T shape, Action<Shape> callback, in ShapeFilter? filter = null)
-        where T : IShape
+    public void Overlap(in ShapeProxy shapeProxy, Action<Shape> callback, in ShapeFilter? filter = null)
     {
-        var proxy = shape.MakeProxy().B2ShapeProxy;
+        var proxy = shapeProxy.B2ShapeProxy;
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
             Id,

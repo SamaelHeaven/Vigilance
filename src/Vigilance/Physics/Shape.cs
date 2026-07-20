@@ -122,6 +122,11 @@ public readonly record struct Shape : IShape
         };
     }
 
+    public static implicit operator ShapeProxy(in Shape shape)
+    {
+        return shape.MakeProxy();
+    }
+
     public bool TestPoint(Vector2 point)
     {
         return B2Shapes.b2Shape_TestPoint(_id, World.PixelsToMeters(point).B2Vec2);

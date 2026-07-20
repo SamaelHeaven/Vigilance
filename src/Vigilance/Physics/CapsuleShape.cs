@@ -22,6 +22,11 @@ public record struct CapsuleShape : IShape
         return new ShapeProxy { Points = [Center1, Center2], Radius = Radius };
     }
 
+    public static implicit operator ShapeProxy(in CapsuleShape shape)
+    {
+        return shape.MakeProxy();
+    }
+
     public static CapsuleShape Make(Vector2 center1, Vector2 center2, float radius)
     {
         return new CapsuleShape

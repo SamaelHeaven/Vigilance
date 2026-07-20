@@ -16,6 +16,11 @@ public record struct CircleShape : IShape
         return new ShapeProxy { Points = [Center], Radius = Radius };
     }
 
+    public static implicit operator ShapeProxy(in CircleShape shape)
+    {
+        return shape.MakeProxy();
+    }
+
     public static CircleShape Make(float radius)
     {
         return Make(Vector2.Zero, radius);
