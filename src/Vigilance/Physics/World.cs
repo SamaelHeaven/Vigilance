@@ -215,7 +215,7 @@ public sealed class World
             Id,
             in b2Aabb,
             in b2Filter,
-            static (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
+            (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
             callback
         );
     }
@@ -232,7 +232,7 @@ public sealed class World
             Id,
             in b2Aabb,
             in b2Filter,
-            static (id, ctx) =>
+            (id, ctx) =>
             {
                 ((Action<Shape>)ctx!)(new Shape(id));
                 return true;
