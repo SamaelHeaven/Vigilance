@@ -501,8 +501,8 @@ public sealed class World
         var (graphics, camera) = (DebugDrawContext)context;
         const float axisScale = 0.4f;
         var origin = MetersToPixels(new Vector2(transform.p));
-        graphics.DrawLine(origin, Transform(transform, new B2Vec2(axisScale, 0f)), Color.Red, camera: camera);
-        graphics.DrawLine(origin, Transform(transform, new B2Vec2(0f, axisScale)), Color.Green, camera: camera);
+        graphics.DrawLine(origin, Transform(transform, new B2Vec2(axisScale, 0f)), Color.Red500, camera: camera);
+        graphics.DrawLine(origin, Transform(transform, new B2Vec2(0f, axisScale)), Color.Green500, camera: camera);
     }
 
     private static void DrawPoint(in B2Vec2 p, float size, B2HexColor color, object context)
@@ -514,7 +514,7 @@ public sealed class World
     private static void DrawString(in B2Vec2 p, string s, B2HexColor color, object context)
     {
         var (graphics, camera) = (DebugDrawContext)context;
-        graphics.FillText(s, MetersToPixels(new Vector2(p)), ToColor(color), camera: camera);
+        graphics.FillText(s, MetersToPixels(new Vector2(p)), ToColor(color), fontSize: 8, camera: camera);
     }
 
     private void DispatchContactEvents()

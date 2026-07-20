@@ -19,8 +19,8 @@ public class UIScrollContainer : UIContainer
     public UIScrollContainer()
     {
         Overflow = Overflow.Hidden;
-        ScrollBarTrackFill = Color.DarkGray;
-        ScrollBarThumbFill = Color.Gray;
+        ScrollBarTrackFill = Color.Neutral700;
+        ScrollBarThumbFill = Color.Neutral400;
     }
 
     public Vector2 ChildrenLayoutSize { get; private set; }
