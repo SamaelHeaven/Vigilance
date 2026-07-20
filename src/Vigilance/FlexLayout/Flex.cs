@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Vigilance.Collections;
 using Vigilance.Core;
 using ZLinq;
 
@@ -101,31 +100,14 @@ public static partial class Flex
     internal static readonly Value ValueAuto = new(float.NaN, Unit.Auto);
     internal static int CurrentGenerationCount = 0;
 
-    internal static readonly InlineList<InlineArray4<Edge>, Edge> Leading =
-    [
-        Edge.Top,
-        Edge.Bottom,
-        Edge.Left,
-        Edge.Right,
-    ];
+    internal static ReadOnlySpan<Edge> Leading => [Edge.Top, Edge.Bottom, Edge.Left, Edge.Right];
 
-    internal static readonly InlineList<InlineArray4<Edge>, Edge> Trailing =
-    [
-        Edge.Bottom,
-        Edge.Top,
-        Edge.Right,
-        Edge.Left,
-    ];
+    internal static ReadOnlySpan<Edge> Trailing => [Edge.Bottom, Edge.Top, Edge.Right, Edge.Left];
 
-    internal static readonly InlineList<InlineArray4<Edge>, Edge> Pos = [Edge.Top, Edge.Bottom, Edge.Left, Edge.Right];
+    internal static ReadOnlySpan<Edge> Pos => [Edge.Top, Edge.Bottom, Edge.Left, Edge.Right];
 
-    internal static readonly InlineList<InlineArray4<Dimension>, Dimension> Dim =
-    [
-        Dimension.Height,
-        Dimension.Height,
-        Dimension.Width,
-        Dimension.Width,
-    ];
+    internal static ReadOnlySpan<Dimension> Dim =>
+        [Dimension.Height, Dimension.Height, Dimension.Width, Dimension.Width];
 
     internal static bool Feq(float a, float b)
     {

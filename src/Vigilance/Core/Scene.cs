@@ -9,7 +9,7 @@ using ZLinq;
 
 namespace Vigilance.Core;
 
-public sealed unsafe partial class Scene
+public sealed partial class Scene
 {
     private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
@@ -90,7 +90,7 @@ public sealed unsafe partial class Scene
 
     public GameSystemsFunc SystemsFunc { get; }
     public Camera Camera { get; } = new();
-    public World World => field ??= new World(this);
+    public World World => field ??= new World(new WorldDef { Scene = this, Internal = true });
     public bool IsConfigured { get; private set; }
     public bool IsInitialized { get; private set; }
     public bool IsStarted { get; private set; }
@@ -408,13 +408,13 @@ public sealed unsafe partial class Scene
     public void ThrowIfNotConfigured()
     {
         if (!IsConfigured)
-            throw new InvalidOperationException("Scene has not been configured.");
+            throw new InvalidOperationException($"{nameof(Scene)} has not been configured.");
     }
 
     public void ThrowIfConfigured()
     {
         if (IsConfigured)
-            throw new InvalidOperationException("Scene has been configured.");
+            throw new InvalidOperationException($"{nameof(Scene)} has been configured.");
     }
 
     public void BeginDefer()
@@ -425,7 +425,7 @@ public sealed unsafe partial class Scene
     public void EndDefer()
     {
         if (_deferredCount == 0)
-            throw new InvalidOperationException("Scene is not in a deferred state.");
+            throw new InvalidOperationException($"{nameof(Scene)} is not in a deferred state.");
         _deferredCount--;
         TryFlush();
     }
@@ -439,7 +439,7 @@ public sealed unsafe partial class Scene
     public void ResumeDefer()
     {
         if (_suspendStack.Count == 0)
-            throw new InvalidOperationException("Scene is not in a suspended state.");
+            throw new InvalidOperationException($"{nameof(Scene)} is not in a suspended state.");
         _deferredCount += _suspendStack.Pop();
     }
 
@@ -721,7 +721,7 @@ public sealed unsafe partial class Scene
 
     private void UpdateInterpolatedEntities()
     {
-        foreach (var entity in AssignableEntities<IInterpolated>())
+        foreach (var entity in AssignableEntities<IInterpolated>().WithDisabled())
         {
             ref var interpolation = ref InterpolationTable.GetRef(entity).Value;
             var transform = entity.Transform;
@@ -1475,11 +1475,13 @@ public sealed unsafe partial class Scene
         var parentEntity = new Entity(parentId, this);
         parentEntity.AssertValid();
         var parentRef = ParentTable.GetRef(parentEntity);
+        var parentChanged = false;
         if (parentRef.IsNull)
         {
             SuspendDefer();
-            parentRef = ParentTable.Set(parentEntity, new Parent(), Core.Table.Flags.ForceMutable);
+            parentRef = ParentTable.Set(parentEntity, default, Core.Table.Flags.ForceMutable);
             ResumeDefer();
+            parentChanged = true;
         }
 
         ref var parent = ref parentRef.Value;
@@ -1499,6 +1501,8 @@ public sealed unsafe partial class Scene
         }
 
         parent.LastChildId = childId;
+        if (parentChanged)
+            ParentTable.Emit(Core.Table.Event<Parent>.Set(parentEntity, default, parent));
     }
 
     private void OnSetChild(Entity entity, Child oldChild, Child newChild)

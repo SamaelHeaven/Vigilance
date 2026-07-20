@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using Box2D.NET;
-using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Logging;
@@ -13,13 +12,10 @@ public sealed class World
     public const float PixelsPerMeter = 50f;
     public const float PixelsToMeter = 1f / PixelsPerMeter;
     private static WorldConfig _config = new();
-    private static InlineList<InlineArray128<WeakReference<Scene>?>, WeakReference<Scene>?> _scenes = [];
-    private static InlineList<InlineArray128<WeakReference<World>>, WeakReference<World>> _worlds = [];
     private readonly TaskFactory? _taskFactory;
     private readonly int _workerCount;
     internal readonly B2WorldId Id;
     private bool _disposed;
-    private int _index;
     private Action<Shape, Shape>? _onContactBegin;
     private Action<Shape, Shape>? _onContactEnd;
     private Action<ContactHit>? _onContactHit;
@@ -28,19 +24,18 @@ public sealed class World
     private Action<Shape, Shape>? _onSensorEnd;
 
     public World()
-        : this(null) { }
+        : this(new WorldDef()) { }
 
-    public World(bool? multithreaded = null)
-        : this(null, multithreaded) { }
-
-    public World(Scene? scene = null, bool? multithreaded = null)
+    public World(in WorldDef def)
     {
-        Scene = scene!;
-        Multithreaded = (multithreaded ?? DefaultMultithreaded) && Platform.Desktop.IsCurrent;
-        _index = _worlds.Count;
-        var def = B2Types.b2DefaultWorldDef();
-        def.userData = new B2UserData(_index);
-        def.gravity = PixelsToMeters(DefaultGravity).B2Vec2;
+        Scene = def.Scene!;
+        Multithreaded = def.Multithreaded && Platform.Desktop.IsCurrent;
+        var worldRef = new WeakReference<World>(this);
+        var b2Def = B2Types.b2DefaultWorldDef();
+        b2Def.userData = new B2UserData(
+            def.Scene is null || !def.Internal ? worldRef : new WeakReference<Scene>(def.Scene)
+        );
+        b2Def.gravity = PixelsToMeters(def.Gravity).B2Vec2;
         if (Multithreaded)
         {
             _taskFactory = new TaskFactory(
@@ -50,21 +45,17 @@ public sealed class World
                 TaskScheduler.Default
             );
             _workerCount = Environment.ProcessorCount;
-            def.workerCount = _workerCount;
-            def.enqueueTask = EnqueueTask;
-            def.finishTask = FinishTask;
+            b2Def.workerCount = _workerCount;
+            b2Def.enqueueTask = EnqueueTask;
+            b2Def.finishTask = FinishTask;
         }
 
-        Id = B2Worlds.b2CreateWorld(def);
-        var worldRef = new WeakReference<World>(this);
-        _worlds.Add(worldRef);
-        _scenes.Add(scene is null ? null : new WeakReference<Scene>(scene));
+        Id = B2Worlds.b2CreateWorld(b2Def);
         B2Worlds.b2World_SetCustomFilterCallback(Id, FilterCallback, worldRef);
     }
 
     public static Vector2 DefaultGravity { get; set; } = _config.DefaultGravity;
-
-    public bool DefaultMultithreaded { get; set; } = _config.DefaultMultithreaded;
+    public static bool DefaultMultithreaded { get; set; } = _config.DefaultMultithreaded;
 
     public Scene Scene { get; private set; }
 
@@ -87,21 +78,6 @@ public sealed class World
         if (_disposed)
             return;
         _disposed = true;
-        var last = _worlds.Count - 1;
-        if (_index != last)
-        {
-            var lastWorld = _worlds[last];
-            _worlds[_index] = lastWorld;
-            _scenes[_index] = _scenes[last];
-            if (lastWorld.TryGetTarget(out var world))
-            {
-                world._index = _index;
-                B2Worlds.b2World_SetUserData(world.Id, new B2UserData(_index));
-            }
-        }
-
-        _worlds.RemoveAt(last);
-        _scenes.RemoveAt(last);
         Scene = null!;
         _onFilter = null;
         _onContactBegin = null;
@@ -114,26 +90,25 @@ public sealed class World
 
     internal static World? GetWorld(B2WorldId worldId)
     {
-        var index = (int)B2Worlds.b2World_GetUserData(worldId).iValue;
-        if ((uint)index >= (uint)_worlds.Count)
-            return null;
-        var worldRef = _worlds[index];
-        return worldRef.TryGetTarget(out var world) ? world : null;
+        var value = B2Worlds.b2World_GetUserData(worldId).oValue;
+        if (value is WeakReference<Scene> sceneRef)
+            return sceneRef.TryGetTarget(out var scene) ? scene.World : null;
+        return ((WeakReference<World>)value).TryGetTarget(out var world) ? world : null;
     }
 
     internal static Scene? GetScene(B2WorldId worldId)
     {
-        var index = (int)B2Worlds.b2World_GetUserData(worldId).iValue;
-        if ((uint)index >= (uint)_scenes.Count)
-            return null;
-        var sceneRef = _scenes[index];
-        return sceneRef is not null && sceneRef.TryGetTarget(out var world) ? world : null;
+        var value = B2Worlds.b2World_GetUserData(worldId).oValue;
+        if (value is WeakReference<Scene> sceneRef)
+            return sceneRef.TryGetTarget(out var scene) ? scene : null;
+        return ((WeakReference<World>)value).TryGetTarget(out var world) ? world.Scene : null;
     }
 
     internal static void Initialize()
     {
         _config = Game.Config.Take<WorldConfig>() ?? _config;
         DefaultGravity = _config.DefaultGravity;
+        DefaultMultithreaded = _config.DefaultMultithreaded;
     }
 
     public void OnFilter(Func<Shape, Shape, bool> func)

@@ -23,6 +23,7 @@ public static class Initializers
         InitializeGC();
         InitializeCultureInfo();
         InitializeRaylib();
+        Game.Initialize();
         Game.Defer(() =>
         {
             Hooks.Initialize();

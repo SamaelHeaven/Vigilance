@@ -1722,12 +1722,12 @@ public abstract class UIElement : IFullCloneable
 
         public bool Equals(ImmediateEntry x, ImmediateEntry y)
         {
-            return x.Line == y.Line && x.Type == y.Type && x.Key == y.Key && ReferenceEquals(x.File, y.File);
+            return x.Type == y.Type && x.Key == y.Key && ReferenceEquals(x.File, y.File) && x.Line == y.Line;
         }
 
         public int GetHashCode(ImmediateEntry obj)
         {
-            return HashCode.Combine(obj.Line, obj.Type, obj.Key, RuntimeHelpers.GetHashCode(obj.File));
+            return HashCode.Combine(obj.Key, obj.Type, RuntimeHelpers.GetHashCode(obj.File), obj.Line);
         }
     }
 
@@ -1737,12 +1737,12 @@ public abstract class UIElement : IFullCloneable
 
         public bool Equals(ImmediateCounter x, ImmediateCounter y)
         {
-            return x.Line == y.Line && x.Type == y.Type && ReferenceEquals(x.File, y.File);
+            return x.Type == y.Type && ReferenceEquals(x.File, y.File) && x.Line == y.Line;
         }
 
         public int GetHashCode(ImmediateCounter obj)
         {
-            return HashCode.Combine(obj.Line, obj.Type, RuntimeHelpers.GetHashCode(obj.File));
+            return HashCode.Combine(obj.Type, RuntimeHelpers.GetHashCode(obj.File), obj.Line);
         }
     }
 

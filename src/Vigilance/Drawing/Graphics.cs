@@ -23,7 +23,7 @@ public sealed unsafe class Graphics
     private Box? _clip = null;
     private bool _culling = Drawing.DefaultCulling;
     private bool _drawing = false;
-    private ValueStack<Matrix3x2> _matrices = new();
+    private ValueStack<Matrix3x2> _matrices = [];
     private Matrix3x2 _matrix = Matrix3x2.Identity;
     private Shader _shader = Drawing.DefaultShader;
     private ShapeTexture? _shapesTexture = null;

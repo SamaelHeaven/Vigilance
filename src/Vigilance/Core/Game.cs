@@ -16,6 +16,9 @@ public static unsafe class Game
     private static readonly ConcurrentStack<Action> _actions = [];
     private static bool _exit;
     private static Scene _scene = null!;
+    private static int _threadId;
+
+    public static bool IsGameThread => Environment.CurrentManagedThreadId == _threadId;
 
     public static Scene Scene
     {
@@ -55,13 +58,13 @@ public static unsafe class Game
     public static void ThrowIfNotRunning()
     {
         if (!Running)
-            throw new InvalidOperationException("Game is not running.");
+            throw new InvalidOperationException($"{nameof(Game)} is not running.");
     }
 
     public static void ThrowIfRunning()
     {
         if (Running)
-            throw new InvalidOperationException("Game is already running.");
+            throw new InvalidOperationException($"{nameof(Game)} is already running.");
     }
 
     public static void Defer(Action action)
@@ -72,6 +75,10 @@ public static unsafe class Game
     public static void Launch(Config config, Scene scene)
     {
         ThrowIfRunning();
+        if (!IsGameThread)
+            throw new InvalidOperationException(
+                $"{nameof(Game)}.{nameof(Launch)} must be called from the same thread as the engine module initializer."
+            );
         Running = true;
         Config = config;
         _scene = scene;
@@ -90,6 +97,11 @@ public static unsafe class Game
     {
         ThrowIfNotRunning();
         _exit = true;
+    }
+
+    internal static void Initialize()
+    {
+        _threadId = Environment.CurrentManagedThreadId;
     }
 
     private static void Loop()

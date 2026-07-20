@@ -22,8 +22,8 @@ public sealed unsafe class ObjectPool<
 
     static ObjectPool()
     {
-        var constructor = typeof(T).GetConstructor(BindingFlags.Instance | BindingFlags.Public, [])!;
-        _constructor = (delegate* <T, void>)constructor.MethodHandle.GetFunctionPointer();
+        var constructor = typeof(T).GetConstructor(BindingFlags.Instance | BindingFlags.Public, []);
+        _constructor = constructor is null ? null : (delegate* <T, void>)constructor.MethodHandle.GetFunctionPointer();
     }
 
     public static ObjectPool<T> Shared => _shared ??= new ObjectPool<T>();
@@ -40,7 +40,8 @@ public sealed unsafe class ObjectPool<
     {
         if (!_pool.TryPop(out var item))
             return new T();
-        _constructor(item);
+        if (_constructor is not null)
+            _constructor(item);
         return item;
     }
 
@@ -49,8 +50,8 @@ public sealed unsafe class ObjectPool<
         Debug.Assert(item is not null);
         if ((T?)item is null)
             return;
-        Object<T>.Clear(item);
-        _pool.Push(item);
+        if (Object<T>.Clear(item))
+            _pool.Push(item);
     }
 
     public Handle Borrow()
@@ -61,7 +62,11 @@ public sealed unsafe class ObjectPool<
     public void Clear()
     {
         _pool.Clear();
-        _pool.Capacity = 0;
+    }
+
+    public void EnsureCapacity(int capacity)
+    {
+        _pool.EnsureCapacity(capacity);
     }
 
     public void TrimExcess()

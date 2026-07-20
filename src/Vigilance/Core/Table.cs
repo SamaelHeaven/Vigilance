@@ -52,6 +52,10 @@ public abstract class Table
 
     public abstract ValueListView<ulong> EntityIds { get; }
 
+    public abstract void TrimExcess();
+
+    public abstract void EnsureCapacity(int capacity);
+
     public abstract bool Has(in Entity entity);
 
     public abstract object Get(int index);
@@ -74,6 +78,7 @@ public abstract class Table
     {
         public Event(EventType type, in Entity entity, T oldValue, T newValue)
         {
+            entity.AssertValid();
             Entity = entity;
             OldValue = oldValue;
             NewValue = newValue;
@@ -205,6 +210,21 @@ public sealed class Table<T>
         return new StructEnumerator<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
     }
 
+    public override void TrimExcess()
+    {
+        _components.TrimExcess();
+        _entityIds.TrimExcess();
+        _sparseChunks.TrimExcess();
+        _events.TrimExcess();
+        _operations.TrimExcess();
+    }
+
+    public override void EnsureCapacity(int capacity)
+    {
+        _components.EnsureCapacity(capacity);
+        _entityIds.EnsureCapacity(capacity);
+    }
+
     public ValueEnumerable<Enumerator, KeyValuePair<Entity, T>> AsValueEnumerable()
     {
         return new ValueEnumerable<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
@@ -259,6 +279,7 @@ public sealed class Table<T>
 
     public override bool Has(in Entity entity)
     {
+        entity.AssertValid();
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -277,12 +298,14 @@ public sealed class Table<T>
 
     public override object Get(in Entity entity)
     {
+        entity.AssertValid();
         var value = GetRef(in entity);
         return (value.IsNull ? null : value.Read)!;
     }
 
     public override bool TryGet(in Entity entity, out object component)
     {
+        entity.AssertValid();
         var value = GetRef(in entity);
         component = (value.IsNull ? null : value.Read)!;
         return !value.IsNull;
@@ -290,6 +313,7 @@ public sealed class Table<T>
 
     public bool TryGet(in Entity entity, out T component)
     {
+        entity.AssertValid();
         var value = GetRef(in entity);
         if (value.IsNull)
         {
@@ -301,18 +325,28 @@ public sealed class Table<T>
         return true;
     }
 
+    public bool TryGetRef(scoped in Entity entity, out ComponentRef<T> componentRef)
+    {
+        entity.AssertValid();
+        componentRef = GetRef(in entity);
+        return !componentRef.IsNull;
+    }
+
     public override void Set(in Entity entity, object component, Flags flags = Flags.None)
     {
+        entity.AssertValid();
         Set(entity, (T)component, flags);
     }
 
     public override bool Remove(in Entity entity, Flags flags = Flags.None)
     {
+        entity.AssertValid();
         return Remove(entity, out _, flags);
     }
 
     public override bool Remove(in Entity entity, out object component, Flags flags = Flags.None)
     {
+        entity.AssertValid();
         var result = Remove(entity, out var value, flags);
         component = result ? value! : null!;
         return result;
@@ -320,6 +354,7 @@ public sealed class Table<T>
 
     public bool Remove(in Entity entity, out T component, Flags flags = Flags.None)
     {
+        entity.AssertValid();
         Unsafe.SkipInit(out component);
         if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
             if ((flags & Flags.SilentOnImmutable) != 0)
@@ -374,6 +409,7 @@ public sealed class Table<T>
 
     public ComponentRef<T> GetRef(scoped in Entity entity)
     {
+        entity.AssertValid();
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return ComponentRef<T>.Null;
@@ -390,6 +426,7 @@ public sealed class Table<T>
 
     public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.None)
     {
+        entity.AssertValid();
         if (SetImmutable && AddImmutable && (flags & Flags.ForceMutable) == 0)
             if ((flags & Flags.SilentOnImmutable) != 0)
                 return ComponentRef<T>.Null;

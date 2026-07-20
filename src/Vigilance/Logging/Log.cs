@@ -78,9 +78,7 @@ public static unsafe partial class Log
             return;
         lock (_logLock)
         {
-            var message = value is Exception e
-                ? $"{e.GetType()}: {e.Message}{(e.StackTrace is null ? "" : $"\n{e.StackTrace}")}"
-                : value?.ToString() ?? "";
+            var message = value is Exception e ? e.DetailedString : value?.ToString() ?? "";
             if (_logger is null)
             {
                 if (level is > LogLevel.All and < LogLevel.None)
@@ -93,7 +91,15 @@ public static unsafe partial class Log
             }
             else
             {
-                _logger.Log(level, message);
+                try
+                {
+                    _logger.Log(level, message);
+                }
+                catch (Exception ex)
+                {
+                    Console.Write("ERROR: ");
+                    Console.WriteLine(ex.DetailedString);
+                }
             }
 
             if (level == LogLevel.Fatal)

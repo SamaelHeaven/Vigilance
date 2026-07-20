@@ -11,6 +11,12 @@ public sealed class SpriteBatchSystem : GameSystem
 {
     private ValueDictionary<SpriteBatch, ValueSparseSet<ulong, SpriteInstance, SpriteBatch>> _batches = [];
     private ValueSparseSet<ulong, byte, ValueList<byte>> _moving = new([], Entity.GetIndex);
+    private Table<BatchedSprite> _table = null!;
+
+    public override void Initialize()
+    {
+        _table = Scene.Table<BatchedSprite>();
+    }
 
     public override void Configure()
     {
@@ -28,7 +34,7 @@ public sealed class SpriteBatchSystem : GameSystem
         {
             var (entityId, _) = _moving[i];
             var entity = new Entity(entityId, Scene);
-            if (entity.IsValid && entity.TryGet(out BatchedSprite sprite))
+            if (entity.IsValid && _table.TryGet(entity, out var sprite))
                 UpdateSprite(entity, sprite);
             else
                 _moving.Remove(entityId);
@@ -47,7 +53,7 @@ public sealed class SpriteBatchSystem : GameSystem
 
     private void Track(in Entity entity, bool moving)
     {
-        if (!entity.TryGet(out BatchedSprite sprite))
+        if (!_table.TryGet(entity, out var sprite))
             return;
         UpdateSprite(entity, sprite);
         if (moving)
@@ -58,7 +64,7 @@ public sealed class SpriteBatchSystem : GameSystem
 
     private void TryUpdateSprite(Entity entity)
     {
-        if (entity.TryGet(out BatchedSprite sprite))
+        if (_table.TryGet(entity, out var sprite))
             UpdateSprite(entity, sprite);
         if (!entity.IsParent)
             return;

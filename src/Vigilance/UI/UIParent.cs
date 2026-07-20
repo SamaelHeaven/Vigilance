@@ -44,6 +44,8 @@ public abstract class UIParent : UIElement
     {
         get
         {
+            if (elements.TryGetNonEnumeratedCount(out var count))
+                _children.EnsureCapacity(_children.Count + count);
             foreach (var element in elements)
                 Add(element);
             return this;
@@ -209,7 +211,7 @@ public abstract class UIParent : UIElement
         var old = snapshot.AsSpan(0, _reconcileSnapshotCount);
         var changed = current.Length != old.Length;
         for (var i = 0; !changed && i < current.Length; i++)
-            if (!ReferenceEquals(current[i], old[i]))
+            if (current[i] != old[i])
                 changed = true;
         if (changed)
             MarkDirty();
