@@ -13,13 +13,9 @@ public sealed class SpriteBatchSystem : GameSystem
     private ValueSparseSet<ulong, byte, ValueList<byte>> _moving = new([], Entity.GetIndex);
     private Table<BatchedSprite> _table = null!;
 
-    public override void Initialize()
-    {
-        _table = Scene.Table<BatchedSprite>();
-    }
-
     public override void Configure()
     {
+        _table = Scene.Table<BatchedSprite>();
         Scene.OnAdd<BatchedSprite>(UpdateSprite);
         Scene.OnSet<BatchedSprite>(SetSprite);
         Scene.OnRemove<BatchedSprite>(RemoveSprite);
