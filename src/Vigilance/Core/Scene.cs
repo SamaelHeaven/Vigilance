@@ -9,7 +9,7 @@ using ZLinq;
 
 namespace Vigilance.Core;
 
-public sealed partial class Scene
+public sealed unsafe partial class Scene
 {
     private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
