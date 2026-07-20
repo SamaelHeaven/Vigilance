@@ -255,10 +255,10 @@ public sealed class World
         );
     }
 
-    public void Overlap<T>(in T polygon, Action<Shape> callback, in ShapeFilter? filter = null)
+    public void Overlap<T>(in T shape, Action<Shape> callback, in ShapeFilter? filter = null)
         where T : IShape
     {
-        var proxy = polygon.MakeProxy().B2ShapeProxy;
+        var proxy = shape.MakeProxy().B2ShapeProxy;
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
             Id,
