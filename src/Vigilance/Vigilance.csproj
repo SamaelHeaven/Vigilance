@@ -14,17 +14,13 @@
     <IsAotCompatible>true</IsAotCompatible>
     <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
     <LibsPath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..\..\libs\'))</LibsPath>
+    <LangVersion Condition="'$(TargetFramework)' == 'net10.0'">14.0</LangVersion>
+    <LangVersion Condition="'$(TargetFramework)' == 'net11.0'">preview</LangVersion>
     <DefineConstants Condition="'$(Configuration)' == 'Debug'">$(DefineConstants);VIGILANCE_ASSERTS</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(VigilanceDebug)' == 'true'">
     <PackageId>Vigilance.Debug</PackageId>
     <DefineConstants>$(DefineConstants);VIGILANCE_ASSERTS</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <LangVersion>14.0</LangVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'">
-    <LangVersion>preview</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Box2D.NET" Version="3.1.654" />
