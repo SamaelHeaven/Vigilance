@@ -7,42 +7,57 @@ namespace Vigilance.Core;
 public static class EnumExtensions<T>
     where T : struct, Enum
 {
-    private static readonly T[] _values;
-    private static readonly string[] _names;
-    private static readonly ValueDictionary<string, T> _valuesByName;
-    private static readonly ValueDictionary<T, string> _namesByValue;
-
-    static EnumExtensions()
-    {
-        _values = Enum.GetValues<T>();
-        _names = Enum.GetNames<T>();
-        _valuesByName = new ValueDictionary<string, T>(_values.Length);
-        _namesByValue = new ValueDictionary<T, string>(_values.Length);
-        for (var i = 0; i < _values.Length; i++)
-        {
-            _valuesByName.Add(_names[i], _values[i]);
-            _namesByValue.Add(_values[i], _names[i]);
-        }
-    }
+    private static T[]? _values;
+    private static string[]? _names;
+    private static ValueDictionary<string, T> _valuesByName;
+    private static bool _hasValuesByName;
+    private static ValueDictionary<T, string> _namesByValue;
+    private static bool _hasNamesByValue;
 
     public static ArrayView<T> Values()
     {
-        return _values;
+        if (_values is not null)
+            return _values;
+        var values = Enum.GetValues<T>();
+        _values = values;
+        return values;
     }
 
     public static ArrayView<string> Names()
     {
+        if (_names is not null)
+            return _names;
+        var names = Enum.GetNames<T>();
+        _names = names;
         return _names;
     }
 
     public static ValueDictionaryView<string, T>.Enumerable ValuesByName()
     {
-        return _valuesByName.AsView().AsEnumerable();
+        if (Volatile.Read(ref _hasValuesByName))
+            return _valuesByName.AsView().AsEnumerable();
+        var values = Values();
+        var names = Names();
+        var valuesByName = new ValueDictionary<string, T>(values.Count);
+        for (var i = 0; i < values.Count; i++)
+            valuesByName.Add(names[i], values[i]);
+        _valuesByName = valuesByName;
+        Volatile.Write(ref _hasValuesByName, true);
+        return valuesByName.AsView().AsEnumerable();
     }
 
     public static ValueDictionaryView<T, string>.Enumerable NamesByValue()
     {
-        return _namesByValue.AsView().AsEnumerable();
+        if (Volatile.Read(ref _hasNamesByValue))
+            return _namesByValue.AsView().AsEnumerable();
+        var values = Values();
+        var names = Names();
+        var namesByValue = new ValueDictionary<T, string>(values.Count);
+        for (var i = 0; i < values.Count; i++)
+            namesByValue.Add(values[i], names[i]);
+        _namesByValue = namesByValue;
+        Volatile.Write(ref _hasNamesByValue, true);
+        return namesByValue.AsView().AsEnumerable();
     }
 }
 
