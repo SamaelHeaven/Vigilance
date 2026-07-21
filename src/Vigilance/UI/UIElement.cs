@@ -188,6 +188,8 @@ public abstract class UIElement : IFullCloneable
 
     public bool IsDisabled { get; set; }
 
+    public bool IsPersistent { get; set; }
+
     public bool IsVisible
     {
         get
@@ -833,10 +835,15 @@ public abstract class UIElement : IFullCloneable
         }
     }
 
-    public void DetachAll()
+    public void DetachAll(bool keepPersistent = false)
     {
-        using var pool = _components.AsValueEnumerable().ToArrayPool();
-        _components.Clear();
+        using var pool = keepPersistent
+            ? _components.AsValueEnumerable().Where(component => !component.IsPersistant).ToArrayPool()
+            : _components.AsValueEnumerable().ToArrayPool();
+        if (keepPersistent)
+            _components.RemoveAll(component => !component.IsPersistant);
+        else
+            _components.Clear();
         foreach (var component in pool.Span)
             try
             {
@@ -899,7 +906,14 @@ public abstract class UIElement : IFullCloneable
             out var exists
         );
         if (!exists)
-            entryRef.Value = factory.Invoke()!;
+        {
+            var newEntry = factory.Invoke()!;
+            entryRef.Value = newEntry;
+            if (newEntry is UIParent { IsPersistent: true } parent)
+                foreach (var child in parent.Children())
+                    child.IsPersistent = true;
+        }
+
         entryRef.Generation = _immediateGeneration;
         var entry = (T)entryRef.Value;
         switch (entry)
@@ -909,13 +923,13 @@ public abstract class UIElement : IFullCloneable
                 if (!element.IsImmediate)
                 {
                     element.ImmediateCounters.Clear();
-                    element.DetachAll();
+                    element.DetachAll(keepPersistent: true);
                     if (element is UIParent parent)
                     {
                         if (ReconcileSession.Current is { } session)
                             parent.BeginReconcile(session);
                         else
-                            parent.Clear();
+                            parent.Clear(keepPersistent: true);
                     }
                 }
 
@@ -1210,7 +1224,7 @@ public abstract class UIElement : IFullCloneable
         ImmediateCounters.Clear();
         foreach (var element in this.DescendantsAndSelf())
             element._immediateGeneration++;
-        DetachAll();
+        DetachAll(keepPersistent: true);
         var session = ReconcileSession.Begin();
         try
         {
