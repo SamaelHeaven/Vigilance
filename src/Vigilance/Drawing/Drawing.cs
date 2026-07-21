@@ -87,7 +87,7 @@ public sealed class DrawingConfig
     public bool DefaultCulling { get; set; } = false;
     public BlendMode DefaultBlendMode { get; set; } = BlendMode.Alpha;
     public Func<Shader> DefaultShader { get; set; } = () => Shader.Default;
-    public float SegmentsErrorRate { get; set; } = 0.25f;
+    public float SegmentsErrorRate { get; set; } = 0.5f;
     public TimeSpan RenderTexturePoolLifetime { get; set; } = TimeSpan.FromSeconds(5);
     public int RenderTexturePoolRoundUpToMultipleOf { get; set; } = 128;
 }

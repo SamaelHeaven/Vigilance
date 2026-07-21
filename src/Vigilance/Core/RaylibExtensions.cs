@@ -18,24 +18,25 @@ public static class RaylibExtensions
             if (lineThick < 0)
                 lineThick = 0;
 
-            // Not a rounded rectangle
-            if (roundness <= 0.0f)
+            switch (roundness)
             {
-                Raylib.DrawRectangleLinesEx(
-                    new Rectangle(
-                        rec.X - lineThick,
-                        rec.Y - lineThick,
-                        rec.Width + 2 * lineThick,
-                        rec.Height + 2 * lineThick
-                    ),
-                    lineThick,
-                    color
-                );
-                return;
+                // Not a rounded rectangle
+                case <= 0.0f:
+                    Raylib.DrawRectangleLinesEx(
+                        new Rectangle(
+                            rec.X - lineThick,
+                            rec.Y - lineThick,
+                            rec.Width + 2 * lineThick,
+                            rec.Height + 2 * lineThick
+                        ),
+                        lineThick,
+                        color
+                    );
+                    return;
+                case >= 1.0f:
+                    roundness = 1.0f;
+                    break;
             }
-
-            if (roundness >= 1.0f)
-                roundness = 1.0f;
 
             // Calculate corner radius
             var radius = rec.Width > rec.Height ? rec.Height * roundness / 2 : rec.Width * roundness / 2;
@@ -55,7 +56,6 @@ public static class RaylibExtensions
 
             var stepLength = 90.0f / segments;
             var outerRadius = radius + lineThick;
-            var innerRadius = radius;
 
             /*
             Quick sketch to make sense of all of this,
@@ -73,35 +73,35 @@ public static class RaylibExtensions
                   \\ P13              P12 //
                    P5 ================== P4
             */
-            var point = new Vector2[]
-            {
-                new(rec.X + innerRadius + 0.5f, rec.Y - lineThick + 0.5f),
-                new(rec.X + rec.Width - innerRadius - 0.5f, rec.Y - lineThick + 0.5f),
-                new(rec.X + rec.Width + lineThick - 0.5f, rec.Y + innerRadius + 0.5f), // P0, P1, P2
-                new(rec.X + rec.Width + lineThick - 0.5f, rec.Y + rec.Height - innerRadius - 0.5f),
-                new(rec.X + rec.Width - innerRadius - 0.5f, rec.Y + rec.Height + lineThick - 0.5f), // P3, P4
-                new(rec.X + innerRadius + 0.5f, rec.Y + rec.Height + lineThick - 0.5f),
-                new(rec.X - lineThick + 0.5f, rec.Y + rec.Height - innerRadius - 0.5f),
-                new(rec.X - lineThick + 0.5f, rec.Y + innerRadius + 0.5f), // P5, P6, P7
-                new(rec.X + innerRadius + 0.5f, rec.Y + 0.5f),
-                new(rec.X + rec.Width - innerRadius - 0.5f, rec.Y + 0.5f), // P8, P9
-                new(rec.X + rec.Width - 0.5f, rec.Y + innerRadius + 0.5f),
-                new(rec.X + rec.Width - 0.5f, rec.Y + rec.Height - innerRadius - 0.5f), // P10, P11
-                new(rec.X + rec.Width - innerRadius - 0.5f, rec.Y + rec.Height - 0.5f),
-                new(rec.X + innerRadius + 0.5f, rec.Y + rec.Height - 0.5f), // P12, P13
-                new(rec.X + 0.5f, rec.Y + rec.Height - innerRadius - 0.5f),
-                new(rec.X + 0.5f, rec.Y + innerRadius + 0.5f), // P14, P15
-            };
+            ReadOnlySpan<Vector2> point =
+            [
+                new(rec.X + radius + 0.5f, rec.Y - lineThick + 0.5f),
+                new(rec.X + rec.Width - radius - 0.5f, rec.Y - lineThick + 0.5f),
+                new(rec.X + rec.Width + lineThick - 0.5f, rec.Y + radius + 0.5f), // P0, P1, P2
+                new(rec.X + rec.Width + lineThick - 0.5f, rec.Y + rec.Height - radius - 0.5f),
+                new(rec.X + rec.Width - radius - 0.5f, rec.Y + rec.Height + lineThick - 0.5f), // P3, P4
+                new(rec.X + radius + 0.5f, rec.Y + rec.Height + lineThick - 0.5f),
+                new(rec.X - lineThick + 0.5f, rec.Y + rec.Height - radius - 0.5f),
+                new(rec.X - lineThick + 0.5f, rec.Y + radius + 0.5f), // P5, P6, P7
+                new(rec.X + radius + 0.5f, rec.Y + 0.5f),
+                new(rec.X + rec.Width - radius - 0.5f, rec.Y + 0.5f), // P8, P9
+                new(rec.X + rec.Width - 0.5f, rec.Y + radius + 0.5f),
+                new(rec.X + rec.Width - 0.5f, rec.Y + rec.Height - radius - 0.5f), // P10, P11
+                new(rec.X + rec.Width - radius - 0.5f, rec.Y + rec.Height - 0.5f),
+                new(rec.X + radius + 0.5f, rec.Y + rec.Height - 0.5f), // P12, P13
+                new(rec.X + 0.5f, rec.Y + rec.Height - radius - 0.5f),
+                new(rec.X + 0.5f, rec.Y + radius + 0.5f), // P14, P15
+            ];
 
-            var centers = new Vector2[]
-            {
-                new(rec.X + innerRadius + 0.5f, rec.Y + innerRadius + 0.5f),
-                new(rec.X + rec.Width - innerRadius - 0.5f, rec.Y + innerRadius + 0.5f), // P16, P17
-                new(rec.X + rec.Width - innerRadius - 0.5f, rec.Y + rec.Height - innerRadius - 0.5f),
-                new(rec.X + innerRadius + 0.5f, rec.Y + rec.Height - innerRadius - 0.5f), // P18, P19
-            };
+            ReadOnlySpan<Vector2> centers =
+            [
+                new(rec.X + radius + 0.5f, rec.Y + radius + 0.5f),
+                new(rec.X + rec.Width - radius - 0.5f, rec.Y + radius + 0.5f), // P16, P17
+                new(rec.X + rec.Width - radius - 0.5f, rec.Y + rec.Height - radius - 0.5f),
+                new(rec.X + radius + 0.5f, rec.Y + rec.Height - radius - 0.5f), // P18, P19
+            ];
 
-            var angles = new[] { 180.0f, 270.0f, 0.0f, 90.0f };
+            ReadOnlySpan<float> angles = [180.0f, 270.0f, 0.0f, 90.0f];
 
             var texShapes = Raylib.GetShapesTexture();
             Rlgl.SetTexture(Raylib.GetShapesTexture().Id);
@@ -120,14 +120,14 @@ public static class RaylibExtensions
 
                     Rlgl.TexCoord2f(shapeRect.X / texShapes.Width, shapeRect.Y / texShapes.Height);
                     Rlgl.Vertex2f(
-                        center.X + MathF.Cos(MathF.PI / 180 * angle) * innerRadius,
-                        center.Y + MathF.Sin(MathF.PI / 180 * angle) * innerRadius
+                        center.X + MathF.Cos(MathF.PI / 180 * angle) * radius,
+                        center.Y + MathF.Sin(MathF.PI / 180 * angle) * radius
                     );
 
                     Rlgl.TexCoord2f((shapeRect.X + shapeRect.Width) / texShapes.Width, shapeRect.Y / texShapes.Height);
                     Rlgl.Vertex2f(
-                        center.X + MathF.Cos(MathF.PI / 180 * (angle + stepLength)) * innerRadius,
-                        center.Y + MathF.Sin(MathF.PI / 180 * (angle + stepLength)) * innerRadius
+                        center.X + MathF.Cos(MathF.PI / 180 * (angle + stepLength)) * radius,
+                        center.Y + MathF.Sin(MathF.PI / 180 * (angle + stepLength)) * radius
                     );
 
                     Rlgl.TexCoord2f(
@@ -221,12 +221,12 @@ public static class RaylibExtensions
                     Rlgl.Color4ub(color.R, color.G, color.B, color.A);
 
                     Rlgl.Vertex2f(
-                        center.X + MathF.Cos(MathF.PI / 180 * angle) * innerRadius,
-                        center.Y + MathF.Sin(MathF.PI / 180 * angle) * innerRadius
+                        center.X + MathF.Cos(MathF.PI / 180 * angle) * radius,
+                        center.Y + MathF.Sin(MathF.PI / 180 * angle) * radius
                     );
                     Rlgl.Vertex2f(
-                        center.X + MathF.Cos(MathF.PI / 180 * (angle + stepLength)) * innerRadius,
-                        center.Y + MathF.Sin(MathF.PI / 180 * (angle + stepLength)) * innerRadius
+                        center.X + MathF.Cos(MathF.PI / 180 * (angle + stepLength)) * radius,
+                        center.Y + MathF.Sin(MathF.PI / 180 * (angle + stepLength)) * radius
                     );
                     Rlgl.Vertex2f(
                         center.X + MathF.Cos(MathF.PI / 180 * angle) * outerRadius,
@@ -234,8 +234,8 @@ public static class RaylibExtensions
                     );
 
                     Rlgl.Vertex2f(
-                        center.X + MathF.Cos(MathF.PI / 180 * (angle + stepLength)) * innerRadius,
-                        center.Y + MathF.Sin(MathF.PI / 180 * (angle + stepLength)) * innerRadius
+                        center.X + MathF.Cos(MathF.PI / 180 * (angle + stepLength)) * radius,
+                        center.Y + MathF.Sin(MathF.PI / 180 * (angle + stepLength)) * radius
                     );
                     Rlgl.Vertex2f(
                         center.X + MathF.Cos(MathF.PI / 180 * (angle + stepLength)) * outerRadius,

@@ -155,7 +155,7 @@ public static class RectangleExtensions
             )
                 return;
             var minSize = size.Abs().Min();
-            segments = Drawing.CalculateSegments(minSize, 0, 90, segments);
+            segments = Drawing.CalculateSegments(minSize * 0.5f, 0, 90, segments.Min(4));
             graphics.BeginDrawing(camera);
             Raylib.DrawRectangleRounded(
                 new Raylib_cs.Rectangle(position, size),
@@ -223,7 +223,7 @@ public static class RectangleExtensions
             position += strokeWidthValue;
             size -= strokeWidthValue * 2;
             var minSize = size.Abs().Min();
-            segments = Drawing.CalculateSegments(minSize, 0, 90, segments);
+            segments = Drawing.CalculateSegments(minSize * 0.5f, 0, 90, segments.Min(4));
             radiusValue = radiusValue <= 0 ? 0 : radiusValue / minSize;
             graphics.BeginDrawing(camera);
             if (strokeWidthValue > 1f)
