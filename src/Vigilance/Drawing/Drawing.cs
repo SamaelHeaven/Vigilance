@@ -36,7 +36,13 @@ public static class Drawing
 
     public static int RenderTexturePoolRoundUpToMultipleOf { get; set; } = _config.RenderTexturePoolRoundUpToMultipleOf;
 
-    public static int CalculateSegments(float radius, float startAngle, float endAngle, int segments)
+    public static int CalculateSegments(
+        float radius,
+        float startAngle,
+        float endAngle,
+        int segments,
+        float? errorRate = null
+    )
     {
         if (radius <= 0)
             radius = 0.1f;
@@ -45,7 +51,7 @@ public static class Drawing
         var minSegments = (int)MathF.Ceiling((endAngle - startAngle) / 90f);
         if (segments >= minSegments)
             return segments;
-        var th = MathF.Acos(2f * MathF.Pow(1f - SegmentsErrorRate / radius, 2f) - 1f);
+        var th = MathF.Acos(2f * MathF.Pow(1f - (errorRate ?? SegmentsErrorRate) / radius, 2f) - 1f);
         segments = (int)MathF.Ceiling((endAngle - startAngle) * (2f * MathF.PI / th) / 360f);
         if (segments <= 0)
             segments = minSegments;
