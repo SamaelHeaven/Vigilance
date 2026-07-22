@@ -2,7 +2,7 @@ using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
-public readonly struct ShapeTexture
+public readonly record struct ShapeTexture
 {
     public ShapeTexture(Texture texture)
         : this(texture, null) { }

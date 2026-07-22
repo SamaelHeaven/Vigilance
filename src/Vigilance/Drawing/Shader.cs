@@ -354,12 +354,12 @@ public sealed unsafe partial class Shader : IDisposable
 
     public void SetMatrix(string uniform, in Matrix3x2 value)
     {
-        Raylib.SetShaderValueMatrix(RShader, GetLocation(uniform), value.ToMatrix4x4());
+        Raylib.SetShaderValueMatrix(RShader, GetLocation(uniform), Matrix4x4.Transpose(value.ToMatrix4x4()));
     }
 
     public void SetMatrix(string uniform, in Matrix4x4 value)
     {
-        Raylib.SetShaderValueMatrix(RShader, GetLocation(uniform), value);
+        Raylib.SetShaderValueMatrix(RShader, GetLocation(uniform), Matrix4x4.Transpose(value));
     }
 
     public void SetTexture(string uniform, Texture texture)

@@ -15,9 +15,9 @@ public sealed unsafe class Graphics
     private static RenderTexture? _currentBuffer = null;
     private static Box? _currentClip = null;
     private static BlendMode? _currentBlendMode = null;
-    private static ShapeTexture? _currentShapesTexture = null;
-    private static Texture2D? _defaultShapesTexture = null;
-    private static Raylib_cs.Rectangle _defaultShapesTextureSource;
+    private static ShapeTexture? _currentShapeTexture = null;
+    private static Texture2D? _defaultShapeTexture = null;
+    private static Raylib_cs.Rectangle _defaultShapeTextureSource;
     private readonly bool _primary;
     private BlendMode _blendMode = Drawing.DefaultBlendMode;
     private Box? _clip = null;
@@ -26,7 +26,7 @@ public sealed unsafe class Graphics
     private ValueStack<Matrix3x2> _matrices = [];
     private Matrix3x2 _matrix = Matrix3x2.Identity;
     private Shader _shader = Drawing.DefaultShader;
-    private ShapeTexture? _shapesTexture = null;
+    private ShapeTexture? _shapeTexture = null;
     internal RenderTexture? Buffer;
 
     internal Graphics(RenderTexture? buffer, bool primary = false)
@@ -316,18 +316,18 @@ public sealed unsafe class Graphics
 
     #endregion
 
-    #region ShapesTexture
+    #region ShapeTexture
 
-    public ShapeTexture? SetShapesTexture(ShapeTexture? shapesTexture)
+    public ShapeTexture? SetShapeTexture(ShapeTexture? shapeTexture)
     {
-        var previous = _shapesTexture;
-        _shapesTexture = shapesTexture;
+        var previous = _shapeTexture;
+        _shapeTexture = shapeTexture;
         return previous;
     }
 
-    public ShapeTexture? GetShapesTexture()
+    public ShapeTexture? GetShapeTexture()
     {
-        return _shapesTexture;
+        return _shapeTexture;
     }
 
     #endregion
@@ -607,29 +607,14 @@ public sealed unsafe class Graphics
             CurrentShader = Shader.Default;
         }
 
-        if (_currentShapesTexture is not null)
+        if (_currentShapeTexture is not null)
         {
-            if (_defaultShapesTexture.HasValue)
-                Raylib.SetShapesTexture(_defaultShapesTexture.Value, _defaultShapesTextureSource);
-            _currentShapesTexture = null;
+            if (_defaultShapeTexture.HasValue)
+                Raylib.SetShapesTexture(_defaultShapeTexture.Value, _defaultShapeTextureSource);
+            _currentShapeTexture = null;
         }
 
         Rlgl.LoadIdentity();
-    }
-
-    private static void EnsureDefaultShapesTexture()
-    {
-        if (_defaultShapesTexture.HasValue)
-            return;
-        _defaultShapesTexture = Raylib.GetShapesTexture();
-        _defaultShapesTextureSource = Raylib.GetShapesTextureRectangle();
-    }
-
-    private static bool ShapesTextureEquals(ShapeTexture? a, ShapeTexture? b)
-    {
-        if (a is not { } av)
-            return b is null;
-        return b is { } bv && ReferenceEquals(av.Texture, bv.Texture) && Precision.AreEqual(av.Source, bv.Source);
     }
 
     public static void DrawCurrentBuffer()
@@ -711,11 +696,16 @@ public sealed unsafe class Graphics
                 Raylib.BeginShaderMode(_shader.RShader);
         }
 
-        EnsureDefaultShapesTexture();
-        if (!ShapesTextureEquals(_currentShapesTexture, _shapesTexture))
+        if (!_defaultShapeTexture.HasValue)
         {
-            _currentShapesTexture = _shapesTexture;
-            if (_shapesTexture is { } shapesTexture)
+            _defaultShapeTexture = Raylib.GetShapesTexture();
+            _defaultShapeTextureSource = Raylib.GetShapesTextureRectangle();
+        }
+
+        if (_currentShapeTexture != _shapeTexture)
+        {
+            _currentShapeTexture = _shapeTexture;
+            if (_shapeTexture is { } shapesTexture)
             {
                 var source = shapesTexture.Source;
                 Raylib.SetShapesTexture(
@@ -725,7 +715,7 @@ public sealed unsafe class Graphics
             }
             else
             {
-                Raylib.SetShapesTexture(_defaultShapesTexture!.Value, _defaultShapesTextureSource);
+                Raylib.SetShapesTexture(_defaultShapeTexture.Value, _defaultShapeTextureSource);
             }
         }
 

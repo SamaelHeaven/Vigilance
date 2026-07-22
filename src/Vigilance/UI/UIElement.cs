@@ -1372,8 +1372,8 @@ public abstract class UIElement : IFullCloneable
 
         if (element.ShapeTexture is not null)
         {
-            data.OldShapesTexture = graphics.GetShapesTexture();
-            graphics.SetShapesTexture(element.ShapeTexture);
+            data.OldShapesTexture = graphics.GetShapeTexture();
+            graphics.SetShapeTexture(element.ShapeTexture);
         }
 
         if (element.Culling.HasValue)
@@ -1451,7 +1451,7 @@ public abstract class UIElement : IFullCloneable
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
         if (element.ShapeTexture is not null)
-            graphics.SetShapesTexture(data.OldShapesTexture);
+            graphics.SetShapeTexture(data.OldShapesTexture);
         if (data.OldShader is not null)
             graphics.SetShader(data.OldShader);
         if (data.OldBlendMode.HasValue)

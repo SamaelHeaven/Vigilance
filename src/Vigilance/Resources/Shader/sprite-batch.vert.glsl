@@ -57,5 +57,5 @@ void main()
     float rotation = instanceRotation + transformRotation;
     vec2 pivotPoint = instancePivotPoint + transformPivotPoint;
     vec2 rotated = rotate(vertexPosition * scale - pivotPoint, rotation) + pivotPoint;
-    gl_Position = vec4(rotated + position, 0.0, 1.0) * mvp;
+    gl_Position = mvp * vec4(rotated + position, 0.0, 1.0);
 }
