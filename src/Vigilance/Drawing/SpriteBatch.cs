@@ -121,6 +121,7 @@ public sealed unsafe class SpriteBatch : SpriteBatch<SpriteInstance>
             Shader.SetInt("flipY", Texture.IsRenderTexture ? 1 : 0);
         }
 
+        Graphics.DrawCurrentBuffer();
         Rlgl.ActiveTextureSlot(0);
         Rlgl.EnableTexture(Texture.Id);
         Rlgl.EnableVertexArray(_vertexArray.Id);
