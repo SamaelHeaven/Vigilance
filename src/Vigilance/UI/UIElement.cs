@@ -907,7 +907,7 @@ public abstract class UIElement : IFullCloneable
         );
         if (!exists)
         {
-            var newEntry = factory.Invoke()!;
+            var newEntry = factory.SafeInvoke()!;
             entryRef.Value = newEntry;
             if (newEntry is UIParent { IsPersistent: true } parent)
                 foreach (var child in parent.Children())

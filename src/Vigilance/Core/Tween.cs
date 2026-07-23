@@ -44,12 +44,12 @@ public sealed class Tween
     public float Value(Func<float, float>? ease = null)
     {
         var progress = IsReversed ? 1f - Progress : Progress;
-        return ease?.Invoke(progress) ?? Ease.Linear(progress);
+        return ease?.SafeInvoke(progress) ?? Ease.Linear(progress);
     }
 
     public T Interpolate<T>(T start, T end, Func<T, T, float, T> interpolate, Func<float, float>? ease = null)
     {
-        return interpolate.Invoke(start, end, Value(ease));
+        return interpolate.SafeInvoke(start, end, Value(ease));
     }
 
     public float Interpolate(float start, float end, Func<float, float>? ease = null)
@@ -84,14 +84,14 @@ public sealed class Tween
         CurrentCycle++;
         if (IsCompleted)
         {
-            OnComplete?.Invoke();
+            OnComplete?.SafeInvoke();
             return;
         }
 
         Elapsed -= Duration;
         if (AlternateDirection)
             IsReversed = !IsReversed;
-        OnRepeat?.Invoke();
+        OnRepeat?.SafeInvoke();
     }
 
     public void Reset()

@@ -340,10 +340,10 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         var lastDenseIndex = _values.Count - 1;
         if (sparseValue != lastDenseIndex)
         {
-            _values[sparseValue] = _values[lastDenseIndex];
             var movedKey = _keys[lastDenseIndex];
-            _keys[sparseValue] = movedKey;
             var movedKeyIndex = _keyIndexFunc.Invoke(movedKey);
+            _values[sparseValue] = _values[lastDenseIndex];
+            _keys[sparseValue] = movedKey;
             var movedChunkIndex = movedKeyIndex / _sparseChunkSize;
             var movedWithinChunk = WithinChunk(movedKeyIndex);
             var movedChunk = _sparseChunks[movedChunkIndex]!;

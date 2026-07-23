@@ -74,8 +74,8 @@ public static class Drawing
         SegmentsErrorRate = _config.SegmentsErrorRate;
         RenderTexturePoolLifetime = _config.RenderTexturePoolLifetime;
         RenderTexturePoolRoundUpToMultipleOf = _config.RenderTexturePoolRoundUpToMultipleOf;
-        DefaultTexture = _config.DefaultTexture.Invoke();
-        DefaultShader = _config.DefaultShader.Invoke();
+        DefaultTexture = _config.DefaultTexture.SafeInvoke();
+        DefaultShader = _config.DefaultShader.SafeInvoke();
     }
 }
 

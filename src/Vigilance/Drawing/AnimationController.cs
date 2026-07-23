@@ -82,8 +82,12 @@ public class AnimationController<TKey, TAnimation>
 
     public TAnimation this[in TKey animation] => _animations[animation];
 
+    public bool IsPaused { get; set; }
+
     public void Update(TimeSpan? step = null)
     {
+        if (IsPaused)
+            return;
         Animation.Update(step);
     }
 

@@ -33,7 +33,7 @@ public abstract class Drawable : IDrawable, IFullCloneable
         where T : Drawable<T>
     {
         var originalTransform = transform;
-        drawable.OnBeginDrawing?.Invoke(originalTransform, drawable, graphics);
+        drawable.OnBeginDrawing?.SafeInvoke(originalTransform, drawable, graphics);
         BlendMode? previousBlendMode = null;
         Shader? previousShader = null;
         ShapeTexture? previousShapeTexture = null;
@@ -81,7 +81,7 @@ public abstract class Drawable : IDrawable, IFullCloneable
                 Graphics.SetShapeTexture(PreviousShapeTexture);
             if (PreviousCulling.HasValue)
                 Graphics.SetCulling(PreviousCulling.Value);
-            Drawable.OnEndDrawing?.Invoke(Transform, Drawable, Graphics);
+            Drawable.OnEndDrawing?.SafeInvoke(Transform, Drawable, Graphics);
         }
     }
 }

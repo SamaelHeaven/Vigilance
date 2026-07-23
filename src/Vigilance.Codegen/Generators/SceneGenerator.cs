@@ -284,6 +284,87 @@ public sealed class SceneGenerator : SourceGenerator
         string refName = ""
     )
     {
+        var isSingle = tables.Count == 1;
+        const string singleCount = """
+                        if (_withDisabled || _disabledTable.Count == 0)
+                        {
+                            count = _table0.Count;
+                            return true;
+                        }
+
+                        count = 0;
+                        return false;
+            """;
+        var tryCount = """
+                        count = 0;
+                        return false;
+            """;
+        var trySpan = """
+                        span = default;
+                        return false;
+            """;
+        var tryCopy = """
+                        return false;
+            """;
+        switch (isSingle)
+        {
+            case true when name == "Entity":
+                tryCount = singleCount;
+                tryCopy = """
+                                if (_withDisabled || _disabledTable.Count == 0)
+                                {
+                                    var ids = _table0.EntityIds.AsSpan();
+                                    if (ZLinq.Internal.EnumeratorHelper.TryGetSlice(ids, offset, destination.Length, out var slice))
+                                    {
+                                        for (var i = 0; i < slice.Length; i++)
+                                            destination[i] = new Entity(slice[i], _scene);
+                                        return true;
+                                    }
+                                }
+
+                                return false;
+                    """;
+                break;
+            case true when name == "Component":
+                tryCount = singleCount;
+                trySpan = """
+                                if (_withDisabled || _disabledTable.Count == 0)
+                                {
+                                    span = _table0.Components.AsSpan();
+                                    return true;
+                                }
+
+                                span = default;
+                                return false;
+                    """;
+                tryCopy = """
+                                if (_withDisabled || _disabledTable.Count == 0)
+                                    return Collections.SpanExtensions.TryCopyTo(_table0.Components.AsSpan(), destination, offset);
+
+                                return false;
+                    """;
+                break;
+            case true when name == "Entry":
+                tryCount = singleCount;
+                tryCopy = """
+                                if (_withDisabled || _disabledTable.Count == 0)
+                                {
+                                    var ids = _table0.EntityIds.AsSpan();
+                                    var components = _table0.Components.AsSpan();
+                                    if (ZLinq.Internal.EnumeratorHelper.TryGetSlice(ids, offset, destination.Length, out var idSlice)
+                                        && ZLinq.Internal.EnumeratorHelper.TryGetSlice(components, offset, destination.Length, out var componentSlice))
+                                    {
+                                        for (var i = 0; i < idSlice.Length; i++)
+                                            destination[i] = (new Entity(idSlice[i], _scene), componentSlice[i]);
+                                        return true;
+                                    }
+                                }
+
+                                return false;
+                    """;
+                break;
+        }
+
         return $$"""
                 public struct {{name}}Enumerable{{typeParams}} : Collections.IStructEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>
                 {
@@ -302,11 +383,16 @@ public sealed class SceneGenerator : SourceGenerator
                         return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled, _deferred);
                     }
                     
-                    public ZLinq.ValueEnumerable<Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>, {{type}}> AsValueEnumerable()
+                    public ZLinq.ValueEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}> AsValueEnumerable()
+                    {
+                        return new ZLinq.ValueEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
+                    }
+
+                    ZLinq.ValueEnumerable<Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>, {{type}}> Collections.IStructEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>.AsValueEnumerable()
                     {
                         return new Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
                     }
-                    
+
                     public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool withDisabled = true) {
                         _withDisabled = withDisabled;
                         return ref this;
@@ -326,11 +412,13 @@ public sealed class SceneGenerator : SourceGenerator
                         )}}
                 }
                 
-                public unsafe struct {{name}}Enumerator{{typeParams}} : Collections.IStructEnumerator<{{type}}> {
+                public unsafe struct {{name}}Enumerator{{typeParams}} : Collections.IStructEnumerator<{{type}}>, ZLinq.IValueEnumerator<{{type}}> {
                     private readonly Scene _scene;
                     {{(noEntity ? "" : "private Entity _entity;")}}
-            {{string.Join("\n", tables.Select((t, i) => $"        private Table<{t}> _table{i};"))}}
+            {{string.Join("\n", tables.Select((t, i) => $"        private readonly Table<{t}> _table{i};"))}}
+                    private readonly Table<Disabled> _disabledTable;
                     private int _index;
+                    {{(isSingle ? "private int _currentIndex; " : "")}}
                     {{(tables.Count > 1 ? "private int _tableIndex; " : "")}}
                     private readonly bool _withDisabled;
                     private readonly bool _deferred;
@@ -346,6 +434,7 @@ public sealed class SceneGenerator : SourceGenerator
                         _initialized = false;
                         _disposed = true;
             {{string.Join("\n", tables.Select((t, i) => $"            _table{i} = _scene.Table<{t}>();"))}}
+                        _disabledTable = _scene.DisabledTable;
                     }
 
                     private void Initialize()
@@ -384,7 +473,7 @@ public sealed class SceneGenerator : SourceGenerator
                                     var index = _index;
                                     _index++;
                                     {{(noEntity && tables.Count <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds.AsSpan()[index], _scene);")}}
-                                    if (!_withDisabled && _scene.DisabledTable.Has({{(noEntity && tables.Count <= 1 ? $"new Entity(_table{i}.EntityIds.AsSpan()[index], _scene)" : noEntity ? "entity" : "_entity")}}))
+                                    if (!_withDisabled && _disabledTable.Has({{(noEntity && tables.Count <= 1 ? $"new Entity(_table{i}.EntityIds.AsSpan()[index], _scene)" : noEntity ? "entity" : "_entity")}}))
                                         goto TABLE{{i}};
                 {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
                                         ref var field{j} = ref _table{j}.GetRef({(noEntity ? "entity" : "_entity")}).Value;
@@ -393,6 +482,7 @@ public sealed class SceneGenerator : SourceGenerator
                                         {(noFields ? "" : $"_field{j} = field{j};")}
                     """).Where(str => str != ""))}}
                                     {{(noFields ? "" : $"_field{i} = _table{i}.Components[index];")}}
+                                    {{(isSingle ? "_currentIndex = index;" : "")}}
                                     return true;
                                 }
                 """))}}
@@ -403,6 +493,33 @@ public sealed class SceneGenerator : SourceGenerator
             #pragma warning restore CS0162
                     }
 
+                    public bool TryGetNext(out {{type}} current)
+                    {
+                        global::System.Runtime.CompilerServices.Unsafe.SkipInit(out current);
+                        if (MoveNext())
+                        {
+                            current = Current;
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    public bool TryGetNonEnumeratedCount(out int count)
+                    {
+            {{tryCount}}
+                    }
+
+                    public bool TryGetSpan(out global::System.ReadOnlySpan<{{type}}> span)
+                    {
+            {{trySpan}}
+                    }
+
+                    public bool TryCopyTo(scoped global::System.Span<{{type}}> destination, global::System.Index offset)
+                    {
+            {{tryCopy}}
+                    }
+
                     public void Reset()
                     {
                         Dispose();
@@ -410,6 +527,8 @@ public sealed class SceneGenerator : SourceGenerator
                     }
 
                     public {{type}} Current => {{current}};
+
+                    {{(isSingle ? "public int CurrentIndex => _currentIndex;" : "")}}
 
                     public void Dispose()
                     {
@@ -459,11 +578,16 @@ public sealed class SceneGenerator : SourceGenerator
                         return new {{namePrefix}}{{tableCount}}Enumerator(_scene, _withDisabled, _deferred, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"_table{n}"))}});
                     }
                     
-                    public ZLinq.ValueEnumerable<Collections.StructEnumerator<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>, {{type}}> AsValueEnumerable()
+                    public ZLinq.ValueEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}> AsValueEnumerable()
+                    {
+                        return new ZLinq.ValueEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>(GetEnumerator());
+                    }
+
+                    ZLinq.ValueEnumerable<Collections.StructEnumerator<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>, {{type}}> Collections.IStructEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>.AsValueEnumerable()
                     {
                         return new Collections.StructEnumerator<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>(GetEnumerator());
                     }
-                    
+
                     public ref {{namePrefix}}{{tableCount}}Enumerable WithDisabled(bool withDisabled = true) {
                         _withDisabled = withDisabled;
                         return ref this;
@@ -475,11 +599,13 @@ public sealed class SceneGenerator : SourceGenerator
                     }
                 }
                 
-                public unsafe struct {{namePrefix}}{{tableCount}}Enumerator : Collections.IStructEnumerator<{{type}}> {
+                public unsafe struct {{namePrefix}}{{tableCount}}Enumerator : Collections.IStructEnumerator<{{type}}>, ZLinq.IValueEnumerator<{{type}}> {
                     private readonly Scene _scene;
                     {{(noEntity ? "" : "private Entity _entity;")}}
             {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private readonly Table _table{n};"))}}
+                    private readonly Table<Disabled> _disabledTable;
                     private int _index;
+                    {{(tableCount == 1 ? "private int _currentIndex; " : "")}}
                     {{(tableCount > 1 ? "private int _tableIndex; " : "")}}
                     private readonly bool _withDisabled;
                     private readonly bool _deferred;
@@ -495,6 +621,7 @@ public sealed class SceneGenerator : SourceGenerator
                         _initialized = false;
                         _disposed = true;
             {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _table{n} = table{n};"))}}
+                        _disabledTable = _scene.DisabledTable;
                     }
 
                     private void Initialize()
@@ -534,13 +661,14 @@ public sealed class SceneGenerator : SourceGenerator
                                     var index = _index;
                                     _index++;
                                     {{(noEntity && tableCount <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds.AsSpan()[index], _scene);")}}
-                                    if (!_withDisabled && _scene.DisabledTable.Has({{(noEntity && tableCount <= 1 ? $"new Entity(_table{i}.EntityIds.AsSpan()[index], _scene)" : noEntity ? "entity" : "_entity")}}))
+                                    if (!_withDisabled && _disabledTable.Has({{(noEntity && tableCount <= 1 ? $"new Entity(_table{i}.EntityIds.AsSpan()[index], _scene)" : noEntity ? "entity" : "_entity")}}))
                                         goto TABLE{{i}};
                 {{string.Join("\n", Enumerable.Range(0, tableCount).Where(j => j != i).Select(j => $"""
                                         if (!_table{j}.TryGet({(noEntity ? "entity" : "_entity")}, out {(noFields ? "_" : $"_field{j}")}))
                                             goto TABLE{i};
                     """))}}
                                     {{(noFields ? "" : $"_field{i} = _table{i}.Get(index);")}}
+                                    {{(tableCount == 1 ? "_currentIndex = index;" : "")}}
                                     return true;
                                 }
                 """))}}
@@ -551,6 +679,35 @@ public sealed class SceneGenerator : SourceGenerator
             #pragma warning restore CS0162
                     }
 
+                    public bool TryGetNext(out {{type}} current)
+                    {
+                        global::System.Runtime.CompilerServices.Unsafe.SkipInit(out current);
+                        if (MoveNext())
+                        {
+                            current = Current;
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    public bool TryGetNonEnumeratedCount(out int count)
+                    {
+                        count = 0;
+                        return false;
+                    }
+
+                    public bool TryGetSpan(out global::System.ReadOnlySpan<{{type}}> span)
+                    {
+                        span = default;
+                        return false;
+                    }
+
+                    public bool TryCopyTo(scoped global::System.Span<{{type}}> destination, global::System.Index offset)
+                    {
+                        return false;
+                    }
+
                     public void Reset()
                     {
                         Dispose();
@@ -558,6 +715,8 @@ public sealed class SceneGenerator : SourceGenerator
                     }
 
                     public {{type}} Current => {{current}};
+
+                    {{(tableCount == 1 ? "public int CurrentIndex => _currentIndex;" : "")}}
 
                     public void Dispose()
                     {
@@ -568,7 +727,7 @@ public sealed class SceneGenerator : SourceGenerator
                         _disposed = true;
                     }
                 }
-                
+
                 public {{namePrefix}}{{tableCount}}Enumerable {{methodName}}({{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}}) {
                     ThrowIfNotConfigured();
                     return new {{namePrefix}}{{tableCount}}Enumerable(this, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"table{n}"))}});
@@ -622,7 +781,8 @@ public sealed class SceneGenerator : SourceGenerator
                 {
                     private readonly Scene _scene;
                     {{(noEntity ? "" : "private Entity _entity;")}}
-            {{string.Join("\n", tables.Select((t, i) => $"        private Table<{t}> _table{i};"))}}
+            {{string.Join("\n", tables.Select((t, i) => $"        private readonly Table<{t}> _table{i};"))}}
+                    private readonly Table<Disabled> _disabledTable;
                     private int _index;
                     {{(tables.Count > 1 ? "private int _tableIndex;" : "")}}
                     private readonly bool _withDisabled;
@@ -640,6 +800,7 @@ public sealed class SceneGenerator : SourceGenerator
                         _disposed = true;
             {{string.Join("\n", tables.Select((t, i) => $"            _field{i} = ComponentRef<{t}>.Null;"))}}
             {{string.Join("\n", tables.Select((t, i) => $"            _table{i} = _scene.Table<{t}>();"))}}
+                        _disabledTable = _scene.DisabledTable;
                     }
 
                     private void Initialize()
@@ -680,7 +841,7 @@ public sealed class SceneGenerator : SourceGenerator
                                     _index++;
                                     var entity = new Entity(_table{{i}}.EntityIds.AsSpan()[index], _scene);
                                     {{(noEntity ? "" : "_entity = entity;")}}
-                                    if (!_withDisabled && _scene.DisabledTable.Has(entity))
+                                    if (!_withDisabled && _disabledTable.Has(entity))
                                         goto TABLE{{i}};
                 {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
                                         _field{j} = _table{j}.GetRef(entity);
@@ -755,11 +916,16 @@ public sealed class SceneGenerator : SourceGenerator
                         return new {{name}}Enumerator<T0>(_scene, _withDisabled, _withHidden, _deferred);
                     }
                     
-                    public ZLinq.ValueEnumerable<Collections.StructEnumerator<{{name}}Enumerator<T0>, {{type}}>, {{type}}> AsValueEnumerable()
+                    public ZLinq.ValueEnumerable<{{name}}Enumerator<T0>, {{type}}> AsValueEnumerable()
+                    {
+                        return new ZLinq.ValueEnumerable<{{name}}Enumerator<T0>, {{type}}>(GetEnumerator());
+                    }
+
+                    ZLinq.ValueEnumerable<Collections.StructEnumerator<{{name}}Enumerator<T0>, {{type}}>, {{type}}> Collections.IStructEnumerable<{{name}}Enumerator<T0>, {{type}}>.AsValueEnumerable()
                     {
                         return new Collections.StructEnumerator<{{name}}Enumerator<T0>, {{type}}>(GetEnumerator());
                     }
-                    
+
                     public ref {{name}}Enumerable<T0> WithDisabled(bool withDisabled = true)
                     {
                         _withDisabled = withDisabled;
@@ -779,7 +945,7 @@ public sealed class SceneGenerator : SourceGenerator
                     }
                 }
                 
-                public struct {{name}}Enumerator<T0> : Collections.IStructEnumerator<{{type}}>
+                public struct {{name}}Enumerator<T0> : Collections.IStructEnumerator<{{type}}>, ZLinq.IValueEnumerator<{{type}}>
                 {
                     private readonly Scene _scene;
                     private readonly bool _withDisabled;
@@ -847,6 +1013,35 @@ public sealed class SceneGenerator : SourceGenerator
                         return false;
                     }
 
+                    public bool TryGetNext(out {{type}} current)
+                    {
+                        global::System.Runtime.CompilerServices.Unsafe.SkipInit(out current);
+                        if (MoveNext())
+                        {
+                            current = Current;
+                            return true;
+                        }
+
+                        return false;
+                    }
+
+                    public bool TryGetNonEnumeratedCount(out int count)
+                    {
+                        count = 0;
+                        return false;
+                    }
+
+                    public bool TryGetSpan(out global::System.ReadOnlySpan<{{type}}> span)
+                    {
+                        span = default;
+                        return false;
+                    }
+
+                    public bool TryCopyTo(scoped global::System.Span<{{type}}> destination, global::System.Index offset)
+                    {
+                        return false;
+                    }
+
                     public void Reset()
                     {
                         Dispose();
@@ -854,6 +1049,10 @@ public sealed class SceneGenerator : SourceGenerator
                     }
 
                     public {{type}} Current => {{current}};
+
+                    public int CurrentIndex => _items.CurrentIndex;
+
+                    public Table CurrentTable => _tables.Current;
 
                     public void Dispose()
                     {

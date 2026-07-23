@@ -38,7 +38,7 @@ public static class Asset
             path = normalizedPath;
             return File(
                 keyFunc,
-                () => FileSystem.TryReadBytes(filePath, out var bytes) ? valueFunc.Invoke(bytes) : null,
+                () => FileSystem.TryReadBytes(filePath, out var bytes) ? valueFunc.SafeInvoke(bytes) : null,
                 cacheType,
                 out value
             );
@@ -64,7 +64,7 @@ public static class Asset
         {
             return Resource(
                 keyFunc,
-                () => Core.Resource.TryReadBytes(resource, out var bytes) ? valueFunc.Invoke(bytes) : null,
+                () => Core.Resource.TryReadBytes(resource, out var bytes) ? valueFunc.SafeInvoke(bytes) : null,
                 cacheType,
                 out value
             );
@@ -94,7 +94,7 @@ public static class Asset
         {
             try
             {
-                var key = keyFunc.Invoke();
+                var key = keyFunc.SafeInvoke();
                 var cacheTypeValue = cacheType ?? DefaultCacheType;
                 var weak = cacheTypeValue == CacheType.Weak;
                 var strong = cacheTypeValue == CacheType.Strong;
@@ -103,7 +103,7 @@ public static class Asset
                         return true;
                 if (_strongValues.TryGetValue(key, out value!))
                     return true;
-                value = valueFunc.Invoke();
+                value = valueFunc.SafeInvoke();
                 if (value is null)
                     return false;
                 if (weak)

@@ -29,6 +29,14 @@ public static class ZLinqExtensions
                 new CrossEnumerator<TEnumerator, TValue, TEnumerator2, TRight>(enumerable, other)
             );
         }
+
+        public ReadOnlySpan<TValue> AsSpan()
+        {
+            using var enumerator = enumerable.Enumerator;
+            if (enumerator.TryGetSpan(out var span))
+                return span;
+            return enumerable.ToArray();
+        }
     }
 
     extension<TTraverser, T>(TTraverser traverser)

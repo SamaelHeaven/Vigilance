@@ -404,7 +404,7 @@ public sealed class Table<T>
 
     public ComponentRef<T> GetRef(int index)
     {
-        return new ComponentRef<T>(ref _components[index]);
+        return new ComponentRef<T>(ref _components[index], index);
     }
 
     public ComponentRef<T> GetRef(scoped in Entity entity)
@@ -421,7 +421,7 @@ public sealed class Table<T>
         if (sparseValue == 0)
             return ComponentRef<T>.Null;
         var denseIndex = sparseValue - 1;
-        return new ComponentRef<T>(ref _components[denseIndex]);
+        return new ComponentRef<T>(ref _components[denseIndex], denseIndex);
     }
 
     public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.None)
@@ -467,7 +467,8 @@ public sealed class Table<T>
             _entityIds.Add(entity.Id);
             chunk[withinChunk] = index;
             Emit(Event<T>.Add(entity, component));
-            return new ComponentRef<T>(ref _components[index - 1]);
+            index--;
+            return new ComponentRef<T>(ref _components[index], index);
         }
 
         if (SetImmutable && (flags & Flags.ForceMutable) == 0)
@@ -482,7 +483,7 @@ public sealed class Table<T>
         var oldValue = componentRef;
         componentRef = component;
         Emit(Event<T>.Set(entity, oldValue, component));
-        return new ComponentRef<T>(ref componentRef!);
+        return new ComponentRef<T>(ref componentRef!, denseIndex);
     }
 
     internal override void DequeueOperation()

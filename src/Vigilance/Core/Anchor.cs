@@ -36,8 +36,8 @@ public readonly record struct Anchor
     }
 
     public Vector2 Origin { get; }
-    public Vector2 Position => _positionFunc?.Invoke() ?? field;
-    public Vector2? Scale => _scaleFunc?.Invoke() ?? field;
+    public Vector2 Position => _positionFunc?.SafeInvoke() ?? field;
+    public Vector2? Scale => _scaleFunc?.SafeInvoke() ?? field;
 
     public static Anchor TopLeft(Func<Vector2> positionFunc, Func<Vector2> scaleFunc)
     {

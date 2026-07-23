@@ -35,7 +35,7 @@ public abstract partial class GameSystem : IGameSystem
     public Scene Scene { get; private set; } = null!;
     public bool IsDisabled { get; set; }
     public bool QueryWithDisabled { get; set; }
-    public bool QueryDeferred { get; set; }
+    public bool QueryDeferred { get; protected set; }
     public int Order { get; set; }
 
     public void Configure(Scene scene)

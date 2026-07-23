@@ -5,13 +5,15 @@ namespace Vigilance.Core;
 public readonly ref struct ComponentRef<T>
 {
     internal readonly ref T Value;
+    public int Index { get; }
 
-    public ComponentRef(ref T value)
+    public ComponentRef(ref T value, int index)
     {
         Value = ref value;
+        Index = index;
     }
 
-    public static ComponentRef<T> Null => new(ref Unsafe.NullRef<T>());
+    public static ComponentRef<T> Null => new(ref Unsafe.NullRef<T>(), -1);
 
     public static bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
@@ -34,6 +36,12 @@ public readonly ref struct ComponentRef<T>
     public static implicit operator T(ComponentRef<T> componentRef)
     {
         return componentRef.Value;
+    }
+
+    public void Deconstruct(out T value, out int index)
+    {
+        value = Value;
+        index = Index;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

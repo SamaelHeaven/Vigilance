@@ -249,7 +249,7 @@ public sealed class World
             Id,
             ref proxy,
             in b2Filter,
-            (id, ctx) => ((Func<Shape, bool>)ctx!).Invoke(new Shape(id)),
+            (id, ctx) => ((Func<Shape, bool>)ctx!).SafeInvoke(new Shape(id)),
             callback
         );
     }
@@ -264,7 +264,7 @@ public sealed class World
             in b2Filter,
             (id, ctx) =>
             {
-                ((Action<Shape>)ctx!).Invoke(new Shape(id));
+                ((Action<Shape>)ctx!).SafeInvoke(new Shape(id));
                 return true;
             },
             callback

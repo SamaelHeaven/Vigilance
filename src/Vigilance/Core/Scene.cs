@@ -3,6 +3,7 @@
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Drawing;
+using Vigilance.Logging;
 using Vigilance.Math;
 using Vigilance.Physics;
 using ZLinq;
@@ -402,7 +403,7 @@ public sealed unsafe partial class Scene
             return;
         }
 
-        action.Invoke();
+        action.SafeInvoke();
     }
 
     public void ThrowIfNotConfigured()
@@ -632,7 +633,15 @@ public sealed unsafe partial class Scene
     {
         if (!IsConfigured)
         {
-            _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToArray();
+            try
+            {
+                _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToArray();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
             foreach (var system in _systems)
                 system.Configure(this);
             IsConfigured = true;

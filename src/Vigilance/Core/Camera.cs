@@ -100,7 +100,7 @@ public readonly struct CameraProvider
 
     public Camera? Get()
     {
-        return _func?.Invoke() ?? _camera;
+        return _func?.SafeInvoke() ?? _camera;
     }
 
     public override string? ToString()
