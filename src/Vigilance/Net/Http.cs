@@ -6,20 +6,17 @@ namespace Vigilance.Net;
 
 public static class Http
 {
-    private static readonly IHttpClient _client;
-
-    static Http()
-    {
-        _client = Platform.Current switch
-        {
-            Platform.Web => new HttpClientWeb(),
-            _ => new HttpClientCore(),
-        };
-    }
-
     public static void Fetch(HttpRequest request)
     {
-        _client.Fetch(request);
+        switch (Platform.Current)
+        {
+            case Platform.Web:
+                HttpClientWeb.Fetch(request);
+                break;
+            default:
+                HttpClientCore.Fetch(request);
+                break;
+        }
     }
 
     internal static void CompleteFetch(HttpResponse response)

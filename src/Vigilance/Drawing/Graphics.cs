@@ -648,7 +648,7 @@ public sealed unsafe class Graphics
         if (_currentBuffer != Buffer)
         {
             if (_currentBuffer is null)
-                DrawCurrentBuffer();
+                Rlgl.DrawRenderBatchActive();
             else
                 Raylib.EndTextureMode();
             _currentBuffer = Buffer;
@@ -673,7 +673,7 @@ public sealed unsafe class Graphics
 
         if (_currentBlendMode != _blendMode)
         {
-            DrawCurrentBuffer();
+            Rlgl.DrawRenderBatchActive();
             Rlgl.SetBlendFactorsSeparate(
                 _blendMode.SrcRgb.ToGL(),
                 _blendMode.DstRgb.ToGL(),

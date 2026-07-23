@@ -2,11 +2,11 @@ using ZLinq;
 
 namespace Vigilance.Net;
 
-internal sealed class HttpClientCore : IHttpClient
+internal static class HttpClientCore
 {
-    private static readonly HttpClient _client = new();
+    private static HttpClient Client => field ??= new HttpClient();
 
-    public async void Fetch(HttpRequest request)
+    public static async void Fetch(HttpRequest request)
     {
         HttpResponse response = null!;
         try
@@ -29,7 +29,7 @@ internal sealed class HttpClientCore : IHttpClient
             if (request.Timeout != TimeSpan.Zero)
             {
                 using var cancellationTokenSource = new CancellationTokenSource(request.Timeout);
-                responseMessage = await _client.SendAsync(
+                responseMessage = await Client.SendAsync(
                     requestMessage,
                     HttpCompletionOption.ResponseContentRead,
                     cancellationTokenSource.Token
@@ -37,7 +37,7 @@ internal sealed class HttpClientCore : IHttpClient
             }
             else
             {
-                responseMessage = await _client.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead);
+                responseMessage = await Client.SendAsync(requestMessage, HttpCompletionOption.ResponseContentRead);
             }
 
             response.StatusCode = (int)responseMessage.StatusCode;

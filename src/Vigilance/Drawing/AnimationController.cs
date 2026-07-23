@@ -6,6 +6,7 @@ using ZLinq;
 
 namespace Vigilance.Drawing;
 
+[CollectionBuilder(typeof(AnimationControllerBuilder), nameof(AnimationControllerBuilder.Create))]
 public class AnimationController<TAnimation> : AnimationController<string, TAnimation>
     where TAnimation : IAnimation
 {
@@ -24,6 +25,7 @@ public class AnimationController<TAnimation> : AnimationController<string, TAnim
         : base(animations) { }
 }
 
+[CollectionBuilder(typeof(AnimationControllerBuilder), nameof(AnimationControllerBuilder.Create))]
 public class AnimationController<TKey, TAnimation>
     : IAnimation,
         IValueDictionaryView<TKey, TAnimation>,
@@ -154,5 +156,25 @@ public class AnimationController<TKey, TAnimation>
                 .Select(cross => cross.Left.Value)
         )
             value.Reset();
+    }
+}
+
+public static class AnimationControllerBuilder
+{
+    public static AnimationController<TAnimation> Create<TAnimation>(
+        ReadOnlySpan<KeyValuePair<string, TAnimation>> animations
+    )
+        where TAnimation : IAnimation
+    {
+        return new AnimationController<TAnimation>(animations);
+    }
+
+    public static AnimationController<TKey, TAnimation> Create<TKey, TAnimation>(
+        ReadOnlySpan<KeyValuePair<TKey, TAnimation>> animations
+    )
+        where TAnimation : IAnimation
+        where TKey : notnull
+    {
+        return new AnimationController<TKey, TAnimation>(animations);
     }
 }

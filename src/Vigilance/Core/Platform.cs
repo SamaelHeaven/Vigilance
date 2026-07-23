@@ -6,6 +6,7 @@ public enum Platform : sbyte
 {
     Unknown,
     Desktop,
+    Mobile,
     Web,
 }
 
@@ -26,7 +27,14 @@ public static class PlatformExtensions
             {
                 if (OperatingSystem.IsBrowser())
                     return platform == Platform.Web;
-                if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+                if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+                    return platform == Platform.Mobile;
+                if (
+                    OperatingSystem.IsWindows()
+                    || OperatingSystem.IsMacOS()
+                    || OperatingSystem.IsLinux()
+                    || OperatingSystem.IsFreeBSD()
+                )
                     return platform == Platform.Desktop;
                 return platform == Platform.Unknown;
             }
