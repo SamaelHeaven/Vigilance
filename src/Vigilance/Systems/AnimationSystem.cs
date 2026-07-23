@@ -15,25 +15,30 @@ public sealed class AnimationSystem() : GameSystem(queryWithDisabled: true)
         try
         {
             foreach (var animation in AssignableComponents<IAnimation>())
-            {
-                if (animation.IsPaused)
-                    continue;
                 try
                 {
+                    if (animation.IsPaused)
+                        continue;
                     animation.Update();
+                    if (!animation.IsPaused)
+                        _resume.Add(animation);
+                    animation.IsPaused = true;
                 }
                 catch (Exception e)
                 {
                     Log.Error(e);
                 }
 
-                if (!animation.IsPaused)
-                    _resume.Add(animation);
-                animation.IsPaused = true;
-            }
-
             foreach (var animation in _resume)
-                animation.IsPaused = false;
+                try
+                {
+                    animation.IsPaused = false;
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
             _resume.Clear();
         }
         finally
