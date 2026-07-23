@@ -16,20 +16,12 @@ public static class EnumExtensions<T>
 
     public static ArrayView<T> Values()
     {
-        if (_values is not null)
-            return _values;
-        var values = Enum.GetValues<T>();
-        _values = values;
-        return values;
+        return _values ??= Enum.GetValues<T>();
     }
 
     public static ArrayView<string> Names()
     {
-        if (_names is not null)
-            return _names;
-        var names = Enum.GetNames<T>();
-        _names = names;
-        return _names;
+        return _names ??= Enum.GetNames<T>();
     }
 
     public static ValueDictionaryView<string, T>.Enumerable ValuesByName()
