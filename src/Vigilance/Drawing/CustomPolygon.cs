@@ -148,7 +148,7 @@ public static class CustomPolygonExtensions
             graphics.DrawCustomPolygon(new Transform(), polygon);
         }
 
-        public void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
+        public unsafe void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
         {
             using var _ = Drawable.EnterDrawing(ref transform, polygon, graphics);
             var camera = polygon.Camera.Get();
@@ -170,11 +170,11 @@ public static class CustomPolygonExtensions
                 }
                 else
                 {
-                    var points = new Vector2[polygon.Points.Count];
+                    var points = stackalloc Vector2[polygon.Points.Count];
                     var i = 0;
                     foreach (var point in polygon.Points)
                         points[i++] = point;
-                    span = points;
+                    span = new Span<Vector2>(points, polygon.Points.Count);
                 }
 
                 Coordinates.Scale(span, scale, position);

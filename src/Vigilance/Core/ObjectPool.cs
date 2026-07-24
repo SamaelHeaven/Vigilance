@@ -50,8 +50,8 @@ public sealed unsafe class ObjectPool<
         Debug.Assert(item is not null);
         if ((T?)item is null)
             return;
-        if (Object<T>.Clear(item))
-            _pool.Push(item);
+        ObjectMemory.Clear(item);
+        _pool.Push(item);
     }
 
     public Handle Borrow()
