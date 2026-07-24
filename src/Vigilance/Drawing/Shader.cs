@@ -26,8 +26,9 @@ public sealed unsafe partial class Shader : IDisposable
         },
     };
 
-    private ValueDictionary<string, int> _locations = [];
     internal Raylib_cs.Shader RShader;
+
+    private ValueDictionary<string, int> _locations = [];
 
     internal Shader(in Raylib_cs.Shader shader)
     {

@@ -18,8 +18,9 @@ public sealed class TimerSystem : GameSystem
                 if (timer.IsPaused)
                     continue;
                 timer.Update();
-                if (!timer.IsPaused)
-                    _resume.Add(timer);
+                if (timer.IsPaused)
+                    continue;
+                _resume.Add(timer);
                 timer.IsPaused = true;
             }
 

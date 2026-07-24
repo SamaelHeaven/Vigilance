@@ -17,8 +17,9 @@ public sealed class TweenSystem : GameSystem
                 if (tween.IsPaused)
                     continue;
                 tween.Update();
-                if (!tween.IsPaused)
-                    _resume.Add(tween);
+                if (tween.IsPaused)
+                    continue;
+                _resume.Add(tween);
                 tween.IsPaused = true;
             }
 

@@ -13,9 +13,9 @@ public sealed class World
     public const float PixelsPerMeter = 50f;
     public const float PixelsToMeter = 1f / PixelsPerMeter;
     private static WorldConfig _config = new();
+    internal readonly B2WorldId Id;
     private readonly TaskFactory? _taskFactory;
     private readonly int _workerCount;
-    internal readonly B2WorldId Id;
     private bool _disposed;
     private Action<Shape, Shape>? _onContactBegin;
     private Action<Shape, Shape>? _onContactEnd;

@@ -5,12 +5,7 @@ using Vigilance.Collections;
 namespace Vigilance.Core;
 
 [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
-public sealed unsafe class ObjectPool<
-    [DynamicallyAccessedMembers(
-        DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors
-    )]
-        T
->
+public sealed unsafe class ObjectPool<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>
     where T : class, new()
 {
     private static readonly delegate* <T, void> _constructor;
@@ -50,7 +45,7 @@ public sealed unsafe class ObjectPool<
         Debug.Assert(item is not null);
         if ((T?)item is null)
             return;
-        ObjectMemory.Clear(item);
+        ObjectMarshal.Clear(item);
         _pool.Push(item);
     }
 

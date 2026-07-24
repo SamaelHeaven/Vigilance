@@ -58,15 +58,15 @@ public sealed class SpriteBatchSystem : GameSystem
             _moving.Remove(entity.Id);
     }
 
-    private void TryUpdateSprite(Entity entity)
+    private void TryUpdateSprite(Entity entity, Child child)
     {
         if (_table.TryGet(entity, out var sprite))
             UpdateSprite(entity, sprite);
         if (!entity.IsParent)
             return;
-        foreach (var child in entity.Descendants())
-            if (child.TryGet(out sprite))
-                UpdateSprite(child, sprite);
+        foreach (var descendant in entity.Descendants())
+            if (descendant.TryGet(out sprite))
+                UpdateSprite(descendant, sprite);
     }
 
     private void UpdateSprite(Entity entity, BatchedSprite sprite)

@@ -20,8 +20,9 @@ public sealed class AnimationSystem() : GameSystem(queryWithDisabled: true)
                     if (animation.IsPaused)
                         continue;
                     animation.Update();
-                    if (!animation.IsPaused)
-                        _resume.Add(animation);
+                    if (animation.IsPaused)
+                        continue;
+                    _resume.Add(animation);
                     animation.IsPaused = true;
                 }
                 catch (Exception e)

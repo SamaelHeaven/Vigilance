@@ -3,8 +3,11 @@ using Vigilance.Math;
 
 namespace Vigilance.Systems;
 
-public sealed class YSortSystem(float offset = 0) : GameSystem(queryWithDisabled: true)
+public sealed class YSortSystem(float offset) : GameSystem(queryWithDisabled: true)
 {
+    public YSortSystem()
+        : this(0) { }
+
     public float Offset { get; set; } = offset;
 
     public override void PreRender()

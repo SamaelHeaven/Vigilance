@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Vigilance.Core;
 
-public static class ObjectMemory
+public static class ObjectMarshal
 {
     [UnsafeAccessor(UnsafeAccessorKind.StaticMethod)]
     private static extern ref byte GetRawData(

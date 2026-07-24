@@ -6,14 +6,18 @@ namespace Vigilance.Systems;
 
 public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
 {
+    private Table<Body> _bodies = null!;
     public Graphics DebugDrawGraphics { get; set; } = Renderer.Graphics;
     public bool IsDebugDrawEnabled { get; set; } = false;
     public DebugDrawFlags DebugDrawFlags { get; set; } = DebugDrawFlags.Default;
 
     public override void Configure()
     {
+        _bodies = Scene.Table<Body>();
         Scene.OnAddOrSet<Body>(SetBody);
         Scene.OnRemove<Body>(RemoveBody);
+        Scene.OnAdd<Disabled>(Disable);
+        Scene.OnRemove<Disabled>(Enable);
         Scene.OnSet<Position>(SetPosition);
         Scene.OnSet<Rotation>(SetRotation);
     }
@@ -41,6 +45,7 @@ public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
     {
         body.Entity = entity;
         body.Transform = (entity.Position, entity.Rotation);
+        body.IsEnabled = !entity.IsDisabled;
     }
 
     private static void RemoveBody(Entity entity, Body body)
@@ -51,15 +56,27 @@ public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
         body.Destroy();
     }
 
-    private static void SetPosition(Entity entity, Position position)
+    private void SetPosition(Entity entity, Position position)
     {
-        if (entity.TryGet(out Body body) && body.Entity == entity)
+        if (_bodies.TryGet(entity, out var body) && body.Entity == entity)
             body.Position = position;
     }
 
-    private static void SetRotation(Entity entity, Rotation rotation)
+    private void SetRotation(Entity entity, Rotation rotation)
     {
-        if (entity.TryGet(out Body body) && body.Entity == entity)
+        if (_bodies.TryGet(entity, out var body) && body.Entity == entity)
             body.Rotation = rotation;
+    }
+
+    private void Disable(Entity entity, Disabled disabled)
+    {
+        if (_bodies.TryGet(entity, out var body) && body.Entity == entity)
+            body.IsEnabled = false;
+    }
+
+    private void Enable(Entity entity, Disabled disabled)
+    {
+        if (_bodies.TryGet(entity, out var body) && body.Entity == entity)
+            body.IsEnabled = true;
     }
 }

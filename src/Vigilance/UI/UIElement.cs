@@ -34,6 +34,9 @@ public abstract class UIElement : IFullCloneable
         ShallowDefaults = SkipChildren,
     }
 
+    internal ValueDictionary<ImmediateCounter, uint> ImmediateCounters = new(ImmediateCounterComparer.Instance);
+    internal ValueDictionary<ImmediateEntry, ImmediateValue> ImmediateEntries = new(ImmediateEntryComparer.Instance);
+    internal UINode Node;
     private bool _click;
     private ValueList<IUIComponent> _components = [];
     private uint _immediateGeneration;
@@ -53,10 +56,6 @@ public abstract class UIElement : IFullCloneable
     private Func<UIElement, bool>? _onResetLayoutAndTransformHandlers;
     private Func<UIElement, bool>? _onUpdateHandlers;
     private RenderData _renderData;
-    internal ValueDictionary<ImmediateCounter, uint> ImmediateCounters = new(ImmediateCounterComparer.Instance);
-    internal ValueDictionary<ImmediateEntry, ImmediateValue> ImmediateEntries = new(ImmediateEntryComparer.Instance);
-
-    internal UINode Node;
 
     protected UIElement()
     {
@@ -149,8 +148,10 @@ public abstract class UIElement : IFullCloneable
     public bool IsLayoutCustom { get; }
 
     public bool IsImmediate => field || _onImmediateHandlers is not null;
+    public bool IsPressed { get; private set; }
 
     public bool IsClicked { get; private set; }
+    public bool IsReleased { get; private set; }
 
     public bool IsMouseEntered { get; private set; }
 
@@ -1112,11 +1113,20 @@ public abstract class UIElement : IFullCloneable
             && Mouse.OnScreen
             && element.IsVisible
             && Collision.CheckPointQuad(Mouse.Position, element.RenderedBounds);
+        element.IsMouseEntered = !oldMouseInside && element.IsMouseInside;
+        element.IsMouseExited = oldMouseInside && !element.IsMouseInside;
+        var pressed = Mouse.IsButtonPressed(MouseButton.Left);
+        var released = Mouse.IsButtonReleased(MouseButton.Left);
+        element.IsPressed = pressed && element.IsMouseInside;
+        if (pressed)
+            element._click = element.IsMouseInside;
+        element.IsClicked = released && element is { _click: true, IsMouseInside: true };
+        element.IsReleased = released && element.IsMouseInside;
+        if (released)
+            element._click = false;
         var disabled = element.IsDisabled || entity is { IsNull: false, IsDisabled: true };
         if (disabled)
         {
-            element._click = false;
-            element.IsClicked = false;
             try
             {
                 element.OnDisabledUpdate();
@@ -1130,10 +1140,6 @@ public abstract class UIElement : IFullCloneable
             return;
         }
 
-        element.IsClicked =
-            Mouse.IsButtonReleased(MouseButton.Left) && element is { _click: true, IsMouseInside: true };
-        element.IsMouseEntered = !oldMouseInside && element.IsMouseInside;
-        element.IsMouseExited = oldMouseInside && !element.IsMouseInside;
         if (element.IsImmediate)
             element.RunImmediate();
         try
@@ -1146,82 +1152,74 @@ public abstract class UIElement : IFullCloneable
         }
 
         element.OnUpdateSignal.SafeInvoke(element);
-        switch (oldMouseInside)
+        if (element.IsMouseEntered)
         {
-            case false when element.IsMouseInside:
-                try
-                {
-                    element.OnMouseEnter();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
+            try
+            {
+                element.OnMouseEnter();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
 
-                element.OnMouseEnterSignal.SafeInvoke(element);
-                break;
-            case true when !element.IsMouseInside:
-                try
-                {
-                    element.OnMouseExit();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
-
-                element.OnMouseExitSignal.SafeInvoke(element);
-                break;
+            element.OnMouseEnterSignal.SafeInvoke(element);
         }
 
-        if (Mouse.IsButtonPressed(MouseButton.Left))
+        if (element.IsMouseExited)
         {
-            element._click = element.IsMouseInside;
-            if (element.IsMouseInside)
+            try
             {
-                try
-                {
-                    element.OnPress();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
-
-                element.OnPressSignal.SafeInvoke(element);
+                element.OnMouseExit();
             }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            element.OnMouseExitSignal.SafeInvoke(element);
         }
 
-        if (Mouse.IsButtonReleased(MouseButton.Left))
+        if (element.IsPressed)
         {
-            element._click = element is { _click: true, IsMouseInside: true };
-            if (element._click)
+            try
             {
-                try
-                {
-                    element.OnClick();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
-
-                element.OnClickSignal.SafeInvoke(element);
+                element.OnPress();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
             }
 
-            if (element.IsMouseInside)
-            {
-                try
-                {
-                    element.OnRelease();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
+            element.OnPressSignal.SafeInvoke(element);
+        }
 
-                element.OnReleaseSignal.SafeInvoke(element);
+        if (element.IsClicked)
+        {
+            try
+            {
+                element.OnClick();
             }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            element.OnClickSignal.SafeInvoke(element);
+        }
+
+        if (element.IsReleased)
+        {
+            try
+            {
+                element.OnRelease();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            element.OnReleaseSignal.SafeInvoke(element);
         }
     }
 
@@ -1257,13 +1255,14 @@ public abstract class UIElement : IFullCloneable
             if (element.ImmediateEntries.Count == 0)
                 continue;
             var generation = element._immediateGeneration;
-            using var stale = element
-                .ImmediateEntries.AsValueEnumerable()
-                .Cross(generation.AsValueSingleton())
-                .Where(cross => cross.Left.Value.Generation != cross.Right)
-                .Select(cross => cross.Left.Key)
-                .ToArrayPool();
-            foreach (ref var entry in stale.Span)
+            foreach (
+                var entry in element
+                    .ImmediateEntries.AsValueEnumerable()
+                    .Cross(generation.AsValueSingleton())
+                    .Where(cross => cross.Left.Value.Generation != cross.Right)
+                    .Select(cross => cross.Left.Key)
+                    .AsPooled()
+            )
                 element.ImmediateEntries.Remove(entry);
         }
     }

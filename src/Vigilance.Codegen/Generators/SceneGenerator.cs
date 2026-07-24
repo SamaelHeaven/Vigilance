@@ -558,6 +558,220 @@ public sealed class SceneGenerator : SourceGenerator
         bool noEntity = false
     )
     {
+        var isSingle = tableCount == 1;
+        var tryCount = """
+                        count = 0;
+                        return false;
+            """;
+        var tryCopy = "            return false;";
+        if (!isSingle)
+            return $$"""
+                    public struct {{namePrefix}}{{tableCount}}Enumerable : Collections.IStructEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>
+                    {
+                        private readonly Scene _scene;
+                {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private readonly Table _table{n};"))}}
+                        private bool _withDisabled;
+                        private bool _deferred;
+                    
+                        internal {{namePrefix}}{{tableCount}}Enumerable(Scene scene, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}})
+                        {
+                            _scene = scene;
+                {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _table{n} = table{n};"))}}
+                            _deferred = true;
+                        }
+                        
+                        public {{namePrefix}}{{tableCount}}Enumerator GetEnumerator()
+                        {
+                            return new {{namePrefix}}{{tableCount}}Enumerator(_scene, _withDisabled, _deferred, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"_table{n}"))}});
+                        }
+                        
+                        public ZLinq.ValueEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}> AsValueEnumerable()
+                        {
+                            return new ZLinq.ValueEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>(GetEnumerator());
+                        }
+
+                        ZLinq.ValueEnumerable<Collections.StructEnumerator<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>, {{type}}> Collections.IStructEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>.AsValueEnumerable()
+                        {
+                            return new Collections.StructEnumerator<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>(GetEnumerator());
+                        }
+
+                        public ref {{namePrefix}}{{tableCount}}Enumerable WithDisabled(bool withDisabled = true) {
+                            _withDisabled = withDisabled;
+                            return ref this;
+                        }
+                        
+                        public ref {{namePrefix}}{{tableCount}}Enumerable Deferred(bool deferred = true) {
+                            _deferred = deferred;
+                            return ref this;
+                        }
+                    }
+                    
+                    public unsafe struct {{namePrefix}}{{tableCount}}Enumerator : Collections.IStructEnumerator<{{type}}>, ZLinq.IValueEnumerator<{{type}}> {
+                        private readonly Scene _scene;
+                        {{(noEntity ? "" : "private Entity _entity;")}}
+                {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private readonly Table _table{n};"))}}
+                        private readonly Table<Disabled> _disabledTable;
+                        private int _index;
+                        {{(tableCount == 1 ? "private int _currentIndex; " : "")}}
+                        {{(tableCount > 1 ? "private int _tableIndex; " : "")}}
+                        private readonly bool _withDisabled;
+                        private readonly bool _deferred;
+                        private bool _initialized;
+                        private bool _disposed;
+                {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private object _field{n} = null!;")))}}
+
+                        internal {{namePrefix}}{{tableCount}}Enumerator(Scene scene, bool withDisabled, bool deferred, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}})
+                        {
+                            _scene = scene;
+                            _withDisabled = withDisabled;
+                            _deferred = deferred;
+                            _initialized = false;
+                            _disposed = true;
+                {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _table{n} = table{n};"))}}
+                            _disabledTable = _scene.DisabledTable;
+                        }
+
+                        private void Initialize()
+                        {
+                            _index = 0;
+                            {{(noEntity ? "" : "_entity = Core.Entity.Null;")}}
+                {{(noFields ? "" : string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _field{n} = default!;")))}}
+                {{(tableCount > 1 ? "            var smallestCount = int.MaxValue;\n" : "")}}
+                {{(tableCount > 1 ? string.Join("\n", Enumerable.Range(0, tableCount).Select(i => $$"""
+                                if (_table{{i}}.Count < smallestCount)
+                                {
+                                    smallestCount = _table{{i}}.Count;
+                                    _tableIndex = {{i}};
+                                }
+
+                    """)) : "")}}
+                            _initialized = true;
+                            _disposed = false;
+                            if (_deferred)
+                                _scene.BeginDefer();
+                        }
+
+                        public bool MoveNext()
+                        {
+                            if (!_initialized)
+                                Initialize();
+                            {{(tableCount > 1 ? "switch (_tableIndex)\n            " : "")}}{
+                {{string.Join("\n", Enumerable.Range(0, tableCount).Select(i => $$"""
+                                    {{(tableCount > 1 ? $"case {i}:\n                " : "")}}{
+                                        TABLE{{i}}:
+                                        if ((uint)_index >= (uint)_table{{i}}.Count)
+                                        {
+                                            _index = -1;
+                                            return false;
+                                        }
+
+                                        var index = _index;
+                                        _index++;
+                                        {{(noEntity && tableCount <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds.AsSpan()[index], _scene);")}}
+                                        if (!_withDisabled && _disabledTable.Has({{(noEntity && tableCount <= 1 ? $"new Entity(_table{i}.EntityIds.AsSpan()[index], _scene)" : noEntity ? "entity" : "_entity")}}))
+                                            goto TABLE{{i}};
+                    {{string.Join("\n", Enumerable.Range(0, tableCount).Where(j => j != i).Select(j => $"""
+                                            if (!_table{j}.TryGet({(noEntity ? "entity" : "_entity")}, out {(noFields ? "_" : $"_field{j}")}))
+                                                goto TABLE{i};
+                        """))}}
+                                        {{(noFields ? "" : $"_field{i} = _table{i}.Get(index);")}}
+                                        {{(tableCount == 1 ? "_currentIndex = index;" : "")}}
+                                        return true;
+                                    }
+                    """))}}
+                            }
+
+                #pragma warning disable CS0162
+                            return false;
+                #pragma warning restore CS0162
+                        }
+
+                        public bool TryGetNext(out {{type}} current)
+                        {
+                            global::System.Runtime.CompilerServices.Unsafe.SkipInit(out current);
+                            if (MoveNext())
+                            {
+                                current = Current;
+                                return true;
+                            }
+
+                            return false;
+                        }
+
+                        public bool TryGetNonEnumeratedCount(out int count)
+                        {
+                {{tryCount}}
+                        }
+
+                        public bool TryGetSpan(out global::System.ReadOnlySpan<{{type}}> span)
+                        {
+                            span = default;
+                            return false;
+                        }
+
+                        public bool TryCopyTo(scoped global::System.Span<{{type}}> destination, global::System.Index offset)
+                        {
+                {{tryCopy}}
+                        }
+
+                        public void Reset()
+                        {
+                            Dispose();
+                            _initialized = false;
+                        }
+
+                        public {{type}} Current => {{current}};
+
+                        {{(tableCount == 1 ? "public int CurrentIndex => _currentIndex;" : "")}}
+
+                        public void Dispose()
+                        {
+                            if (_disposed)
+                                return;
+                            if (_deferred)
+                                _scene.EndDefer();
+                            _disposed = true;
+                        }
+                    }
+
+                    public {{namePrefix}}{{tableCount}}Enumerable {{methodName}}({{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}}) {
+                        ThrowIfNotConfigured();
+                        return new {{namePrefix}}{{tableCount}}Enumerable(this, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"table{n}"))}});
+                    }
+                    
+                """;
+        tryCount = """
+                        if (_withDisabled || _disabledTable.Count == 0)
+                        {
+                            count = _table0.Count;
+                            return true;
+                        }
+
+                        count = 0;
+                        return false;
+            """;
+        var assign = namePrefix switch
+        {
+            "TableEntity" => "destination[i] = new Entity(slice[i], _scene);",
+            "TableComponent" => "destination[i] = _table0.Get(start + i);",
+            _ => "destination[i] = (new Entity(slice[i], _scene), _table0.Get(start + i));",
+        };
+        tryCopy = $$"""
+                        if (_withDisabled || _disabledTable.Count == 0)
+                        {
+                            var ids = _table0.EntityIds.AsSpan();
+                            if (ZLinq.Internal.EnumeratorHelper.TryGetSlice(ids, offset, destination.Length, out var slice))
+                            {
+                                var start = offset.GetOffset(ids.Length);
+                                for (var i = 0; i < slice.Length; i++)
+                                    {{assign}}
+                                return true;
+                            }
+                        }
+
+                        return false;
+            """;
+
         return $$"""
                 public struct {{namePrefix}}{{tableCount}}Enumerable : Collections.IStructEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>
                 {
@@ -693,8 +907,7 @@ public sealed class SceneGenerator : SourceGenerator
 
                     public bool TryGetNonEnumeratedCount(out int count)
                     {
-                        count = 0;
-                        return false;
+            {{tryCount}}
                     }
 
                     public bool TryGetSpan(out global::System.ReadOnlySpan<{{type}}> span)
@@ -705,7 +918,7 @@ public sealed class SceneGenerator : SourceGenerator
 
                     public bool TryCopyTo(scoped global::System.Span<{{type}}> destination, global::System.Index offset)
                     {
-                        return false;
+            {{tryCopy}}
                     }
 
                     public void Reset()

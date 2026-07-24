@@ -19,6 +19,7 @@ public sealed unsafe class Graphics
     private static Texture2D? _defaultShapeTexture = null;
     private static Raylib_cs.Rectangle _defaultShapeTextureSource;
     private readonly bool _primary;
+    internal RenderTexture? Buffer;
     private BlendMode _blendMode = Drawing.DefaultBlendMode;
     private Box? _clip = null;
     private bool _culling = Drawing.DefaultCulling;
@@ -27,7 +28,6 @@ public sealed unsafe class Graphics
     private Matrix3x2 _matrix = Matrix3x2.Identity;
     private Shader _shader = Drawing.DefaultShader;
     private ShapeTexture? _shapeTexture = null;
-    internal RenderTexture? Buffer;
 
     internal Graphics(RenderTexture? buffer, bool primary = false)
     {

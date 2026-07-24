@@ -8,8 +8,8 @@ namespace Vigilance.Drawing;
 public sealed class RenderTexture : IDisposable
 {
     private readonly bool _pool;
-    private bool _pooled;
     internal RenderTexture2D RenderTexture2D;
+    private bool _pooled;
 
     public RenderTexture(Vector2 size, float scale = 1, bool pool = true)
         : this(size.X, size.Y, scale, pool) { }

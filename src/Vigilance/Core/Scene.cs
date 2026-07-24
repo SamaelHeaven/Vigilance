@@ -12,6 +12,22 @@ namespace Vigilance.Core;
 
 public sealed unsafe partial class Scene
 {
+    internal Table<Child> ChildTable;
+    internal Table<Disabled> DisabledTable;
+    internal Action<Graphics, Texture, Box>? DrawScreenAction;
+    internal Table<EntityTag> EntityTagTable;
+    internal Table<Interpolation> InterpolationTable;
+    internal Table<Name> NameTable;
+    internal Table<Parent> ParentTable;
+    internal Table<PivotPoint> PivotPointTable;
+    internal Table<Position> PositionTable;
+    internal ValueList<RenderCommand> RenderCommands = [];
+    internal ValueList<RenderComponents> RenderComponentsList = [];
+    internal ValueList<RenderData> RenderDataList = [];
+    internal Table<Rotation> RotationTable;
+    internal Table<Scale> ScaleTable;
+    internal Table<Transform> TransformTable;
+    internal Table<ZIndex> ZIndexTable;
     private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
     private int _deferredCount;
@@ -44,22 +60,6 @@ public sealed unsafe partial class Scene
     private ValueList<Table> _tables = [];
     private Action<Scene>? _transitionToAction;
     private Action? _updateAction;
-    internal Table<Child> ChildTable;
-    internal Table<Disabled> DisabledTable;
-    internal Action<Graphics, Texture, Box>? DrawScreenAction;
-    internal Table<EntityTag> EntityTagTable;
-    internal Table<Interpolation> InterpolationTable;
-    internal Table<Name> NameTable;
-    internal Table<Parent> ParentTable;
-    internal Table<PivotPoint> PivotPointTable;
-    internal Table<Position> PositionTable;
-    internal ValueList<RenderCommand> RenderCommands = [];
-    internal ValueList<RenderComponents> RenderComponentsList = [];
-    internal ValueList<RenderData> RenderDataList = [];
-    internal Table<Rotation> RotationTable;
-    internal Table<Scale> ScaleTable;
-    internal Table<Transform> TransformTable;
-    internal Table<ZIndex> ZIndexTable;
 
     public Scene(GameSystemsFunc? systems = null)
     {
