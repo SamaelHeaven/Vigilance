@@ -18,7 +18,7 @@ public static unsafe partial class FileSystem
             if (!Raylib.IsFileDropped())
                 return [];
             var filePathList = Raylib.LoadDroppedFiles();
-            var files = new string[filePathList.Count];
+            var files = GC.AllocateUninitializedArray<string>((int)filePathList.Count);
             for (uint i = 0; i < filePathList.Count; i++)
                 files[i] = filePathList[i];
             Raylib.UnloadDroppedFiles(filePathList);
@@ -127,7 +127,7 @@ public static unsafe partial class FileSystem
             return false;
         }
 
-        bytes = new byte[bytesRead];
+        bytes = GC.AllocateUninitializedArray<byte>(bytesRead);
         Marshal.Copy((nint)data, bytes, 0, bytesRead);
         Raylib.UnloadFileData(data);
         return true;
@@ -157,9 +157,8 @@ public static unsafe partial class FileSystem
             return [];
         using var pathBuffer = path.ToUtf8Ptr();
         var filePathList = Raylib.LoadDirectoryFilesEx(pathBuffer, null, recursive);
-        var count = filePathList.Count;
-        var result = new string[count];
-        for (var i = 0; i < count; i++)
+        var result = GC.AllocateUninitializedArray<string>((int)filePathList.Count);
+        for (var i = 0; i < filePathList.Count; i++)
             result[i] = Utf8Ptr.GetString(filePathList.Paths[i]);
         Raylib.UnloadDirectoryFiles(filePathList);
         return result;

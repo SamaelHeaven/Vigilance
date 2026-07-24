@@ -274,8 +274,8 @@ public sealed unsafe class Font : IDisposable
 
         if (bitmap.buffer is null)
             return null;
-        var bytes = new byte[bitmap.width * bitmap.rows];
-        Marshal.Copy((nint)bitmap.buffer, bytes, 0, (int)bitmap.width * (int)bitmap.rows);
+        var bytes = GC.AllocateUninitializedArray<byte>((int)(bitmap.width * bitmap.rows));
+        Marshal.Copy((nint)bitmap.buffer, bytes, 0, bytes.Length);
         return new Glyph(
             bytes,
             rune,

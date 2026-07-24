@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using Box2D.NET;
 using Vigilance.Core;
@@ -342,42 +343,41 @@ public sealed class World
         B2Worlds.b2World_Draw(Id, draw);
     }
 
-    private static Color ToColor(B2HexColor hexColor)
-    {
-        var value = (uint)hexColor;
-        return new Color((byte)((value >> 16) & 0xff), (byte)((value >> 8) & 0xff), (byte)(value & 0xff));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector2 Transform(in B2Transform transform, B2Vec2 vertex)
-    {
-        var x = transform.q.c * vertex.X - transform.q.s * vertex.Y + transform.p.X;
-        var y = transform.q.s * vertex.X + transform.q.c * vertex.Y + transform.p.Y;
-        return MetersToPixels(new Vector2(x, y));
-    }
-
-    private static Vector2[] TransformVertices(
-        in B2Transform transform,
-        in ReadOnlySpan<B2Vec2> vertices,
-        int vertexCount
+    private static unsafe void DrawPolygon(
+        ReadOnlySpan<B2Vec2> vertices,
+        int vertexCount,
+        B2HexColor color,
+        object context
     )
     {
-        var points = new Vector2[vertexCount];
-        for (var i = 0; i < vertexCount; i++)
-            points[i] = Transform(transform, vertices[i]);
-        return points;
-    }
-
-    private static void DrawPolygon(ReadOnlySpan<B2Vec2> vertices, int vertexCount, B2HexColor color, object context)
-    {
         var (graphics, camera) = (DebugDrawContext)context;
-        var points = new Vector2[vertexCount];
-        for (var i = 0; i < vertexCount; i++)
-            points[i] = MetersToPixels(new Vector2(vertices[i]));
-        graphics.StrokeCustomPolygon(points, ToColor(color), camera: camera);
+        Vector2[]? pooledArray = null;
+        try
+        {
+            Span<Vector2> span;
+            if (vertexCount > 128)
+            {
+                pooledArray = ArrayPool<Vector2>.Shared.Rent(vertexCount);
+                span = pooledArray.AsSpan(0, vertexCount);
+            }
+            else
+            {
+                var points = stackalloc Vector2[vertexCount];
+                span = new Span<Vector2>(points, vertexCount);
+            }
+
+            for (var i = 0; i < vertexCount; i++)
+                span[i] = MetersToPixels(new Vector2(vertices[i]));
+            graphics.StrokeCustomPolygon(span, color.ToColor(), camera: camera);
+        }
+        finally
+        {
+            if (pooledArray != null)
+                ArrayPool<Vector2>.Shared.Return(pooledArray);
+        }
     }
 
-    private static void DrawSolidPolygon(
+    private static unsafe void DrawSolidPolygon(
         in B2Transform transform,
         ReadOnlySpan<B2Vec2> vertices,
         int vertexCount,
@@ -387,10 +387,32 @@ public sealed class World
     )
     {
         var (graphics, camera) = (DebugDrawContext)context;
-        var points = TransformVertices(transform, vertices, vertexCount);
-        var fill = ToColor(color);
-        graphics.FillCustomPolygon(points, fill.Alpha(0.5f), camera);
-        graphics.StrokeCustomPolygon(points, fill, camera: camera);
+        Vector2[]? pooledArray = null;
+        try
+        {
+            Span<Vector2> span;
+            if (vertexCount > 128)
+            {
+                pooledArray = ArrayPool<Vector2>.Shared.Rent(vertexCount);
+                span = pooledArray.AsSpan(0, vertexCount);
+            }
+            else
+            {
+                var points = stackalloc Vector2[vertexCount];
+                span = new Span<Vector2>(points, vertexCount);
+            }
+
+            for (var i = 0; i < vertexCount; i++)
+                span[i] = transform.Transform(vertices[i]);
+            var fill = color.ToColor();
+            graphics.FillCustomPolygon(span, fill.Alpha(0.5f), camera);
+            graphics.StrokeCustomPolygon(span, fill, camera: camera);
+        }
+        finally
+        {
+            if (pooledArray != null)
+                ArrayPool<Vector2>.Shared.Return(pooledArray);
+        }
     }
 
     private static void DrawCircle(in B2Vec2 center, float radius, B2HexColor color, object context)
@@ -399,7 +421,7 @@ public sealed class World
         graphics.StrokeCircle(
             MetersToPixels(new Vector2(center)),
             MetersToPixels(radius),
-            ToColor(color),
+            color.ToColor(),
             camera: camera
         );
     }
@@ -409,10 +431,10 @@ public sealed class World
         var (graphics, camera) = (DebugDrawContext)context;
         var center = MetersToPixels(new Vector2(transform.p));
         var radiusPixels = MetersToPixels(radius);
-        var fill = ToColor(color);
+        var fill = color.ToColor();
         graphics.FillCircle(center, radiusPixels, fill.Alpha(0.5f), camera: camera);
         graphics.StrokeCircle(center, radiusPixels, fill, camera: camera);
-        var axis = Transform(transform, new B2Vec2(radius, 0f));
+        var axis = transform.Transform(new B2Vec2(radius, 0f));
         graphics.DrawLine(center, axis, fill, camera: camera);
     }
 
@@ -422,7 +444,7 @@ public sealed class World
         var start = MetersToPixels(new Vector2(p1));
         var end = MetersToPixels(new Vector2(p2));
         var radiusPixels = MetersToPixels(radius);
-        var fill = ToColor(color);
+        var fill = color.ToColor();
         var body = fill.Alpha(0.5f);
         var axis = end - start;
         var normal = new Vector2(-axis.Y, axis.X).Normalize() * radiusPixels;
@@ -441,7 +463,7 @@ public sealed class World
         graphics.DrawLine(
             MetersToPixels(new Vector2(p1)),
             MetersToPixels(new Vector2(p2)),
-            ToColor(color),
+            color.ToColor(),
             camera: camera
         );
     }
@@ -451,20 +473,20 @@ public sealed class World
         var (graphics, camera) = (DebugDrawContext)context;
         const float axisScale = 0.4f;
         var origin = MetersToPixels(new Vector2(transform.p));
-        graphics.DrawLine(origin, Transform(transform, new B2Vec2(axisScale, 0f)), Color.Red500, camera: camera);
-        graphics.DrawLine(origin, Transform(transform, new B2Vec2(0f, axisScale)), Color.Green500, camera: camera);
+        graphics.DrawLine(origin, transform.Transform(new B2Vec2(axisScale, 0f)), Color.Red500, camera: camera);
+        graphics.DrawLine(origin, transform.Transform(new B2Vec2(0f, axisScale)), Color.Green500, camera: camera);
     }
 
     private static void DrawPoint(in B2Vec2 p, float size, B2HexColor color, object context)
     {
         var (graphics, camera) = (DebugDrawContext)context;
-        graphics.FillCircle(MetersToPixels(new Vector2(p)), size * 0.5f, ToColor(color), camera: camera);
+        graphics.FillCircle(MetersToPixels(new Vector2(p)), size * 0.5f, color.ToColor(), camera: camera);
     }
 
     private static void DrawString(in B2Vec2 p, string s, B2HexColor color, object context)
     {
         var (graphics, camera) = (DebugDrawContext)context;
-        graphics.FillText(s, MetersToPixels(new Vector2(p)), ToColor(color), fontSize: 8, camera: camera);
+        graphics.FillText(s, MetersToPixels(new Vector2(p)), color.ToColor(), fontSize: 8, camera: camera);
     }
 
     private void DispatchContactEvents()

@@ -20,7 +20,7 @@ public sealed class TextureAtlas : IArrayView<Box>
 
     public TextureAtlas(Texture texture, float regionWidth, float regionHeight, int count, float spacing = 0)
     {
-        var boxes = new Box[count];
+        var boxes = GC.AllocateUninitializedArray<Box>(count);
         Texture = texture;
         RegionSize = new Vector2(regionWidth, regionHeight);
         Spacing = spacing;

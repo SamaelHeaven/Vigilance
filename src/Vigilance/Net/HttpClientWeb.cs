@@ -91,7 +91,7 @@ internal static unsafe class HttpClientWeb
         {
             response.StatusCode = fetch->Status;
             response.StatusText = Utf8Ptr.GetString(fetch->StatusText);
-            response.Body = new byte[fetch->TotalBytes];
+            response.Body = GC.AllocateUninitializedArray<byte>((int)fetch->TotalBytes);
             if (fetch->Data != nint.Zero)
                 Marshal.Copy(fetch->Data, response.Body, 0, response.Body.Length);
             var headersLength = Emscripten.FetchGetResponseHeadersLength(fetch);
