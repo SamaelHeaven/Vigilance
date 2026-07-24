@@ -29,7 +29,7 @@ public static unsafe class Display
 
     public static string Title
     {
-        get => field;
+        get;
         set
         {
             if (value == field)
@@ -157,7 +157,7 @@ public static unsafe class Display
 
     public static Vector2? MinScreenSize
     {
-        get => field;
+        get;
         set
         {
             value = value?.Floor();
@@ -171,7 +171,7 @@ public static unsafe class Display
 
     public static Vector2? MaxScreenSize
     {
-        get => field;
+        get;
         set
         {
             value = value?.Floor();
@@ -226,7 +226,7 @@ public static unsafe class Display
 
     public static int FpsTarget
     {
-        get => field;
+        get;
         set
         {
             if (value < 1)
@@ -258,7 +258,7 @@ public static unsafe class Display
 
     public static bool Decorated
     {
-        get => field;
+        get;
         set
         {
             if (value == field)
@@ -270,7 +270,7 @@ public static unsafe class Display
 
     public static bool Vsync
     {
-        get => field;
+        get;
         set
         {
             if (value == field)
@@ -282,7 +282,7 @@ public static unsafe class Display
 
     public static bool Resizable
     {
-        get => field;
+        get;
         set
         {
             if (value == field)
@@ -294,7 +294,7 @@ public static unsafe class Display
 
     public static bool TopMost
     {
-        get => field;
+        get;
         set
         {
             if (value == field)
@@ -306,7 +306,7 @@ public static unsafe class Display
 
     public static bool Transparent
     {
-        get => field;
+        get;
         set
         {
             if (value == field)
@@ -318,7 +318,7 @@ public static unsafe class Display
 
     public static bool Passthrough
     {
-        get => field;
+        get;
         set
         {
             if (value == field)

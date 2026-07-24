@@ -1,15 +1,15 @@
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Vigilance.Core;
 
 public static class ObjectMarshal
 {
-    [UnsafeAccessor(UnsafeAccessorKind.StaticMethod)]
-    private static extern ref byte GetRawData(
-        [UnsafeAccessorType("System.Runtime.CompilerServices.RuntimeHelpers")] object? clazz,
-        object obj
-    );
+    private static ref byte GetRawData(object obj)
+    {
+        return ref Unsafe.As<RawData>(obj).Data;
+    }
 
     [UnsafeAccessor(UnsafeAccessorKind.StaticMethod)]
     private static extern nuint GetRawObjectDataSize(
@@ -30,6 +30,7 @@ public static class ObjectMarshal
         return (int)GetRawObjectDataSize(null, value);
     }
 
+    [SkipLocalsInit]
     public static unsafe void Clear(object value)
     {
         var size = (int)GetRawObjectDataSize(null, value);
@@ -41,7 +42,6 @@ public static class ObjectMarshal
             {
                 pooledArray = ArrayPool<byte>.Shared.Rent(size);
                 span = pooledArray.AsSpan(0, size);
-                span.Clear();
             }
             else
             {
@@ -49,7 +49,8 @@ public static class ObjectMarshal
                 span = new Span<byte>(bytes, size);
             }
 
-            ref var data = ref GetRawData(null, value);
+            span.Clear();
+            ref var data = ref GetRawData(value);
             BulkMoveWithWriteBarrier(null, ref data, ref span.GetPinnableReference(), (nuint)size);
         }
         finally
@@ -59,15 +60,21 @@ public static class ObjectMarshal
         }
     }
 
-    public static void CopyTo(object source, object dest)
+    public static void Write(object source, object dest)
     {
         if (source.GetType() != dest.GetType())
             throw new InvalidOperationException(
                 $"Source type ({source.GetType()}) does not match dest type ({dest.GetType()})."
             );
         var size = GetRawObjectDataSize(null, dest);
-        ref var sourceData = ref GetRawData(null, source);
-        ref var destData = ref GetRawData(null, dest);
+        ref var sourceData = ref GetRawData(source);
+        ref var destData = ref GetRawData(dest);
         BulkMoveWithWriteBarrier(null, ref destData, ref sourceData, size);
+    }
+
+    [SuppressMessage("ReSharper", "ClassNeverInstantiated.Local")]
+    private sealed class RawData
+    {
+        public byte Data;
     }
 }

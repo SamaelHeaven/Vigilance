@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Vigilance.Collections;
+using Vigilance.Logging;
 
 namespace Vigilance.Core;
 
@@ -45,8 +46,15 @@ public sealed unsafe class ObjectPool<[DynamicallyAccessedMembers(DynamicallyAcc
         Debug.Assert(item is not null);
         if ((T?)item is null)
             return;
-        ObjectMarshal.Clear(item);
-        _pool.Push(item);
+        try
+        {
+            ObjectMarshal.Clear(item);
+            _pool.Push(item);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
     }
 
     public Handle Borrow()

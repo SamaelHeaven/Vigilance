@@ -15,7 +15,7 @@ public static unsafe partial class Log
 
     public static LogLevel LogLevel
     {
-        get => field;
+        get;
         set
         {
             if (value == field)

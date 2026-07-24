@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Vigilance.Collections;
 
-internal ref struct SegmentedArrayProvider<T>
+public ref struct SegmentedArrayProvider<T>
 {
     private const int ArrayMaxLength = 0X7FFFFFC7;
     private Span<T> _currentSegment;
