@@ -1,4 +1,5 @@
 using Vigilance.Core;
+using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
@@ -34,7 +35,8 @@ public static class Drawing
 
     public static TimeSpan RenderTexturePoolLifetime { get; set; } = _config.RenderTexturePoolLifetime;
 
-    public static int RenderTexturePoolRoundUpToMultipleOf { get; set; } = _config.RenderTexturePoolRoundUpToMultipleOf;
+    public static Func<(int Width, int Height), (int Width, int Height)> RenderTexturePoolRoundFunc { get; set; } =
+        _config.RenderTexturePoolRoundFunc;
 
     public static int CalculateSegments(
         float radius,
@@ -73,7 +75,7 @@ public static class Drawing
         DefaultBlendMode = _config.DefaultBlendMode;
         SegmentsErrorRate = _config.SegmentsErrorRate;
         RenderTexturePoolLifetime = _config.RenderTexturePoolLifetime;
-        RenderTexturePoolRoundUpToMultipleOf = _config.RenderTexturePoolRoundUpToMultipleOf;
+        RenderTexturePoolRoundFunc = _config.RenderTexturePoolRoundFunc;
         DefaultTexture = _config.DefaultTexture.SafeInvoke();
         DefaultShader = _config.DefaultShader.SafeInvoke();
     }
@@ -95,7 +97,9 @@ public sealed class DrawingConfig
     public Func<Shader> DefaultShader { get; set; } = () => Shader.Default;
     public float SegmentsErrorRate { get; set; } = 0.5f;
     public TimeSpan RenderTexturePoolLifetime { get; set; } = TimeSpan.FromSeconds(5);
-    public int RenderTexturePoolRoundUpToMultipleOf { get; set; } = 128;
+
+    public Func<(int Width, int Height), (int Width, int Height)> RenderTexturePoolRoundFunc { get; set; } =
+        value => (value.Width.RoundUpToMultipleOf(128), value.Height.RoundUpToMultipleOf(128));
 }
 
 public static class DrawingConfigExtensions
