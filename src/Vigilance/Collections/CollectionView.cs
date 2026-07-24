@@ -290,6 +290,40 @@ public interface IValueSparseSetView<TKey, TValue, TStorage>
     int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
 }
 
+public interface ISparseSetView<TKey> : IStructEnumerable<SparseSet<TKey>.Enumerator, TKey>, IReadOnlyCollection<TKey>
+{
+    int IReadOnlyCollection<TKey>.Count => AsValueEnumerable().Count();
+}
+
+public interface IEntitySparseSetView
+    : IStructEnumerable<EntitySparseSet.Enumerator, Entity>,
+        IReadOnlyCollection<Entity>
+{
+    int IReadOnlyCollection<Entity>.Count => AsValueEnumerable().Count();
+}
+
+public interface IValueSparseSetView<TKey>
+    : IStructEnumerable<ValueSparseSet<TKey>.Enumerator, TKey>,
+        IReadOnlyCollection<TKey>
+{
+    int IReadOnlyCollection<TKey>.Count => AsValueEnumerable().Count();
+}
+
+public interface IValueEntitySparseSetView
+    : IStructEnumerable<ValueEntitySparseSet.Enumerator, Entity>,
+        IReadOnlyCollection<Entity>
+{
+    int IReadOnlyCollection<Entity>.Count => AsValueEnumerable().Count();
+}
+
+public interface IValueEntitySparseSetView<TValue, TStorage>
+    : IStructEnumerable<ValueEntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>,
+        IReadOnlyCollection<KeyValuePair<Entity, TValue>>
+    where TStorage : IList<TValue>
+{
+    int IReadOnlyCollection<KeyValuePair<Entity, TValue>>.Count => AsValueEnumerable().Count();
+}
+
 public interface IValueDictionaryView<TKey, TValue>
     : IStructEnumerable<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
         IReadOnlyCollection<KeyValuePair<TKey, TValue>>
@@ -1051,6 +1085,174 @@ public readonly record struct SparseSetView<TKey, TValue, TStorage>
     }
 }
 
+public readonly record struct SparseSetView<TKey> : ISparseSetView<TKey>, IReadOnlySet<TKey>, IReadOnlyList<TKey>
+{
+    private readonly SparseSet<TKey> _sparseSet;
+
+    public SparseSetView(SparseSet<TKey> sparseSet)
+    {
+        _sparseSet = sparseSet;
+    }
+
+    public ValueListView<TKey> Keys => _sparseSet.Keys;
+
+    public TKey this[int index] => _sparseSet[index];
+
+    public bool IsProperSubsetOf(IEnumerable<TKey> other)
+    {
+        return _sparseSet.IsProperSubsetOf(other);
+    }
+
+    public bool IsProperSupersetOf(IEnumerable<TKey> other)
+    {
+        return _sparseSet.IsProperSupersetOf(other);
+    }
+
+    public bool IsSubsetOf(IEnumerable<TKey> other)
+    {
+        return _sparseSet.IsSubsetOf(other);
+    }
+
+    public bool IsSupersetOf(IEnumerable<TKey> other)
+    {
+        return _sparseSet.IsSupersetOf(other);
+    }
+
+    public bool Overlaps(IEnumerable<TKey> other)
+    {
+        return _sparseSet.Overlaps(other);
+    }
+
+    public bool SetEquals(IEnumerable<TKey> other)
+    {
+        return _sparseSet.SetEquals(other);
+    }
+
+    bool IReadOnlySet<TKey>.Contains(TKey item)
+    {
+        return Contains(item);
+    }
+
+    public int Count => _sparseSet.Count;
+
+    public SparseSet<TKey>.Enumerator GetEnumerator()
+    {
+        return _sparseSet.GetEnumerator();
+    }
+
+    ValueEnumerable<StructEnumerator<SparseSet<TKey>.Enumerator, TKey>, TKey> IStructEnumerable<
+        SparseSet<TKey>.Enumerator,
+        TKey
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<SparseSet<TKey>.Enumerator, TKey>(GetEnumerator());
+    }
+
+    public bool Contains(in TKey key)
+    {
+        return _sparseSet.Contains(key);
+    }
+
+    public int GetKeyIndex(in TKey key)
+    {
+        return _sparseSet.GetKeyIndex(key);
+    }
+
+    public ValueEnumerable<SparseSet<TKey>.Enumerator, TKey> AsValueEnumerable()
+    {
+        return _sparseSet.AsValueEnumerable();
+    }
+
+    public static implicit operator SparseSetView<TKey>(SparseSet<TKey> sparseSet)
+    {
+        return new SparseSetView<TKey>(sparseSet);
+    }
+}
+
+public readonly record struct EntitySparseSetView : IEntitySparseSetView, IReadOnlySet<Entity>, IReadOnlyList<Entity>
+{
+    private readonly EntitySparseSet _sparseSet;
+
+    public EntitySparseSetView(EntitySparseSet sparseSet)
+    {
+        _sparseSet = sparseSet;
+    }
+
+    public Scene Scene => _sparseSet.Scene;
+
+    public int Count => _sparseSet.Count;
+
+    public EntitySparseSet.Enumerator GetEnumerator()
+    {
+        return _sparseSet.GetEnumerator();
+    }
+
+    ValueEnumerable<StructEnumerator<EntitySparseSet.Enumerator, Entity>, Entity> IStructEnumerable<
+        EntitySparseSet.Enumerator,
+        Entity
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<EntitySparseSet.Enumerator, Entity>(GetEnumerator());
+    }
+
+    public Entity this[int index] => _sparseSet[index];
+
+    public bool IsProperSubsetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsProperSubsetOf(other);
+    }
+
+    public bool IsProperSupersetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsProperSupersetOf(other);
+    }
+
+    public bool IsSubsetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsSubsetOf(other);
+    }
+
+    public bool IsSupersetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsSupersetOf(other);
+    }
+
+    public bool Overlaps(IEnumerable<Entity> other)
+    {
+        return _sparseSet.Overlaps(other);
+    }
+
+    public bool SetEquals(IEnumerable<Entity> other)
+    {
+        return _sparseSet.SetEquals(other);
+    }
+
+    bool IReadOnlySet<Entity>.Contains(Entity item)
+    {
+        return Contains(item);
+    }
+
+    public bool Contains(in Entity key)
+    {
+        return _sparseSet.Contains(key);
+    }
+
+    public int GetKeyIndex(in Entity key)
+    {
+        return _sparseSet.GetKeyIndex(key);
+    }
+
+    public ValueEnumerable<EntitySparseSet.Enumerator, Entity> AsValueEnumerable()
+    {
+        return _sparseSet.AsValueEnumerable();
+    }
+
+    public static implicit operator EntitySparseSetView(EntitySparseSet sparseSet)
+    {
+        return new EntitySparseSetView(sparseSet);
+    }
+}
+
 public readonly record struct EntitySparseSetView<TValue, TStorage>
     : IEntitySparseSetView<TValue, TStorage>,
         IReadOnlyDictionary<Entity, TValue>,
@@ -1285,6 +1487,7 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
 
         public ISparseSet<TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
 
+        [UnscopedRef]
         public ValueListView<TKey> Keys => _sparseSet.Keys;
 
         public TValue this[in TKey key] => _sparseSet[key];
@@ -1343,6 +1546,641 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
         public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
         {
             return _sparseSet.TryGetValue(key, out value);
+        }
+    }
+}
+
+public readonly ref struct ValueSparseSetView<TKey> : IValueSparseSetView<TKey>, IReadOnlySet<TKey>, IReadOnlyList<TKey>
+{
+    private readonly ref ValueSparseSet<TKey> _sparseSet;
+
+    public ValueSparseSetView(ref ValueSparseSet<TKey> sparseSet)
+    {
+        _sparseSet = ref sparseSet;
+    }
+
+    public ValueListView<TKey> Keys => _sparseSet.Keys;
+
+    public int Count => _sparseSet.Count;
+
+    public TKey this[int index] => _sparseSet[index];
+
+    public bool Contains(scoped in TKey key)
+    {
+        return _sparseSet.Contains(key);
+    }
+
+    public int GetKeyIndex(scoped in TKey key)
+    {
+        return _sparseSet.GetKeyIndex(key);
+    }
+
+    public bool IsProperSubsetOf(IEnumerable<TKey> other)
+    {
+        return _sparseSet.IsProperSubsetOf(other);
+    }
+
+    public bool IsProperSupersetOf(IEnumerable<TKey> other)
+    {
+        return _sparseSet.IsProperSupersetOf(other);
+    }
+
+    public bool IsSubsetOf(IEnumerable<TKey> other)
+    {
+        return _sparseSet.IsSubsetOf(other);
+    }
+
+    public bool IsSupersetOf(IEnumerable<TKey> other)
+    {
+        return _sparseSet.IsSupersetOf(other);
+    }
+
+    public bool Overlaps(IEnumerable<TKey> other)
+    {
+        return _sparseSet.Overlaps(other);
+    }
+
+    public bool SetEquals(IEnumerable<TKey> other)
+    {
+        return _sparseSet.SetEquals(other);
+    }
+
+    bool IReadOnlySet<TKey>.Contains(TKey item)
+    {
+        return Contains(item);
+    }
+
+    public ValueSparseSet<TKey>.Enumerator GetEnumerator()
+    {
+        return _sparseSet.GetEnumerator();
+    }
+
+    public Enumerable AsEnumerable()
+    {
+        return new Enumerable(_sparseSet);
+    }
+
+    public ValueEnumerable<ValueSparseSet<TKey>.Enumerator, TKey> AsValueEnumerable()
+    {
+        return _sparseSet.AsValueEnumerable();
+    }
+
+    ValueEnumerable<StructEnumerator<ValueSparseSet<TKey>.Enumerator, TKey>, TKey> IStructEnumerable<
+        ValueSparseSet<TKey>.Enumerator,
+        TKey
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueSparseSet<TKey>.Enumerator, TKey>(GetEnumerator());
+    }
+
+    IEnumerator<TKey> IEnumerable<TKey>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public static implicit operator ValueSparseSetView<TKey>(in ValueSparseSet<TKey> sparseSet)
+    {
+        return new ValueSparseSetView<TKey>(ref Unsafe.AsRef(in sparseSet));
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueSparseSetView<>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueSparseSetView<>)} is not supported.");
+    }
+
+    public bool Equals(scoped ValueSparseSetView<TKey> other)
+    {
+        return Unsafe.AreSame(ref _sparseSet, ref other._sparseSet);
+    }
+
+    public static bool operator ==(scoped ValueSparseSetView<TKey> left, scoped ValueSparseSetView<TKey> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(scoped ValueSparseSetView<TKey> left, scoped ValueSparseSetView<TKey> right)
+    {
+        return !left.Equals(right);
+    }
+
+    public readonly record struct Enumerable : IValueSparseSetView<TKey>, IReadOnlySet<TKey>, IReadOnlyList<TKey>
+    {
+        private readonly ValueSparseSet<TKey> _sparseSet;
+
+        public Enumerable(ValueSparseSet<TKey> sparseSet)
+        {
+            _sparseSet = sparseSet;
+        }
+
+        [UnscopedRef]
+        public ValueListView<TKey> Keys => _sparseSet.Keys;
+
+        public TKey this[int index] => _sparseSet[index];
+
+        public bool IsProperSubsetOf(IEnumerable<TKey> other)
+        {
+            return _sparseSet.IsProperSubsetOf(other);
+        }
+
+        public bool IsProperSupersetOf(IEnumerable<TKey> other)
+        {
+            return _sparseSet.IsProperSupersetOf(other);
+        }
+
+        public bool IsSubsetOf(IEnumerable<TKey> other)
+        {
+            return _sparseSet.IsSubsetOf(other);
+        }
+
+        public bool IsSupersetOf(IEnumerable<TKey> other)
+        {
+            return _sparseSet.IsSupersetOf(other);
+        }
+
+        public bool Overlaps(IEnumerable<TKey> other)
+        {
+            return _sparseSet.Overlaps(other);
+        }
+
+        public bool SetEquals(IEnumerable<TKey> other)
+        {
+            return _sparseSet.SetEquals(other);
+        }
+
+        bool IReadOnlySet<TKey>.Contains(TKey item)
+        {
+            return Contains(item);
+        }
+
+        public int Count => _sparseSet.Count;
+
+        public ValueSparseSet<TKey>.Enumerator GetEnumerator()
+        {
+            return _sparseSet.GetEnumerator();
+        }
+
+        ValueEnumerable<StructEnumerator<ValueSparseSet<TKey>.Enumerator, TKey>, TKey> IStructEnumerable<
+            ValueSparseSet<TKey>.Enumerator,
+            TKey
+        >.AsValueEnumerable()
+        {
+            return new StructEnumerator<ValueSparseSet<TKey>.Enumerator, TKey>(GetEnumerator());
+        }
+
+        public bool Contains(in TKey key)
+        {
+            return _sparseSet.Contains(key);
+        }
+
+        public int GetKeyIndex(in TKey key)
+        {
+            return _sparseSet.GetKeyIndex(key);
+        }
+
+        public ValueEnumerable<ValueSparseSet<TKey>.Enumerator, TKey> AsValueEnumerable()
+        {
+            return _sparseSet.AsValueEnumerable();
+        }
+    }
+}
+
+public readonly ref struct ValueEntitySparseSetView
+    : IValueEntitySparseSetView,
+        IReadOnlySet<Entity>,
+        IReadOnlyList<Entity>
+{
+    private readonly ref ValueEntitySparseSet _sparseSet;
+
+    public ValueEntitySparseSetView(ref ValueEntitySparseSet sparseSet)
+    {
+        _sparseSet = ref sparseSet;
+    }
+
+    public Scene Scene => _sparseSet.Scene;
+
+    public int Count => _sparseSet.Count;
+
+    public Entity this[int index] => _sparseSet[index];
+
+    public bool Contains(scoped in Entity key)
+    {
+        return _sparseSet.Contains(key);
+    }
+
+    public int GetKeyIndex(scoped in Entity key)
+    {
+        return _sparseSet.GetKeyIndex(key);
+    }
+
+    public bool IsProperSubsetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsProperSubsetOf(other);
+    }
+
+    public bool IsProperSupersetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsProperSupersetOf(other);
+    }
+
+    public bool IsSubsetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsSubsetOf(other);
+    }
+
+    public bool IsSupersetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsSupersetOf(other);
+    }
+
+    public bool Overlaps(IEnumerable<Entity> other)
+    {
+        return _sparseSet.Overlaps(other);
+    }
+
+    public bool SetEquals(IEnumerable<Entity> other)
+    {
+        return _sparseSet.SetEquals(other);
+    }
+
+    bool IReadOnlySet<Entity>.Contains(Entity item)
+    {
+        return Contains(item);
+    }
+
+    public ValueEntitySparseSet.Enumerator GetEnumerator()
+    {
+        return _sparseSet.GetEnumerator();
+    }
+
+    public Enumerable AsEnumerable()
+    {
+        return new Enumerable(_sparseSet);
+    }
+
+    public ValueEnumerable<ValueEntitySparseSet.Enumerator, Entity> AsValueEnumerable()
+    {
+        return _sparseSet.AsValueEnumerable();
+    }
+
+    ValueEnumerable<StructEnumerator<ValueEntitySparseSet.Enumerator, Entity>, Entity> IStructEnumerable<
+        ValueEntitySparseSet.Enumerator,
+        Entity
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueEntitySparseSet.Enumerator, Entity>(GetEnumerator());
+    }
+
+    IEnumerator<Entity> IEnumerable<Entity>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public static implicit operator ValueEntitySparseSetView(in ValueEntitySparseSet sparseSet)
+    {
+        return new ValueEntitySparseSetView(ref Unsafe.AsRef(in sparseSet));
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueEntitySparseSetView)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException(
+            $"{nameof(GetHashCode)}() on {nameof(ValueEntitySparseSetView)} is not supported."
+        );
+    }
+
+    public bool Equals(scoped ValueEntitySparseSetView other)
+    {
+        return Unsafe.AreSame(ref _sparseSet, ref other._sparseSet);
+    }
+
+    public static bool operator ==(scoped ValueEntitySparseSetView left, scoped ValueEntitySparseSetView right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(scoped ValueEntitySparseSetView left, scoped ValueEntitySparseSetView right)
+    {
+        return !left.Equals(right);
+    }
+
+    public readonly record struct Enumerable : IValueEntitySparseSetView, IReadOnlySet<Entity>, IReadOnlyList<Entity>
+    {
+        private readonly ValueEntitySparseSet _sparseSet;
+
+        public Enumerable(ValueEntitySparseSet sparseSet)
+        {
+            _sparseSet = sparseSet;
+        }
+
+        public Scene Scene => _sparseSet.Scene;
+
+        public Entity this[int index] => _sparseSet[index];
+
+        public bool IsProperSubsetOf(IEnumerable<Entity> other)
+        {
+            return _sparseSet.IsProperSubsetOf(other);
+        }
+
+        public bool IsProperSupersetOf(IEnumerable<Entity> other)
+        {
+            return _sparseSet.IsProperSupersetOf(other);
+        }
+
+        public bool IsSubsetOf(IEnumerable<Entity> other)
+        {
+            return _sparseSet.IsSubsetOf(other);
+        }
+
+        public bool IsSupersetOf(IEnumerable<Entity> other)
+        {
+            return _sparseSet.IsSupersetOf(other);
+        }
+
+        public bool Overlaps(IEnumerable<Entity> other)
+        {
+            return _sparseSet.Overlaps(other);
+        }
+
+        public bool SetEquals(IEnumerable<Entity> other)
+        {
+            return _sparseSet.SetEquals(other);
+        }
+
+        bool IReadOnlySet<Entity>.Contains(Entity item)
+        {
+            return Contains(item);
+        }
+
+        public int Count => _sparseSet.Count;
+
+        public ValueEntitySparseSet.Enumerator GetEnumerator()
+        {
+            return _sparseSet.GetEnumerator();
+        }
+
+        ValueEnumerable<StructEnumerator<ValueEntitySparseSet.Enumerator, Entity>, Entity> IStructEnumerable<
+            ValueEntitySparseSet.Enumerator,
+            Entity
+        >.AsValueEnumerable()
+        {
+            return new StructEnumerator<ValueEntitySparseSet.Enumerator, Entity>(GetEnumerator());
+        }
+
+        public bool Contains(in Entity key)
+        {
+            return _sparseSet.Contains(key);
+        }
+
+        public int GetKeyIndex(in Entity key)
+        {
+            return _sparseSet.GetKeyIndex(key);
+        }
+
+        public ValueEnumerable<ValueEntitySparseSet.Enumerator, Entity> AsValueEnumerable()
+        {
+            return _sparseSet.AsValueEnumerable();
+        }
+    }
+}
+
+public readonly ref struct ValueEntitySparseSetView<TValue, TStorage>
+    : IValueEntitySparseSetView<TValue, TStorage>,
+        IReadOnlyDictionary<Entity, TValue>,
+        IReadOnlyList<KeyValuePair<Entity, TValue>>
+    where TStorage : IList<TValue>
+{
+    private readonly ref ValueEntitySparseSet<TValue, TStorage> _sparseSet;
+
+    public ValueEntitySparseSetView(ref ValueEntitySparseSet<TValue, TStorage> sparseSet)
+    {
+        _sparseSet = ref sparseSet;
+    }
+
+    public Scene Scene => _sparseSet.Scene;
+
+    public ISparseSet<TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+
+    public ValueEntitySparseSet<TValue, TStorage>.KeyEnumerable Keys => _sparseSet.Keys;
+
+    public TValue this[scoped in Entity key] => _sparseSet[key];
+
+    public KeyValuePair<Entity, TValue> this[int index] => _sparseSet[index];
+
+    public int Count => _sparseSet.Count;
+
+    public bool ContainsKey(scoped in Entity key)
+    {
+        return _sparseSet.ContainsKey(key);
+    }
+
+    public bool TryGetValue(scoped in Entity key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return _sparseSet.TryGetValue(key, out value);
+    }
+
+    public int GetKeyIndex(scoped in Entity key)
+    {
+        return _sparseSet.GetKeyIndex(key);
+    }
+
+    public ValueEntitySparseSet<TValue, TStorage>.Enumerator GetEnumerator()
+    {
+        return _sparseSet.GetEnumerator();
+    }
+
+    public Enumerable AsEnumerable()
+    {
+        return new Enumerable(_sparseSet);
+    }
+
+    public ValueEnumerable<
+        ValueEntitySparseSet<TValue, TStorage>.Enumerator,
+        KeyValuePair<Entity, TValue>
+    > AsValueEnumerable()
+    {
+        return _sparseSet.AsValueEnumerable();
+    }
+
+    ValueEnumerable<
+        StructEnumerator<ValueEntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>,
+        KeyValuePair<Entity, TValue>
+    > IStructEnumerable<
+        ValueEntitySparseSet<TValue, TStorage>.Enumerator,
+        KeyValuePair<Entity, TValue>
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueEntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>(
+            GetEnumerator()
+        );
+    }
+
+    IEnumerator<KeyValuePair<Entity, TValue>> IEnumerable<KeyValuePair<Entity, TValue>>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    IEnumerable<Entity> IReadOnlyDictionary<Entity, TValue>.Keys => Keys;
+
+    IEnumerable<TValue> IReadOnlyDictionary<Entity, TValue>.Values => Values;
+
+    bool IReadOnlyDictionary<Entity, TValue>.ContainsKey(Entity key)
+    {
+        return ContainsKey(key);
+    }
+
+    bool IReadOnlyDictionary<Entity, TValue>.TryGetValue(Entity key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return TryGetValue(key, out value);
+    }
+
+    TValue IReadOnlyDictionary<Entity, TValue>.this[Entity key] => this[key];
+
+    public static implicit operator ValueEntitySparseSetView<TValue, TStorage>(
+        in ValueEntitySparseSet<TValue, TStorage> sparseSet
+    )
+    {
+        return new ValueEntitySparseSetView<TValue, TStorage>(ref Unsafe.AsRef(in sparseSet));
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException(
+            $"{nameof(Equals)}() on {nameof(ValueEntitySparseSetView<,>)} is not supported."
+        );
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException(
+            $"{nameof(GetHashCode)}() on {nameof(ValueEntitySparseSetView<,>)} is not supported."
+        );
+    }
+
+    public bool Equals(scoped ValueEntitySparseSetView<TValue, TStorage> other)
+    {
+        return Unsafe.AreSame(ref _sparseSet, ref other._sparseSet);
+    }
+
+    public static bool operator ==(
+        scoped ValueEntitySparseSetView<TValue, TStorage> left,
+        scoped ValueEntitySparseSetView<TValue, TStorage> right
+    )
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(
+        scoped ValueEntitySparseSetView<TValue, TStorage> left,
+        scoped ValueEntitySparseSetView<TValue, TStorage> right
+    )
+    {
+        return !left.Equals(right);
+    }
+
+    public readonly record struct Enumerable
+        : IValueEntitySparseSetView<TValue, TStorage>,
+            IReadOnlyDictionary<Entity, TValue>,
+            IReadOnlyList<KeyValuePair<Entity, TValue>>
+    {
+        private readonly ValueEntitySparseSet<TValue, TStorage> _sparseSet;
+
+        public Enumerable(ValueEntitySparseSet<TValue, TStorage> sparseSet)
+        {
+            _sparseSet = sparseSet;
+        }
+
+        public Scene Scene => _sparseSet.Scene;
+
+        public ISparseSet<TValue, TStorage>.ValueEnumerable Values => _sparseSet.Values;
+
+        public ValueEntitySparseSet<TValue, TStorage>.KeyEnumerable Keys => _sparseSet.Keys;
+
+        public TValue this[in Entity key] => _sparseSet[key];
+
+        IEnumerable<Entity> IReadOnlyDictionary<Entity, TValue>.Keys => Keys;
+
+        IEnumerable<TValue> IReadOnlyDictionary<Entity, TValue>.Values => Values;
+
+        bool IReadOnlyDictionary<Entity, TValue>.ContainsKey(Entity key)
+        {
+            return ContainsKey(key);
+        }
+
+        bool IReadOnlyDictionary<Entity, TValue>.TryGetValue(Entity key, [MaybeNullWhen(false)] out TValue value)
+        {
+            return TryGetValue(key, out value);
+        }
+
+        TValue IReadOnlyDictionary<Entity, TValue>.this[Entity key] => this[key];
+
+        public KeyValuePair<Entity, TValue> this[int index] => _sparseSet[index];
+
+        public int Count => _sparseSet.Count;
+
+        public ValueEntitySparseSet<TValue, TStorage>.Enumerator GetEnumerator()
+        {
+            return _sparseSet.GetEnumerator();
+        }
+
+        ValueEnumerable<
+            StructEnumerator<ValueEntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>,
+            KeyValuePair<Entity, TValue>
+        > IStructEnumerable<
+            ValueEntitySparseSet<TValue, TStorage>.Enumerator,
+            KeyValuePair<Entity, TValue>
+        >.AsValueEnumerable()
+        {
+            return new StructEnumerator<
+                ValueEntitySparseSet<TValue, TStorage>.Enumerator,
+                KeyValuePair<Entity, TValue>
+            >(GetEnumerator());
+        }
+
+        public bool ContainsKey(in Entity key)
+        {
+            return _sparseSet.ContainsKey(key);
+        }
+
+        public bool TryGetValue(in Entity key, [MaybeNullWhen(false)] out TValue value)
+        {
+            return _sparseSet.TryGetValue(key, out value);
+        }
+
+        public int GetKeyIndex(in Entity key)
+        {
+            return _sparseSet.GetKeyIndex(key);
+        }
+
+        public ValueEnumerable<
+            ValueEntitySparseSet<TValue, TStorage>.Enumerator,
+            KeyValuePair<Entity, TValue>
+        > AsValueEnumerable()
+        {
+            return _sparseSet.AsValueEnumerable();
         }
     }
 }
@@ -1940,6 +2778,41 @@ public static class CollectionViewExtensions
         return sparseSet;
     }
 
+    public static SparseSetView<TKey> AsView<TKey>(this SparseSet<TKey> sparseSet)
+    {
+        return sparseSet;
+    }
+
+    public static ValueSparseSetView<TKey> AsView<TKey>(in this ValueSparseSet<TKey> sparseSet)
+    {
+        return sparseSet;
+    }
+
+    public static EntitySparseSetView AsView(this EntitySparseSet sparseSet)
+    {
+        return sparseSet;
+    }
+
+    public static ValueEntitySparseSetView AsView(in this ValueEntitySparseSet sparseSet)
+    {
+        return sparseSet;
+    }
+
+    public static ValueEntitySparseSetView<TValue, TStorage> AsView<TValue, TStorage>(
+        in this ValueEntitySparseSet<TValue, TStorage> sparseSet
+    )
+        where TStorage : IList<TValue>
+    {
+        return sparseSet;
+    }
+
+    public static ValueEntitySparseSetView<TValue, ValueList<TValue>> AsView<TValue>(
+        in this ValueEntitySparseSet<TValue> sparseSet
+    )
+    {
+        return new ValueEntitySparseSetView<TValue, ValueList<TValue>>(ref Unsafe.AsRef(in sparseSet).Storage);
+    }
+
     public static ValueDictionaryView<TKey, TValue> AsView<TKey, TValue>(
         in this ValueDictionary<TKey, TValue> dictionary
     )
@@ -1983,6 +2856,24 @@ public static class CollectionViewExtensions
 
     public static ValueSparseSetView<TKey, TValue, TStorage> AsView<TKey, TValue, TStorage>(
         in this ValueSparseSetRef<TKey, TValue, TStorage> sparseSet
+    )
+        where TStorage : IList<TValue>
+    {
+        return sparseSet;
+    }
+
+    public static ValueSparseSetView<TKey> AsView<TKey>(in this ValueSparseSetRef<TKey> sparseSet)
+    {
+        return sparseSet;
+    }
+
+    public static ValueEntitySparseSetView AsView(in this ValueEntitySparseSetRef sparseSet)
+    {
+        return sparseSet;
+    }
+
+    public static ValueEntitySparseSetView<TValue, TStorage> AsView<TValue, TStorage>(
+        in this ValueEntitySparseSetRef<TValue, TStorage> sparseSet
     )
         where TStorage : IList<TValue>
     {

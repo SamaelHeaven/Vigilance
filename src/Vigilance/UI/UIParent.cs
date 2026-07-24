@@ -261,6 +261,7 @@ public abstract class UIParent : UIElement
         }
     }
 
+    // ReSharper disable once RedundantUnsafeContext
     public unsafe struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
     {
         private readonly UIParent _parent;

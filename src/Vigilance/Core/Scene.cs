@@ -10,6 +10,7 @@ using ZLinq;
 
 namespace Vigilance.Core;
 
+// ReSharper disable once RedundantUnsafeContext
 public sealed unsafe partial class Scene
 {
     internal Table<Child> ChildTable;

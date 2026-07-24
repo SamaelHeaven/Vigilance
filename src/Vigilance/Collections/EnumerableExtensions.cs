@@ -9,6 +9,12 @@ public static class EnumerableExtensions
 {
     extension<T>(IEnumerable<T> enumerable)
     {
+        [OverloadResolutionPriority(-1)]
+        public ReadOnlyCollection<T> AsReadOnly()
+        {
+            return new ReadOnlyCollection<T>(enumerable);
+        }
+
         public FastEnumerable<T> AsFastEnumerable()
         {
             return new FastEnumerable<T>(enumerable);
@@ -29,9 +35,123 @@ public static class EnumerableExtensions
     }
 }
 
+public readonly struct ReadOnlyCollection<T> : ICollection<T>, IStructEnumerable<ReadOnlyCollection<T>.Enumerator, T>
+{
+    private readonly IEnumerable<T> _enumerable;
+
+    public ReadOnlyCollection(IEnumerable<T> enumerable)
+    {
+        _enumerable = enumerable;
+    }
+
+    public Enumerator GetEnumerator()
+    {
+        return new Enumerator(this);
+    }
+
+    public ValueEnumerable<Enumerator, T> AsValueEnumerable()
+    {
+        return new ValueEnumerable<Enumerator, T>(GetEnumerator());
+    }
+
+    ValueEnumerable<StructEnumerator<Enumerator, T>, T> IStructEnumerable<Enumerator, T>.AsValueEnumerable()
+    {
+        return new StructEnumerator<Enumerator, T>(GetEnumerator());
+    }
+
+    public struct Enumerator : IStructEnumerator<T>, IValueEnumerator<T>
+    {
+        private readonly IEnumerable<T> _enumerable;
+        private IEnumerator<T>? _enumerator;
+
+        internal Enumerator(ReadOnlyCollection<T> collection)
+        {
+            _enumerable = collection._enumerable;
+        }
+
+        public bool MoveNext()
+        {
+            _enumerator ??= _enumerable!.GetEnumerator();
+            if (!_enumerator.MoveNext())
+                return false;
+            Current = _enumerator.Current;
+            return true;
+        }
+
+        public void Reset()
+        {
+            Dispose();
+        }
+
+        public T Current { get; private set; } = default!;
+
+        public void Dispose()
+        {
+            _enumerator?.Dispose();
+            _enumerator = null;
+        }
+
+        public bool TryGetNext(out T current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            using var enumerator = _enumerable.AsFastEnumerable().AsValueEnumerable().Enumerator;
+            return enumerator.TryGetNonEnumeratedCount(out count);
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<T> span)
+        {
+            using var enumerator = _enumerable.AsFastEnumerable().AsValueEnumerable().Enumerator;
+            return enumerator.TryGetSpan(out span);
+        }
+
+        public bool TryCopyTo(scoped Span<T> destination, Index offset)
+        {
+            using var enumerator = _enumerable.AsFastEnumerable().AsValueEnumerable().Enumerator;
+            return enumerator.TryCopyTo(destination, offset);
+        }
+    }
+
+    void ICollection<T>.Add(T item)
+    {
+        throw new NotSupportedException();
+    }
+
+    void ICollection<T>.Clear()
+    {
+        throw new NotSupportedException();
+    }
+
+    bool ICollection<T>.Contains(T item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<T>.CopyTo(T[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
+
+    bool ICollection<T>.Remove(T item)
+    {
+        throw new NotSupportedException();
+    }
+
+    int ICollection<T>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<T>.IsReadOnly => true;
+}
+
 public readonly struct FastEnumerable<T> : ICollection<T>, IStructEnumerable<FastEnumerable<T>.Enumerator, T>
 {
-    private readonly IEnumerable<T>? _enumerable;
+    private readonly IEnumerable<T> _enumerable;
     private readonly T[]? _array;
     private readonly List<T>? _list;
     private readonly IReadOnlySpan<T>? _span;
@@ -158,14 +278,11 @@ public readonly struct FastEnumerable<T> : ICollection<T>, IStructEnumerable<Fas
 
         public bool TryGetNext(out T current)
         {
-            if (MoveNext())
-            {
-                current = Current;
-                return true;
-            }
-
             Unsafe.SkipInit(out current);
-            return false;
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
         }
 
         public bool TryGetNonEnumeratedCount(out int count)
@@ -182,14 +299,7 @@ public readonly struct FastEnumerable<T> : ICollection<T>, IStructEnumerable<Fas
                     count = _enumerable._span!.AsSpan().Length;
                     return true;
                 default:
-                    if (_enumerable._enumerable is ICollection<T> collection)
-                    {
-                        count = collection.Count;
-                        return true;
-                    }
-
-                    count = 0;
-                    return false;
+                    return _enumerable._enumerable.TryGetNonEnumeratedCount(out count);
             }
         }
 

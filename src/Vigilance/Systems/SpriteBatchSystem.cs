@@ -9,12 +9,13 @@ namespace Vigilance.Systems;
 
 public sealed class SpriteBatchSystem : GameSystem
 {
-    private ValueDictionary<SpriteBatch, ValueSparseSet<ulong, SpriteInstance, SpriteBatch>> _batches = [];
-    private ValueSparseSet<ulong, byte, ValueList<byte>> _moving = new([], Entity.GetIndex);
+    private ValueDictionary<SpriteBatch, ValueEntitySparseSet<SpriteInstance, SpriteBatch>> _batches = [];
+    private ValueEntitySparseSet _moving;
     private Table<BatchedSprite> _table = null!;
 
     public override void Configure()
     {
+        _moving = new ValueEntitySparseSet(Scene);
         _table = Scene.Table<BatchedSprite>();
         Scene.OnAdd<BatchedSprite>(UpdateSprite);
         Scene.OnSet<BatchedSprite>(SetSprite);
@@ -28,12 +29,11 @@ public sealed class SpriteBatchSystem : GameSystem
     {
         for (var i = _moving.Count - 1; i >= 0; i--)
         {
-            var (entityId, _) = _moving[i];
-            var entity = new Entity(entityId, Scene);
+            var entity = _moving[i];
             if (entity.IsValid && _table.TryGet(entity, out var sprite))
                 UpdateSprite(entity, sprite);
             else
-                _moving.Remove(entityId);
+                _moving.Remove(entity);
         }
     }
 
@@ -53,9 +53,9 @@ public sealed class SpriteBatchSystem : GameSystem
             return;
         UpdateSprite(entity, sprite);
         if (moving)
-            _moving[entity.Id] = 0;
+            _moving.Add(entity);
         else
-            _moving.Remove(entity.Id);
+            _moving.Remove(entity);
     }
 
     private void TryUpdateSprite(Entity entity, Child child)
@@ -73,8 +73,8 @@ public sealed class SpriteBatchSystem : GameSystem
     {
         ref var instances = ref _batches.GetValueRefOrAddDefault(sprite.Batch, out var exists)!;
         if (!exists)
-            instances = new ValueSparseSet<ulong, SpriteInstance, SpriteBatch>(sprite.Batch, Entity.GetIndex);
-        instances[entity.Id] = sprite.Instance with { Transform = sprite.Instance.Transform + entity.RenderTransform };
+            instances = new ValueEntitySparseSet<SpriteInstance, SpriteBatch>(Scene, sprite.Batch);
+        instances[entity] = sprite.Instance with { Transform = sprite.Instance.Transform + entity.RenderTransform };
     }
 
     private void SetSprite(Entity entity, BatchedSprite oldSprite, BatchedSprite newSprite)
@@ -86,11 +86,11 @@ public sealed class SpriteBatchSystem : GameSystem
 
     private void RemoveSprite(Entity entity, BatchedSprite sprite)
     {
-        _moving.Remove(entity.Id);
+        _moving.Remove(entity);
         ref var instances = ref _batches.GetValueRefOrNullRef(sprite.Batch);
         if (Unsafe.IsNullRef(ref instances))
             return;
-        instances.Remove(entity.Id);
+        instances.Remove(entity);
         if (instances.Count == 0)
             _batches.Remove(sprite.Batch);
     }
