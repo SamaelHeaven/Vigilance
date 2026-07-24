@@ -46,7 +46,7 @@ public abstract class UIElement : IFullCloneable
     private Func<UIElement, bool>? _onImmediateHandlers;
     private Func<UIElement, bool>? _onLayoutHandlers;
     private Func<UIElement, bool>? _onMouseEnterHandlers;
-    private Func<UIElement, bool>? _onMouseLeaveHandlers;
+    private Func<UIElement, bool>? _onMouseExitHandlers;
     private Func<UIElement, bool>? _onPressHandlers;
     private Func<UIElement, bool>? _onReleaseHandlers;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onRenderHandlers;
@@ -151,6 +151,10 @@ public abstract class UIElement : IFullCloneable
     public bool IsImmediate => field || _onImmediateHandlers is not null;
 
     public bool IsClicked { get; private set; }
+
+    public bool IsMouseEntered { get; private set; }
+
+    public bool IsMouseExited { get; private set; }
 
     public bool IsDirty => Node.IsDirty;
 
@@ -683,7 +687,7 @@ public abstract class UIElement : IFullCloneable
 
     public Signal<UIElement> OnMouseEnterSignal => new(ref _onMouseEnterHandlers);
 
-    public Signal<UIElement> OnMouseLeaveSignal => new(ref _onMouseLeaveHandlers);
+    public Signal<UIElement> OnMouseExitSignal => new(ref _onMouseExitHandlers);
 
     public Signal<UIElement> OnClickSignal => new(ref _onClickHandlers);
 
@@ -1015,7 +1019,7 @@ public abstract class UIElement : IFullCloneable
         OnDirtySignal.Clear();
         OnLayoutSignal.Clear();
         OnMouseEnterSignal.Clear();
-        OnMouseLeaveSignal.Clear();
+        OnMouseExitSignal.Clear();
         OnClickSignal.Clear();
         OnPressSignal.Clear();
         OnReleaseSignal.Clear();
@@ -1062,7 +1066,7 @@ public abstract class UIElement : IFullCloneable
 
     protected virtual void OnMouseEnter() { }
 
-    protected virtual void OnMouseLeave() { }
+    protected virtual void OnMouseExit() { }
 
     protected virtual void OnClick() { }
 
@@ -1128,6 +1132,8 @@ public abstract class UIElement : IFullCloneable
 
         element.IsClicked =
             Mouse.IsButtonReleased(MouseButton.Left) && element is { _click: true, IsMouseInside: true };
+        element.IsMouseEntered = !oldMouseInside && element.IsMouseInside;
+        element.IsMouseExited = oldMouseInside && !element.IsMouseInside;
         if (element.IsImmediate)
             element.RunImmediate();
         try
@@ -1157,14 +1163,14 @@ public abstract class UIElement : IFullCloneable
             case true when !element.IsMouseInside:
                 try
                 {
-                    element.OnMouseLeave();
+                    element.OnMouseExit();
                 }
                 catch (Exception e)
                 {
                     Log.Error(e);
                 }
 
-                element.OnMouseLeaveSignal.SafeInvoke(element);
+                element.OnMouseExitSignal.SafeInvoke(element);
                 break;
         }
 
@@ -1948,9 +1954,9 @@ public static partial class UIElementExtensions
             set => element.OnMouseEnterSignal.Subscribe(e => value.Invoke((T)e));
         }
 
-        public Action<T> OnMouseLeave
+        public Action<T> OnMouseExit
         {
-            set => element.OnMouseLeaveSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnMouseExitSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnClick
