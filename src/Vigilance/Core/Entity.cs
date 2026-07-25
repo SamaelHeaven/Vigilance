@@ -672,6 +672,11 @@ public readonly partial record struct Entity
         }
     }
 
+    public static implicit operator EntityId(in Entity entity)
+    {
+        return new EntityId(entity.Index, entity.Version);
+    }
+
     public TableEnumerable Tables()
     {
         return new TableEnumerable(this);
@@ -690,6 +695,11 @@ public readonly partial record struct Entity
     public ChildEnumerable Children()
     {
         return new ChildEnumerable(this);
+    }
+
+    public override int GetHashCode()
+    {
+        return Index;
     }
 
     public T Get<T>()
