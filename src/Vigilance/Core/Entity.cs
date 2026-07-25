@@ -672,9 +672,14 @@ public readonly partial record struct Entity
         }
     }
 
+    public bool Equals(Entity other)
+    {
+        return Index == other.Index && Version == other.Version && Scene == other.Scene;
+    }
+
     public static implicit operator EntityId(in Entity entity)
     {
-        return new EntityId(entity.Index, entity.Version);
+        return entity.Id;
     }
 
     public TableEnumerable Tables()
