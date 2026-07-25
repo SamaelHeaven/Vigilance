@@ -1530,7 +1530,7 @@ public sealed partial class Scene
     private void OnRemoveChild(Entity entity, Child child)
     {
         var parentId = child.ParentId;
-        if (parentId == EntityId.Null)
+        if (parentId.IsNull)
             return;
         var parentEntity = new Entity(parentId, this);
         var parentRef = ParentTable.GetRef(parentEntity);
@@ -1561,7 +1561,7 @@ public sealed partial class Scene
             parent.LastChildId = prevId;
         }
 
-        if (parent.FirstChildId == EntityId.Null)
+        if (parent.FirstChildId.IsNull)
             ParentTable.Remove(parentEntity, Core.Table.Flags.ForceMutable);
     }
 
@@ -1573,7 +1573,7 @@ public sealed partial class Scene
             if (parentRef.IsNull)
                 return;
             var firstChildId = parentRef.Value.FirstChildId;
-            if (firstChildId == EntityId.Null)
+            if (firstChildId.IsNull)
                 return;
             new Entity(firstChildId, this).Destroy();
         }

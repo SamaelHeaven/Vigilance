@@ -1051,7 +1051,7 @@ public readonly partial record struct Entity
 
     private bool PrintMembers(StringBuilder sb)
     {
-        if (Id == EntityId.Null)
+        if (IsNull)
         {
             sb.Append("Null");
             return true;
@@ -1368,7 +1368,7 @@ public readonly partial record struct Entity
         {
             if (!_initialized)
                 Initialize();
-            if (_nextChildId == EntityId.Null)
+            if (_nextChildId.IsNull)
             {
                 Current = default;
                 return false;
@@ -1459,7 +1459,7 @@ public readonly partial record struct Entity
                 _childrenInitialized = true;
             }
 
-            if (_nextChildId == EntityId.Null)
+            if (_nextChildId.IsNull)
             {
                 child = Null;
                 return false;
@@ -1481,7 +1481,7 @@ public readonly partial record struct Entity
                 _nextSiblingInitialized = true;
             }
 
-            if (_nextSiblingId == EntityId.Null)
+            if (_nextSiblingId.IsNull)
             {
                 next = Null;
                 return false;
@@ -1503,7 +1503,7 @@ public readonly partial record struct Entity
                 _previousSiblingInitialized = true;
             }
 
-            if (_previousSiblingId == EntityId.Null)
+            if (_previousSiblingId.IsNull)
             {
                 previous = Null;
                 return false;
