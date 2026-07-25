@@ -13,11 +13,11 @@ public struct ValueEntitySparseSet
         IStructEnumerable<ValueEntitySparseSet.Enumerator, Entity>
 {
     public const int DefaultSparseChunkSize = 2048;
-    private ValueSparseSet<ulong> _sparseSet;
+    private ValueSparseSet<EntityId> _sparseSet;
 
     public ValueEntitySparseSet(Scene scene, int sparseChunkSize = DefaultSparseChunkSize)
     {
-        _sparseSet = new ValueSparseSet<ulong>(Entity.GetIndex, sparseChunkSize);
+        _sparseSet = new ValueSparseSet<EntityId>(id => id.Index, sparseChunkSize);
         Scene = scene;
     }
 
@@ -26,6 +26,9 @@ public struct ValueEntitySparseSet
     public readonly int Count => _sparseSet.Count;
 
     public readonly Entity this[int index] => new(_sparseSet[index], Scene);
+
+    [UnscopedRef]
+    public readonly ValueListView<EntityId> Keys => _sparseSet.Keys;
 
     readonly bool ICollection<Entity>.IsReadOnly => false;
 
@@ -494,11 +497,11 @@ public struct ValueEntitySparseSet<TValue, TStorage>
     where TStorage : IList<TValue>
 {
     public const int DefaultSparseChunkSize = 2048;
-    private ValueSparseSet<ulong, TValue, TStorage> _sparseSet;
+    private ValueSparseSet<EntityId, TValue, TStorage> _sparseSet;
 
     public ValueEntitySparseSet(Scene scene, in TStorage storage, int sparseChunkSize = DefaultSparseChunkSize)
     {
-        _sparseSet = new ValueSparseSet<ulong, TValue, TStorage>(storage, Entity.GetIndex, sparseChunkSize);
+        _sparseSet = new ValueSparseSet<EntityId, TValue, TStorage>(storage, id => id.Index, sparseChunkSize);
         Scene = scene;
     }
 

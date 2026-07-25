@@ -50,7 +50,7 @@ public abstract class Table
 
     public abstract bool WriteImmutable { get; }
 
-    public abstract ValueListView<ulong> EntityIds { get; }
+    public abstract ValueListView<EntityId> EntityIds { get; }
 
     public abstract void TrimExcess();
 
@@ -117,7 +117,7 @@ public sealed class Table<T>
     private const int SparseChunkSize = 2048;
     private Action<Entity, T>? _addAction;
     private ValueList<T> _components = [];
-    private ValueList<ulong> _entityIds = [];
+    private ValueList<EntityId> _entityIds = [];
     private ValueQueue<Event<T>> _events = [];
     private ValueQueue<Operation> _operations = [];
     private Action<Entity, T>? _removeAction;
@@ -164,7 +164,7 @@ public sealed class Table<T>
 
     public override bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public override ValueListView<ulong> EntityIds => _entityIds;
+    public override ValueListView<EntityId> EntityIds => _entityIds;
 
     public ValueListView<T> Components => _components;
 
@@ -388,7 +388,7 @@ public sealed class Table<T>
             _components[denseIndex] = _components[lastDenseIndex];
             var movedId = _entityIds[lastDenseIndex];
             _entityIds[denseIndex] = movedId;
-            var movedEntityIndex = Entity.GetIndex(movedId);
+            var movedEntityIndex = movedId.Index;
             var movedChunkIndex = movedEntityIndex / SparseChunkSize;
             var movedWithinChunk = movedEntityIndex % SparseChunkSize;
             var movedChunk = _sparseChunks[movedChunkIndex]!;
@@ -540,7 +540,7 @@ public sealed class Table<T>
         Remove,
     }
 
-    private readonly record struct Operation(ulong EntityId, T Value, OperationType Type, Flags Flags);
+    private readonly record struct Operation(EntityId EntityId, T Value, OperationType Type, Flags Flags);
 
     public struct Enumerator : IStructEnumerator<KeyValuePair<Entity, T>>, IValueEnumerator<KeyValuePair<Entity, T>>
     {

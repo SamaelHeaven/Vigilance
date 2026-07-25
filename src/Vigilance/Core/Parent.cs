@@ -1,3 +1,3 @@
 namespace Vigilance.Core;
 
-public record struct Parent(ulong FirstChildId, ulong LastChildId) : IImmutableComponent, ISkipAddEventComponent;
+public record struct Parent(EntityId FirstChildId, EntityId LastChildId) : IImmutableComponent, ISkipAddEventComponent;

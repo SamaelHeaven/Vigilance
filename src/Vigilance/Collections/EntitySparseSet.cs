@@ -22,6 +22,8 @@ public class EntitySparseSet
 
     public Scene Scene => _sparseSet.Scene;
 
+    public ValueListView<EntityId> Keys => _sparseSet.Keys;
+
     bool IReadOnlySet<Entity>.Contains(Entity item)
     {
         return _sparseSet.Contains(item);
@@ -240,11 +242,11 @@ public class EntitySparseSet<TValue, TStorage>
     where TStorage : IList<TValue>
 {
     public const int DefaultSparseChunkSize = 2048;
-    private ValueSparseSet<ulong, TValue, TStorage> _sparseSet;
+    private ValueSparseSet<EntityId, TValue, TStorage> _sparseSet;
 
     public EntitySparseSet(Scene scene, in TStorage storage, int sparseChunkSize = DefaultSparseChunkSize)
     {
-        _sparseSet = new ValueSparseSet<ulong, TValue, TStorage>(storage, Entity.GetIndex, sparseChunkSize);
+        _sparseSet = new ValueSparseSet<EntityId, TValue, TStorage>(storage, id => id.Index, sparseChunkSize);
         Scene = scene;
     }
 

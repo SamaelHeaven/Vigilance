@@ -1,7 +1,6 @@
-#pragma warning disable CS9084
-
 using System.Buffers;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using ZLinq;
@@ -261,8 +260,7 @@ public abstract class UIParent : UIElement
         }
     }
 
-    // ReSharper disable once RedundantUnsafeContext
-    public unsafe struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
+    public struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
     {
         private readonly UIParent _parent;
         private bool _deferred;
@@ -295,6 +293,7 @@ public abstract class UIParent : UIElement
 
         public UIElement this[int index] => _parent._children[index];
 
+        [UnscopedRef]
         public ref ChildEnumerable Deferred(bool deferred = true)
         {
             _deferred = deferred;

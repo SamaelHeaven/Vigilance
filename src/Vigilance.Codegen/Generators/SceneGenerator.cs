@@ -11,11 +11,9 @@ public sealed class SceneGenerator : SourceGenerator
     {
         sb.AppendLine(
             """
-            #pragma warning disable CS9084
-
             namespace Vigilance.Core;
 
-            public sealed unsafe partial class Scene
+            public sealed partial class Scene
             {
 
             """
@@ -303,9 +301,7 @@ public sealed class SceneGenerator : SourceGenerator
                         span = default;
                         return false;
             """;
-        var tryCopy = """
-                        return false;
-            """;
+        var tryCopy = "            return false;";
         switch (isSingle)
         {
             case true when name == "Entity":
@@ -393,11 +389,13 @@ public sealed class SceneGenerator : SourceGenerator
                         return new Collections.StructEnumerator<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
                     }
 
+                    [System.Diagnostics.CodeAnalysis.UnscopedRef]
                     public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool withDisabled = true) {
                         _withDisabled = withDisabled;
                         return ref this;
                     }
                     
+                    [System.Diagnostics.CodeAnalysis.UnscopedRef]
                     public ref {{name}}Enumerable{{typeParams}} Deferred(bool deferred = true) {
                         _deferred = deferred;
                         return ref this;
@@ -412,7 +410,7 @@ public sealed class SceneGenerator : SourceGenerator
                         )}}
                 }
                 
-                public unsafe struct {{name}}Enumerator{{typeParams}} : Collections.IStructEnumerator<{{type}}>, ZLinq.IValueEnumerator<{{type}}> {
+                public struct {{name}}Enumerator{{typeParams}} : Collections.IStructEnumerator<{{type}}>, ZLinq.IValueEnumerator<{{type}}> {
                     private readonly Scene _scene;
                     {{(noEntity ? "" : "private Entity _entity;")}}
             {{string.Join("\n", tables.Select((t, i) => $"        private readonly Table<{t}> _table{i};"))}}
@@ -595,18 +593,20 @@ public sealed class SceneGenerator : SourceGenerator
                             return new Collections.StructEnumerator<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>(GetEnumerator());
                         }
 
+                        [System.Diagnostics.CodeAnalysis.UnscopedRef]
                         public ref {{namePrefix}}{{tableCount}}Enumerable WithDisabled(bool withDisabled = true) {
                             _withDisabled = withDisabled;
                             return ref this;
                         }
                         
+                        [System.Diagnostics.CodeAnalysis.UnscopedRef]
                         public ref {{namePrefix}}{{tableCount}}Enumerable Deferred(bool deferred = true) {
                             _deferred = deferred;
                             return ref this;
                         }
                     }
                     
-                    public unsafe struct {{namePrefix}}{{tableCount}}Enumerator : Collections.IStructEnumerator<{{type}}>, ZLinq.IValueEnumerator<{{type}}> {
+                    public struct {{namePrefix}}{{tableCount}}Enumerator : Collections.IStructEnumerator<{{type}}>, ZLinq.IValueEnumerator<{{type}}> {
                         private readonly Scene _scene;
                         {{(noEntity ? "" : "private Entity _entity;")}}
                 {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private readonly Table _table{n};"))}}
@@ -802,18 +802,20 @@ public sealed class SceneGenerator : SourceGenerator
                         return new Collections.StructEnumerator<{{namePrefix}}{{tableCount}}Enumerator, {{type}}>(GetEnumerator());
                     }
 
+                    [System.Diagnostics.CodeAnalysis.UnscopedRef]
                     public ref {{namePrefix}}{{tableCount}}Enumerable WithDisabled(bool withDisabled = true) {
                         _withDisabled = withDisabled;
                         return ref this;
                     }
                     
+                    [System.Diagnostics.CodeAnalysis.UnscopedRef]
                     public ref {{namePrefix}}{{tableCount}}Enumerable Deferred(bool deferred = true) {
                         _deferred = deferred;
                         return ref this;
                     }
                 }
                 
-                public unsafe struct {{namePrefix}}{{tableCount}}Enumerator : Collections.IStructEnumerator<{{type}}>, ZLinq.IValueEnumerator<{{type}}> {
+                public struct {{namePrefix}}{{tableCount}}Enumerator : Collections.IStructEnumerator<{{type}}>, ZLinq.IValueEnumerator<{{type}}> {
                     private readonly Scene _scene;
                     {{(noEntity ? "" : "private Entity _entity;")}}
             {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"        private readonly Table _table{n};"))}}
@@ -977,12 +979,14 @@ public sealed class SceneGenerator : SourceGenerator
                         return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled, _deferred);
                     }
                     
+                    [System.Diagnostics.CodeAnalysis.UnscopedRef]
                     public ref {{name}}Enumerable{{typeParams}} WithDisabled(bool withDisabled = true)
                     {
                         _withDisabled = withDisabled;
                         return ref this;
                     }
 
+                    [System.Diagnostics.CodeAnalysis.UnscopedRef]
                     public ref {{name}}Enumerable{{typeParams}} Deferred(bool deferred = true)
                     {
                         _deferred = deferred;
@@ -990,7 +994,7 @@ public sealed class SceneGenerator : SourceGenerator
                     }
                 }
                 
-                public unsafe ref struct {{name}}Enumerator{{typeParams}}
+                public ref struct {{name}}Enumerator{{typeParams}}
                 {
                     private readonly Scene _scene;
                     {{(noEntity ? "" : "private Entity _entity;")}}
@@ -1139,18 +1143,21 @@ public sealed class SceneGenerator : SourceGenerator
                         return new Collections.StructEnumerator<{{name}}Enumerator<T0>, {{type}}>(GetEnumerator());
                     }
 
+                    [System.Diagnostics.CodeAnalysis.UnscopedRef]
                     public ref {{name}}Enumerable<T0> WithDisabled(bool withDisabled = true)
                     {
                         _withDisabled = withDisabled;
                         return ref this;
                     }
 
+                    [System.Diagnostics.CodeAnalysis.UnscopedRef]
                     public ref {{name}}Enumerable<T0> WithHidden(bool withHidden = true)
                     {
                         _withHidden = withHidden;
                         return ref this;
                     }
                     
+                    [System.Diagnostics.CodeAnalysis.UnscopedRef]
                     public ref {{name}}Enumerable<T0> Deferred(bool deferred = true)
                     {
                         _deferred = deferred;
