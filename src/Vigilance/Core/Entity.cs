@@ -45,7 +45,7 @@ public readonly partial record struct Entity
         {
             AssertValid();
             var name = Scene is null ? ComponentRef<Name>.Null : Scene.NameTable.GetRef(this);
-            return name.IsNull ? $"#{Id}" : name.Read;
+            return name.IsNull ? $"[{Index}]{{{Version}}}" : name.Read;
         }
     }
 
