@@ -37,7 +37,83 @@ public class UIScrollContainer : UIContainer
 
     public Vector2 MouseScrollForce { get; set; } = new(15);
 
-    public Vector2 ScrollBarSize { get; set; } = new(16);
+    public Vector2 ScrollBarTrackSize { get; set; } = new(16);
+
+    public Vector2 ScrollBarThumbSize { get; set; } = new(16);
+
+    public Vector2 ScrollBarSize
+    {
+        get => ScrollBarTrackSize.Max(ScrollBarThumbSize);
+        set
+        {
+            ScrollBarTrackSize = value;
+            ScrollBarThumbSize = value;
+        }
+    }
+
+    public Insets ScrollBarTrackMargin { get; set; }
+
+    public Unit ScrollBarTrackMarginX
+    {
+        set
+        {
+            ScrollBarTrackMarginLeft = value;
+            ScrollBarTrackMarginRight = value;
+        }
+    }
+
+    public Unit ScrollBarTrackMarginY
+    {
+        set
+        {
+            ScrollBarTrackMarginTop = value;
+            ScrollBarTrackMarginBottom = value;
+        }
+    }
+
+    public Unit ScrollBarTrackMarginTop
+    {
+        get => ScrollBarTrackMargin.Top;
+        set
+        {
+            var margin = ScrollBarTrackMargin;
+            margin.Top = value;
+            ScrollBarTrackMargin = margin;
+        }
+    }
+
+    public Unit ScrollBarTrackMarginBottom
+    {
+        get => ScrollBarTrackMargin.Bottom;
+        set
+        {
+            var margin = ScrollBarTrackMargin;
+            margin.Bottom = value;
+            ScrollBarTrackMargin = margin;
+        }
+    }
+
+    public Unit ScrollBarTrackMarginLeft
+    {
+        get => ScrollBarTrackMargin.Left;
+        set
+        {
+            var margin = ScrollBarTrackMargin;
+            margin.Left = value;
+            ScrollBarTrackMargin = margin;
+        }
+    }
+
+    public Unit ScrollBarTrackMarginRight
+    {
+        get => ScrollBarTrackMargin.Right;
+        set
+        {
+            var margin = ScrollBarTrackMargin;
+            margin.Right = value;
+            ScrollBarTrackMargin = margin;
+        }
+    }
 
     public Insets ScrollBarThumbMargin { get; set; } =
         new()
@@ -375,17 +451,27 @@ public class UIScrollContainer : UIContainer
     private Box GetScrollBarTrackBox(ScrollBarDirection direction)
     {
         var position = LayoutPosition;
+        var trackSize = ScrollBarTrackSize;
         var barSize = ScrollBarSize;
         var size = LayoutSize;
+        var isVertical = direction == ScrollBarDirection.Vertical;
+        var marginTop = isVertical ? ScrollBarTrackMarginTop : ScrollBarTrackMarginLeft;
+        var marginRight = isVertical ? ScrollBarTrackMarginRight : ScrollBarTrackMarginBottom;
+        var marginBottom = isVertical ? ScrollBarTrackMarginBottom : ScrollBarTrackMarginRight;
+        var marginLeft = isVertical ? ScrollBarTrackMarginLeft : ScrollBarTrackMarginTop;
+        var topInset = marginTop.Calculate(size.Y).Max(0);
+        var rightInset = marginRight.Calculate(size.X).Max(0);
+        var bottomInset = marginBottom.Calculate(size.Y).Max(0);
+        var leftInset = marginLeft.Calculate(size.X).Max(0);
         return direction switch
         {
             ScrollBarDirection.Horizontal => new Box(
-                new Vector2(position.X, position.Y + size.Y - barSize.X),
-                new Vector2(size.X, barSize.X)
+                new Vector2(position.X + leftInset, position.Y + size.Y - (barSize.X + trackSize.X) / 2 + topInset),
+                new Vector2(size.X - leftInset - rightInset, trackSize.X - topInset - bottomInset)
             ),
             ScrollBarDirection.Vertical => new Box(
-                new Vector2(position.X + size.X - barSize.Y, position.Y),
-                new Vector2(barSize.Y, size.Y)
+                new Vector2(position.X + size.X - (barSize.Y + trackSize.Y) / 2 + leftInset, position.Y + topInset),
+                new Vector2(trackSize.Y - leftInset - rightInset, size.Y - topInset - bottomInset)
             ),
             _ => throw new InvalidEnumArgumentException(nameof(direction), (int)direction, typeof(ScrollBarDirection)),
         };
@@ -395,6 +481,7 @@ public class UIScrollContainer : UIContainer
     {
         var contentSize = ChildrenLayoutSize;
         var position = LayoutPosition;
+        var thumbThickness = ScrollBarThumbSize;
         var barSize = ScrollBarSize;
         var size = LayoutSize;
         var isVertical = direction == ScrollBarDirection.Vertical;
@@ -433,12 +520,18 @@ public class UIScrollContainer : UIContainer
         return direction switch
         {
             ScrollBarDirection.Horizontal => new Box(
-                new Vector2(position.X + thumbOffset.X + leftInset, position.Y + size.Y - barSize.X + topInset),
-                new Vector2(thumbSize.X - rightInset, barSize.X - topInset - bottomInset)
+                new Vector2(
+                    position.X + thumbOffset.X + leftInset,
+                    position.Y + size.Y - (barSize.X + thumbThickness.X) / 2 + topInset
+                ),
+                new Vector2(thumbSize.X - rightInset, thumbThickness.X - topInset - bottomInset)
             ),
             ScrollBarDirection.Vertical => new Box(
-                new Vector2(position.X + size.X - barSize.Y + leftInset, position.Y + thumbOffset.Y + topInset),
-                new Vector2(barSize.Y - leftInset - rightInset, thumbSize.Y - bottomInset)
+                new Vector2(
+                    position.X + size.X - (barSize.Y + thumbThickness.Y) / 2 + leftInset,
+                    position.Y + thumbOffset.Y + topInset
+                ),
+                new Vector2(thumbThickness.Y - leftInset - rightInset, thumbSize.Y - bottomInset)
             ),
             _ => throw new InvalidEnumArgumentException(nameof(direction), (int)direction, typeof(ScrollBarDirection)),
         };
