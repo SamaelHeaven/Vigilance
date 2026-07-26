@@ -10,12 +10,12 @@ public sealed class AxisInputs : IList<Axis>, IValueListView<Axis>
 {
     private ValueList<Axis> _axes = [];
 
-    public int Direction
+    public int Position
     {
         get
         {
-            var negative = _axes.AsValueEnumerable().Any(axis => axis.Direction < 0);
-            var positive = _axes.AsValueEnumerable().Any(axis => axis.Direction > 0);
+            var negative = _axes.AsValueEnumerable().Any(axis => axis.Position < 0);
+            var positive = _axes.AsValueEnumerable().Any(axis => axis.Position > 0);
             if (negative && !positive)
                 return -1;
             if (positive && !negative)
@@ -24,19 +24,19 @@ public sealed class AxisInputs : IList<Axis>, IValueListView<Axis>
         }
     }
 
-    public float Value
+    public float Magnitude
     {
         get
         {
             var negative = _axes
                 .AsValueEnumerable()
-                .Select(axis => axis.Value)
+                .Select(axis => axis.Magnitude)
                 .Where(value => value < 0)
                 .Prepend(0)
                 .Min();
             var positive = _axes
                 .AsValueEnumerable()
-                .Select(axis => axis.Value)
+                .Select(axis => axis.Magnitude)
                 .Where(value => value > 0)
                 .Prepend(0)
                 .Max();
@@ -48,19 +48,19 @@ public sealed class AxisInputs : IList<Axis>, IValueListView<Axis>
         }
     }
 
-    public float RawValue
+    public float RawMagnitude
     {
         get
         {
             var negative = _axes
                 .AsValueEnumerable()
-                .Select(axis => axis.RawValue)
+                .Select(axis => axis.RawMagnitude)
                 .Where(value => value < 0)
                 .Prepend(0)
                 .Min();
             var positive = _axes
                 .AsValueEnumerable()
-                .Select(axis => axis.RawValue)
+                .Select(axis => axis.RawMagnitude)
                 .Where(value => value > 0)
                 .Prepend(0)
                 .Max();
@@ -130,30 +130,6 @@ public sealed class AxisInputs : IList<Axis>, IValueListView<Axis>
     public ValueEnumerable<ValueList<Axis>.Enumerator, Axis> AsValueEnumerable()
     {
         return _axes.AsValueEnumerable();
-    }
-
-    public static implicit operator AxisInputs((Key NegativeKey, Key PositiveKey) keys)
-    {
-        return (Axis)keys;
-    }
-
-    public static implicit operator AxisInputs(
-        (MouseButton NegativeMouseButton, MouseButton PositiveMouseButton) mouseButtons
-    )
-    {
-        return (Axis)mouseButtons;
-    }
-
-    public static implicit operator AxisInputs(
-        (GamepadButton NegativeGamepadButton, GamepadButton PositiveGamepadButton) gamepadButtons
-    )
-    {
-        return (Axis)gamepadButtons;
-    }
-
-    public static implicit operator AxisInputs(GamepadAxis gamepadAxis)
-    {
-        return (Axis)gamepadAxis;
     }
 
     public static implicit operator AxisInputs(Axis axis)

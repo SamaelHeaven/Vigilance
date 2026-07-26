@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Vigilance.Collections;
 using Vigilance.Core;
@@ -8,7 +9,8 @@ using ZLinq;
 namespace Vigilance.Input;
 
 [StructLayout(LayoutKind.Explicit)]
-public readonly record struct Axis
+[Union]
+public readonly record struct Axis : IUnion
 {
     private string InvalidMessage => $"{nameof(Axis)} contains a {Type}.";
 
@@ -84,74 +86,110 @@ public readonly record struct Axis
         init => field = Type == AxisType.GamepadAxis ? value : throw new InvalidOperationException(InvalidMessage);
     }
 
-    public Axis(AxisType type)
+    public Axis(Key negativeKey, Key positiveKey)
     {
-        Type = type;
+        Type = AxisType.Key;
+        NegativeKey = negativeKey;
+        PositiveKey = positiveKey;
     }
 
-    public static Axis From(Key negativeKey, Key positiveKey)
+    public Axis((Key NegativeKey, Key PositiveKey) keys)
+        : this(keys.NegativeKey, keys.PositiveKey) { }
+
+    public Axis(MouseButton negativeMouseButton, MouseButton positiveMouseButton)
     {
-        return new Axis(AxisType.Key) { NegativeKey = negativeKey, PositiveKey = positiveKey };
+        Type = AxisType.MouseButton;
+        NegativeMouseButton = negativeMouseButton;
+        PositiveMouseButton = positiveMouseButton;
     }
 
-    public static Axis From(MouseButton negativeMouseButton, MouseButton positiveMouseButton)
-    {
-        return new Axis(AxisType.MouseButton)
-        {
-            NegativeMouseButton = negativeMouseButton,
-            PositiveMouseButton = positiveMouseButton,
-        };
-    }
+    public Axis((MouseButton NegativeMouseButton, MouseButton PositiveMouseButton) mouseButtons)
+        : this(mouseButtons.NegativeMouseButton, mouseButtons.PositiveMouseButton) { }
 
-    public static Axis From(
+    public Axis(
         GamepadButton negativeGamepadButton,
         GamepadButton positiveGamepadButton,
         Gamepads gamepads = Gamepads.All
     )
     {
-        return new Axis(AxisType.GamepadButton)
-        {
-            NegativeGamepadButton = negativeGamepadButton,
-            PositiveGamepadButton = positiveGamepadButton,
-            Gamepads = gamepads,
-        };
+        Type = AxisType.GamepadButton;
+        NegativeGamepadButton = negativeGamepadButton;
+        PositiveGamepadButton = positiveGamepadButton;
+        Gamepads = gamepads;
     }
 
-    public static Axis From(GamepadAxis gamepadAxis, Gamepads gamepads = Gamepads.All, float deadZone = 0)
+    public Axis((GamepadButton NegativeGamepadButton, GamepadButton PositiveGamepadButton) gamepadButtons)
+        : this(gamepadButtons.NegativeGamepadButton, gamepadButtons.PositiveGamepadButton) { }
+
+    public Axis(
+        (GamepadButton NegativeGamepadButton, GamepadButton PositiveGamepadButton, Gamepads Gamepads) gamepadButtons
+    )
+        : this(gamepadButtons.NegativeGamepadButton, gamepadButtons.PositiveGamepadButton, gamepadButtons.Gamepads) { }
+
+    public Axis(GamepadAxis gamepadAxis, Gamepads gamepads, float deadZone = 0)
     {
-        return new Axis(AxisType.GamepadAxis)
-        {
-            GamepadAxis = gamepadAxis,
-            Gamepads = gamepads,
-            DeadZone = deadZone,
-        };
+        Type = AxisType.GamepadAxis;
+        GamepadAxis = gamepadAxis;
+        Gamepads = gamepads;
+        DeadZone = deadZone;
     }
+
+    public Axis(GamepadAxis gamepadAxis)
+        // ReSharper disable once IntroduceOptionalParameters.Global
+        : this(gamepadAxis, Gamepads.All) { }
+
+    public Axis((GamepadAxis GamepadAxis, Gamepads Gamepads) gamepadAxis)
+        : this(gamepadAxis.GamepadAxis, gamepadAxis.Gamepads) { }
+
+    public Axis((GamepadAxis GamepadAxis, Gamepads Gamepads, float DeadZone) gamepadAxis)
+        : this(gamepadAxis.GamepadAxis, gamepadAxis.Gamepads, gamepadAxis.DeadZone) { }
 
     public static implicit operator Axis((Key NegativeKey, Key PositiveKey) keys)
     {
-        return From(keys.NegativeKey, keys.PositiveKey);
+        return new Axis(keys.NegativeKey, keys.PositiveKey);
     }
 
     public static implicit operator Axis(
         (MouseButton NegativeMouseButton, MouseButton PositiveMouseButton) mouseButtons
     )
     {
-        return From(mouseButtons.NegativeMouseButton, mouseButtons.PositiveMouseButton);
+        return new Axis(mouseButtons.NegativeMouseButton, mouseButtons.PositiveMouseButton);
     }
 
     public static implicit operator Axis(
         (GamepadButton NegativeGamepadButton, GamepadButton PositiveGamepadButton) gamepadButtons
     )
     {
-        return From(gamepadButtons.NegativeGamepadButton, gamepadButtons.PositiveGamepadButton);
+        return new Axis(gamepadButtons.NegativeGamepadButton, gamepadButtons.PositiveGamepadButton);
+    }
+
+    public static implicit operator Axis(
+        (GamepadButton NegativeGamepadButton, GamepadButton PositiveGamepadButton, Gamepads Gamepads) gamepadButtons
+    )
+    {
+        return new Axis(
+            gamepadButtons.NegativeGamepadButton,
+            gamepadButtons.PositiveGamepadButton,
+            gamepadButtons.Gamepads
+        );
     }
 
     public static implicit operator Axis(GamepadAxis gamepadAxis)
     {
-        return From(gamepadAxis);
+        return new Axis(gamepadAxis);
     }
 
-    public int Direction
+    public static implicit operator Axis((GamepadAxis GamepadAxis, Gamepads Gamepads) gamepadAxis)
+    {
+        return new Axis(gamepadAxis.GamepadAxis, gamepadAxis.Gamepads);
+    }
+
+    public static implicit operator Axis((GamepadAxis GamepadAxis, Gamepads Gamepads, float DeadZone) gamepadAxis)
+    {
+        return new Axis(gamepadAxis.GamepadAxis, gamepadAxis.Gamepads, gamepadAxis.DeadZone);
+    }
+
+    public int Position
     {
         get
         {
@@ -204,7 +242,7 @@ public readonly record struct Axis
         }
     }
 
-    public float Value
+    public float Magnitude
     {
         get
         {
@@ -269,7 +307,7 @@ public readonly record struct Axis
         }
     }
 
-    public float RawValue
+    public float RawMagnitude
     {
         get
         {
@@ -321,6 +359,143 @@ public readonly record struct Axis
                 return positive;
             return 0;
         }
+    }
+
+    public object? Value
+    {
+        get
+        {
+            return Type switch
+            {
+                AxisType.Key => (NegativeKey, PositiveKey),
+                AxisType.MouseButton => (NegativeMouseButton, PositiveMouseButton),
+                AxisType.GamepadButton => (NegativeGamepadButton, PositiveGamepadButton, Gamepads),
+                AxisType.GamepadAxis => (GamepadAxis, Gamepads, DeadZone),
+                _ => null,
+            };
+        }
+    }
+
+    public bool TryGetValue(out (Key NegativeKey, Key PositiveKey) keys)
+    {
+        if (Type == AxisType.Key)
+        {
+            keys = (NegativeKey, PositiveKey);
+            return true;
+        }
+
+        keys = default;
+        return false;
+    }
+
+    public bool TryGetValue(out (MouseButton NegativeMouseButton, MouseButton PositiveMouseButton) mouseButtons)
+    {
+        if (Type == AxisType.MouseButton)
+        {
+            mouseButtons = (NegativeMouseButton, PositiveMouseButton);
+            return true;
+        }
+
+        mouseButtons = default;
+        return false;
+    }
+
+    public bool TryGetValue(
+        out (GamepadButton NegativeGamepadButton, GamepadButton PositiveGamepadButton) gamepadButtons
+    )
+    {
+        if (Type == AxisType.GamepadButton)
+        {
+            gamepadButtons = (NegativeGamepadButton, PositiveGamepadButton);
+            return true;
+        }
+
+        gamepadButtons = default;
+        return false;
+    }
+
+    public bool TryGetValue(
+        out (GamepadButton NegativeGamepadButton, GamepadButton PositiveGamepadButton, Gamepads Gamepads) gamepadButtons
+    )
+    {
+        if (Type == AxisType.GamepadButton)
+        {
+            gamepadButtons = (NegativeGamepadButton, PositiveGamepadButton, Gamepads);
+            return true;
+        }
+
+        gamepadButtons = default;
+        return false;
+    }
+
+    public bool TryGetValue(out GamepadAxis gamepadAxis)
+    {
+        if (Type == AxisType.GamepadAxis)
+        {
+            gamepadAxis = GamepadAxis;
+            return true;
+        }
+
+        gamepadAxis = default;
+        return false;
+    }
+
+    public bool TryGetValue(out (GamepadAxis GamepadAxis, Gamepads Gamepads) gamepadAxis)
+    {
+        if (Type == AxisType.GamepadAxis)
+        {
+            gamepadAxis = (GamepadAxis, Gamepads);
+            return true;
+        }
+
+        gamepadAxis = default;
+        return false;
+    }
+
+    public bool TryGetValue(out (GamepadAxis GamepadAxis, Gamepads Gamepads, float DeadZone) gamepadAxis)
+    {
+        if (Type == AxisType.GamepadAxis)
+        {
+            gamepadAxis = (GamepadAxis, Gamepads, DeadZone);
+            return true;
+        }
+
+        gamepadAxis = default;
+        return false;
+    }
+
+    public bool Equals(Axis other)
+    {
+        return Type switch
+        {
+            AxisType.Key => other.Type == AxisType.Key
+                && other.NegativeKey == NegativeKey
+                && other.PositiveKey == PositiveKey,
+            AxisType.MouseButton => other.Type == AxisType.MouseButton
+                && other.NegativeMouseButton == NegativeMouseButton
+                && other.PositiveMouseButton == PositiveMouseButton,
+            AxisType.GamepadButton => other.Type == AxisType.GamepadButton
+                && other.NegativeGamepadButton == NegativeGamepadButton
+                && other.PositiveGamepadButton == PositiveGamepadButton
+                && other.Gamepads == Gamepads,
+            AxisType.GamepadAxis => other.Type == AxisType.GamepadAxis
+                && other.GamepadAxis == GamepadAxis
+                && other.Gamepads == Gamepads
+                && other.DeadZone.Equals(DeadZone),
+            _ => other.Type == Type,
+        };
+    }
+
+    public override int GetHashCode()
+    {
+        return Type switch
+        {
+            AxisType.Key => HashCode.Combine(Type, NegativeKey, PositiveKey),
+            AxisType.MouseButton => HashCode.Combine(Type, NegativeMouseButton, PositiveMouseButton),
+            AxisType.GamepadButton => HashCode.Combine(Type, NegativeGamepadButton, PositiveGamepadButton, Gamepads),
+            AxisType.GamepadAxis => HashCode.Combine(Type, GamepadAxis, Gamepads, DeadZone),
+            _ => Type.GetHashCode(),
+        };
     }
 
     public override string ToString()

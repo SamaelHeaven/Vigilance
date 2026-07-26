@@ -16,11 +16,11 @@ public static class Input
 
     public static AxisInputs VerticalInputs { get; set; } = _config.VerticalInputs;
 
-    public static Vector2 Direction => new(HorizontalInputs.Direction, VerticalInputs.Direction);
+    public static Vector2 Position => new(HorizontalInputs.Position, VerticalInputs.Position);
 
-    public static Vector2 Axes => new(HorizontalInputs.Value, VerticalInputs.Value);
+    public static Vector2 Magnitude => new(HorizontalInputs.Magnitude, VerticalInputs.Magnitude);
 
-    public static Vector2 RawAxes => new(HorizontalInputs.RawValue, VerticalInputs.RawValue);
+    public static Vector2 RawMagnitude => new(HorizontalInputs.RawMagnitude, VerticalInputs.RawMagnitude);
 
     internal static void Initialize()
     {

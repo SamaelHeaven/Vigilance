@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Vigilance.Logging;
 using ZLinq;
@@ -5,7 +6,8 @@ using ZLinq;
 namespace Vigilance.Input;
 
 [StructLayout(LayoutKind.Explicit)]
-public readonly record struct Button
+[Union]
+public readonly record struct Button : IUnion
 {
     private string InvalidMessage => $"{nameof(Button)} contains a {Type}.";
 
@@ -40,39 +42,50 @@ public readonly record struct Button
         init => field = Type == ButtonType.GamepadButton ? value : throw new InvalidOperationException(InvalidMessage);
     }
 
-    public Button(ButtonType type)
+    public Button(Key key)
     {
-        Type = type;
+        Type = ButtonType.Key;
+        Key = key;
     }
 
-    public static Button From(Key key)
+    public Button(MouseButton mouseButton)
     {
-        return new Button(ButtonType.Key) { Key = key };
+        Type = ButtonType.MouseButton;
+        MouseButton = mouseButton;
     }
 
-    public static Button From(MouseButton mouseButton)
+    public Button(GamepadButton gamepadButton, Gamepads gamepads)
     {
-        return new Button(ButtonType.MouseButton) { MouseButton = mouseButton };
+        Type = ButtonType.GamepadButton;
+        GamepadButton = gamepadButton;
+        Gamepads = gamepads;
     }
 
-    public static Button From(GamepadButton gamepadButton, Gamepads gamepads = Gamepads.All)
-    {
-        return new Button(ButtonType.GamepadButton) { GamepadButton = gamepadButton, Gamepads = gamepads };
-    }
+    // ReSharper disable once IntroduceOptionalParameters.Global
+    public Button(GamepadButton gamepadButton)
+        : this(gamepadButton, Gamepads.All) { }
+
+    public Button((GamepadButton GamepadButton, Gamepads Gamepads) gamepadButton)
+        : this(gamepadButton.GamepadButton, gamepadButton.Gamepads) { }
 
     public static implicit operator Button(Key key)
     {
-        return From(key);
+        return new Button(key);
     }
 
     public static implicit operator Button(MouseButton mouseButton)
     {
-        return From(mouseButton);
+        return new Button(mouseButton);
     }
 
     public static implicit operator Button(GamepadButton gamepadButton)
     {
-        return From(gamepadButton);
+        return new Button(gamepadButton);
+    }
+
+    public static implicit operator Button((GamepadButton GamepadButton, Gamepads Gamepads) gamepadButton)
+    {
+        return new Button(gamepadButton);
     }
 
     public bool IsDown
@@ -138,6 +151,92 @@ public readonly record struct Button
 
             return false;
         }
+    }
+
+    public object? Value
+    {
+        get
+        {
+            return Type switch
+            {
+                ButtonType.Key => Key,
+                ButtonType.MouseButton => MouseButton,
+                ButtonType.GamepadButton => (GamepadButton, Gamepads),
+                _ => null,
+            };
+        }
+    }
+
+    public bool TryGetValue(out Key key)
+    {
+        if (Type == ButtonType.Key)
+        {
+            key = Key;
+            return true;
+        }
+
+        key = default;
+        return false;
+    }
+
+    public bool TryGetValue(out MouseButton mouseButton)
+    {
+        if (Type == ButtonType.MouseButton)
+        {
+            mouseButton = MouseButton;
+            return true;
+        }
+
+        mouseButton = default;
+        return false;
+    }
+
+    public bool TryGetValue(out GamepadButton gamepadButton)
+    {
+        if (Type == ButtonType.GamepadButton)
+        {
+            gamepadButton = GamepadButton;
+            return true;
+        }
+
+        gamepadButton = default;
+        return false;
+    }
+
+    public bool TryGetValue(out (GamepadButton GamepadButton, Gamepads Gamepads) gamepadButton)
+    {
+        if (Type == ButtonType.GamepadButton)
+        {
+            gamepadButton = (GamepadButton, Gamepads);
+            return true;
+        }
+
+        gamepadButton = default;
+        return false;
+    }
+
+    public bool Equals(Button other)
+    {
+        return Type switch
+        {
+            ButtonType.Key => other.Type == ButtonType.Key && other.Key == Key,
+            ButtonType.MouseButton => other.Type == ButtonType.MouseButton && other.MouseButton == MouseButton,
+            ButtonType.GamepadButton => other.Type == ButtonType.GamepadButton
+                && other.GamepadButton == GamepadButton
+                && other.Gamepads == Gamepads,
+            _ => other.Type == Type,
+        };
+    }
+
+    public override int GetHashCode()
+    {
+        return Type switch
+        {
+            ButtonType.Key => HashCode.Combine(Type, Key),
+            ButtonType.MouseButton => HashCode.Combine(Type, MouseButton),
+            ButtonType.GamepadButton => HashCode.Combine(Type, GamepadButton, Gamepads),
+            _ => Type.GetHashCode(),
+        };
     }
 
     public override string ToString()

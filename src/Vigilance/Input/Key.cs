@@ -131,7 +131,7 @@ public static class KeyExtensions
 
         public Button AsButton()
         {
-            return Button.From(key);
+            return key;
         }
     }
 }
