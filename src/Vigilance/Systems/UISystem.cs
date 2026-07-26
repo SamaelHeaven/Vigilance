@@ -5,9 +5,12 @@ using Vigilance.UI;
 
 namespace Vigilance.Systems;
 
-public sealed class UISystem(Graphics? graphics = null) : GameSystem(queryWithDisabled: true)
+public sealed class UISystem(Graphics graphics) : GameSystem(queryWithDisabled: true)
 {
-    public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
+    public UISystem()
+        : this(Renderer.Graphics) { }
+
+    public Graphics Graphics { get; set; } = graphics;
 
     public override void Update()
     {

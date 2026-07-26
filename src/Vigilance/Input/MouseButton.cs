@@ -17,7 +17,7 @@ public static class MouseButtonExtensions
     {
         public Button AsButton()
         {
-            return Button.From(button);
+            return button;
         }
     }
 }

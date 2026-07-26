@@ -24,7 +24,7 @@ public static class Audio
 
     public static int DefaultSoundMaxAliases
     {
-        get => field;
+        get;
         set => field = value.Max(1);
     } = _config.DefaultSoundMaxAliases;
 

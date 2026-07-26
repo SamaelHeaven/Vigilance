@@ -4,23 +4,26 @@ namespace Vigilance.Codegen.Helpers;
 
 public static class RegionHelper
 {
-    public static void BeginRegion(this StringBuilder sb, string region)
+    extension(StringBuilder sb)
     {
-        sb.AppendLine(
-            $"""
-                #region {region}
+        public void BeginRegion(string region)
+        {
+            sb.AppendLine(
+                $"""
+                    #region {region}
 
-            """
-        );
-    }
+                """
+            );
+        }
 
-    public static void EndRegion(this StringBuilder sb)
-    {
-        sb.AppendLine(
-            """
-                #endregion
+        public void EndRegion()
+        {
+            sb.AppendLine(
+                """
+                    #endregion
 
-            """
-        );
+                """
+            );
+        }
     }
 }

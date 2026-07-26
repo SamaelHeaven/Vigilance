@@ -1,10 +1,14 @@
 using System.Reflection;
-using Vigilance.Core;
 
 namespace Vigilance.Collections;
 
 public static class NonRandomizedStringEqualityComparer
 {
+    private static readonly FieldInfo? _comparerFieldInfo = typeof(Dictionary<string, bool>).GetField(
+        "_comparer",
+        BindingFlags.Instance | BindingFlags.NonPublic
+    );
+
     private static IEqualityComparer<string>? DefaultComparer =>
         field ??= GetDictionaryComparer(new Dictionary<string, bool>(EqualityComparer<string?>.Default));
 
@@ -14,20 +18,9 @@ public static class NonRandomizedStringEqualityComparer
     private static IEqualityComparer<string>? StringComparerOrdinalIgnoreCase =>
         field ??= GetDictionaryComparer(new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase));
 
-    private static Wrapper<FieldInfo?>? ComparerFieldInfo
-    {
-        get
-        {
-            if (field.HasValue)
-                return field;
-            var type = typeof(Dictionary<string, bool>);
-            return field = type.GetField("_comparer", BindingFlags.Instance | BindingFlags.NonPublic);
-        }
-    }
-
     private static IEqualityComparer<string>? GetDictionaryComparer(Dictionary<string, bool> dictionary)
     {
-        return (IEqualityComparer<string>?)ComparerFieldInfo?.Value?.GetValue(dictionary);
+        return (IEqualityComparer<string>?)_comparerFieldInfo?.GetValue(dictionary);
     }
 
     public static IEqualityComparer<string>? GetStringComparer(object comparer)

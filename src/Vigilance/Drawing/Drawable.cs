@@ -33,17 +33,17 @@ public abstract class Drawable : IDrawable, IFullCloneable
         where T : Drawable<T>
     {
         var originalTransform = transform;
-        drawable.OnBeginDrawing?.Invoke(originalTransform, drawable, graphics);
+        drawable.OnBeginDrawing?.SafeInvoke(originalTransform, drawable, graphics);
         BlendMode? previousBlendMode = null;
         Shader? previousShader = null;
-        ShapeTexture? previousShapesTexture = null;
+        ShapeTexture? previousShapeTexture = null;
         bool? previousCulling = null;
         if (drawable.BlendMode.HasValue)
             previousBlendMode = graphics.SetBlendMode(drawable.BlendMode.Value);
         if (drawable.Shader is not null)
             previousShader = graphics.SetShader(drawable.Shader);
         if (drawable.ShapeTexture is not null)
-            previousShapesTexture = graphics.SetShapesTexture(drawable.ShapeTexture);
+            previousShapeTexture = graphics.SetShapeTexture(drawable.ShapeTexture);
         if (drawable.Culling.HasValue)
             previousCulling = graphics.SetCulling(drawable.Culling.Value);
         transform += drawable.Transform;
@@ -54,7 +54,7 @@ public abstract class Drawable : IDrawable, IFullCloneable
             graphics,
             previousBlendMode,
             previousShader,
-            previousShapesTexture,
+            previousShapeTexture,
             previousCulling
         );
     }
@@ -65,7 +65,7 @@ public abstract class Drawable : IDrawable, IFullCloneable
         Graphics Graphics,
         BlendMode? PreviousBlendMode = null,
         Shader? PreviousShader = null,
-        ShapeTexture? PreviousShapesTexture = null,
+        ShapeTexture? PreviousShapeTexture = null,
         bool? PreviousCulling = null
     ) : IDisposable
         where T : Drawable<T>
@@ -78,10 +78,10 @@ public abstract class Drawable : IDrawable, IFullCloneable
             if (PreviousShader is not null)
                 Graphics.SetShader(PreviousShader);
             if (Drawable.ShapeTexture is not null)
-                Graphics.SetShapesTexture(PreviousShapesTexture);
+                Graphics.SetShapeTexture(PreviousShapeTexture);
             if (PreviousCulling.HasValue)
                 Graphics.SetCulling(PreviousCulling.Value);
-            Drawable.OnEndDrawing?.Invoke(Transform, Drawable, Graphics);
+            Drawable.OnEndDrawing?.SafeInvoke(Transform, Drawable, Graphics);
         }
     }
 }

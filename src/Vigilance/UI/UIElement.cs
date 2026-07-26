@@ -34,6 +34,9 @@ public abstract class UIElement : IFullCloneable
         ShallowDefaults = SkipChildren,
     }
 
+    internal ValueDictionary<ImmediateCounter, uint> ImmediateCounters = new(ImmediateCounterComparer.Instance);
+    internal ValueDictionary<ImmediateEntry, ImmediateValue> ImmediateEntries = new(ImmediateEntryComparer.Instance);
+    internal UINode Node;
     private bool _click;
     private ValueList<IUIComponent> _components = [];
     private uint _immediateGeneration;
@@ -46,17 +49,13 @@ public abstract class UIElement : IFullCloneable
     private Func<UIElement, bool>? _onImmediateHandlers;
     private Func<UIElement, bool>? _onLayoutHandlers;
     private Func<UIElement, bool>? _onMouseEnterHandlers;
-    private Func<UIElement, bool>? _onMouseLeaveHandlers;
+    private Func<UIElement, bool>? _onMouseExitHandlers;
     private Func<UIElement, bool>? _onPressHandlers;
     private Func<UIElement, bool>? _onReleaseHandlers;
     private Func<UIElement, Graphics, CameraProvider, bool>? _onRenderHandlers;
     private Func<UIElement, bool>? _onResetLayoutAndTransformHandlers;
     private Func<UIElement, bool>? _onUpdateHandlers;
     private RenderData _renderData;
-    internal ValueDictionary<ImmediateCounter, uint> ImmediateCounters = new(ImmediateCounterComparer.Instance);
-    internal ValueDictionary<ImmediateEntry, ImmediateValue> ImmediateEntries = new(ImmediateEntryComparer.Instance);
-
-    internal UINode Node;
 
     protected UIElement()
     {
@@ -149,8 +148,14 @@ public abstract class UIElement : IFullCloneable
     public bool IsLayoutCustom { get; }
 
     public bool IsImmediate => field || _onImmediateHandlers is not null;
+    public bool IsPressed { get; private set; }
 
     public bool IsClicked { get; private set; }
+    public bool IsReleased { get; private set; }
+
+    public bool IsMouseEntered { get; private set; }
+
+    public bool IsMouseExited { get; private set; }
 
     public bool IsDirty => Node.IsDirty;
 
@@ -187,6 +192,8 @@ public abstract class UIElement : IFullCloneable
     public UIParent? Root => (UIParent?)this.Ancestors().LastOrDefault();
 
     public bool IsDisabled { get; set; }
+
+    public bool IsPersistent { get; set; }
 
     public bool IsVisible
     {
@@ -681,7 +688,7 @@ public abstract class UIElement : IFullCloneable
 
     public Signal<UIElement> OnMouseEnterSignal => new(ref _onMouseEnterHandlers);
 
-    public Signal<UIElement> OnMouseLeaveSignal => new(ref _onMouseLeaveHandlers);
+    public Signal<UIElement> OnMouseExitSignal => new(ref _onMouseExitHandlers);
 
     public Signal<UIElement> OnClickSignal => new(ref _onClickHandlers);
 
@@ -833,10 +840,15 @@ public abstract class UIElement : IFullCloneable
         }
     }
 
-    public void DetachAll()
+    public void DetachAll(bool keepPersistent = false)
     {
-        using var pool = _components.AsValueEnumerable().ToArrayPool();
-        _components.Clear();
+        using var pool = keepPersistent
+            ? _components.AsValueEnumerable().Where(component => !component.IsPersistant).ToArrayPool()
+            : _components.AsValueEnumerable().ToArrayPool();
+        if (keepPersistent)
+            _components.RemoveAll(component => !component.IsPersistant);
+        else
+            _components.Clear();
         foreach (var component in pool.Span)
             try
             {
@@ -899,7 +911,14 @@ public abstract class UIElement : IFullCloneable
             out var exists
         );
         if (!exists)
-            entryRef.Value = factory.Invoke()!;
+        {
+            var newEntry = factory.SafeInvoke()!;
+            entryRef.Value = newEntry;
+            if (newEntry is UIParent { IsPersistent: true } parent)
+                foreach (var child in parent.Children())
+                    child.IsPersistent = true;
+        }
+
         entryRef.Generation = _immediateGeneration;
         var entry = (T)entryRef.Value;
         switch (entry)
@@ -909,13 +928,13 @@ public abstract class UIElement : IFullCloneable
                 if (!element.IsImmediate)
                 {
                     element.ImmediateCounters.Clear();
-                    element.DetachAll();
+                    element.DetachAll(keepPersistent: true);
                     if (element is UIParent parent)
                     {
                         if (ReconcileSession.Current is { } session)
                             parent.BeginReconcile(session);
                         else
-                            parent.Clear();
+                            parent.Clear(keepPersistent: true);
                     }
                 }
 
@@ -1001,7 +1020,7 @@ public abstract class UIElement : IFullCloneable
         OnDirtySignal.Clear();
         OnLayoutSignal.Clear();
         OnMouseEnterSignal.Clear();
-        OnMouseLeaveSignal.Clear();
+        OnMouseExitSignal.Clear();
         OnClickSignal.Clear();
         OnPressSignal.Clear();
         OnReleaseSignal.Clear();
@@ -1048,7 +1067,7 @@ public abstract class UIElement : IFullCloneable
 
     protected virtual void OnMouseEnter() { }
 
-    protected virtual void OnMouseLeave() { }
+    protected virtual void OnMouseExit() { }
 
     protected virtual void OnClick() { }
 
@@ -1094,11 +1113,20 @@ public abstract class UIElement : IFullCloneable
             && Mouse.OnScreen
             && element.IsVisible
             && Collision.CheckPointQuad(Mouse.Position, element.RenderedBounds);
+        element.IsMouseEntered = !oldMouseInside && element.IsMouseInside;
+        element.IsMouseExited = oldMouseInside && !element.IsMouseInside;
+        var pressed = Mouse.IsButtonPressed(MouseButton.Left);
+        var released = Mouse.IsButtonReleased(MouseButton.Left);
+        element.IsPressed = pressed && element.IsMouseInside;
+        if (pressed)
+            element._click = element.IsMouseInside;
+        element.IsClicked = released && element is { _click: true, IsMouseInside: true };
+        element.IsReleased = released && element.IsMouseInside;
+        if (released)
+            element._click = false;
         var disabled = element.IsDisabled || entity is { IsNull: false, IsDisabled: true };
         if (disabled)
         {
-            element._click = false;
-            element.IsClicked = false;
             try
             {
                 element.OnDisabledUpdate();
@@ -1112,8 +1140,6 @@ public abstract class UIElement : IFullCloneable
             return;
         }
 
-        element.IsClicked =
-            Mouse.IsButtonReleased(MouseButton.Left) && element is { _click: true, IsMouseInside: true };
         if (element.IsImmediate)
             element.RunImmediate();
         try
@@ -1126,82 +1152,74 @@ public abstract class UIElement : IFullCloneable
         }
 
         element.OnUpdateSignal.SafeInvoke(element);
-        switch (oldMouseInside)
+        if (element.IsMouseEntered)
         {
-            case false when element.IsMouseInside:
-                try
-                {
-                    element.OnMouseEnter();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
+            try
+            {
+                element.OnMouseEnter();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
 
-                element.OnMouseEnterSignal.SafeInvoke(element);
-                break;
-            case true when !element.IsMouseInside:
-                try
-                {
-                    element.OnMouseLeave();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
-
-                element.OnMouseLeaveSignal.SafeInvoke(element);
-                break;
+            element.OnMouseEnterSignal.SafeInvoke(element);
         }
 
-        if (Mouse.IsButtonPressed(MouseButton.Left))
+        if (element.IsMouseExited)
         {
-            element._click = element.IsMouseInside;
-            if (element.IsMouseInside)
+            try
             {
-                try
-                {
-                    element.OnPress();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
-
-                element.OnPressSignal.SafeInvoke(element);
+                element.OnMouseExit();
             }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            element.OnMouseExitSignal.SafeInvoke(element);
         }
 
-        if (Mouse.IsButtonReleased(MouseButton.Left))
+        if (element.IsPressed)
         {
-            element._click = element is { _click: true, IsMouseInside: true };
-            if (element._click)
+            try
             {
-                try
-                {
-                    element.OnClick();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
-
-                element.OnClickSignal.SafeInvoke(element);
+                element.OnPress();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
             }
 
-            if (element.IsMouseInside)
-            {
-                try
-                {
-                    element.OnRelease();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
+            element.OnPressSignal.SafeInvoke(element);
+        }
 
-                element.OnReleaseSignal.SafeInvoke(element);
+        if (element.IsClicked)
+        {
+            try
+            {
+                element.OnClick();
             }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            element.OnClickSignal.SafeInvoke(element);
+        }
+
+        if (element.IsReleased)
+        {
+            try
+            {
+                element.OnRelease();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            element.OnReleaseSignal.SafeInvoke(element);
         }
     }
 
@@ -1210,7 +1228,7 @@ public abstract class UIElement : IFullCloneable
         ImmediateCounters.Clear();
         foreach (var element in this.DescendantsAndSelf())
             element._immediateGeneration++;
-        DetachAll();
+        DetachAll(keepPersistent: true);
         var session = ReconcileSession.Begin();
         try
         {
@@ -1237,13 +1255,14 @@ public abstract class UIElement : IFullCloneable
             if (element.ImmediateEntries.Count == 0)
                 continue;
             var generation = element._immediateGeneration;
-            using var stale = element
-                .ImmediateEntries.AsValueEnumerable()
-                .Cross(generation.AsValueSingleton())
-                .Where(cross => cross.Left.Value.Generation != cross.Right)
-                .Select(cross => cross.Left.Key)
-                .ToArrayPool();
-            foreach (ref var entry in stale.Span)
+            foreach (
+                var entry in element
+                    .ImmediateEntries.AsValueEnumerable()
+                    .Cross(generation.AsValueSingleton())
+                    .Where(cross => cross.Left.Value.Generation != cross.Right)
+                    .Select(cross => cross.Left.Key)
+                    .AsPooled()
+            )
                 element.ImmediateEntries.Remove(entry);
         }
     }
@@ -1358,8 +1377,8 @@ public abstract class UIElement : IFullCloneable
 
         if (element.ShapeTexture is not null)
         {
-            data.OldShapesTexture = graphics.GetShapesTexture();
-            graphics.SetShapesTexture(element.ShapeTexture);
+            data.OldShapesTexture = graphics.GetShapeTexture();
+            graphics.SetShapeTexture(element.ShapeTexture);
         }
 
         if (element.Culling.HasValue)
@@ -1437,7 +1456,7 @@ public abstract class UIElement : IFullCloneable
         if (data.OldCulling.HasValue)
             graphics.SetCulling(data.OldCulling.Value);
         if (element.ShapeTexture is not null)
-            graphics.SetShapesTexture(data.OldShapesTexture);
+            graphics.SetShapeTexture(data.OldShapesTexture);
         if (data.OldShader is not null)
             graphics.SetShader(data.OldShader);
         if (data.OldBlendMode.HasValue)
@@ -1722,12 +1741,12 @@ public abstract class UIElement : IFullCloneable
 
         public bool Equals(ImmediateEntry x, ImmediateEntry y)
         {
-            return x.Line == y.Line && x.Type == y.Type && x.Key == y.Key && ReferenceEquals(x.File, y.File);
+            return x.Type == y.Type && x.Key == y.Key && ReferenceEquals(x.File, y.File) && x.Line == y.Line;
         }
 
         public int GetHashCode(ImmediateEntry obj)
         {
-            return HashCode.Combine(obj.Line, obj.Type, obj.Key, RuntimeHelpers.GetHashCode(obj.File));
+            return HashCode.Combine(obj.Key, obj.Type, RuntimeHelpers.GetHashCode(obj.File), obj.Line);
         }
     }
 
@@ -1737,12 +1756,12 @@ public abstract class UIElement : IFullCloneable
 
         public bool Equals(ImmediateCounter x, ImmediateCounter y)
         {
-            return x.Line == y.Line && x.Type == y.Type && ReferenceEquals(x.File, y.File);
+            return x.Type == y.Type && ReferenceEquals(x.File, y.File) && x.Line == y.Line;
         }
 
         public int GetHashCode(ImmediateCounter obj)
         {
-            return HashCode.Combine(obj.Line, obj.Type, RuntimeHelpers.GetHashCode(obj.File));
+            return HashCode.Combine(obj.Type, RuntimeHelpers.GetHashCode(obj.File), obj.Line);
         }
     }
 
@@ -1934,9 +1953,9 @@ public static partial class UIElementExtensions
             set => element.OnMouseEnterSignal.Subscribe(e => value.Invoke((T)e));
         }
 
-        public Action<T> OnMouseLeave
+        public Action<T> OnMouseExit
         {
-            set => element.OnMouseLeaveSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnMouseExitSignal.Subscribe(e => value.Invoke((T)e));
         }
 
         public Action<T> OnClick

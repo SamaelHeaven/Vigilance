@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using ZLinq;
@@ -19,6 +20,13 @@ public static class ZLinqExtensions
     extension<TEnumerator, TValue>(in ValueEnumerable<TEnumerator, TValue> enumerable)
         where TEnumerator : struct, IValueEnumerator<TValue>, allows ref struct
     {
+        public ValueEnumerable<PooledEnumerator<TEnumerator, TValue>, TValue> AsPooled()
+        {
+            return new ValueEnumerable<PooledEnumerator<TEnumerator, TValue>, TValue>(
+                new PooledEnumerator<TEnumerator, TValue>(enumerable)
+            );
+        }
+
         public ValueEnumerable<
             CrossEnumerator<TEnumerator, TValue, TEnumerator2, TRight>,
             (TValue Left, TRight Right)
@@ -28,6 +36,14 @@ public static class ZLinqExtensions
             return new ValueEnumerable<CrossEnumerator<TEnumerator, TValue, TEnumerator2, TRight>, (TValue, TRight)>(
                 new CrossEnumerator<TEnumerator, TValue, TEnumerator2, TRight>(enumerable, other)
             );
+        }
+
+        public ReadOnlySpan<TValue> AsSpan()
+        {
+            using var enumerator = enumerable.Enumerator;
+            if (enumerator.TryGetSpan(out var span))
+                return span;
+            return enumerable.ToArray();
         }
     }
 
@@ -212,6 +228,146 @@ public readonly struct ValueEnumerableAdapter<TEnumerator, TValue>
     >.AsValueEnumerable()
     {
         return new StructEnumerator<Enumerator, TValue>(GetEnumerator());
+    }
+}
+
+public ref struct PooledEnumerator<TEnumerator, TValue> : IValueEnumerator<TValue>, IReadOnlySpan<TValue>
+    where TEnumerator : struct, IValueEnumerator<TValue>, allows ref struct
+{
+    private readonly ValueEnumerable<TEnumerator, TValue> _enumerable;
+    private TValue[]? _array;
+    private int _count;
+    private int _index;
+
+    internal PooledEnumerator(in ValueEnumerable<TEnumerator, TValue> enumerable)
+    {
+        _enumerable = enumerable;
+        Reset();
+    }
+
+    public bool MoveNext()
+    {
+        InitArray();
+        if ((uint)_index < (uint)_count)
+        {
+            Current = _array![_index];
+            _index++;
+            return true;
+        }
+
+        Current = default!;
+        _index = -1;
+        return false;
+    }
+
+    public void Reset()
+    {
+        Dispose();
+        _array = null;
+        _index = 0;
+        Current = default!;
+    }
+
+    public TValue Current { get; private set; } = default!;
+
+    public void Dispose()
+    {
+        if (_array is null)
+            return;
+        if (RuntimeHelpers.IsReferenceOrContainsReferences<TValue>())
+            Array.Clear(_array, 0, _count);
+        ArrayPool<TValue>.Shared.Return(_array);
+        _array = null;
+        _index = -1;
+        Current = default!;
+    }
+
+    private void InitArray()
+    {
+        if (_array is not null)
+            return;
+        using var enumerator = _enumerable.Enumerator;
+        if (enumerator.TryGetNonEnumeratedCount(out _count))
+        {
+            _array = ArrayPool<TValue>.Shared.Rent(_count);
+            if (enumerator.TryGetSpan(out var span))
+            {
+                span.CopyTo(_array);
+            }
+            else if (!enumerator.TryCopyTo(_array.AsSpan(0, _count), Index.Start))
+            {
+                var i = 0;
+                while (enumerator.TryGetNext(out var item))
+                {
+                    _array[i] = item;
+                    i++;
+                }
+            }
+        }
+        else
+        {
+            var initialBuffer = default(InlineArray16<TValue>);
+            Span<TValue> initialBufferSpan = initialBuffer;
+            var arrayBuilder = new SegmentedArrayProvider<TValue>(initialBufferSpan);
+            var span = arrayBuilder.GetSpan();
+            var i = 0;
+            while (enumerator.TryGetNext(out var item))
+            {
+                if (i == span.Length)
+                {
+                    arrayBuilder.Advance(i);
+                    span = arrayBuilder.GetSpan();
+                    i = 0;
+                }
+
+                span[i] = item;
+                i++;
+            }
+
+            arrayBuilder.Advance(i);
+            _count = arrayBuilder.Count;
+            _array = ArrayPool<TValue>.Shared.Rent(_count);
+            arrayBuilder.CopyToAndClear(_array);
+        }
+    }
+
+    public bool TryGetNext(out TValue current)
+    {
+        Unsafe.SkipInit(out current);
+        var result = MoveNext();
+        if (result)
+            current = Current;
+        return result;
+    }
+
+    public bool TryGetNonEnumeratedCount(out int count)
+    {
+        return _enumerable.TryGetNonEnumeratedCount(out count);
+    }
+
+    public bool TryGetSpan(out ReadOnlySpan<TValue> span)
+    {
+        InitArray();
+        span = _array.AsSpan(0, _count);
+        return true;
+    }
+
+    public bool TryCopyTo(scoped Span<TValue> destination, Index offset)
+    {
+        InitArray();
+        return _array.AsSpan(0, _count).TryCopyTo(destination, offset);
+    }
+
+    public Span<TValue> AsSpan()
+    {
+        InitArray();
+        return _array.AsSpan(0, _count);
+    }
+
+    ReadOnlySpan<TValue> IReadOnlySpan<TValue>.AsSpan()
+    {
+        InitArray();
+        return _array.AsSpan(0, _count);
     }
 }
 

@@ -1,6 +1,6 @@
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using Box2D.NET;
-using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Logging;
@@ -13,13 +13,10 @@ public sealed class World
     public const float PixelsPerMeter = 50f;
     public const float PixelsToMeter = 1f / PixelsPerMeter;
     private static WorldConfig _config = new();
-    private static InlineList<InlineArray128<WeakReference<Scene>?>, WeakReference<Scene>?> _scenes = [];
-    private static InlineList<InlineArray128<WeakReference<World>>, WeakReference<World>> _worlds = [];
+    internal readonly B2WorldId Id;
     private readonly TaskFactory? _taskFactory;
     private readonly int _workerCount;
-    internal readonly B2WorldId Id;
     private bool _disposed;
-    private int _index;
     private Action<Shape, Shape>? _onContactBegin;
     private Action<Shape, Shape>? _onContactEnd;
     private Action<ContactHit>? _onContactHit;
@@ -28,19 +25,18 @@ public sealed class World
     private Action<Shape, Shape>? _onSensorEnd;
 
     public World()
-        : this(null) { }
+        : this(new WorldDef()) { }
 
-    public World(bool? multithreaded = null)
-        : this(null, multithreaded) { }
-
-    public World(Scene? scene = null, bool? multithreaded = null)
+    public World(in WorldDef def)
     {
-        Scene = scene!;
-        Multithreaded = (multithreaded ?? DefaultMultithreaded) && Platform.Desktop.IsCurrent;
-        _index = _worlds.Count;
-        var def = B2Types.b2DefaultWorldDef();
-        def.userData = new B2UserData(_index);
-        def.gravity = PixelsToMeters(DefaultGravity).B2Vec2;
+        Scene = def.Scene!;
+        Multithreaded = def.Multithreaded && Platform.Desktop.IsCurrent;
+        var worldRef = new WeakReference<World>(this);
+        var b2Def = B2Types.b2DefaultWorldDef();
+        b2Def.userData = new B2UserData(
+            def.Scene is null || !def.Internal ? worldRef : new WeakReference<Scene>(def.Scene)
+        );
+        b2Def.gravity = PixelsToMeters(def.Gravity).B2Vec2;
         if (Multithreaded)
         {
             _taskFactory = new TaskFactory(
@@ -50,21 +46,17 @@ public sealed class World
                 TaskScheduler.Default
             );
             _workerCount = Environment.ProcessorCount;
-            def.workerCount = _workerCount;
-            def.enqueueTask = EnqueueTask;
-            def.finishTask = FinishTask;
+            b2Def.workerCount = _workerCount;
+            b2Def.enqueueTask = EnqueueTask;
+            b2Def.finishTask = FinishTask;
         }
 
-        Id = B2Worlds.b2CreateWorld(def);
-        var worldRef = new WeakReference<World>(this);
-        _worlds.Add(worldRef);
-        _scenes.Add(scene is null ? null : new WeakReference<Scene>(scene));
+        Id = B2Worlds.b2CreateWorld(b2Def);
         B2Worlds.b2World_SetCustomFilterCallback(Id, FilterCallback, worldRef);
     }
 
     public static Vector2 DefaultGravity { get; set; } = _config.DefaultGravity;
-
-    public bool DefaultMultithreaded { get; set; } = _config.DefaultMultithreaded;
+    public static bool DefaultMultithreaded { get; set; } = _config.DefaultMultithreaded;
 
     public Scene Scene { get; private set; }
 
@@ -87,21 +79,6 @@ public sealed class World
         if (_disposed)
             return;
         _disposed = true;
-        var last = _worlds.Count - 1;
-        if (_index != last)
-        {
-            var lastWorld = _worlds[last];
-            _worlds[_index] = lastWorld;
-            _scenes[_index] = _scenes[last];
-            if (lastWorld.TryGetTarget(out var world))
-            {
-                world._index = _index;
-                B2Worlds.b2World_SetUserData(world.Id, new B2UserData(_index));
-            }
-        }
-
-        _worlds.RemoveAt(last);
-        _scenes.RemoveAt(last);
         Scene = null!;
         _onFilter = null;
         _onContactBegin = null;
@@ -114,26 +91,25 @@ public sealed class World
 
     internal static World? GetWorld(B2WorldId worldId)
     {
-        var index = (int)B2Worlds.b2World_GetUserData(worldId).iValue;
-        if ((uint)index >= (uint)_worlds.Count)
-            return null;
-        var worldRef = _worlds[index];
-        return worldRef.TryGetTarget(out var world) ? world : null;
+        var value = B2Worlds.b2World_GetUserData(worldId).oValue;
+        if (value is WeakReference<Scene> sceneRef)
+            return sceneRef.TryGetTarget(out var scene) ? scene.World : null;
+        return ((WeakReference<World>)value).TryGetTarget(out var world) ? world : null;
     }
 
     internal static Scene? GetScene(B2WorldId worldId)
     {
-        var index = (int)B2Worlds.b2World_GetUserData(worldId).iValue;
-        if ((uint)index >= (uint)_scenes.Count)
-            return null;
-        var sceneRef = _scenes[index];
-        return sceneRef is not null && sceneRef.TryGetTarget(out var world) ? world : null;
+        var value = B2Worlds.b2World_GetUserData(worldId).oValue;
+        if (value is WeakReference<Scene> sceneRef)
+            return sceneRef.TryGetTarget(out var scene) ? scene : null;
+        return ((WeakReference<World>)value).TryGetTarget(out var world) ? world.Scene : null;
     }
 
     internal static void Initialize()
     {
         _config = Game.Config.Take<WorldConfig>() ?? _config;
         DefaultGravity = _config.DefaultGravity;
+        DefaultMultithreaded = _config.DefaultMultithreaded;
     }
 
     public void OnFilter(Func<Shape, Shape, bool> func)
@@ -213,6 +189,16 @@ public sealed class World
         }
     }
 
+    public void Overlap(Box box, Action<Shape> callback, in ShapeFilter? filter = null)
+    {
+        Overlap(box.Position, box.Position + box.Size, callback, in filter);
+    }
+
+    public void Overlap(Box box, Func<Shape, bool> callback, in ShapeFilter? filter = null)
+    {
+        Overlap(box.Position, box.Position + box.Size, callback, in filter);
+    }
+
     public void Overlap(
         Vector2 lowerBound,
         Vector2 upperBound,
@@ -230,7 +216,7 @@ public sealed class World
             Id,
             in b2Aabb,
             in b2Filter,
-            static (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
+            (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
             callback
         );
     }
@@ -247,36 +233,6 @@ public sealed class World
             Id,
             in b2Aabb,
             in b2Filter,
-            static (id, ctx) =>
-            {
-                ((Action<Shape>)ctx!)(new Shape(id));
-                return true;
-            },
-            callback
-        );
-    }
-
-    public void Overlap(in CircleShape circle, Func<Shape, bool> callback, in ShapeFilter? filter = null)
-    {
-        var proxy = circle.MakeProxy();
-        var b2Filter = filter.ToB2QueryFilter();
-        B2Worlds.b2World_OverlapShape(
-            Id,
-            ref proxy,
-            in b2Filter,
-            (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
-            callback
-        );
-    }
-
-    public void Overlap(in CircleShape circle, Action<Shape> callback, in ShapeFilter? filter = null)
-    {
-        var proxy = circle.MakeProxy();
-        var b2Filter = filter.ToB2QueryFilter();
-        B2Worlds.b2World_OverlapShape(
-            Id,
-            ref proxy,
-            in b2Filter,
             (id, ctx) =>
             {
                 ((Action<Shape>)ctx!)(new Shape(id));
@@ -286,22 +242,22 @@ public sealed class World
         );
     }
 
-    public void Overlap(in CapsuleShape capsule, Func<Shape, bool> callback, in ShapeFilter? filter = null)
+    public void Overlap(in ShapeProxy shapeProxy, Func<Shape, bool> callback, in ShapeFilter? filter = null)
     {
-        var proxy = capsule.MakeProxy();
+        var proxy = shapeProxy.B2ShapeProxy;
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
             Id,
             ref proxy,
             in b2Filter,
-            (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
+            (id, ctx) => ((Func<Shape, bool>)ctx!).SafeInvoke(new Shape(id)),
             callback
         );
     }
 
-    public void Overlap(in CapsuleShape capsule, Action<Shape> callback, in ShapeFilter? filter = null)
+    public void Overlap(in ShapeProxy shapeProxy, Action<Shape> callback, in ShapeFilter? filter = null)
     {
-        var proxy = capsule.MakeProxy();
+        var proxy = shapeProxy.B2ShapeProxy;
         var b2Filter = filter.ToB2QueryFilter();
         B2Worlds.b2World_OverlapShape(
             Id,
@@ -309,37 +265,7 @@ public sealed class World
             in b2Filter,
             (id, ctx) =>
             {
-                ((Action<Shape>)ctx!)(new Shape(id));
-                return true;
-            },
-            callback
-        );
-    }
-
-    public void Overlap(in PolygonShape polygon, Func<Shape, bool> callback, in ShapeFilter? filter = null)
-    {
-        var proxy = polygon.MakeProxy();
-        var b2Filter = filter.ToB2QueryFilter();
-        B2Worlds.b2World_OverlapShape(
-            Id,
-            ref proxy,
-            in b2Filter,
-            (id, ctx) => ((Func<Shape, bool>)ctx!)(new Shape(id)),
-            callback
-        );
-    }
-
-    public void Overlap(in PolygonShape polygon, Action<Shape> callback, in ShapeFilter? filter = null)
-    {
-        var proxy = polygon.MakeProxy();
-        var b2Filter = filter.ToB2QueryFilter();
-        B2Worlds.b2World_OverlapShape(
-            Id,
-            ref proxy,
-            in b2Filter,
-            (id, ctx) =>
-            {
-                ((Action<Shape>)ctx!)(new Shape(id));
+                ((Action<Shape>)ctx!).SafeInvoke(new Shape(id));
                 return true;
             },
             callback
@@ -417,42 +343,41 @@ public sealed class World
         B2Worlds.b2World_Draw(Id, draw);
     }
 
-    private static Color ToColor(B2HexColor hexColor)
-    {
-        var value = (uint)hexColor;
-        return new Color((byte)((value >> 16) & 0xff), (byte)((value >> 8) & 0xff), (byte)(value & 0xff));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector2 Transform(in B2Transform transform, B2Vec2 vertex)
-    {
-        var x = transform.q.c * vertex.X - transform.q.s * vertex.Y + transform.p.X;
-        var y = transform.q.s * vertex.X + transform.q.c * vertex.Y + transform.p.Y;
-        return MetersToPixels(new Vector2(x, y));
-    }
-
-    private static Vector2[] TransformVertices(
-        in B2Transform transform,
-        in ReadOnlySpan<B2Vec2> vertices,
-        int vertexCount
+    private static unsafe void DrawPolygon(
+        ReadOnlySpan<B2Vec2> vertices,
+        int vertexCount,
+        B2HexColor color,
+        object context
     )
     {
-        var points = new Vector2[vertexCount];
-        for (var i = 0; i < vertexCount; i++)
-            points[i] = Transform(transform, vertices[i]);
-        return points;
-    }
-
-    private static void DrawPolygon(ReadOnlySpan<B2Vec2> vertices, int vertexCount, B2HexColor color, object context)
-    {
         var (graphics, camera) = (DebugDrawContext)context;
-        var points = new Vector2[vertexCount];
-        for (var i = 0; i < vertexCount; i++)
-            points[i] = MetersToPixels(new Vector2(vertices[i]));
-        graphics.StrokeCustomPolygon(points, ToColor(color), camera: camera);
+        Vector2[]? pooledArray = null;
+        try
+        {
+            Span<Vector2> span;
+            if (vertexCount > 128)
+            {
+                pooledArray = ArrayPool<Vector2>.Shared.Rent(vertexCount);
+                span = pooledArray.AsSpan(0, vertexCount);
+            }
+            else
+            {
+                var points = stackalloc Vector2[vertexCount];
+                span = new Span<Vector2>(points, vertexCount);
+            }
+
+            for (var i = 0; i < vertexCount; i++)
+                span[i] = MetersToPixels(new Vector2(vertices[i]));
+            graphics.StrokeCustomPolygon(span, color.ToColor(), camera: camera);
+        }
+        finally
+        {
+            if (pooledArray != null)
+                ArrayPool<Vector2>.Shared.Return(pooledArray);
+        }
     }
 
-    private static void DrawSolidPolygon(
+    private static unsafe void DrawSolidPolygon(
         in B2Transform transform,
         ReadOnlySpan<B2Vec2> vertices,
         int vertexCount,
@@ -462,10 +387,32 @@ public sealed class World
     )
     {
         var (graphics, camera) = (DebugDrawContext)context;
-        var points = TransformVertices(transform, vertices, vertexCount);
-        var fill = ToColor(color);
-        graphics.FillCustomPolygon(points, fill.Alpha(0.5f), camera);
-        graphics.StrokeCustomPolygon(points, fill, camera: camera);
+        Vector2[]? pooledArray = null;
+        try
+        {
+            Span<Vector2> span;
+            if (vertexCount > 128)
+            {
+                pooledArray = ArrayPool<Vector2>.Shared.Rent(vertexCount);
+                span = pooledArray.AsSpan(0, vertexCount);
+            }
+            else
+            {
+                var points = stackalloc Vector2[vertexCount];
+                span = new Span<Vector2>(points, vertexCount);
+            }
+
+            for (var i = 0; i < vertexCount; i++)
+                span[i] = transform.Transform(vertices[i]);
+            var fill = color.ToColor();
+            graphics.FillCustomPolygon(span, fill.Alpha(0.5f), camera);
+            graphics.StrokeCustomPolygon(span, fill, camera: camera);
+        }
+        finally
+        {
+            if (pooledArray != null)
+                ArrayPool<Vector2>.Shared.Return(pooledArray);
+        }
     }
 
     private static void DrawCircle(in B2Vec2 center, float radius, B2HexColor color, object context)
@@ -474,7 +421,7 @@ public sealed class World
         graphics.StrokeCircle(
             MetersToPixels(new Vector2(center)),
             MetersToPixels(radius),
-            ToColor(color),
+            color.ToColor(),
             camera: camera
         );
     }
@@ -484,10 +431,10 @@ public sealed class World
         var (graphics, camera) = (DebugDrawContext)context;
         var center = MetersToPixels(new Vector2(transform.p));
         var radiusPixels = MetersToPixels(radius);
-        var fill = ToColor(color);
+        var fill = color.ToColor();
         graphics.FillCircle(center, radiusPixels, fill.Alpha(0.5f), camera: camera);
         graphics.StrokeCircle(center, radiusPixels, fill, camera: camera);
-        var axis = Transform(transform, new B2Vec2(radius, 0f));
+        var axis = transform.Transform(new B2Vec2(radius, 0f));
         graphics.DrawLine(center, axis, fill, camera: camera);
     }
 
@@ -497,7 +444,7 @@ public sealed class World
         var start = MetersToPixels(new Vector2(p1));
         var end = MetersToPixels(new Vector2(p2));
         var radiusPixels = MetersToPixels(radius);
-        var fill = ToColor(color);
+        var fill = color.ToColor();
         var body = fill.Alpha(0.5f);
         var axis = end - start;
         var normal = new Vector2(-axis.Y, axis.X).Normalize() * radiusPixels;
@@ -516,7 +463,7 @@ public sealed class World
         graphics.DrawLine(
             MetersToPixels(new Vector2(p1)),
             MetersToPixels(new Vector2(p2)),
-            ToColor(color),
+            color.ToColor(),
             camera: camera
         );
     }
@@ -526,20 +473,20 @@ public sealed class World
         var (graphics, camera) = (DebugDrawContext)context;
         const float axisScale = 0.4f;
         var origin = MetersToPixels(new Vector2(transform.p));
-        graphics.DrawLine(origin, Transform(transform, new B2Vec2(axisScale, 0f)), Color.Red, camera: camera);
-        graphics.DrawLine(origin, Transform(transform, new B2Vec2(0f, axisScale)), Color.Green, camera: camera);
+        graphics.DrawLine(origin, transform.Transform(new B2Vec2(axisScale, 0f)), Color.Red500, camera: camera);
+        graphics.DrawLine(origin, transform.Transform(new B2Vec2(0f, axisScale)), Color.Green500, camera: camera);
     }
 
     private static void DrawPoint(in B2Vec2 p, float size, B2HexColor color, object context)
     {
         var (graphics, camera) = (DebugDrawContext)context;
-        graphics.FillCircle(MetersToPixels(new Vector2(p)), size * 0.5f, ToColor(color), camera: camera);
+        graphics.FillCircle(MetersToPixels(new Vector2(p)), size * 0.5f, color.ToColor(), camera: camera);
     }
 
     private static void DrawString(in B2Vec2 p, string s, B2HexColor color, object context)
     {
         var (graphics, camera) = (DebugDrawContext)context;
-        graphics.FillText(s, MetersToPixels(new Vector2(p)), ToColor(color), camera: camera);
+        graphics.FillText(s, MetersToPixels(new Vector2(p)), color.ToColor(), fontSize: 8, camera: camera);
     }
 
     private void DispatchContactEvents()

@@ -1,23 +1,51 @@
+using Vigilance.Collections;
 using Vigilance.Core;
 using Vigilance.Drawing;
 using Vigilance.Logging;
-using ZLinq;
 
 namespace Vigilance.Systems;
 
 public sealed class AnimationSystem() : GameSystem(queryWithDisabled: true)
 {
+    private ValueList<IAnimation> _resume = [];
+
     public override void Update()
     {
-        foreach (var animation in AssignableComponents<IAnimation>().AsValueEnumerable().Distinct())
-            try
-            {
-                animation.Update();
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        Scene.BeginDefer();
+        try
+        {
+            foreach (var animation in AssignableComponents<IAnimation>())
+                try
+                {
+                    if (animation.IsPaused)
+                        continue;
+                    animation.Update();
+                    if (animation.IsPaused)
+                        continue;
+                    _resume.Add(animation);
+                    animation.IsPaused = true;
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+            foreach (var animation in _resume)
+                try
+                {
+                    animation.IsPaused = false;
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+            _resume.Clear();
+        }
+        finally
+        {
+            Scene.EndDefer();
+        }
     }
 
     public override void PreRender()

@@ -1,16 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Vigilance.Collections;
+using Vigilance.Logging;
 
 namespace Vigilance.Core;
 
 [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
-public sealed unsafe class ObjectPool<
-    [DynamicallyAccessedMembers(
-        DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.NonPublicConstructors
-    )]
-        T
->
+public sealed unsafe class ObjectPool<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>
     where T : class, new()
 {
     private static readonly delegate* <T, void> _constructor;
@@ -22,8 +18,8 @@ public sealed unsafe class ObjectPool<
 
     static ObjectPool()
     {
-        var constructor = typeof(T).GetConstructor(BindingFlags.Instance | BindingFlags.Public, [])!;
-        _constructor = (delegate* <T, void>)constructor.MethodHandle.GetFunctionPointer();
+        var constructor = typeof(T).GetConstructor(BindingFlags.Instance | BindingFlags.Public, []);
+        _constructor = constructor is null ? null : (delegate* <T, void>)constructor.MethodHandle.GetFunctionPointer();
     }
 
     public static ObjectPool<T> Shared => _shared ??= new ObjectPool<T>();
@@ -40,7 +36,8 @@ public sealed unsafe class ObjectPool<
     {
         if (!_pool.TryPop(out var item))
             return new T();
-        _constructor(item);
+        if (_constructor is not null)
+            _constructor(item);
         return item;
     }
 
@@ -49,8 +46,15 @@ public sealed unsafe class ObjectPool<
         Debug.Assert(item is not null);
         if ((T?)item is null)
             return;
-        Object<T>.Clear(item);
-        _pool.Push(item);
+        try
+        {
+            ObjectMarshal.Clear(item);
+            _pool.Push(item);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
     }
 
     public Handle Borrow()
@@ -61,7 +65,11 @@ public sealed unsafe class ObjectPool<
     public void Clear()
     {
         _pool.Clear();
-        _pool.Capacity = 0;
+    }
+
+    public void EnsureCapacity(int capacity)
+    {
+        _pool.EnsureCapacity(capacity);
     }
 
     public void TrimExcess()

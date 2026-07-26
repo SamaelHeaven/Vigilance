@@ -1,10 +1,9 @@
-using System.Runtime.CompilerServices;
 using Box2D.NET;
 using Vigilance.Math;
 
 namespace Vigilance.Physics;
 
-public record struct CapsuleShape
+public record struct CapsuleShape : IShape
 {
     public Vector2 Center1 { get; set; }
     public Vector2 Center2 { get; set; }
@@ -18,6 +17,16 @@ public record struct CapsuleShape
             radius = World.PixelsToMeters(Radius),
         };
 
+    public readonly ShapeProxy MakeProxy()
+    {
+        return new ShapeProxy { Points = [Center1, Center2], Radius = Radius };
+    }
+
+    public static implicit operator ShapeProxy(in CapsuleShape shape)
+    {
+        return shape.MakeProxy();
+    }
+
     public static CapsuleShape Make(Vector2 center1, Vector2 center2, float radius)
     {
         return new CapsuleShape
@@ -26,14 +35,5 @@ public record struct CapsuleShape
             Center2 = center2,
             Radius = radius,
         };
-    }
-
-    internal readonly B2ShapeProxy MakeProxy()
-    {
-        var proxy = new B2ShapeProxy { count = 2, radius = World.PixelsToMeters(Radius) };
-        ref var pts = ref Unsafe.As<B2FixedArray8<B2Vec2>, InlineArray8<Vector2>>(ref proxy.points);
-        pts[0] = World.PixelsToMeters(Center1);
-        pts[1] = World.PixelsToMeters(Center2);
-        return proxy;
     }
 }

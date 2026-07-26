@@ -1,7 +1,6 @@
-#pragma warning disable CS9084
-
 using System.Buffers;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using ZLinq;
@@ -20,35 +19,6 @@ public abstract class UIParent : UIElement
     private ValueStack<int> _suspendStack = [];
 
     public bool IsDeferred => _deferredCount != 0;
-
-    public UIParent this[UIElement? element]
-    {
-        get
-        {
-            Add(element);
-            return this;
-        }
-    }
-
-    [OverloadResolutionPriority(1)]
-    public UIParent this[params ReadOnlySpan<UIElement?> elements]
-    {
-        get
-        {
-            Add(elements);
-            return this;
-        }
-    }
-
-    public UIParent this[IEnumerable<UIElement?> elements]
-    {
-        get
-        {
-            foreach (var element in elements)
-                Add(element);
-            return this;
-        }
-    }
 
     public ChildEnumerable Children()
     {
@@ -72,9 +42,18 @@ public abstract class UIParent : UIElement
         MarkStructureDirty();
     }
 
-    public void Add(params ReadOnlySpan<UIElement?> elements)
+    [OverloadResolutionPriority(1)]
+    public void Add(in ReadOnlySpan<UIElement?> elements)
     {
         _children.EnsureCapacity(_children.Count + elements.Length);
+        foreach (var element in elements)
+            Add(element);
+    }
+
+    public void Add(IEnumerable<UIElement?> elements)
+    {
+        if (elements.TryGetNonEnumeratedCount(out var count))
+            _children.EnsureCapacity(_children.Count + count);
         foreach (var element in elements)
             Add(element);
     }
@@ -115,21 +94,28 @@ public abstract class UIParent : UIElement
         MarkStructureDirty();
     }
 
-    public void Clear()
+    public void Clear(bool keepPersistent = false)
     {
         if (IsDeferred)
         {
-            _childrenOperations.Enqueue(new ChildrenOperation(ChildrenOperationType.Clear, this));
+            _childrenOperations.Enqueue(
+                new ChildrenOperation(ChildrenOperationType.Clear, this, keepPersistent ? 1 : 0)
+            );
             return;
         }
 
         foreach (var element in _children)
         {
+            if (keepPersistent && element.IsPersistent)
+                continue;
             element.Parent = null;
             element.Node.Parent = null;
         }
 
-        _children.Clear();
+        if (keepPersistent)
+            _children.RemoveAll(element => !element.IsPersistent);
+        else
+            _children.Clear();
         MarkStructureDirty();
     }
 
@@ -195,7 +181,7 @@ public abstract class UIParent : UIElement
         _reconcileSnapshot = snapshot;
         _reconcileSnapshotCount = count;
         _suppressDirty = true;
-        Clear();
+        Clear(keepPersistent: true);
         session.Register(this);
     }
 
@@ -209,7 +195,7 @@ public abstract class UIParent : UIElement
         var old = snapshot.AsSpan(0, _reconcileSnapshotCount);
         var changed = current.Length != old.Length;
         for (var i = 0; !changed && i < current.Length; i++)
-            if (!ReferenceEquals(current[i], old[i]))
+            if (current[i] != old[i])
                 changed = true;
         if (changed)
             MarkDirty();
@@ -246,7 +232,7 @@ public abstract class UIParent : UIElement
     internal readonly record struct ChildrenOperation(
         ChildrenOperationType Type,
         UIElement? Element = null,
-        int Index = 0
+        int Data = 0
     )
     {
         public void Execute(UIParent parent)
@@ -260,13 +246,13 @@ public abstract class UIParent : UIElement
                     parent.Remove(Element!);
                     break;
                 case ChildrenOperationType.Clear:
-                    parent.Clear();
+                    parent.Clear(Data != 0);
                     break;
                 case ChildrenOperationType.Insert:
-                    parent.Insert(Index, Element!);
+                    parent.Insert(Data, Element!);
                     break;
                 case ChildrenOperationType.Replace:
-                    parent.Replace(Index, Element!);
+                    parent.Replace(Data, Element!);
                     break;
                 default:
                     throw new InvalidEnumArgumentException(nameof(Type), (int)Type, typeof(ChildrenOperationType));
@@ -274,7 +260,7 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public unsafe struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
+    public struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
     {
         private readonly UIParent _parent;
         private bool _deferred;
@@ -307,6 +293,7 @@ public abstract class UIParent : UIElement
 
         public UIElement this[int index] => _parent._children[index];
 
+        [UnscopedRef]
         public ref ChildEnumerable Deferred(bool deferred = true)
         {
             _deferred = deferred;
@@ -401,5 +388,72 @@ public abstract class UIParent : UIElement
         {
             return _parent._children.AsSpan().TryCopyTo(destination, offset);
         }
+    }
+
+#if !NET11_0_OR_GREATER
+    public UIParent this[UIElement? element]
+    {
+        get
+        {
+            Add(element);
+            return this;
+        }
+    }
+
+    [OverloadResolutionPriority(1)]
+    public UIParent this[params ReadOnlySpan<UIElement?> elements]
+    {
+        get
+        {
+            Add(elements);
+            return this;
+        }
+    }
+
+    public UIParent this[IEnumerable<UIElement?> elements]
+    {
+        get
+        {
+            Add(elements);
+            return this;
+        }
+    }
+#endif
+}
+
+public static class UIParentExtensions
+{
+    extension<T>(T parent)
+        where T : UIParent
+    {
+#if NET11_0_OR_GREATER
+        public T this[UIElement? element]
+        {
+            get
+            {
+                parent.Add(element);
+                return parent;
+            }
+        }
+
+        [OverloadResolutionPriority(1)]
+        public T this[params ReadOnlySpan<UIElement?> elements]
+        {
+            get
+            {
+                parent.Add(elements);
+                return parent;
+            }
+        }
+
+        public T this[IEnumerable<UIElement?> elements]
+        {
+            get
+            {
+                parent.Add(elements);
+                return parent;
+            }
+        }
+#endif
     }
 }

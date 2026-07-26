@@ -77,21 +77,6 @@ public sealed class ButtonInputs : IList<Button>, IValueListView<Button>
         return _buttons.AsValueEnumerable();
     }
 
-    public static implicit operator ButtonInputs(Key key)
-    {
-        return (Button)key;
-    }
-
-    public static implicit operator ButtonInputs(MouseButton mouseButton)
-    {
-        return (Button)mouseButton;
-    }
-
-    public static implicit operator ButtonInputs(GamepadButton gamepadButton)
-    {
-        return (Button)gamepadButton;
-    }
-
     public static implicit operator ButtonInputs(Button button)
     {
         return new ButtonInputs { _buttons = [button] };

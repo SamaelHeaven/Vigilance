@@ -8,12 +8,12 @@ using Vigilance.Math;
 
 namespace Vigilance.Net;
 
-internal sealed unsafe class HttpClientWeb : IHttpClient
+internal static unsafe class HttpClientWeb
 {
-    private static readonly ConcurrentDictionary<nint, HttpRequest> _requests = new();
+    private static readonly ConcurrentDictionary<nint, HttpRequest> _requests = [];
     private static long _requestId = 0;
 
-    public void Fetch(HttpRequest request)
+    public static void Fetch(HttpRequest request)
     {
         var headersBuffer = nint.Zero;
         nint[]? headerBuffers = null;
@@ -91,7 +91,7 @@ internal sealed unsafe class HttpClientWeb : IHttpClient
         {
             response.StatusCode = fetch->Status;
             response.StatusText = Utf8Ptr.GetString(fetch->StatusText);
-            response.Body = new byte[fetch->TotalBytes];
+            response.Body = GC.AllocateUninitializedArray<byte>((int)fetch->TotalBytes);
             if (fetch->Data != nint.Zero)
                 Marshal.Copy(fetch->Data, response.Body, 0, response.Body.Length);
             var headersLength = Emscripten.FetchGetResponseHeadersLength(fetch);

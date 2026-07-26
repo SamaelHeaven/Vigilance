@@ -44,12 +44,12 @@ public sealed class Timer
         CurrentCycle++;
         if (IsCompleted)
         {
-            OnComplete?.Invoke();
+            OnComplete?.SafeInvoke();
             return true;
         }
 
         Elapsed -= Duration;
-        OnRepeat?.Invoke();
+        OnRepeat?.SafeInvoke();
         return true;
     }
 

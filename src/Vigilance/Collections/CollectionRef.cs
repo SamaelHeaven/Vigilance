@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Vigilance.Core;
 using ZLinq;
 
 namespace Vigilance.Collections;
@@ -362,6 +363,7 @@ public ref struct ValueListRef<T> : IList<T>, IStructEnumerable<ValueList<T>.Enu
 
     public readonly T[] ToArray()
     {
+        // ReSharper disable once UseCollectionExpression
         return _ref.ToArray();
     }
 
@@ -518,6 +520,7 @@ public ref struct ValueQueueRef<T> : IReadOnlyCollection<T>, IStructEnumerable<V
 
     public readonly T[] ToArray()
     {
+        // ReSharper disable once UseCollectionExpression
         return _ref.ToArray();
     }
 
@@ -694,6 +697,7 @@ public ref struct ValueStackRef<T> : IReadOnlyCollection<T>, IStructEnumerable<V
 
     public readonly T[] ToArray()
     {
+        // ReSharper disable once UseCollectionExpression
         return _ref.ToArray();
     }
 
@@ -1476,6 +1480,681 @@ public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
     }
 }
 
+public ref struct ValueSparseSetRef<T>
+    : ISparseSet<T>,
+        ISet<T>,
+        IReadOnlySet<T>,
+        IReadOnlyList<T>,
+        IStructEnumerable<ValueSparseSet<T>.Enumerator, T>
+{
+    private readonly ref ValueSparseSet<T> _ref;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    private ValueSparseSet<T> _sparseSet;
+
+    public ValueSparseSetRef(Func<T, int> keyIndexFunc, int sparseChunkSize = ValueSparseSet<T>.DefaultSparseChunkSize)
+    {
+        _sparseSet = new ValueSparseSet<T>(keyIndexFunc, sparseChunkSize);
+        _ref = ref Unsafe.AsRef(ref _sparseSet);
+    }
+
+    public ValueSparseSetRef(ref ValueSparseSet<T> sparseSet)
+    {
+        _ref = ref sparseSet;
+    }
+
+    public readonly ValueListView<T> Keys => _ref.Keys;
+
+    public readonly int Count => _ref.Count;
+
+    public readonly T this[int index] => _ref[index];
+
+    readonly bool ICollection<T>.IsReadOnly => false;
+
+    public bool Add(scoped in T key)
+    {
+        return _ref.Add(key);
+    }
+
+    public void Clear()
+    {
+        _ref.Clear();
+    }
+
+    public readonly bool Contains(scoped in T key)
+    {
+        return _ref.Contains(key);
+    }
+
+    public bool Remove(scoped in T key)
+    {
+        return _ref.Remove(key);
+    }
+
+    public readonly int GetKeyIndex(scoped in T key)
+    {
+        return _ref.GetKeyIndex(key);
+    }
+
+    public void UnionWith(IEnumerable<T> other)
+    {
+        _ref.UnionWith(other);
+    }
+
+    public void IntersectWith(IEnumerable<T> other)
+    {
+        _ref.IntersectWith(other);
+    }
+
+    public void ExceptWith(IEnumerable<T> other)
+    {
+        _ref.ExceptWith(other);
+    }
+
+    public void SymmetricExceptWith(IEnumerable<T> other)
+    {
+        _ref.SymmetricExceptWith(other);
+    }
+
+    public readonly bool IsSubsetOf(IEnumerable<T> other)
+    {
+        return _ref.IsSubsetOf(other);
+    }
+
+    public readonly bool IsProperSubsetOf(IEnumerable<T> other)
+    {
+        return _ref.IsProperSubsetOf(other);
+    }
+
+    public readonly bool IsSupersetOf(IEnumerable<T> other)
+    {
+        return _ref.IsSupersetOf(other);
+    }
+
+    public readonly bool IsProperSupersetOf(IEnumerable<T> other)
+    {
+        return _ref.IsProperSupersetOf(other);
+    }
+
+    public readonly bool Overlaps(IEnumerable<T> other)
+    {
+        return _ref.Overlaps(other);
+    }
+
+    public readonly bool SetEquals(IEnumerable<T> other)
+    {
+        return _ref.SetEquals(other);
+    }
+
+    public readonly void CopyTo(T[] array)
+    {
+        _ref.CopyTo(array);
+    }
+
+    public readonly void CopyTo(scoped in Span<T> span, int arrayIndex = 0)
+    {
+        _ref.CopyTo(span, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped ref ValueSparseSet<T> sparseSet)
+    {
+        _ref.CopyTo(ref sparseSet);
+    }
+
+    public readonly ValueSparseSet<T>.Enumerator GetEnumerator()
+    {
+        return _ref.GetEnumerator();
+    }
+
+    public readonly ValueEnumerable<ValueSparseSet<T>.Enumerator, T> AsValueEnumerable()
+    {
+        return _ref.AsValueEnumerable();
+    }
+
+    readonly ValueEnumerable<StructEnumerator<ValueSparseSet<T>.Enumerator, T>, T> IStructEnumerable<
+        ValueSparseSet<T>.Enumerator,
+        T
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueSparseSet<T>.Enumerator, T>(GetEnumerator());
+    }
+
+    public readonly ValueSparseSetView<T>.Enumerable AsEnumerable()
+    {
+        return new ValueSparseSetView<T>.Enumerable(_ref);
+    }
+
+    void ICollection<T>.Add(T item)
+    {
+        _ref.Add(item);
+    }
+
+    bool ISet<T>.Add(T item)
+    {
+        return _ref.Add(item);
+    }
+
+    readonly bool ICollection<T>.Contains(T item)
+    {
+        return _ref.Contains(item);
+    }
+
+    readonly bool IReadOnlySet<T>.Contains(T item)
+    {
+        return _ref.Contains(item);
+    }
+
+    bool ICollection<T>.Remove(T item)
+    {
+        return _ref.Remove(item);
+    }
+
+    readonly void ICollection<T>.CopyTo(T[] array, int arrayIndex)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        _ref.CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    readonly IEnumerator<T> IEnumerable<T>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    readonly IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public static implicit operator ValueSparseSetView<T>(ValueSparseSetRef<T> sparseSet)
+    {
+        return new ValueSparseSetView<T>(ref sparseSet._ref);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueSparseSetRef<>)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException($"{nameof(GetHashCode)}() on {nameof(ValueSparseSetRef<>)} is not supported.");
+    }
+
+    public readonly bool Equals(scoped in ValueSparseSetRef<T> other)
+    {
+        return Unsafe.AreSame(ref _ref, ref other._ref);
+    }
+
+    public static bool operator ==(scoped in ValueSparseSetRef<T> left, scoped in ValueSparseSetRef<T> right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(scoped in ValueSparseSetRef<T> left, scoped in ValueSparseSetRef<T> right)
+    {
+        return !left.Equals(right);
+    }
+}
+
+public ref struct ValueEntitySparseSetRef
+    : ISparseSet<Entity>,
+        ISet<Entity>,
+        IReadOnlySet<Entity>,
+        IReadOnlyList<Entity>,
+        IStructEnumerable<ValueEntitySparseSet.Enumerator, Entity>
+{
+    private readonly ref ValueEntitySparseSet _ref;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    private ValueEntitySparseSet _sparseSet;
+
+    public ValueEntitySparseSetRef(Scene scene, int sparseChunkSize = ValueEntitySparseSet.DefaultSparseChunkSize)
+    {
+        _sparseSet = new ValueEntitySparseSet(scene, sparseChunkSize);
+        _ref = ref Unsafe.AsRef(ref _sparseSet);
+    }
+
+    public ValueEntitySparseSetRef(ref ValueEntitySparseSet sparseSet)
+    {
+        _ref = ref sparseSet;
+    }
+
+    public readonly Scene Scene => _ref.Scene;
+
+    public readonly int Count => _ref.Count;
+
+    public readonly Entity this[int index] => _ref[index];
+
+    readonly bool ICollection<Entity>.IsReadOnly => false;
+
+    public bool Add(scoped in Entity key)
+    {
+        return _ref.Add(key);
+    }
+
+    public void Clear()
+    {
+        _ref.Clear();
+    }
+
+    public readonly bool Contains(scoped in Entity key)
+    {
+        return _ref.Contains(key);
+    }
+
+    public bool Remove(scoped in Entity key)
+    {
+        return _ref.Remove(key);
+    }
+
+    public readonly int GetKeyIndex(scoped in Entity key)
+    {
+        return _ref.GetKeyIndex(key);
+    }
+
+    public void UnionWith(IEnumerable<Entity> other)
+    {
+        _ref.UnionWith(other);
+    }
+
+    public void IntersectWith(IEnumerable<Entity> other)
+    {
+        _ref.IntersectWith(other);
+    }
+
+    public void ExceptWith(IEnumerable<Entity> other)
+    {
+        _ref.ExceptWith(other);
+    }
+
+    public void SymmetricExceptWith(IEnumerable<Entity> other)
+    {
+        _ref.SymmetricExceptWith(other);
+    }
+
+    public readonly bool IsSubsetOf(IEnumerable<Entity> other)
+    {
+        return _ref.IsSubsetOf(other);
+    }
+
+    public readonly bool IsProperSubsetOf(IEnumerable<Entity> other)
+    {
+        return _ref.IsProperSubsetOf(other);
+    }
+
+    public readonly bool IsSupersetOf(IEnumerable<Entity> other)
+    {
+        return _ref.IsSupersetOf(other);
+    }
+
+    public readonly bool IsProperSupersetOf(IEnumerable<Entity> other)
+    {
+        return _ref.IsProperSupersetOf(other);
+    }
+
+    public readonly bool Overlaps(IEnumerable<Entity> other)
+    {
+        return _ref.Overlaps(other);
+    }
+
+    public readonly bool SetEquals(IEnumerable<Entity> other)
+    {
+        return _ref.SetEquals(other);
+    }
+
+    public readonly void CopyTo(Entity[] array)
+    {
+        _ref.CopyTo(array);
+    }
+
+    public readonly void CopyTo(scoped in Span<Entity> span, int arrayIndex = 0)
+    {
+        _ref.CopyTo(span, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped ref ValueEntitySparseSet sparseSet)
+    {
+        _ref.CopyTo(ref sparseSet);
+    }
+
+    public readonly ValueEntitySparseSet.Enumerator GetEnumerator()
+    {
+        return _ref.GetEnumerator();
+    }
+
+    public readonly ValueEnumerable<ValueEntitySparseSet.Enumerator, Entity> AsValueEnumerable()
+    {
+        return _ref.AsValueEnumerable();
+    }
+
+    readonly ValueEnumerable<StructEnumerator<ValueEntitySparseSet.Enumerator, Entity>, Entity> IStructEnumerable<
+        ValueEntitySparseSet.Enumerator,
+        Entity
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueEntitySparseSet.Enumerator, Entity>(GetEnumerator());
+    }
+
+    public readonly ValueEntitySparseSetView.Enumerable AsEnumerable()
+    {
+        return new ValueEntitySparseSetView.Enumerable(_ref);
+    }
+
+    void ICollection<Entity>.Add(Entity item)
+    {
+        _ref.Add(item);
+    }
+
+    bool ISet<Entity>.Add(Entity item)
+    {
+        return _ref.Add(item);
+    }
+
+    readonly bool ICollection<Entity>.Contains(Entity item)
+    {
+        return _ref.Contains(item);
+    }
+
+    readonly bool IReadOnlySet<Entity>.Contains(Entity item)
+    {
+        return _ref.Contains(item);
+    }
+
+    bool ICollection<Entity>.Remove(Entity item)
+    {
+        return _ref.Remove(item);
+    }
+
+    readonly void ICollection<Entity>.CopyTo(Entity[] array, int arrayIndex)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        _ref.CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    readonly IEnumerator<Entity> IEnumerable<Entity>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    readonly IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public static implicit operator ValueEntitySparseSetView(ValueEntitySparseSetRef sparseSet)
+    {
+        return new ValueEntitySparseSetView(ref sparseSet._ref);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException($"{nameof(Equals)}() on {nameof(ValueEntitySparseSetRef)} is not supported.");
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException(
+            $"{nameof(GetHashCode)}() on {nameof(ValueEntitySparseSetRef)} is not supported."
+        );
+    }
+
+    public readonly bool Equals(scoped in ValueEntitySparseSetRef other)
+    {
+        return Unsafe.AreSame(ref _ref, ref other._ref);
+    }
+
+    public static bool operator ==(scoped in ValueEntitySparseSetRef left, scoped in ValueEntitySparseSetRef right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(scoped in ValueEntitySparseSetRef left, scoped in ValueEntitySparseSetRef right)
+    {
+        return !left.Equals(right);
+    }
+}
+
+public ref struct ValueEntitySparseSetRef<TValue, TStorage>
+    : ISparseSet<Entity, TValue, TStorage>,
+        IDictionary<Entity, TValue>,
+        IReadOnlyDictionary<Entity, TValue>,
+        IReadOnlyList<KeyValuePair<Entity, TValue>>,
+        IStructEnumerable<ValueEntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>
+    where TStorage : IList<TValue>
+{
+    private readonly ref ValueEntitySparseSet<TValue, TStorage> _ref;
+
+    // ReSharper disable once PrivateFieldCanBeConvertedToLocalVariable
+    // ReSharper disable once FieldCanBeMadeReadOnly.Local
+    private ValueEntitySparseSet<TValue, TStorage> _sparseSet;
+
+    public ValueEntitySparseSetRef(
+        Scene scene,
+        in TStorage storage,
+        int sparseChunkSize = ValueEntitySparseSet<TValue, TStorage>.DefaultSparseChunkSize
+    )
+    {
+        _sparseSet = new ValueEntitySparseSet<TValue, TStorage>(scene, storage, sparseChunkSize);
+        _ref = ref Unsafe.AsRef(ref _sparseSet);
+    }
+
+    public ValueEntitySparseSetRef(ref ValueEntitySparseSet<TValue, TStorage> sparseSet)
+    {
+        _ref = ref sparseSet;
+    }
+
+    public readonly Scene Scene => _ref.Scene;
+
+    public readonly ISparseSet<TValue, TStorage>.ValueEnumerable Values => _ref.Values;
+
+    public readonly ValueEntitySparseSet<TValue, TStorage>.KeyEnumerable Keys => _ref.Keys;
+
+    public readonly int Count => _ref.Count;
+
+    public TValue this[scoped in Entity key]
+    {
+        readonly get => _ref[key];
+        set => _ref[key] = value;
+    }
+
+    public readonly KeyValuePair<Entity, TValue> this[int index] => _ref[index];
+
+    public void Clear()
+    {
+        _ref.Clear();
+    }
+
+    public readonly bool ContainsKey(scoped in Entity key)
+    {
+        return _ref.ContainsKey(key);
+    }
+
+    public readonly bool TryGetValue(scoped in Entity key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return _ref.TryGetValue(key, out value);
+    }
+
+    public bool Remove(scoped in Entity key)
+    {
+        return _ref.Remove(key);
+    }
+
+    public readonly int GetKeyIndex(scoped in Entity key)
+    {
+        return _ref.GetKeyIndex(key);
+    }
+
+    public readonly void CopyTo(scoped in Span<KeyValuePair<Entity, TValue>> span, int arrayIndex = 0)
+    {
+        _ref.CopyTo(span, arrayIndex);
+    }
+
+    public readonly void CopyTo(scoped ref ValueEntitySparseSet<TValue, TStorage> sparseSet)
+    {
+        _ref.CopyTo(ref sparseSet);
+    }
+
+    public readonly ValueEntitySparseSet<TValue, TStorage>.Enumerator GetEnumerator()
+    {
+        return _ref.GetEnumerator();
+    }
+
+    public readonly ValueEnumerable<
+        ValueEntitySparseSet<TValue, TStorage>.Enumerator,
+        KeyValuePair<Entity, TValue>
+    > AsValueEnumerable()
+    {
+        return _ref.AsValueEnumerable();
+    }
+
+    readonly ValueEnumerable<
+        StructEnumerator<ValueEntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>,
+        KeyValuePair<Entity, TValue>
+    > IStructEnumerable<
+        ValueEntitySparseSet<TValue, TStorage>.Enumerator,
+        KeyValuePair<Entity, TValue>
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<ValueEntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>(
+            GetEnumerator()
+        );
+    }
+
+    public readonly ValueEntitySparseSetView<TValue, TStorage>.Enumerable AsEnumerable()
+    {
+        return new ValueEntitySparseSetView<TValue, TStorage>.Enumerable(_ref);
+    }
+
+    readonly IEnumerator<KeyValuePair<Entity, TValue>> IEnumerable<KeyValuePair<Entity, TValue>>.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    readonly IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    readonly ICollection<TValue> IDictionary<Entity, TValue>.Values => ((IDictionary<Entity, TValue>)_ref).Values;
+
+    readonly ICollection<Entity> IDictionary<Entity, TValue>.Keys => ((IDictionary<Entity, TValue>)_ref).Keys;
+
+    readonly IEnumerable<Entity> IReadOnlyDictionary<Entity, TValue>.Keys => Keys;
+
+    readonly IEnumerable<TValue> IReadOnlyDictionary<Entity, TValue>.Values => Values;
+
+    readonly bool ICollection<KeyValuePair<Entity, TValue>>.IsReadOnly => false;
+
+    TValue IDictionary<Entity, TValue>.this[Entity key]
+    {
+        readonly get => this[key];
+        set => this[key] = value;
+    }
+
+    readonly TValue IReadOnlyDictionary<Entity, TValue>.this[Entity key] => this[key];
+
+    void ICollection<KeyValuePair<Entity, TValue>>.Add(KeyValuePair<Entity, TValue> item)
+    {
+        if (_ref.ContainsKey(item.Key))
+            throw new ArgumentException("Duplicate key", nameof(item));
+        _ref[item.Key] = item.Value;
+    }
+
+    readonly bool ICollection<KeyValuePair<Entity, TValue>>.Contains(KeyValuePair<Entity, TValue> item)
+    {
+        return _ref.TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
+    }
+
+    readonly void ICollection<KeyValuePair<Entity, TValue>>.CopyTo(KeyValuePair<Entity, TValue>[] array, int arrayIndex)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        _ref.CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    bool ICollection<KeyValuePair<Entity, TValue>>.Remove(KeyValuePair<Entity, TValue> item)
+    {
+        return _ref.TryGetValue(item.Key, out var value)
+            && EqualityComparer<TValue>.Default.Equals(value, item.Value)
+            && _ref.Remove(item.Key);
+    }
+
+    void IDictionary<Entity, TValue>.Add(Entity key, TValue value)
+    {
+        if (_ref.ContainsKey(key))
+            throw new ArgumentException("Duplicate key", nameof(key));
+        _ref[key] = value;
+    }
+
+    readonly bool IDictionary<Entity, TValue>.ContainsKey(Entity key)
+    {
+        return _ref.ContainsKey(key);
+    }
+
+    bool IDictionary<Entity, TValue>.Remove(Entity key)
+    {
+        return _ref.Remove(key);
+    }
+
+    readonly bool IDictionary<Entity, TValue>.TryGetValue(Entity key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return _ref.TryGetValue(key, out value);
+    }
+
+    readonly bool IReadOnlyDictionary<Entity, TValue>.ContainsKey(Entity key)
+    {
+        return _ref.ContainsKey(key);
+    }
+
+    readonly bool IReadOnlyDictionary<Entity, TValue>.TryGetValue(Entity key, [MaybeNullWhen(false)] out TValue value)
+    {
+        return _ref.TryGetValue(key, out value);
+    }
+
+    public static implicit operator ValueEntitySparseSetView<TValue, TStorage>(
+        ValueEntitySparseSetRef<TValue, TStorage> sparseSet
+    )
+    {
+        return new ValueEntitySparseSetView<TValue, TStorage>(ref sparseSet._ref);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        throw new NotSupportedException(
+            $"{nameof(Equals)}() on {nameof(ValueEntitySparseSetRef<,>)} is not supported."
+        );
+    }
+
+    public override int GetHashCode()
+    {
+        throw new NotSupportedException(
+            $"{nameof(GetHashCode)}() on {nameof(ValueEntitySparseSetRef<,>)} is not supported."
+        );
+    }
+
+    public readonly bool Equals(scoped in ValueEntitySparseSetRef<TValue, TStorage> other)
+    {
+        return Unsafe.AreSame(ref _ref, ref other._ref);
+    }
+
+    public static bool operator ==(
+        in ValueEntitySparseSetRef<TValue, TStorage> left,
+        in ValueEntitySparseSetRef<TValue, TStorage> right
+    )
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(
+        in ValueEntitySparseSetRef<TValue, TStorage> left,
+        in ValueEntitySparseSetRef<TValue, TStorage> right
+    )
+    {
+        return !left.Equals(right);
+    }
+}
+
 public static class CollectionRefExtensions
 {
     public static ValueListRef<T> AsRef<T>(this ref ValueList<T> list)
@@ -1507,6 +2186,31 @@ public static class CollectionRefExtensions
         where TStorage : IList<TValue>
     {
         return new ValueSparseSetRef<TKey, TValue, TStorage>(ref sparseSet);
+    }
+
+    public static ValueSparseSetRef<T> AsRef<T>(this ref ValueSparseSet<T> sparseSet)
+    {
+        return new ValueSparseSetRef<T>(ref sparseSet);
+    }
+
+    public static ValueEntitySparseSetRef AsRef(this ref ValueEntitySparseSet sparseSet)
+    {
+        return new ValueEntitySparseSetRef(ref sparseSet);
+    }
+
+    public static ValueEntitySparseSetRef<TValue, TStorage> AsRef<TValue, TStorage>(
+        this ref ValueEntitySparseSet<TValue, TStorage> sparseSet
+    )
+        where TStorage : IList<TValue>
+    {
+        return new ValueEntitySparseSetRef<TValue, TStorage>(ref sparseSet);
+    }
+
+    public static ValueEntitySparseSetRef<TValue, ValueList<TValue>> AsRef<TValue>(
+        this ref ValueEntitySparseSet<TValue> sparseSet
+    )
+    {
+        return new ValueEntitySparseSetRef<TValue, ValueList<TValue>>(ref sparseSet.Storage);
     }
 
     public static ValueHashSetRef<T> AsRef<T>(this ref ValueHashSet<T> hashSet)

@@ -31,7 +31,7 @@ public static class GamepadAxisExtensions
 
         public Axis AsAxis(Gamepads gamepads = Gamepads.All, float deadZone = 0)
         {
-            return Axis.From(axis, gamepads, deadZone);
+            return new Axis(axis, gamepads, deadZone);
         }
     }
 }

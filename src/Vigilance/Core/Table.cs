@@ -50,7 +50,11 @@ public abstract class Table
 
     public abstract bool WriteImmutable { get; }
 
-    public abstract ValueListView<ulong> EntityIds { get; }
+    public abstract ValueListView<EntityId> EntityIds { get; }
+
+    public abstract void TrimExcess();
+
+    public abstract void EnsureCapacity(int capacity);
 
     public abstract bool Has(in Entity entity);
 
@@ -74,6 +78,7 @@ public abstract class Table
     {
         public Event(EventType type, in Entity entity, T oldValue, T newValue)
         {
+            entity.AssertValid();
             Entity = entity;
             OldValue = oldValue;
             NewValue = newValue;
@@ -112,7 +117,7 @@ public sealed class Table<T>
     private const int SparseChunkSize = 2048;
     private Action<Entity, T>? _addAction;
     private ValueList<T> _components = [];
-    private ValueList<ulong> _entityIds = [];
+    private ValueList<EntityId> _entityIds = [];
     private ValueQueue<Event<T>> _events = [];
     private ValueQueue<Operation> _operations = [];
     private Action<Entity, T>? _removeAction;
@@ -159,7 +164,7 @@ public sealed class Table<T>
 
     public override bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public override ValueListView<ulong> EntityIds => _entityIds;
+    public override ValueListView<EntityId> EntityIds => _entityIds;
 
     public ValueListView<T> Components => _components;
 
@@ -203,6 +208,21 @@ public sealed class Table<T>
     >.AsValueEnumerable()
     {
         return new StructEnumerator<Enumerator, KeyValuePair<Entity, T>>(GetEnumerator());
+    }
+
+    public override void TrimExcess()
+    {
+        _components.TrimExcess();
+        _entityIds.TrimExcess();
+        _sparseChunks.TrimExcess();
+        _events.TrimExcess();
+        _operations.TrimExcess();
+    }
+
+    public override void EnsureCapacity(int capacity)
+    {
+        _components.EnsureCapacity(capacity);
+        _entityIds.EnsureCapacity(capacity);
     }
 
     public ValueEnumerable<Enumerator, KeyValuePair<Entity, T>> AsValueEnumerable()
@@ -259,6 +279,7 @@ public sealed class Table<T>
 
     public override bool Has(in Entity entity)
     {
+        entity.AssertValid();
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -277,12 +298,14 @@ public sealed class Table<T>
 
     public override object Get(in Entity entity)
     {
+        entity.AssertValid();
         var value = GetRef(in entity);
         return (value.IsNull ? null : value.Read)!;
     }
 
     public override bool TryGet(in Entity entity, out object component)
     {
+        entity.AssertValid();
         var value = GetRef(in entity);
         component = (value.IsNull ? null : value.Read)!;
         return !value.IsNull;
@@ -290,6 +313,7 @@ public sealed class Table<T>
 
     public bool TryGet(in Entity entity, out T component)
     {
+        entity.AssertValid();
         var value = GetRef(in entity);
         if (value.IsNull)
         {
@@ -301,18 +325,28 @@ public sealed class Table<T>
         return true;
     }
 
+    public bool TryGetRef(scoped in Entity entity, out ComponentRef<T> componentRef)
+    {
+        entity.AssertValid();
+        componentRef = GetRef(in entity);
+        return !componentRef.IsNull;
+    }
+
     public override void Set(in Entity entity, object component, Flags flags = Flags.None)
     {
+        entity.AssertValid();
         Set(entity, (T)component, flags);
     }
 
     public override bool Remove(in Entity entity, Flags flags = Flags.None)
     {
+        entity.AssertValid();
         return Remove(entity, out _, flags);
     }
 
     public override bool Remove(in Entity entity, out object component, Flags flags = Flags.None)
     {
+        entity.AssertValid();
         var result = Remove(entity, out var value, flags);
         component = result ? value! : null!;
         return result;
@@ -320,6 +354,7 @@ public sealed class Table<T>
 
     public bool Remove(in Entity entity, out T component, Flags flags = Flags.None)
     {
+        entity.AssertValid();
         Unsafe.SkipInit(out component);
         if (RemoveImmutable && (flags & Flags.ForceMutable) == 0)
             if ((flags & Flags.SilentOnImmutable) != 0)
@@ -353,7 +388,7 @@ public sealed class Table<T>
             _components[denseIndex] = _components[lastDenseIndex];
             var movedId = _entityIds[lastDenseIndex];
             _entityIds[denseIndex] = movedId;
-            var movedEntityIndex = Entity.GetIndex(movedId);
+            var movedEntityIndex = movedId.Index;
             var movedChunkIndex = movedEntityIndex / SparseChunkSize;
             var movedWithinChunk = movedEntityIndex % SparseChunkSize;
             var movedChunk = _sparseChunks[movedChunkIndex]!;
@@ -369,11 +404,12 @@ public sealed class Table<T>
 
     public ComponentRef<T> GetRef(int index)
     {
-        return new ComponentRef<T>(ref _components[index]);
+        return new ComponentRef<T>(ref _components[index], index);
     }
 
     public ComponentRef<T> GetRef(scoped in Entity entity)
     {
+        entity.AssertValid();
         var chunkIndex = entity.Index / SparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return ComponentRef<T>.Null;
@@ -385,11 +421,12 @@ public sealed class Table<T>
         if (sparseValue == 0)
             return ComponentRef<T>.Null;
         var denseIndex = sparseValue - 1;
-        return new ComponentRef<T>(ref _components[denseIndex]);
+        return new ComponentRef<T>(ref _components[denseIndex], denseIndex);
     }
 
     public ComponentRef<T> Set(scoped in Entity entity, scoped in T component, Flags flags = Flags.None)
     {
+        entity.AssertValid();
         if (SetImmutable && AddImmutable && (flags & Flags.ForceMutable) == 0)
             if ((flags & Flags.SilentOnImmutable) != 0)
                 return ComponentRef<T>.Null;
@@ -430,7 +467,8 @@ public sealed class Table<T>
             _entityIds.Add(entity.Id);
             chunk[withinChunk] = index;
             Emit(Event<T>.Add(entity, component));
-            return new ComponentRef<T>(ref _components[index - 1]);
+            index--;
+            return new ComponentRef<T>(ref _components[index], index);
         }
 
         if (SetImmutable && (flags & Flags.ForceMutable) == 0)
@@ -445,7 +483,7 @@ public sealed class Table<T>
         var oldValue = componentRef;
         componentRef = component;
         Emit(Event<T>.Set(entity, oldValue, component));
-        return new ComponentRef<T>(ref componentRef!);
+        return new ComponentRef<T>(ref componentRef!, denseIndex);
     }
 
     internal override void DequeueOperation()
@@ -502,7 +540,7 @@ public sealed class Table<T>
         Remove,
     }
 
-    private readonly record struct Operation(ulong EntityId, T Value, OperationType Type, Flags Flags);
+    private readonly record struct Operation(EntityId EntityId, T Value, OperationType Type, Flags Flags);
 
     public struct Enumerator : IStructEnumerator<KeyValuePair<Entity, T>>, IValueEnumerator<KeyValuePair<Entity, T>>
     {

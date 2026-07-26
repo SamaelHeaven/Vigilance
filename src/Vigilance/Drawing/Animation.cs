@@ -37,7 +37,6 @@ public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneab
 
     public TimeSpan Elapsed { get; set; }
     public TimeSpan Delay { get; set; }
-    public bool IsPaused { get; set; }
     public bool DidTick { get; set; }
     public int CycleCount { get; set; }
     public int CurrentCycle { get; private set; }
@@ -70,6 +69,8 @@ public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneab
         set => _nextIndex = value?.Clamp(0, _frames.Length - 1);
     }
 
+    public bool IsPaused { get; set; }
+
     public void Update(TimeSpan? step = null)
     {
         DidTick = false;
@@ -88,9 +89,9 @@ public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneab
         DidTick = true;
         CurrentCycle++;
         if (IsCompleted)
-            OnComplete?.Invoke();
+            OnComplete?.SafeInvoke();
         else
-            OnRepeat?.Invoke();
+            OnRepeat?.SafeInvoke();
     }
 
     public void Apply(Entity entity)

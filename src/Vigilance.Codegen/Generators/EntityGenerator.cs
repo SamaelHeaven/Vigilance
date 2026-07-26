@@ -20,6 +20,7 @@ public sealed class EntityGenerator : SourceGenerator
         );
         Has(sb);
         TryGet(sb);
+        TryGetRef(sb);
         sb.AppendLine("}");
         sb.AppendLine(
             """
@@ -48,7 +49,7 @@ public sealed class EntityGenerator : SourceGenerator
                     public bool Has<{{typeParams}}>()
                     {
                         AssertValid();
-                        return {{hasChecks}};
+                        return Scene is null ? false : ({{hasChecks}});
                     }
                     
                 """
@@ -85,14 +86,48 @@ public sealed class EntityGenerator : SourceGenerator
                 "\n        ",
                 Enumerable.Range(0, i + 1).Select(n => $"System.Runtime.CompilerServices.Unsafe.SkipInit(out t{n});")
             );
-            var tryGets = string.Join(" && ", Enumerable.Range(0, i + 1).Select(n => $"TryGet(out t{n})"));
+            var tryGets = string.Join(
+                " && ",
+                Enumerable.Range(0, i + 1).Select(n => $"Scene.Table<T{n}>().TryGet(this, out t{n})")
+            );
             sb.AppendLine(
                 $$"""
                     public bool TryGet<{{typeParams}}>({{outParams}})
                     {
                         AssertValid();
                         {{skipInits}}
-                        return {{tryGets}};
+                        return Scene is null ? false : ({{tryGets}});
+                    }
+                    
+                """
+            );
+        }
+
+        sb.EndRegion();
+    }
+
+    private static void TryGetRef(StringBuilder sb)
+    {
+        sb.BeginRegion("TryGetRef");
+        for (var i = 1; i < 16; i++)
+        {
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            var outParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"out ComponentRef<T{n}> t{n}"));
+            var skipInits = string.Join(
+                "\n        ",
+                Enumerable.Range(0, i + 1).Select(n => $"System.Runtime.CompilerServices.Unsafe.SkipInit(out t{n});")
+            );
+            var tryGets = string.Join(
+                " && ",
+                Enumerable.Range(0, i + 1).Select(n => $"Scene.Table<T{n}>().TryGetRef(this, out t{n})")
+            );
+            sb.AppendLine(
+                $$"""
+                    public bool TryGetRef<{{typeParams}}>({{outParams}})
+                    {
+                        AssertValid();
+                        {{skipInits}}
+                        return Scene is null ? false : ({{tryGets}});
                     }
                     
                 """

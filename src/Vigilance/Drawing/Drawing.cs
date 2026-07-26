@@ -1,4 +1,5 @@
 using Vigilance.Core;
+using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 
@@ -34,9 +35,16 @@ public static class Drawing
 
     public static TimeSpan RenderTexturePoolLifetime { get; set; } = _config.RenderTexturePoolLifetime;
 
-    public static int RenderTexturePoolRoundUpToMultipleOf { get; set; } = _config.RenderTexturePoolRoundUpToMultipleOf;
+    public static Func<(int Width, int Height), (int Width, int Height)> RenderTexturePoolRoundFunc { get; set; } =
+        _config.RenderTexturePoolRoundFunc;
 
-    public static int CalculateSegments(float radius, float startAngle, float endAngle, int segments)
+    public static int CalculateSegments(
+        float radius,
+        float startAngle,
+        float endAngle,
+        int segments,
+        float? errorRate = null
+    )
     {
         if (radius <= 0)
             radius = 0.1f;
@@ -45,7 +53,7 @@ public static class Drawing
         var minSegments = (int)MathF.Ceiling((endAngle - startAngle) / 90f);
         if (segments >= minSegments)
             return segments;
-        var th = MathF.Acos(2f * MathF.Pow(1f - SegmentsErrorRate / radius, 2f) - 1f);
+        var th = MathF.Acos(2f * MathF.Pow(1f - (errorRate ?? SegmentsErrorRate) / radius, 2f) - 1f);
         segments = (int)MathF.Ceiling((endAngle - startAngle) * (2f * MathF.PI / th) / 360f);
         if (segments <= 0)
             segments = minSegments;
@@ -67,9 +75,9 @@ public static class Drawing
         DefaultBlendMode = _config.DefaultBlendMode;
         SegmentsErrorRate = _config.SegmentsErrorRate;
         RenderTexturePoolLifetime = _config.RenderTexturePoolLifetime;
-        RenderTexturePoolRoundUpToMultipleOf = _config.RenderTexturePoolRoundUpToMultipleOf;
-        DefaultTexture = _config.DefaultTexture.Invoke();
-        DefaultShader = _config.DefaultShader.Invoke();
+        RenderTexturePoolRoundFunc = _config.RenderTexturePoolRoundFunc;
+        DefaultTexture = _config.DefaultTexture.SafeInvoke();
+        DefaultShader = _config.DefaultShader.SafeInvoke();
     }
 }
 
@@ -87,9 +95,11 @@ public sealed class DrawingConfig
     public bool DefaultCulling { get; set; } = false;
     public BlendMode DefaultBlendMode { get; set; } = BlendMode.Alpha;
     public Func<Shader> DefaultShader { get; set; } = () => Shader.Default;
-    public float SegmentsErrorRate { get; set; } = 0.25f;
+    public float SegmentsErrorRate { get; set; } = 0.5f;
     public TimeSpan RenderTexturePoolLifetime { get; set; } = TimeSpan.FromSeconds(5);
-    public int RenderTexturePoolRoundUpToMultipleOf { get; set; } = 128;
+
+    public Func<(int Width, int Height), (int Width, int Height)> RenderTexturePoolRoundFunc { get; set; } =
+        value => (value.Width.RoundUpToMultipleOf(128), value.Height.RoundUpToMultipleOf(128));
 }
 
 public static class DrawingConfigExtensions

@@ -7,6 +7,377 @@ using ZLinq;
 
 namespace Vigilance.Collections;
 
+public struct ValueSparseSet<T>
+    : ISparseSet<T>,
+        ISet<T>,
+        IReadOnlySet<T>,
+        IReadOnlyList<T>,
+        IStructEnumerable<ValueSparseSet<T>.Enumerator, T>
+{
+    public const int DefaultSparseChunkSize = 2048;
+    private readonly int _sparseChunkSize;
+    private readonly ulong _fastModMultiplier;
+    private readonly Func<T, int> _keyIndexFunc;
+    private ValueList<T> _keys = [];
+    private ValueList<int[]?> _sparseChunks = [];
+
+    public ValueSparseSet(Func<T, int> keyIndexFunc, int sparseChunkSize = DefaultSparseChunkSize)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(sparseChunkSize, 1);
+        _keyIndexFunc = keyIndexFunc;
+        _sparseChunkSize = sparseChunkSize;
+        _fastModMultiplier = HashHelpers.GetFastModMultiplier((uint)sparseChunkSize);
+    }
+
+    [UnscopedRef]
+    public readonly ValueListView<T> Keys => _keys;
+
+    public readonly int Count => _keys.Count;
+
+    public readonly T this[int index] => _keys[index];
+
+    readonly bool ICollection<T>.IsReadOnly => false;
+
+    public bool Add(in T key)
+    {
+        var keyIndex = _keyIndexFunc.Invoke(key);
+        EnsureChunk(keyIndex);
+        var chunkIndex = keyIndex / _sparseChunkSize;
+        var withinChunk = WithinChunk(keyIndex);
+        var chunk = _sparseChunks[chunkIndex]!;
+        if (chunk[withinChunk] != -1)
+            return false;
+        chunk[withinChunk] = _keys.Count;
+        _keys.Add(key);
+        return true;
+    }
+
+    public void Clear()
+    {
+        _keys.Clear();
+        _sparseChunks.Clear();
+    }
+
+    public readonly bool Contains(in T key)
+    {
+        var keyIndex = _keyIndexFunc.Invoke(key);
+        var chunkIndex = keyIndex / _sparseChunkSize;
+        if (chunkIndex >= _sparseChunks.Count)
+            return false;
+        var chunk = _sparseChunks[chunkIndex];
+        if (chunk == null)
+            return false;
+        return chunk[WithinChunk(keyIndex)] != -1;
+    }
+
+    public bool Remove(in T key)
+    {
+        var keyIndex = _keyIndexFunc.Invoke(key);
+        var chunkIndex = keyIndex / _sparseChunkSize;
+        if (chunkIndex >= _sparseChunks.Count)
+            return false;
+        var chunk = _sparseChunks[chunkIndex];
+        if (chunk == null)
+            return false;
+        var withinChunk = WithinChunk(keyIndex);
+        var sparseValue = chunk[withinChunk];
+        if (sparseValue == -1)
+            return false;
+        var lastDenseIndex = _keys.Count - 1;
+        if (sparseValue != lastDenseIndex)
+        {
+            var movedKey = _keys[lastDenseIndex];
+            var movedKeyIndex = _keyIndexFunc.Invoke(movedKey);
+            _keys[sparseValue] = movedKey;
+            var movedChunk = _sparseChunks[movedKeyIndex / _sparseChunkSize]!;
+            movedChunk[WithinChunk(movedKeyIndex)] = sparseValue;
+        }
+
+        _keys.RemoveAt(lastDenseIndex);
+        chunk[withinChunk] = -1;
+        return true;
+    }
+
+    public readonly int GetKeyIndex(in T key)
+    {
+        return _keyIndexFunc.Invoke(key);
+    }
+
+    public void UnionWith(IEnumerable<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        foreach (var item in other)
+            Add(item);
+    }
+
+    public void IntersectWith(IEnumerable<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        if (Count == 0)
+            return;
+        if (other is ICollection<T> { Count: 0 })
+        {
+            Clear();
+            return;
+        }
+
+        var otherSet = other.ToValueHashSet();
+        for (var i = Count - 1; i >= 0; i--)
+            if (!otherSet.Contains(_keys[i]))
+                Remove(_keys[i]);
+    }
+
+    public void ExceptWith(IEnumerable<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        if (Count == 0)
+            return;
+        foreach (var item in other)
+            Remove(item);
+    }
+
+    public void SymmetricExceptWith(IEnumerable<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        if (Count == 0)
+        {
+            UnionWith(other);
+            return;
+        }
+
+        var otherSet = other.ToValueHashSet();
+        foreach (var item in otherSet)
+            if (!Remove(item))
+                Add(item);
+    }
+
+    public readonly bool IsSubsetOf(IEnumerable<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        if (Count == 0)
+            return true;
+        if (other is ICollection<T> otherAsCollection && Count > otherAsCollection.Count)
+            return false;
+        var otherSet = other.ToValueHashSet();
+        return Count <= otherSet.Count && IsContainedIn(otherSet);
+    }
+
+    public readonly bool IsProperSubsetOf(IEnumerable<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        if (other is ICollection<T> { Count: 0 })
+            return false;
+        var otherSet = other.ToValueHashSet();
+        return Count < otherSet.Count && IsContainedIn(otherSet);
+    }
+
+    public readonly bool IsSupersetOf(IEnumerable<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        if (other is ICollection<T> { Count: 0 })
+            return true;
+        // ReSharper disable once LoopCanBeConvertedToQuery
+        foreach (var item in other)
+            if (!Contains(item))
+                return false;
+        return true;
+    }
+
+    public readonly bool IsProperSupersetOf(IEnumerable<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        if (Count == 0)
+            return false;
+        var otherSet = other.ToValueHashSet();
+        return otherSet.Count < Count && ContainsAll(otherSet);
+    }
+
+    public readonly bool Overlaps(IEnumerable<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        if (Count == 0)
+            return false;
+        // ReSharper disable once LoopCanBeConvertedToQuery
+        foreach (var item in other)
+            if (Contains(item))
+                return true;
+        return false;
+    }
+
+    public readonly bool SetEquals(IEnumerable<T> other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        var otherSet = other.ToValueHashSet();
+        return otherSet.Count == Count && ContainsAll(otherSet);
+    }
+
+    public readonly void CopyTo(T[] array)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        CopyTo(array.AsSpan());
+    }
+
+    public readonly void CopyTo(in Span<T> span, int arrayIndex = 0)
+    {
+        if ((uint)arrayIndex > (uint)span.Length)
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        if (span.Length - arrayIndex < Count)
+            throw new ArgumentException("The destination array is not large enough.", nameof(span));
+        for (var i = 0; i < Count; i++)
+            span[arrayIndex + i] = _keys[i];
+    }
+
+    public readonly void CopyTo(ref ValueSparseSet<T> sparseSet)
+    {
+        sparseSet.Clear();
+        for (var i = 0; i < Count; i++)
+            sparseSet.Add(_keys[i]);
+    }
+
+    public readonly Enumerator GetEnumerator()
+    {
+        return new Enumerator(this);
+    }
+
+    public readonly ValueEnumerable<Enumerator, T> AsValueEnumerable()
+    {
+        return new ValueEnumerable<Enumerator, T>(GetEnumerator());
+    }
+
+    readonly ValueEnumerable<StructEnumerator<Enumerator, T>, T> IStructEnumerable<Enumerator, T>.AsValueEnumerable()
+    {
+        return new StructEnumerator<Enumerator, T>(GetEnumerator());
+    }
+
+    void ICollection<T>.Add(T item)
+    {
+        Add(item);
+    }
+
+    bool ISet<T>.Add(T item)
+    {
+        return Add(item);
+    }
+
+    readonly bool ICollection<T>.Contains(T item)
+    {
+        return Contains(item);
+    }
+
+    readonly bool IReadOnlySet<T>.Contains(T item)
+    {
+        return Contains(item);
+    }
+
+    bool ICollection<T>.Remove(T item)
+    {
+        return Remove(item);
+    }
+
+    readonly void ICollection<T>.CopyTo(T[] array, int arrayIndex)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private readonly int WithinChunk(int keyIndex)
+    {
+        return (int)HashHelpers.FastMod((uint)keyIndex, (uint)_sparseChunkSize, _fastModMultiplier);
+    }
+
+    private void EnsureChunk(int index)
+    {
+        var chunkIndex = index / _sparseChunkSize;
+        while (_sparseChunks.Count <= chunkIndex)
+            _sparseChunks.Add(null);
+        if (_sparseChunks[chunkIndex] != null)
+            return;
+        var chunk = new int[_sparseChunkSize];
+        Array.Fill(chunk, -1);
+        _sparseChunks[chunkIndex] = chunk;
+    }
+
+    private readonly bool IsContainedIn(in ValueHashSet<T> other)
+    {
+        for (var i = 0; i < Count; i++)
+            if (!other.Contains(_keys[i]))
+                return false;
+        return true;
+    }
+
+    private readonly bool ContainsAll(in ValueHashSet<T> other)
+    {
+        // ReSharper disable once ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator
+        foreach (var item in other)
+            if (!Contains(item))
+                return false;
+        return true;
+    }
+
+    public struct Enumerator : IStructEnumerator<T>, IValueEnumerator<T>
+    {
+        private readonly ValueSparseSet<T> _sparseSet;
+        private int _index;
+
+        internal Enumerator(in ValueSparseSet<T> sparseSet)
+        {
+            _sparseSet = sparseSet;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            if ((uint)_index < (uint)_sparseSet._keys.Count)
+            {
+                Current = _sparseSet._keys[_index];
+                _index++;
+                return true;
+            }
+
+            Current = default!;
+            _index = -1;
+            return false;
+        }
+
+        public T Current { get; private set; } = default!;
+
+        public void Reset()
+        {
+            _index = 0;
+            Current = default!;
+        }
+
+        public void Dispose() { }
+
+        public bool TryGetNext(out T current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _sparseSet.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<T> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<T> destination, Index offset)
+        {
+            return false;
+        }
+    }
+}
+
 public struct ValueSparseSet<TKey, TValue, TStorage>
     : ISparseSet<TKey, TValue, TStorage>,
         IDictionary<TKey, TValue>,
@@ -47,12 +418,13 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         }
     }
 
+    [UnscopedRef]
     public readonly ValueListView<TKey> Keys
     {
         get
         {
             AssertValid();
-            return new ValueListView<TKey>(ref Unsafe.AsRef(in _keys));
+            return _keys;
         }
     }
 
@@ -340,10 +712,10 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         var lastDenseIndex = _values.Count - 1;
         if (sparseValue != lastDenseIndex)
         {
-            _values[sparseValue] = _values[lastDenseIndex];
             var movedKey = _keys[lastDenseIndex];
-            _keys[sparseValue] = movedKey;
             var movedKeyIndex = _keyIndexFunc.Invoke(movedKey);
+            _values[sparseValue] = _values[lastDenseIndex];
+            _keys[sparseValue] = movedKey;
             var movedChunkIndex = movedKeyIndex / _sparseChunkSize;
             var movedWithinChunk = WithinChunk(movedKeyIndex);
             var movedChunk = _sparseChunks[movedChunkIndex]!;

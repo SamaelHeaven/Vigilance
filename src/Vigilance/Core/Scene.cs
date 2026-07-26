@@ -1,22 +1,38 @@
-﻿#pragma warning disable CS9084
-
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Vigilance.Collections;
 using Vigilance.Drawing;
+using Vigilance.Logging;
 using Vigilance.Math;
 using Vigilance.Physics;
 using ZLinq;
 
 namespace Vigilance.Core;
 
-public sealed unsafe partial class Scene
+public sealed partial class Scene
 {
+    internal Table<Child> ChildTable;
+    internal Table<Disabled> DisabledTable;
+    internal Action<Graphics, Texture, Box>? DrawScreenAction;
+    internal Table<EntityTag> EntityTagTable;
+    internal Table<Interpolation> InterpolationTable;
+    internal Table<Name> NameTable;
+    internal Table<Parent> ParentTable;
+    internal Table<PivotPoint> PivotPointTable;
+    internal Table<Position> PositionTable;
+    internal ValueList<RenderCommand> RenderCommands = [];
+    internal ValueList<RenderComponents> RenderComponentsList = [];
+    internal ValueList<RenderData> RenderDataList = [];
+    internal Table<Rotation> RotationTable;
+    internal Table<Scale> ScaleTable;
+    internal Table<Transform> TransformTable;
+    internal Table<ZIndex> ZIndexTable;
     private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
     private int _deferredCount;
     private Action<Entity>? _destroyAction;
     private ValueList<bool> _destroyedEntities = [];
-    private ValueList<(int Index, int Version)> _entities = [];
+    private ValueList<EntityId> _entities = [];
     private ValueQueue<Event> _events = [];
     private Action? _fixedUpdateAction;
     private ValueQueue<int> _freeIndices = [];
@@ -25,7 +41,7 @@ public sealed unsafe partial class Scene
     private bool _isClearing;
     private bool _isFlushing;
     private ValueDictionary<Type, Delegate> _listeners = [];
-    private ValueDictionary<string, ulong> _nameMap = [];
+    private ValueDictionary<string, EntityId> _nameMap = [];
     private Action? _onDispose;
     private Action? _postFixedUpdateAction;
     private Action? _postRenderAction;
@@ -43,26 +59,10 @@ public sealed unsafe partial class Scene
     private ValueList<Table> _tables = [];
     private Action<Scene>? _transitionToAction;
     private Action? _updateAction;
-    internal Table<Child> ChildTable;
-    internal Table<Disabled> DisabledTable;
-    internal Action<Graphics, Texture, Box>? DrawScreenAction;
-    internal Table<EntityTag> EntityTagTable;
-    internal Table<Interpolation> InterpolationTable;
-    internal Table<Name> NameTable;
-    internal Table<Parent> ParentTable;
-    internal Table<PivotPoint> PivotPointTable;
-    internal Table<Position> PositionTable;
-    internal ValueList<RenderCommand> RenderCommands = [];
-    internal ValueList<RenderComponents> RenderComponentsList = [];
-    internal ValueList<RenderData> RenderDataList = [];
-    internal Table<Rotation> RotationTable;
-    internal Table<Scale> ScaleTable;
-    internal Table<Transform> TransformTable;
-    internal Table<ZIndex> ZIndexTable;
 
     public Scene(GameSystemsFunc? systems = null)
     {
-        _entities.Add((0, 0));
+        _entities.Add(default);
         SystemsFunc = systems ?? Array.Empty<IGameSystem>;
         EntityTagTable = Table<EntityTag>();
         NameTable = Table<Name>();
@@ -90,7 +90,7 @@ public sealed unsafe partial class Scene
 
     public GameSystemsFunc SystemsFunc { get; }
     public Camera Camera { get; } = new();
-    public World World => field ??= new World(this);
+    public World World => field ??= new World(new WorldDef { Scene = this, Internal = true });
     public bool IsConfigured { get; private set; }
     public bool IsInitialized { get; private set; }
     public bool IsStarted { get; private set; }
@@ -168,18 +168,18 @@ public sealed unsafe partial class Scene
     public Entity Entity(string? name = null)
     {
         ThrowIfNotConfigured();
-        ulong id;
         var recycle = _freeIndices.Count > 0;
-        ref var info = ref Unsafe.NullRef<(int Index, int Version)>();
+        ref var idRef = ref Unsafe.NullRef<EntityId>();
+        EntityId id;
         if (recycle)
         {
             var index = _freeIndices.Peek();
-            info = ref _entities[index];
-            id = Core.Entity.GetId(index, info.Version + 1);
+            idRef = ref _entities[index];
+            id = new EntityId(index, idRef.Version + 1);
         }
         else
         {
-            id = Core.Entity.GetId(_entities.Count, 0);
+            id = new EntityId(_entities.Count, 0);
         }
 
         if (name is not null)
@@ -192,13 +192,13 @@ public sealed unsafe partial class Scene
 
         if (recycle)
         {
-            info.Index = Core.Entity.GetIndex(id);
-            info.Version++;
+            idRef.Index = id.Index;
+            idRef.Version++;
             _freeIndices.Dequeue();
         }
         else
         {
-            _entities.Add((_entities.Count, 0));
+            _entities.Add(new EntityId(_entities.Count, 0));
         }
 
         var entity = new Entity(id, this);
@@ -226,18 +226,18 @@ public sealed unsafe partial class Scene
     public Entity Lookup(int index, int version)
     {
         ThrowIfNotConfigured();
-        if (index == 0 || index >= _entities.Count)
+        if (index == 0 || (uint)index >= (uint)_entities.Count)
             return Core.Entity.Null;
-        var info = _entities[index];
-        if (info.Index != index || info.Version != version)
+        var id = _entities[index];
+        if (id.Index != index || id.Version != version)
             return Core.Entity.Null;
         return new Entity(index, version, this);
     }
 
-    public Entity Lookup(ulong id)
+    public Entity Lookup(EntityId id)
     {
         ThrowIfNotConfigured();
-        return Lookup(Core.Entity.GetIndex(id), Core.Entity.GetVersion(id));
+        return Lookup(id.Index, id.Version);
     }
 
     public Entity Lookup(string name)
@@ -402,19 +402,19 @@ public sealed unsafe partial class Scene
             return;
         }
 
-        action.Invoke();
+        action.SafeInvoke();
     }
 
     public void ThrowIfNotConfigured()
     {
         if (!IsConfigured)
-            throw new InvalidOperationException("Scene has not been configured.");
+            throw new InvalidOperationException($"{nameof(Scene)} has not been configured.");
     }
 
     public void ThrowIfConfigured()
     {
         if (IsConfigured)
-            throw new InvalidOperationException("Scene has been configured.");
+            throw new InvalidOperationException($"{nameof(Scene)} has been configured.");
     }
 
     public void BeginDefer()
@@ -425,7 +425,7 @@ public sealed unsafe partial class Scene
     public void EndDefer()
     {
         if (_deferredCount == 0)
-            throw new InvalidOperationException("Scene is not in a deferred state.");
+            throw new InvalidOperationException($"{nameof(Scene)} is not in a deferred state.");
         _deferredCount--;
         TryFlush();
     }
@@ -439,7 +439,7 @@ public sealed unsafe partial class Scene
     public void ResumeDefer()
     {
         if (_suspendStack.Count == 0)
-            throw new InvalidOperationException("Scene is not in a suspended state.");
+            throw new InvalidOperationException($"{nameof(Scene)} is not in a suspended state.");
         _deferredCount += _suspendStack.Pop();
     }
 
@@ -610,8 +610,8 @@ public sealed unsafe partial class Scene
         EntityTagTable.Remove(entity, Core.Table.Flags.ForceMutable);
         if (Scope == entity)
             Scope = Core.Entity.Null;
-        ref var info = ref _entities[entity.Index];
-        info.Index = 0;
+        ref var id = ref _entities[entity.Index];
+        id.Index = 0;
         _freeIndices.Enqueue(entity.Index);
     }
 
@@ -632,7 +632,15 @@ public sealed unsafe partial class Scene
     {
         if (!IsConfigured)
         {
-            _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToArray();
+            try
+            {
+                _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToArray();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
             foreach (var system in _systems)
                 system.Configure(this);
             IsConfigured = true;
@@ -721,7 +729,7 @@ public sealed unsafe partial class Scene
 
     private void UpdateInterpolatedEntities()
     {
-        foreach (var entity in AssignableEntities<IInterpolated>())
+        foreach (var entity in AssignableEntities<IInterpolated>().WithDisabled())
         {
             ref var interpolation = ref InterpolationTable.GetRef(entity).Value;
             var transform = entity.Transform;
@@ -914,6 +922,7 @@ public sealed unsafe partial class Scene
             return new StructEnumerator<TableEnumerator, Table>(GetEnumerator());
         }
 
+        [UnscopedRef]
         public ref TableEnumerable WithHidden(bool withHidden = true)
         {
             _withHidden = withHidden;
@@ -1017,6 +1026,7 @@ public sealed unsafe partial class Scene
             return new StructEnumerator<TableEnumerator<T>, Table>(GetEnumerator());
         }
 
+        [UnscopedRef]
         public ref TableEnumerable<T> WithHidden(bool withHidden = true)
         {
             _withHidden = withHidden;
@@ -1217,14 +1227,14 @@ public sealed unsafe partial class Scene
 
     internal readonly record struct Event
     {
-        public Event(EventType eventType, ulong entityId, object data)
+        public Event(EventType eventType, EntityId entityId, object data)
         {
             EntityId = entityId;
             Data = data;
             EventType = eventType;
         }
 
-        public ulong EntityId { get; }
+        public EntityId EntityId { get; }
         public object Data { get; }
         public EventType EventType { get; }
 
@@ -1245,22 +1255,22 @@ public sealed unsafe partial class Scene
 
         public static Event Clear()
         {
-            return new Event(EventType.Clear, 0, null!);
+            return new Event(EventType.Clear, EntityId.Null, null!);
         }
 
         public static Event Custom(Type type)
         {
-            return new Event(EventType.Custom, 0, type);
+            return new Event(EventType.Custom, EntityId.Null, type);
         }
 
         public static Event TableOperation(Table table)
         {
-            return new Event(EventType.TableOperation, 0, table);
+            return new Event(EventType.TableOperation, EntityId.Null, table);
         }
 
         public static Event TableEvent(Table table)
         {
-            return new Event(EventType.TableEvent, 0, table);
+            return new Event(EventType.TableEvent, EntityId.Null, table);
         }
     }
 
@@ -1470,24 +1480,26 @@ public sealed unsafe partial class Scene
     private void OnAddChild(Entity entity, Child child)
     {
         var parentId = child.ParentId;
-        if (parentId == 0)
+        if (parentId == default)
             return;
         var parentEntity = new Entity(parentId, this);
         parentEntity.AssertValid();
         var parentRef = ParentTable.GetRef(parentEntity);
+        var parentChanged = false;
         if (parentRef.IsNull)
         {
             SuspendDefer();
-            parentRef = ParentTable.Set(parentEntity, new Parent(), Core.Table.Flags.ForceMutable);
+            parentRef = ParentTable.Set(parentEntity, default, Core.Table.Flags.ForceMutable);
             ResumeDefer();
+            parentChanged = true;
         }
 
         ref var parent = ref parentRef.Value;
         ref var childRef = ref ChildTable.GetRef(entity).Value;
         var childId = entity.Id;
         childRef.PreviousSiblingId = parent.LastChildId;
-        childRef.NextSiblingId = 0;
-        if (parent.LastChildId != 0)
+        childRef.NextSiblingId = EntityId.Null;
+        if (parent.LastChildId != EntityId.Null)
         {
             var lastEntity = new Entity(parent.LastChildId, this);
             ref var lastChild = ref ChildTable.GetRef(lastEntity).Value;
@@ -1499,6 +1511,8 @@ public sealed unsafe partial class Scene
         }
 
         parent.LastChildId = childId;
+        if (parentChanged)
+            ParentTable.Emit(Core.Table.Event<Parent>.Set(parentEntity, default, parent));
     }
 
     private void OnSetChild(Entity entity, Child oldChild, Child newChild)
@@ -1507,16 +1521,16 @@ public sealed unsafe partial class Scene
         var newParentId = newChild.ParentId;
         if (oldParentId == newParentId)
             return;
-        if (oldParentId != 0)
+        if (oldParentId != EntityId.Null)
             OnRemoveChild(entity, oldChild);
-        if (newParentId != 0)
+        if (newParentId != EntityId.Null)
             OnAddChild(entity, newChild);
     }
 
     private void OnRemoveChild(Entity entity, Child child)
     {
         var parentId = child.ParentId;
-        if (parentId == 0)
+        if (parentId.IsNull)
             return;
         var parentEntity = new Entity(parentId, this);
         var parentRef = ParentTable.GetRef(parentEntity);
@@ -1525,7 +1539,7 @@ public sealed unsafe partial class Scene
         ref var parent = ref parentRef.Value;
         var prevId = child.PreviousSiblingId;
         var nextId = child.NextSiblingId;
-        if (prevId != 0)
+        if (prevId != EntityId.Null)
         {
             var prevEntity = new Entity(prevId, this);
             ref var prev = ref ChildTable.GetRef(prevEntity).Value;
@@ -1536,7 +1550,7 @@ public sealed unsafe partial class Scene
             parent.FirstChildId = nextId;
         }
 
-        if (nextId != 0)
+        if (nextId != EntityId.Null)
         {
             var nextEntity = new Entity(nextId, this);
             ref var next = ref ChildTable.GetRef(nextEntity).Value;
@@ -1547,7 +1561,7 @@ public sealed unsafe partial class Scene
             parent.LastChildId = prevId;
         }
 
-        if (parent.FirstChildId == 0)
+        if (parent.FirstChildId.IsNull)
             ParentTable.Remove(parentEntity, Core.Table.Flags.ForceMutable);
     }
 
@@ -1559,7 +1573,7 @@ public sealed unsafe partial class Scene
             if (parentRef.IsNull)
                 return;
             var firstChildId = parentRef.Value.FirstChildId;
-            if (firstChildId == 0)
+            if (firstChildId.IsNull)
                 return;
             new Entity(firstChildId, this).Destroy();
         }
@@ -1568,7 +1582,7 @@ public sealed unsafe partial class Scene
     private void OnRemoveParent(Parent parent)
     {
         var childId = parent.FirstChildId;
-        while (childId != 0)
+        while (childId != EntityId.Null)
         {
             var child = new Entity(childId, this);
             ref var childRef = ref ChildTable.GetRef(child).Value;

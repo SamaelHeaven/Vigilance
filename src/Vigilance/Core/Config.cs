@@ -25,7 +25,7 @@ public sealed class Config
             return default;
         var obj = (T)config.Object;
         var action = (Action<T>)config.Action;
-        action.Invoke(obj);
+        action.SafeInvoke(obj);
         return obj;
     }
 

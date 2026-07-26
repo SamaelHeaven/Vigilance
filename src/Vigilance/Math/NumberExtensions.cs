@@ -47,7 +47,30 @@ public static class NumberExtensions
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T RoundUpToMultipleOf(T multiple)
         {
-            return (value + multiple - T.One) / multiple * multiple;
+            multiple = T.Abs(multiple);
+            if (multiple == T.Zero)
+                return T.Zero;
+            var remainder = value % multiple;
+            if (remainder == T.Zero)
+                return value;
+            return value + (remainder > T.Zero ? multiple - remainder : -remainder);
+        }
+    }
+
+    extension<T>(T value)
+        where T : IBinaryInteger<T>
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T RoundUpToPowerOf2()
+        {
+            if (value <= T.One)
+                return T.One;
+            var bitWidth = value.GetByteCount() * 8;
+            var maxShift = T.One << (bitWidth - 1) < T.Zero ? bitWidth - 2 : bitWidth - 1;
+            var shift = int.CreateChecked(T.Log2(value - T.One) + T.One);
+            if (shift >= maxShift)
+                return T.One << maxShift;
+            return T.One << shift;
         }
     }
 }

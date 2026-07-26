@@ -2,15 +2,15 @@ namespace Vigilance.Core;
 
 public record struct Child : IWriteImmutableComponent, ISkipSetEventIfEqualComponent
 {
-    internal ulong NextSiblingId;
-    internal ulong PreviousSiblingId;
+    internal EntityId NextSiblingId;
+    internal EntityId PreviousSiblingId;
 
-    public Child(ulong parentId)
+    public Child(EntityId parentId)
     {
         ParentId = parentId;
     }
 
-    public ulong ParentId { get; set; }
+    public EntityId ParentId { get; set; }
 
     public bool Equals(Child other)
     {

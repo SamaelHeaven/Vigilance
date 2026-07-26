@@ -23,8 +23,18 @@ public readonly record struct Body : IInterpolated, ISkipSetEventIfEqualComponen
 
     public Entity Entity
     {
-        get => new(B2Bodies.b2Body_GetUserData(_id).ulValue, Scene);
-        set => B2Bodies.b2Body_SetUserData(_id, new B2UserData(value.Id));
+        get => new(EntityId, Scene);
+        set => EntityId = value.Id;
+    }
+
+    public EntityId EntityId
+    {
+        get
+        {
+            var id = B2Bodies.b2Body_GetUserData(_id).ulValue;
+            return Unsafe.As<ulong, EntityId>(ref id);
+        }
+        set => B2Bodies.b2Body_SetUserData(_id, new B2UserData(Unsafe.As<EntityId, ulong>(ref value)));
     }
 
     public BodyType Type

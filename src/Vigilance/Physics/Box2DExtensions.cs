@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Box2D.NET;
 using Vigilance.Collections;
+using Vigilance.Drawing;
 using Vigilance.Math;
 
 namespace Vigilance.Physics;
@@ -100,6 +101,25 @@ public static class Box2DExtensions
             return filter is not { } f
                 ? B2Types.b2DefaultQueryFilter()
                 : new B2QueryFilter { categoryBits = (ulong)f.Category, maskBits = (ulong)f.Mask };
+        }
+    }
+
+    extension(B2HexColor hexColor)
+    {
+        public Color ToColor()
+        {
+            var value = (uint)hexColor;
+            return new Color((byte)((value >> 16) & 0xff), (byte)((value >> 8) & 0xff), (byte)(value & 0xff));
+        }
+    }
+
+    extension(in B2Transform transform)
+    {
+        public Vector2 Transform(B2Vec2 vertex)
+        {
+            var x = transform.q.c * vertex.X - transform.q.s * vertex.Y + transform.p.X;
+            var y = transform.q.s * vertex.X + transform.q.c * vertex.Y + transform.p.Y;
+            return World.MetersToPixels(new Vector2(x, y));
         }
     }
 }

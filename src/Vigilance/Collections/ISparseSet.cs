@@ -4,7 +4,14 @@ using ZLinq;
 
 namespace Vigilance.Collections;
 
-public interface ISparseSet<TValue, TStorage>
+public interface ISparseSet
+{
+    int Count { get; }
+
+    void Clear();
+}
+
+public interface ISparseSet<TValue, TStorage> : ISparseSet
     where TStorage : IList<TValue>
 {
     public readonly struct ValueEnumerable
@@ -117,6 +124,19 @@ public interface ISparseSet<TValue, TStorage>
     }
 }
 
+public interface ISparseSet<TKey> : ISparseSet
+{
+    TKey this[int index] { get; }
+
+    bool Add(in TKey key);
+
+    bool Contains(in TKey key);
+
+    bool Remove(in TKey key);
+
+    int GetKeyIndex(in TKey key);
+}
+
 public interface ISparseSet<TKey, TValue, TStorage> : ISparseSet<TValue, TStorage>
     where TStorage : IList<TValue>
 {
@@ -124,11 +144,7 @@ public interface ISparseSet<TKey, TValue, TStorage> : ISparseSet<TValue, TStorag
 
     TValue this[in TKey key] { get; set; }
 
-    int Count { get; }
-
     KeyValuePair<TKey, TValue> this[int index] { get; }
-
-    void Clear();
 
     bool ContainsKey(in TKey key);
 

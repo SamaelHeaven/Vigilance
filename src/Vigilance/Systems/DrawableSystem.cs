@@ -3,9 +3,12 @@ using Vigilance.Drawing;
 
 namespace Vigilance.Systems;
 
-public sealed class DrawableSystem(Graphics? graphics = null) : GameSystem(queryWithDisabled: true)
+public sealed class DrawableSystem(Graphics graphics) : GameSystem(queryWithDisabled: true)
 {
-    public Graphics Graphics { get; set; } = graphics ?? Renderer.Graphics;
+    public DrawableSystem()
+        : this(Renderer.Graphics) { }
+
+    public Graphics Graphics { get; set; } = graphics;
 
     public override void Render(RenderCommands commands)
     {

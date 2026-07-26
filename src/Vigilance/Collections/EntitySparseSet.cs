@@ -5,6 +5,228 @@ using ZLinq;
 
 namespace Vigilance.Collections;
 
+public class EntitySparseSet
+    : ISparseSet<Entity>,
+        ISet<Entity>,
+        IReadOnlySet<Entity>,
+        IReadOnlyList<Entity>,
+        IStructEnumerable<EntitySparseSet.Enumerator, Entity>
+{
+    public const int DefaultSparseChunkSize = 2048;
+    private ValueEntitySparseSet _sparseSet;
+
+    public EntitySparseSet(Scene scene, int sparseChunkSize = DefaultSparseChunkSize)
+    {
+        _sparseSet = new ValueEntitySparseSet(scene, sparseChunkSize);
+    }
+
+    public Scene Scene => _sparseSet.Scene;
+
+    public ValueListView<EntityId> Keys => _sparseSet.Keys;
+
+    bool IReadOnlySet<Entity>.Contains(Entity item)
+    {
+        return _sparseSet.Contains(item);
+    }
+
+    bool ICollection<Entity>.IsReadOnly => false;
+
+    public void UnionWith(IEnumerable<Entity> other)
+    {
+        _sparseSet.UnionWith(other);
+    }
+
+    public void IntersectWith(IEnumerable<Entity> other)
+    {
+        _sparseSet.IntersectWith(other);
+    }
+
+    public void ExceptWith(IEnumerable<Entity> other)
+    {
+        _sparseSet.ExceptWith(other);
+    }
+
+    public void SymmetricExceptWith(IEnumerable<Entity> other)
+    {
+        _sparseSet.SymmetricExceptWith(other);
+    }
+
+    public bool IsSubsetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsSubsetOf(other);
+    }
+
+    public bool IsProperSubsetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsProperSubsetOf(other);
+    }
+
+    public bool IsSupersetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsSupersetOf(other);
+    }
+
+    public bool IsProperSupersetOf(IEnumerable<Entity> other)
+    {
+        return _sparseSet.IsProperSupersetOf(other);
+    }
+
+    public bool Overlaps(IEnumerable<Entity> other)
+    {
+        return _sparseSet.Overlaps(other);
+    }
+
+    public bool SetEquals(IEnumerable<Entity> other)
+    {
+        return _sparseSet.SetEquals(other);
+    }
+
+    void ICollection<Entity>.Add(Entity item)
+    {
+        _sparseSet.Add(item);
+    }
+
+    bool ISet<Entity>.Add(Entity item)
+    {
+        return _sparseSet.Add(item);
+    }
+
+    bool ICollection<Entity>.Contains(Entity item)
+    {
+        return _sparseSet.Contains(item);
+    }
+
+    bool ICollection<Entity>.Remove(Entity item)
+    {
+        return _sparseSet.Remove(item);
+    }
+
+    void ICollection<Entity>.CopyTo(Entity[] array, int arrayIndex)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        _sparseSet.CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    public int Count => _sparseSet.Count;
+
+    public Entity this[int index] => _sparseSet[index];
+
+    public bool Add(in Entity key)
+    {
+        return _sparseSet.Add(key);
+    }
+
+    public void Clear()
+    {
+        _sparseSet.Clear();
+    }
+
+    public bool Contains(in Entity key)
+    {
+        return _sparseSet.Contains(key);
+    }
+
+    public bool Remove(in Entity key)
+    {
+        return _sparseSet.Remove(key);
+    }
+
+    public int GetKeyIndex(in Entity key)
+    {
+        return _sparseSet.GetKeyIndex(key);
+    }
+
+    public Enumerator GetEnumerator()
+    {
+        return new Enumerator(this);
+    }
+
+    ValueEnumerable<StructEnumerator<Enumerator, Entity>, Entity> IStructEnumerable<
+        Enumerator,
+        Entity
+    >.AsValueEnumerable()
+    {
+        return new StructEnumerator<Enumerator, Entity>(GetEnumerator());
+    }
+
+    public void CopyTo(Entity[] array)
+    {
+        _sparseSet.CopyTo(array);
+    }
+
+    public void CopyTo(in Span<Entity> span, int arrayIndex = 0)
+    {
+        _sparseSet.CopyTo(span, arrayIndex);
+    }
+
+    public ValueEnumerable<Enumerator, Entity> AsValueEnumerable()
+    {
+        return new ValueEnumerable<Enumerator, Entity>(GetEnumerator());
+    }
+
+    public struct Enumerator : IStructEnumerator<Entity>, IValueEnumerator<Entity>
+    {
+        private readonly EntitySparseSet _sparseSet;
+        private int _index;
+
+        internal Enumerator(EntitySparseSet sparseSet)
+        {
+            _sparseSet = sparseSet;
+            Reset();
+        }
+
+        public bool MoveNext()
+        {
+            if ((uint)_index < (uint)_sparseSet.Count)
+            {
+                Current = _sparseSet[_index];
+                _index++;
+                return true;
+            }
+
+            Current = default;
+            _index = -1;
+            return false;
+        }
+
+        public Entity Current { get; private set; }
+
+        public void Reset()
+        {
+            _index = 0;
+            Current = default;
+        }
+
+        public void Dispose() { }
+
+        public bool TryGetNext(out Entity current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = _sparseSet.Count;
+            return true;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<Entity> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<Entity> destination, Index offset)
+        {
+            return false;
+        }
+    }
+}
+
 public class EntitySparseSet<TValue> : EntitySparseSet<TValue, ValueList<TValue>>
 {
     public EntitySparseSet(Scene scene, int sparseChunkSize = DefaultSparseChunkSize)
@@ -20,11 +242,11 @@ public class EntitySparseSet<TValue, TStorage>
     where TStorage : IList<TValue>
 {
     public const int DefaultSparseChunkSize = 2048;
-    private ValueSparseSet<ulong, TValue, TStorage> _sparseSet;
+    private ValueSparseSet<EntityId, TValue, TStorage> _sparseSet;
 
     public EntitySparseSet(Scene scene, in TStorage storage, int sparseChunkSize = DefaultSparseChunkSize)
     {
-        _sparseSet = new ValueSparseSet<ulong, TValue, TStorage>(storage, Entity.GetIndex, sparseChunkSize);
+        _sparseSet = new ValueSparseSet<EntityId, TValue, TStorage>(storage, id => id.Index, sparseChunkSize);
         Scene = scene;
     }
 
@@ -94,13 +316,13 @@ public class EntitySparseSet<TValue, TStorage>
         set => this[key] = value;
     }
 
-    ICollection<TValue> IDictionary<Entity, TValue>.Values => _sparseSet.Values.AsFastEnumerable();
+    ICollection<TValue> IDictionary<Entity, TValue>.Values => _sparseSet.Values.AsReadOnly();
 
-    ICollection<Entity> IDictionary<Entity, TValue>.Keys => new KeyEnumerable(this).AsFastEnumerable();
+    ICollection<Entity> IDictionary<Entity, TValue>.Keys => new KeyEnumerable(this).AsReadOnly();
 
     IEnumerable<Entity> IReadOnlyDictionary<Entity, TValue>.Keys => new KeyEnumerable(this);
 
-    IEnumerable<TValue> IReadOnlyDictionary<Entity, TValue>.Values => _sparseSet.Values.AsFastEnumerable();
+    IEnumerable<TValue> IReadOnlyDictionary<Entity, TValue>.Values => _sparseSet.Values.AsReadOnly();
 
     bool IReadOnlyDictionary<Entity, TValue>.TryGetValue(Entity key, [MaybeNullWhen(false)] out TValue value)
     {

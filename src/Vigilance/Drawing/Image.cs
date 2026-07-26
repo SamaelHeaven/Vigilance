@@ -67,7 +67,7 @@ public sealed unsafe class Image : IDisposable
     public Color[] GetPixelColors()
     {
         var colors = Raylib.LoadImageColors(RImage);
-        var pixels = new Color[PixelCount];
+        var pixels = GC.AllocateUninitializedArray<Color>(PixelCount);
         for (var i = 0; i < pixels.Length; i++)
         {
             var color = colors[i];
@@ -110,7 +110,7 @@ public sealed unsafe class Image : IDisposable
             return false;
         }
 
-        bytes = new byte[size];
+        bytes = GC.AllocateUninitializedArray<byte>(size);
         Marshal.Copy((nint)bytesBuffer, bytes, 0, size);
         Raylib.MemFree(bytesBuffer);
         return true;

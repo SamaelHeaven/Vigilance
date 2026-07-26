@@ -105,6 +105,7 @@ public sealed unsafe class SpriteBatch : SpriteBatch<SpriteInstance>
         InstanceBuffer.Sync();
         if (_configuredInstanceBufferVersion != InstanceBuffer.Version)
             ConfigureInstanceAttributes();
+        Graphics.DrawCurrentBuffer();
         graphics.BeginDrawing(Camera);
         Texture.TextureFilter = TextureFilter;
         Texture.TextureWrap = TextureWrap;

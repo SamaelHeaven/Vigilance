@@ -7,7 +7,7 @@ using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
-public sealed class UIDropShadow : IUIComponent, IFullCloneable
+public sealed class UIDropShadow : UIComponent, IFullCloneable
 {
     private readonly Shader _blurShader = Shader.Fragment.Resource(("Shader.blur.frag.glsl", Assemblies.Engine));
 
@@ -103,13 +103,13 @@ public sealed class UIDropShadow : IUIComponent, IFullCloneable
         return clone;
     }
 
-    public void Attach(UIElement element)
+    public override void Attach(UIElement element)
     {
         element.OnDirtySignal.Subscribe(_onDirtyHandler);
         element.OnBeginRenderSignal.Subscribe(_onBeginRenderHandler);
     }
 
-    public void Detach(UIElement element)
+    public override void Detach(UIElement element)
     {
         element.OnDirtySignal.Unsubscribe(_onDirtyHandler);
         element.OnBeginRenderSignal.Unsubscribe(_onBeginRenderHandler);
