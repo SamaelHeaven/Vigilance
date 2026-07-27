@@ -90,21 +90,25 @@ public interface ISparseSet<TValue, TStorage> : ISparseSet
 
             public bool TryGetSpan(out ReadOnlySpan<TValue> span)
             {
-                if (typeof(IReadOnlySpan<TValue>).IsAssignableFrom(typeof(TStorage)))
+                switch (_values)
                 {
-                    span = ((IReadOnlySpan<TValue>)_values).AsSpan();
-                    return true;
+                    case IReadOnlySpan<TValue> values:
+                        span = values.AsSpan();
+                        return true;
+                    case List<TValue> list:
+                        span = list.AsSpan();
+                        return true;
+                    default:
+                        span = default;
+                        return false;
                 }
-
-                span = default;
-                return false;
             }
 
             public bool TryCopyTo(scoped Span<TValue> destination, Index offset)
             {
-                if (!typeof(IReadOnlySpan<TValue>).IsAssignableFrom(typeof(TStorage)))
+                if (!TryGetSpan(out var span))
                     return false;
-                ((IReadOnlySpan<TValue>)_values).AsSpan().TryCopyTo(destination, offset);
+                span.TryCopyTo(destination, offset);
                 return true;
             }
 
