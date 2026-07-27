@@ -289,7 +289,7 @@ public struct ValueSparseSet<T>
             _sparseChunks.Add(null);
         if (_sparseChunks[chunkIndex] != null)
             return;
-        var chunk = new int[_sparseChunkSize];
+        var chunk = GC.AllocateUninitializedArray<int>(_sparseChunkSize);
         Array.Fill(chunk, -1);
         _sparseChunks[chunkIndex] = chunk;
     }
@@ -737,7 +737,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
             _sparseChunks.Add(null);
         if (_sparseChunks[chunkIndex] != null)
             return;
-        var chunk = new int[_sparseChunkSize];
+        var chunk = GC.AllocateUninitializedArray<int>(_sparseChunkSize);
         Array.Fill(chunk, -1);
         _sparseChunks[chunkIndex] = chunk;
     }
