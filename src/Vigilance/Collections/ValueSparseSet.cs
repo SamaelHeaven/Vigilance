@@ -36,7 +36,7 @@ public struct ValueSparseSet<T>
 
     public bool Add(in T key)
     {
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         EnsureChunk(keyIndex);
         var chunkIndex = keyIndex / _sparseChunkSize;
         var withinChunk = WithinChunk(keyIndex);
@@ -56,7 +56,7 @@ public struct ValueSparseSet<T>
 
     public readonly bool Contains(in T key)
     {
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -68,7 +68,7 @@ public struct ValueSparseSet<T>
 
     public bool Remove(in T key)
     {
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -83,7 +83,7 @@ public struct ValueSparseSet<T>
         if (sparseValue != lastDenseIndex)
         {
             var movedKey = _keys[lastDenseIndex];
-            var movedKeyIndex = _keyIndexFunc.Invoke(movedKey);
+            var movedKeyIndex = GetKeyIndex(movedKey);
             _keys[sparseValue] = movedKey;
             var movedChunk = _sparseChunks[movedKeyIndex / _sparseChunkSize]!;
             movedChunk[WithinChunk(movedKeyIndex)] = sparseValue;
@@ -96,7 +96,9 @@ public struct ValueSparseSet<T>
 
     public readonly int GetKeyIndex(in T key)
     {
-        return _keyIndexFunc.Invoke(key);
+        var keyIndex = _keyIndexFunc.Invoke(key);
+        Debug.Assert(keyIndex >= 0);
+        return keyIndex;
     }
 
     public void UnionWith(IEnumerable<T> other)
@@ -435,7 +437,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         set
         {
             AssertValid();
-            var keyIndex = _keyIndexFunc.Invoke(key);
+            var keyIndex = GetKeyIndex(key);
             EnsureChunk(keyIndex);
             var chunkIndex = keyIndex / _sparseChunkSize;
             var withinChunk = WithinChunk(keyIndex);
@@ -649,7 +651,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
     public readonly bool ContainsKey(in TKey key)
     {
         AssertValid();
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -664,7 +666,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
     public readonly bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
         AssertValid();
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
         {
@@ -694,7 +696,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
     public bool Remove(in TKey key)
     {
         AssertValid();
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -709,7 +711,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         if (sparseValue != lastDenseIndex)
         {
             var movedKey = _keys[lastDenseIndex];
-            var movedKeyIndex = _keyIndexFunc.Invoke(movedKey);
+            var movedKeyIndex = GetKeyIndex(movedKey);
             _values[sparseValue] = _values[lastDenseIndex];
             _keys[sparseValue] = movedKey;
             var movedChunkIndex = movedKeyIndex / _sparseChunkSize;
@@ -727,7 +729,9 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
     public readonly int GetKeyIndex(in TKey key)
     {
         AssertValid();
-        return _keyIndexFunc.Invoke(key);
+        var keyIndex = _keyIndexFunc.Invoke(key);
+        Debug.Assert(keyIndex >= 0);
+        return keyIndex;
     }
 
     private void EnsureChunk(int index)
