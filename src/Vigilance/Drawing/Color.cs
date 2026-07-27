@@ -42,6 +42,7 @@ public record struct Color
     public static Color Red800 => new(159, 7, 18);
     public static Color Red900 => new(130, 24, 26);
     public static Color Red950 => new(70, 8, 9);
+    public static Color Red => Red500;
     public static Color Orange50 => new(255, 247, 237);
     public static Color Orange100 => new(255, 237, 212);
     public static Color Orange200 => new(255, 214, 167);
@@ -53,6 +54,7 @@ public record struct Color
     public static Color Orange800 => new(159, 45, 0);
     public static Color Orange900 => new(126, 42, 12);
     public static Color Orange950 => new(68, 19, 6);
+    public static Color Orange => Orange500;
     public static Color Amber50 => new(255, 251, 235);
     public static Color Amber100 => new(254, 243, 198);
     public static Color Amber200 => new(254, 230, 133);
@@ -64,6 +66,7 @@ public record struct Color
     public static Color Amber800 => new(151, 60, 0);
     public static Color Amber900 => new(123, 51, 6);
     public static Color Amber950 => new(70, 25, 1);
+    public static Color Amber => Amber500;
     public static Color Yellow50 => new(254, 252, 232);
     public static Color Yellow100 => new(254, 249, 194);
     public static Color Yellow200 => new(255, 240, 133);
@@ -75,6 +78,7 @@ public record struct Color
     public static Color Yellow800 => new(137, 75, 0);
     public static Color Yellow900 => new(115, 62, 10);
     public static Color Yellow950 => new(67, 32, 4);
+    public static Color Yellow => Yellow500;
     public static Color Lime50 => new(247, 254, 231);
     public static Color Lime100 => new(236, 252, 202);
     public static Color Lime200 => new(216, 249, 153);
@@ -86,6 +90,7 @@ public record struct Color
     public static Color Lime800 => new(60, 99, 0);
     public static Color Lime900 => new(53, 83, 14);
     public static Color Lime950 => new(25, 46, 3);
+    public static Color Lime => Lime500;
     public static Color Green50 => new(240, 253, 244);
     public static Color Green100 => new(220, 252, 231);
     public static Color Green200 => new(185, 248, 207);
@@ -97,6 +102,7 @@ public record struct Color
     public static Color Green800 => new(1, 102, 48);
     public static Color Green900 => new(13, 84, 43);
     public static Color Green950 => new(3, 46, 21);
+    public static Color Green => Green500;
     public static Color Emerald50 => new(236, 253, 245);
     public static Color Emerald100 => new(208, 250, 229);
     public static Color Emerald200 => new(164, 244, 207);
@@ -108,6 +114,7 @@ public record struct Color
     public static Color Emerald800 => new(0, 96, 69);
     public static Color Emerald900 => new(0, 79, 59);
     public static Color Emerald950 => new(0, 44, 34);
+    public static Color Emerald => Emerald500;
     public static Color Teal50 => new(240, 253, 250);
     public static Color Teal100 => new(203, 251, 241);
     public static Color Teal200 => new(150, 247, 228);
@@ -119,6 +126,7 @@ public record struct Color
     public static Color Teal800 => new(0, 95, 90);
     public static Color Teal900 => new(11, 79, 74);
     public static Color Teal950 => new(2, 47, 46);
+    public static Color Teal => Teal500;
     public static Color Cyan50 => new(236, 254, 255);
     public static Color Cyan100 => new(206, 250, 254);
     public static Color Cyan200 => new(162, 244, 253);
@@ -130,6 +138,7 @@ public record struct Color
     public static Color Cyan800 => new(0, 95, 120);
     public static Color Cyan900 => new(16, 78, 100);
     public static Color Cyan950 => new(5, 51, 69);
+    public static Color Cyan => Cyan500;
     public static Color Sky50 => new(240, 249, 255);
     public static Color Sky100 => new(223, 242, 254);
     public static Color Sky200 => new(184, 230, 254);
@@ -141,6 +150,7 @@ public record struct Color
     public static Color Sky800 => new(0, 89, 138);
     public static Color Sky900 => new(2, 74, 112);
     public static Color Sky950 => new(5, 47, 74);
+    public static Color Sky => Sky500;
     public static Color Blue50 => new(239, 246, 255);
     public static Color Blue100 => new(219, 234, 254);
     public static Color Blue200 => new(190, 219, 255);
@@ -152,6 +162,7 @@ public record struct Color
     public static Color Blue800 => new(25, 60, 184);
     public static Color Blue900 => new(28, 57, 142);
     public static Color Blue950 => new(22, 36, 86);
+    public static Color Blue => Blue500;
     public static Color Indigo50 => new(238, 242, 255);
     public static Color Indigo100 => new(224, 231, 255);
     public static Color Indigo200 => new(198, 210, 255);
@@ -163,6 +174,7 @@ public record struct Color
     public static Color Indigo800 => new(55, 42, 172);
     public static Color Indigo900 => new(49, 44, 133);
     public static Color Indigo950 => new(30, 26, 77);
+    public static Color Indigo => Indigo500;
     public static Color Violet50 => new(245, 243, 255);
     public static Color Violet100 => new(237, 233, 254);
     public static Color Violet200 => new(221, 214, 255);
@@ -174,6 +186,7 @@ public record struct Color
     public static Color Violet800 => new(93, 14, 192);
     public static Color Violet900 => new(77, 23, 154);
     public static Color Violet950 => new(47, 13, 104);
+    public static Color Violet => Violet500;
     public static Color Purple50 => new(250, 245, 255);
     public static Color Purple100 => new(243, 232, 255);
     public static Color Purple200 => new(233, 212, 255);
@@ -185,6 +198,7 @@ public record struct Color
     public static Color Purple800 => new(110, 17, 176);
     public static Color Purple900 => new(89, 22, 139);
     public static Color Purple950 => new(60, 3, 102);
+    public static Color Purple => Purple500;
     public static Color Fuchsia50 => new(253, 244, 255);
     public static Color Fuchsia100 => new(250, 232, 255);
     public static Color Fuchsia200 => new(246, 207, 255);
@@ -196,6 +210,7 @@ public record struct Color
     public static Color Fuchsia800 => new(138, 1, 148);
     public static Color Fuchsia900 => new(114, 19, 120);
     public static Color Fuchsia950 => new(75, 0, 79);
+    public static Color Fuchsia => Fuchsia500;
     public static Color Pink50 => new(253, 242, 248);
     public static Color Pink100 => new(252, 231, 243);
     public static Color Pink200 => new(252, 206, 232);
@@ -207,6 +222,7 @@ public record struct Color
     public static Color Pink800 => new(163, 0, 76);
     public static Color Pink900 => new(134, 16, 67);
     public static Color Pink950 => new(81, 4, 36);
+    public static Color Pink => Pink500;
     public static Color Rose50 => new(255, 241, 242);
     public static Color Rose100 => new(255, 228, 230);
     public static Color Rose200 => new(255, 204, 211);
@@ -218,6 +234,7 @@ public record struct Color
     public static Color Rose800 => new(165, 0, 54);
     public static Color Rose900 => new(139, 8, 54);
     public static Color Rose950 => new(77, 2, 24);
+    public static Color Rose => Rose500;
     public static Color Stone50 => new(250, 250, 249);
     public static Color Stone100 => new(245, 245, 244);
     public static Color Stone200 => new(231, 229, 228);
@@ -229,6 +246,7 @@ public record struct Color
     public static Color Stone800 => new(41, 37, 36);
     public static Color Stone900 => new(28, 25, 23);
     public static Color Stone950 => new(12, 10, 9);
+    public static Color Stone => Stone500;
     public static Color Neutral50 => new(250, 250, 250);
     public static Color Neutral100 => new(245, 245, 245);
     public static Color Neutral200 => new(229, 229, 229);
@@ -240,6 +258,7 @@ public record struct Color
     public static Color Neutral800 => new(38, 38, 38);
     public static Color Neutral900 => new(23, 23, 23);
     public static Color Neutral950 => new(10, 10, 10);
+    public static Color Neutral => Neutral500;
     public static Color Zinc50 => new(250, 250, 250);
     public static Color Zinc100 => new(244, 244, 245);
     public static Color Zinc200 => new(228, 228, 231);
@@ -251,6 +270,7 @@ public record struct Color
     public static Color Zinc800 => new(39, 39, 42);
     public static Color Zinc900 => new(24, 24, 27);
     public static Color Zinc950 => new(9, 9, 11);
+    public static Color Zinc => Zinc500;
     public static Color Gray50 => new(249, 250, 251);
     public static Color Gray100 => new(243, 244, 246);
     public static Color Gray200 => new(229, 231, 235);
@@ -262,6 +282,7 @@ public record struct Color
     public static Color Gray800 => new(30, 41, 57);
     public static Color Gray900 => new(16, 24, 40);
     public static Color Gray950 => new(3, 7, 18);
+    public static Color Gray => Gray500;
     public static Color Slate50 => new(248, 250, 252);
     public static Color Slate100 => new(241, 245, 249);
     public static Color Slate200 => new(226, 232, 240);
@@ -273,6 +294,7 @@ public record struct Color
     public static Color Slate800 => new(29, 41, 61);
     public static Color Slate900 => new(15, 23, 43);
     public static Color Slate950 => new(2, 6, 24);
+    public static Color Slate => Slate500;
 
     public byte R { get; set; }
     public byte G { get; set; }
