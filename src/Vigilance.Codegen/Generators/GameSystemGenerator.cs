@@ -11,8 +11,6 @@ public sealed class GameSystemGenerator : SourceGenerator
     {
         sb.AppendLine(
             """
-            #pragma warning disable CS9084
-
             namespace Vigilance.Core;
 
             public abstract partial class GameSystem
@@ -101,21 +99,29 @@ public sealed class GameSystemGenerator : SourceGenerator
     private static void AssignableEntities(StringBuilder sb)
     {
         sb.BeginRegion("AssignableEntities");
-        sb.AppendLine(QueryIterator("AssignableEntity", "AssignableEntities", "Entity", "<T0>"));
+        sb.AppendLine(QueryIterator("AssignableEntity", "AssignableEntities", "Entity", "<T0>", hasHidden: true));
         sb.EndRegion();
     }
 
     private static void AssignableComponents(StringBuilder sb)
     {
         sb.BeginRegion("AssignableComponents");
-        sb.AppendLine(QueryIterator("AssignableComponent", "AssignableComponents", "T0", "<T0>"));
+        sb.AppendLine(QueryIterator("AssignableComponent", "AssignableComponents", "T0", "<T0>", hasHidden: true));
         sb.EndRegion();
     }
 
     private static void AssignableEntries(StringBuilder sb)
     {
         sb.BeginRegion("AssignableEntries");
-        sb.AppendLine(QueryIterator("AssignableEntries", "AssignableEntries", "(Entity Entity, T0 Component)", "<T0>"));
+        sb.AppendLine(
+            QueryIterator(
+                "AssignableEntries",
+                "AssignableEntries",
+                "(Entity Entity, T0 Component)",
+                "<T0>",
+                hasHidden: true
+            )
+        );
         sb.EndRegion();
     }
 
@@ -169,13 +175,37 @@ public sealed class GameSystemGenerator : SourceGenerator
         string type,
         string typeParams = "",
         string methodParams = "",
-        string methodArgs = ""
+        string methodArgs = "",
+        bool hasHidden = false
     )
     {
-        var args = methodArgs == "" ? "" : $"{methodArgs}, ";
+        string allParams;
+        {
+            var paramParts = new List<string>();
+            if (methodParams != "")
+                paramParts.Add(methodParams);
+            paramParts.Add("bool? withDisabled = null");
+            if (hasHidden)
+                paramParts.Add("bool withHidden = false");
+            paramParts.Add("bool? deferred = null");
+            allParams = string.Join(", ", paramParts);
+        }
+
+        string forwardArgs;
+        {
+            var argParts = new List<string>();
+            if (methodArgs != "")
+                argParts.Add(methodArgs);
+            argParts.Add("withDisabled: withDisabled ?? QueryWithDisabled");
+            if (hasHidden)
+                argParts.Add("withHidden: withHidden");
+            argParts.Add("deferred: deferred ?? QueryDeferred");
+            forwardArgs = string.Join(", ", argParts);
+        }
+
         return $$"""
-                public ZLinq.ValueEnumerable<Scene.{{name}}Enumerator{{typeParams}}, {{type}}> {{methodName}}{{typeParams}}({{methodParams}}) {
-                    return Scene.{{methodName}}{{typeParams}}({{args}}withDisabled: QueryWithDisabled, deferred: QueryDeferred);
+                public ZLinq.ValueEnumerable<Scene.{{name}}Enumerator{{typeParams}}, {{type}}> {{methodName}}{{typeParams}}({{allParams}}) {
+                    return Scene.{{methodName}}{{typeParams}}({{forwardArgs}});
                 }
 
             """;
@@ -184,8 +214,8 @@ public sealed class GameSystemGenerator : SourceGenerator
     private static string RefQueryIterator(string name, string methodName, string typeParams)
     {
         return $$"""
-                public Scene.{{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
-                    return Scene.{{methodName}}{{typeParams}}().WithDisabled(QueryWithDisabled).Deferred(QueryDeferred);
+                public Scene.{{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}(bool? withDisabled = null, bool? deferred = null) {
+                    return Scene.{{methodName}}{{typeParams}}().WithDisabled(withDisabled ?? QueryWithDisabled).Deferred(deferred ?? QueryDeferred);
                 }
 
             """;

@@ -1,5 +1,3 @@
-#pragma warning disable CS9084
-
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 

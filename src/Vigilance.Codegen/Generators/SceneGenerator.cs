@@ -461,8 +461,8 @@ public sealed class SceneGenerator : SourceGenerator
 
                                     var index = _index;
                                     _index++;
-                                    {{(noEntity && tables.Count <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds.AsSpan()[index], _scene);")}}
-                                    if (!_withDisabled && _disabledTable.Has({{(noEntity && tables.Count <= 1 ? $"new Entity(_table{i}.EntityIds.AsSpan()[index], _scene)" : noEntity ? "entity" : "_entity")}}))
+                                    {{(noEntity && tables.Count <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds[index], _scene);")}}
+                                    if (!_withDisabled && _disabledTable.Has({{(noEntity && tables.Count <= 1 ? $"new Entity(_table{i}.EntityIds[index], _scene)" : noEntity ? "entity" : "_entity")}}))
                                         goto TABLE{{i}};
                 {{string.Join("\n", tables.Select((_, j) => j == i ? "" : $"""
                                         ref var field{j} = ref _table{j}.GetRef({(noEntity ? "entity" : "_entity")}).Value;
@@ -658,8 +658,8 @@ public sealed class SceneGenerator : SourceGenerator
 
                                         var index = _index;
                                         _index++;
-                                        {{(noEntity && tableCount <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds.AsSpan()[index], _scene);")}}
-                                        if (!_withDisabled && _disabledTable.Has({{(noEntity && tableCount <= 1 ? $"new Entity(_table{i}.EntityIds.AsSpan()[index], _scene)" : noEntity ? "entity" : "_entity")}}))
+                                        {{(noEntity && tableCount <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds[index], _scene);")}}
+                                        if (!_withDisabled && _disabledTable.Has({{(noEntity && tableCount <= 1 ? $"new Entity(_table{i}.EntityIds[index], _scene)" : noEntity ? "entity" : "_entity")}}))
                                             goto TABLE{{i}};
                     {{string.Join("\n", Enumerable.Range(0, tableCount).Where(j => j != i).Select(j => $"""
                                             if (!_table{j}.TryGet({(noEntity ? "entity" : "_entity")}, out {(noFields ? "_" : $"_field{j}")}))
@@ -867,8 +867,8 @@ public sealed class SceneGenerator : SourceGenerator
 
                                     var index = _index;
                                     _index++;
-                                    {{(noEntity && tableCount <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds.AsSpan()[index], _scene);")}}
-                                    if (!_withDisabled && _disabledTable.Has({{(noEntity && tableCount <= 1 ? $"new Entity(_table{i}.EntityIds.AsSpan()[index], _scene)" : noEntity ? "entity" : "_entity")}}))
+                                    {{(noEntity && tableCount <= 1 ? "" : $"{(noEntity ? "var entity" : "_entity")} = new Entity(_table{i}.EntityIds[index], _scene);")}}
+                                    if (!_withDisabled && _disabledTable.Has({{(noEntity && tableCount <= 1 ? $"new Entity(_table{i}.EntityIds[index], _scene)" : noEntity ? "entity" : "_entity")}}))
                                         goto TABLE{{i}};
                 {{string.Join("\n", Enumerable.Range(0, tableCount).Where(j => j != i).Select(j => $"""
                                         if (!_table{j}.TryGet({(noEntity ? "entity" : "_entity")}, out {(noFields ? "_" : $"_field{j}")}))
@@ -1047,7 +1047,7 @@ public sealed class SceneGenerator : SourceGenerator
                                         
                                     var index = _index;
                                     _index++;
-                                    var entity = new Entity(_table{{i}}.EntityIds.AsSpan()[index], _scene);
+                                    var entity = new Entity(_table{{i}}.EntityIds[index], _scene);
                                     {{(noEntity ? "" : "_entity = entity;")}}
                                     if (!_withDisabled && _disabledTable.Has(entity))
                                         goto TABLE{{i}};
