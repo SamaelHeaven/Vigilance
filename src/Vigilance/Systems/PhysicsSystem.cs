@@ -1,7 +1,3 @@
-using Vigilance.Core;
-using Vigilance.Drawing;
-using Vigilance.Physics;
-
 namespace Vigilance.Systems;
 
 public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)

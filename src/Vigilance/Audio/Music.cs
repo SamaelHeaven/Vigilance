@@ -1,8 +1,5 @@
 using System.Runtime.InteropServices;
 using Raylib_cs;
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Math;
 
 namespace Vigilance.Audio;
 

@@ -1,5 +1,3 @@
-using Vigilance.Collections;
-
 namespace Vigilance.Core;
 
 public sealed class Config

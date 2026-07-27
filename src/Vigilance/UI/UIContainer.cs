@@ -1,5 +1,4 @@
 using Vigilance.FlexLayout;
-using Vigilance.Math;
 
 namespace Vigilance.UI;
 

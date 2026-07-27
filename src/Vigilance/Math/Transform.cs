@@ -1,6 +1,4 @@
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using Vigilance.Core;
 
 namespace Vigilance.Math;
 

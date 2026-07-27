@@ -1,6 +1,4 @@
 using Raylib_cs;
-using Vigilance.Core;
-using Vigilance.Math;
 
 namespace Vigilance.Audio;
 

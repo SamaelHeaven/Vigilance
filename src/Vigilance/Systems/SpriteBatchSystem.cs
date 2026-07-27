@@ -1,9 +1,4 @@
 using System.Runtime.CompilerServices;
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Drawing;
-using Vigilance.Math;
-using ZLinq;
 
 namespace Vigilance.Systems;
 

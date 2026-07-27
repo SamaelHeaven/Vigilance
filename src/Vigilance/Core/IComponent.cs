@@ -1,5 +1,3 @@
-using Vigilance.Drawing;
-
 namespace Vigilance.Core;
 
 public interface IPreUpdatable

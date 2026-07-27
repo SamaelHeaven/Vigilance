@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Vigilance.Core;
 
 namespace Vigilance.Collections;
 

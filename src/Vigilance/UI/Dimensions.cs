@@ -1,5 +1,3 @@
-using Vigilance.Math;
-
 namespace Vigilance.UI;
 
 public record struct Dimensions

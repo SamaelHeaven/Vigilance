@@ -1,5 +1,3 @@
-using Vigilance.Core;
-
 namespace Vigilance.Systems;
 
 public class AnchorSystem() : GameSystem(queryWithDisabled: true)

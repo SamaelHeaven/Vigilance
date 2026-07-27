@@ -1,7 +1,4 @@
 using System.ComponentModel;
-using System.Numerics;
-using Vigilance.Core;
-using Vigilance.Drawing;
 
 namespace Vigilance.Math;
 

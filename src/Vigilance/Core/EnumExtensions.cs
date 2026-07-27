@@ -1,5 +1,3 @@
-using Vigilance.Collections;
-
 // ReSharper disable StaticMemberInGenericType
 
 namespace Vigilance.Core;

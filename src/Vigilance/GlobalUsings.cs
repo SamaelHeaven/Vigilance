@@ -1,0 +1,16 @@
+global using System.Numerics;
+global using Vigilance.Audio;
+global using Vigilance.Collections;
+global using Vigilance.Core;
+global using Vigilance.Drawing;
+global using Vigilance.Input;
+global using Vigilance.Logging;
+global using Vigilance.Math;
+global using Vigilance.Net;
+global using Vigilance.Physics;
+global using Vigilance.Systems;
+global using Vigilance.UI;
+global using ZLinq;
+global using ZLinq.Linq;
+global using Timer = Vigilance.Core.Timer;
+global using Vector2 = Vigilance.Math.Vector2;

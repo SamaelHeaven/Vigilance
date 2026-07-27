@@ -2,10 +2,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using FreeTypeSharp;
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Math;
-using ZLinq;
 
 namespace Vigilance.Drawing;
 

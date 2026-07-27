@@ -1,6 +1,4 @@
 using Raylib_cs;
-using Vigilance.Collections;
-using Vigilance.Core;
 
 namespace Vigilance.Drawing;
 

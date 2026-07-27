@@ -1,8 +1,3 @@
-using System.Numerics;
-using Vigilance.Logging;
-using Vigilance.Math;
-using Vector2 = Vigilance.Math.Vector2;
-
 namespace Vigilance.Core;
 
 public sealed class Camera

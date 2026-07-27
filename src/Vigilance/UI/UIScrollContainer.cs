@@ -1,10 +1,4 @@
 using System.ComponentModel;
-using Vigilance.Core;
-using Vigilance.Drawing;
-using Vigilance.Input;
-using Vigilance.Math;
-using ZLinq;
-using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
@@ -302,9 +296,7 @@ public class UIScrollContainer : UIContainer
         var mousePosition = Mouse.Position;
         var mousePressed = Mouse.IsButtonPressed(MouseButton.Left);
         var mouseReleased = Mouse.IsButtonReleased(MouseButton.Left);
-        foreach (
-            var element in Children().AsValueEnumerable().Where(element => element.Position != PositionType.Absolute)
-        )
+        foreach (var element in Children().Where(element => element.Position != PositionType.Absolute))
         {
             size.X = size.X.Max(element.LayoutLeft + element.LayoutWidth);
             size.Y = size.Y.Max(element.LayoutTop + element.LayoutHeight);

@@ -1,7 +1,4 @@
 using Raylib_cs;
-using Vigilance.Core;
-using Vigilance.Logging;
-using Vigilance.Math;
 using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;

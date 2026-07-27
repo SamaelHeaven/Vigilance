@@ -37,11 +37,11 @@ public sealed class GameSystemGenerator : SourceGenerator
     private static void Entities(StringBuilder sb)
     {
         sb.BeginRegion("Entities");
-        sb.AppendLine(QueryIterator("Entity", "Entities"));
+        sb.AppendLine(QueryIterator("Entity", "Entities", "Entity"));
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            sb.AppendLine(QueryIterator("Entity", "Entities", $"<{typeParams}>"));
+            sb.AppendLine(QueryIterator("Entity", "Entities", "Entity", $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -53,7 +53,9 @@ public sealed class GameSystemGenerator : SourceGenerator
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            sb.AppendLine(QueryIterator("Component", "Components", $"<{typeParams}>"));
+            var type =
+                i == 0 ? "T0" : QueryHelper.NamedTuple(false, Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList());
+            sb.AppendLine(QueryIterator("Component", "Components", type, $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -65,7 +67,8 @@ public sealed class GameSystemGenerator : SourceGenerator
         for (var i = 0; i < 15; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            sb.AppendLine(QueryIterator("Entry", "Entries", $"<{typeParams}>"));
+            var type = QueryHelper.NamedTuple(true, Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList());
+            sb.AppendLine(QueryIterator("Entry", "Entries", type, $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -77,7 +80,7 @@ public sealed class GameSystemGenerator : SourceGenerator
         for (var i = 0; i < 16; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            sb.AppendLine(QueryIterator("RefComponent", "RefComponents", $"<{typeParams}>"));
+            sb.AppendLine(RefQueryIterator("RefComponent", "RefComponents", $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -89,7 +92,7 @@ public sealed class GameSystemGenerator : SourceGenerator
         for (var i = 0; i < 15; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            sb.AppendLine(QueryIterator("RefEntry", "RefEntries", $"<{typeParams}>"));
+            sb.AppendLine(RefQueryIterator("RefEntry", "RefEntries", $"<{typeParams}>"));
         }
 
         sb.EndRegion();
@@ -98,21 +101,21 @@ public sealed class GameSystemGenerator : SourceGenerator
     private static void AssignableEntities(StringBuilder sb)
     {
         sb.BeginRegion("AssignableEntities");
-        sb.AppendLine(QueryIterator("AssignableEntity", "AssignableEntities", "<T0>"));
+        sb.AppendLine(QueryIterator("AssignableEntity", "AssignableEntities", "Entity", "<T0>"));
         sb.EndRegion();
     }
 
     private static void AssignableComponents(StringBuilder sb)
     {
         sb.BeginRegion("AssignableComponents");
-        sb.AppendLine(QueryIterator("AssignableComponent", "AssignableComponents", "<T0>"));
+        sb.AppendLine(QueryIterator("AssignableComponent", "AssignableComponents", "T0", "<T0>"));
         sb.EndRegion();
     }
 
     private static void AssignableEntries(StringBuilder sb)
     {
         sb.BeginRegion("AssignableEntries");
-        sb.AppendLine(QueryIterator("AssignableEntries", "AssignableEntries", "<T0>"));
+        sb.AppendLine(QueryIterator("AssignableEntries", "AssignableEntries", "(Entity Entity, T0 Component)", "<T0>"));
         sb.EndRegion();
     }
 
@@ -123,7 +126,7 @@ public sealed class GameSystemGenerator : SourceGenerator
         {
             var methodParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"Table table{n}"));
             var methodArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"table{n}"));
-            sb.AppendLine(QueryIterator($"TableEntity{i + 1}", "Entities", "", methodParams, methodArgs));
+            sb.AppendLine(QueryIterator($"TableEntity{i + 1}", "Entities", "Entity", "", methodParams, methodArgs));
         }
 
         sb.EndRegion();
@@ -136,7 +139,11 @@ public sealed class GameSystemGenerator : SourceGenerator
         {
             var methodParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"Table table{n}"));
             var methodArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"table{n}"));
-            sb.AppendLine(QueryIterator($"TableComponent{i + 1}", "Components", "", methodParams, methodArgs));
+            var type =
+                i == 0
+                    ? "object"
+                    : QueryHelper.NamedTuple(false, Enumerable.Range(0, i + 1).Select(_ => "object").ToList());
+            sb.AppendLine(QueryIterator($"TableComponent{i + 1}", "Components", type, "", methodParams, methodArgs));
         }
 
         sb.EndRegion();
@@ -149,7 +156,8 @@ public sealed class GameSystemGenerator : SourceGenerator
         {
             var methodParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"Table table{n}"));
             var methodArgs = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"table{n}"));
-            sb.AppendLine(QueryIterator($"TableEntry{i + 1}", "Entries", "", methodParams, methodArgs));
+            var type = QueryHelper.NamedTuple(true, Enumerable.Range(0, i + 1).Select(_ => "object").ToList());
+            sb.AppendLine(QueryIterator($"TableEntry{i + 1}", "Entries", type, "", methodParams, methodArgs));
         }
 
         sb.EndRegion();
@@ -158,14 +166,26 @@ public sealed class GameSystemGenerator : SourceGenerator
     private static string QueryIterator(
         string name,
         string methodName,
+        string type,
         string typeParams = "",
         string methodParams = "",
         string methodArgs = ""
     )
     {
+        var args = methodArgs == "" ? "" : $"{methodArgs}, ";
         return $$"""
-                public Scene.{{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}({{methodParams}}) {
-                    return Scene.{{methodName}}{{typeParams}}({{methodArgs}}).WithDisabled(QueryWithDisabled).Deferred(QueryDeferred);
+                public ZLinq.ValueEnumerable<Scene.{{name}}Enumerator{{typeParams}}, {{type}}> {{methodName}}{{typeParams}}({{methodParams}}) {
+                    return Scene.{{methodName}}{{typeParams}}({{args}}withDisabled: QueryWithDisabled, deferred: QueryDeferred);
+                }
+
+            """;
+    }
+
+    private static string RefQueryIterator(string name, string methodName, string typeParams)
+    {
+        return $$"""
+                public Scene.{{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
+                    return Scene.{{methodName}}{{typeParams}}().WithDisabled(QueryWithDisabled).Deferred(QueryDeferred);
                 }
 
             """;

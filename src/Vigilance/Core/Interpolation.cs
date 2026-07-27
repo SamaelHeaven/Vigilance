@@ -1,5 +1,3 @@
-using Vigilance.Math;
-
 namespace Vigilance.Core;
 
 public record struct Interpolation(in Transform? Start, in Transform End)

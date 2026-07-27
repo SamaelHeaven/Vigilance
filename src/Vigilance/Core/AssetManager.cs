@@ -1,6 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Vigilance.Audio;
-using Vigilance.Drawing;
 
 namespace Vigilance.Core;
 

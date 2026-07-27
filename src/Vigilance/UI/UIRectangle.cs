@@ -1,7 +1,3 @@
-using Vigilance.Core;
-using Vigilance.Drawing;
-using Vigilance.Math;
-
 namespace Vigilance.UI;
 
 public class UIRectangle : UIContainer

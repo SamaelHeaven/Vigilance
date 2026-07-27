@@ -3,8 +3,6 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Vigilance.Core;
-using Vigilance.Math;
 
 namespace Vigilance.Net;
 

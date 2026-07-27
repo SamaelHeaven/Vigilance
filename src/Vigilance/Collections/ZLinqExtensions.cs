@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using ZLinq;
 using ZLinq.Traversables;
 
 namespace Vigilance.Collections;

@@ -1,6 +1,3 @@
-using Vigilance.Core;
-using Vigilance.Math;
-
 namespace Vigilance.Systems;
 
 public sealed class YSortSystem(float offset) : GameSystem(queryWithDisabled: true)

@@ -1,9 +1,3 @@
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Logging;
-using Vigilance.Math;
-using ZLinq;
-
 namespace Vigilance.Drawing;
 
 public sealed class Triangle : Drawable<Triangle>

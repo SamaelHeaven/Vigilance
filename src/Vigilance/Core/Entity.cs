@@ -3,9 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using LinkDotNet.StringBuilder;
-using Vigilance.Collections;
-using Vigilance.Math;
-using ZLinq;
 
 namespace Vigilance.Core;
 
@@ -697,9 +694,9 @@ public readonly partial record struct Entity
         return new ComponentEnumerable(this);
     }
 
-    public ChildEnumerable Children()
+    public ValueEnumerable<ChildEnumerator, Entity> Children(bool deferred = true)
     {
-        return new ChildEnumerable(this);
+        return new ChildEnumerable(this).Deferred(deferred).AsValueEnumerable();
     }
 
     public override int GetHashCode()
@@ -911,7 +908,7 @@ public readonly partial record struct Entity
         AssertValid();
         if (Scene is null)
             return;
-        foreach (var table in Scene.Tables().WithHidden())
+        foreach (var table in Scene.Tables(withHidden: true))
             table.Remove(this, Table.Flags.SilentOnImmutable);
     }
 
@@ -1141,7 +1138,7 @@ public readonly partial record struct Entity
         public void Reset()
         {
             _entity.AssertValid();
-            _enumerator = _entity.Scene.Tables().WithHidden(_withHidden).GetEnumerator();
+            _enumerator = new Scene.TableEnumerable(_entity.Scene).WithHidden(_withHidden).GetEnumerator();
             Current = null!;
         }
 
@@ -1211,7 +1208,7 @@ public readonly partial record struct Entity
         public void Reset()
         {
             _entity.AssertValid();
-            _enumerator = _entity.Scene.Tables<T>().WithHidden(_withHidden).GetEnumerator();
+            _enumerator = new Scene.TableEnumerable<T>(_entity.Scene).WithHidden(_withHidden).GetEnumerator();
             Current = null!;
         }
 
@@ -1300,7 +1297,7 @@ public readonly partial record struct Entity
         public void Reset()
         {
             _entity.AssertValid();
-            _enumerator = _entity.Scene.Tables().WithHidden(_withHidden).GetEnumerator();
+            _enumerator = new Scene.TableEnumerable(_entity.Scene).WithHidden(_withHidden).GetEnumerator();
             Current = null!;
         }
 
@@ -1317,7 +1314,7 @@ public readonly partial record struct Entity
         private readonly Entity _parent;
         private bool _deferred;
 
-        internal ChildEnumerable(in Entity parent)
+        public ChildEnumerable(in Entity parent)
         {
             _parent = parent;
             _deferred = true;
@@ -1328,7 +1325,15 @@ public readonly partial record struct Entity
             return new ChildEnumerator(_parent, _deferred);
         }
 
-        public ValueEnumerable<StructEnumerator<ChildEnumerator, Entity>, Entity> AsValueEnumerable()
+        public ValueEnumerable<ChildEnumerator, Entity> AsValueEnumerable()
+        {
+            return new ValueEnumerable<ChildEnumerator, Entity>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<ChildEnumerator, Entity>, Entity> IStructEnumerable<
+            ChildEnumerator,
+            Entity
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<ChildEnumerator, Entity>(GetEnumerator());
         }
@@ -1341,7 +1346,7 @@ public readonly partial record struct Entity
         }
     }
 
-    public struct ChildEnumerator : IStructEnumerator<Entity>
+    public struct ChildEnumerator : IStructEnumerator<Entity>, IValueEnumerator<Entity>
     {
         private readonly Entity _parent;
         private EntityId _nextChildId;
@@ -1400,6 +1405,32 @@ public readonly partial record struct Entity
             if (_deferred)
                 _parent.Scene.EndDefer();
             _disposed = true;
+        }
+
+        public bool TryGetNext(out Entity current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = 0;
+            return false;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<Entity> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<Entity> destination, Index offset)
+        {
+            return false;
         }
     }
 

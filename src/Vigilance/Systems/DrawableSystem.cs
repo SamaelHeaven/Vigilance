@@ -1,6 +1,3 @@
-using Vigilance.Core;
-using Vigilance.Drawing;
-
 namespace Vigilance.Systems;
 
 public sealed class DrawableSystem(Graphics graphics) : GameSystem(queryWithDisabled: true)

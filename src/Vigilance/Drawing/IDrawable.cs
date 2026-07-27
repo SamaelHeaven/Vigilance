@@ -1,5 +1,3 @@
-using Vigilance.Math;
-
 namespace Vigilance.Drawing;
 
 public interface IDrawable

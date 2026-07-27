@@ -1,8 +1,3 @@
-using Vigilance.Core;
-using Vigilance.Drawing;
-using Vigilance.Logging;
-using Vigilance.UI;
-
 namespace Vigilance.Systems;
 
 public sealed class UISystem(Graphics graphics) : GameSystem(queryWithDisabled: true)

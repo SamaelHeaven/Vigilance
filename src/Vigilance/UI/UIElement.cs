@@ -1,18 +1,9 @@
 using System.Buffers;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Drawing;
 using Vigilance.FlexLayout;
-using Vigilance.Input;
-using Vigilance.Logging;
-using Vigilance.Math;
-using ZLinq;
 using Display = Vigilance.FlexLayout.Display;
-using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 
@@ -1540,7 +1531,7 @@ public abstract class UIElement : IFullCloneable
         {
             if (Element is not UIParent { IsLayoutCustom: false } parent)
                 yield break;
-            foreach (var child in parent.Children())
+            foreach (var child in new UIParent.ChildEnumerable(parent))
                 yield return child.Node;
         }
 
@@ -1566,18 +1557,14 @@ public abstract class UIElement : IFullCloneable
         bool ICollection<Node<NodeStorage>>.Contains(Node<NodeStorage> item)
         {
             if (Element is UIParent { IsLayoutCustom: false } parent)
-                return parent.Children().AsValueEnumerable().Contains(item.Storage.Element);
+                return parent.Children().Contains(item.Storage.Element);
             return false;
         }
 
         void ICollection<Node<NodeStorage>>.CopyTo(Node<NodeStorage>[] array, int arrayIndex)
         {
             if (Element is UIParent { IsLayoutCustom: false } parent)
-                parent
-                    .Children()
-                    .AsValueEnumerable()
-                    .Select(Node<NodeStorage> (p) => p.Node)
-                    .CopyTo(array.AsSpan(arrayIndex));
+                parent.Children().Select(Node<NodeStorage> (p) => p.Node).CopyTo(array.AsSpan(arrayIndex));
         }
 
         bool ICollection<Node<NodeStorage>>.Remove(Node<NodeStorage> item)
@@ -1588,7 +1575,7 @@ public abstract class UIElement : IFullCloneable
         }
 
         int ICollection<Node<NodeStorage>>.Count =>
-            Element is not UIParent { IsLayoutCustom: false } parent ? 0 : parent.Children().Count;
+            Element is not UIParent { IsLayoutCustom: false } parent ? 0 : parent.ChildrenCount;
 
         bool ICollection<Node<NodeStorage>>.IsReadOnly => Element is not UIParent { IsLayoutCustom: false };
 
@@ -1610,7 +1597,7 @@ public abstract class UIElement : IFullCloneable
         {
             if (Element is not UIParent { IsLayoutCustom: false } parent)
                 throw new NotSupportedException();
-            parent.Children()[index].Remove();
+            parent[index].Remove();
         }
 
         Node<NodeStorage> IList<Node<NodeStorage>>.this[int index]
@@ -1618,16 +1605,15 @@ public abstract class UIElement : IFullCloneable
             get
             {
                 if (Element is UIParent { IsLayoutCustom: false } parent)
-                    return parent.Children()[index].Node;
+                    return parent[index].Node;
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
             set
             {
                 if (Element is not UIParent { IsLayoutCustom: false } parent)
                     throw new NotSupportedException();
-                var children = parent.Children();
-                if (index < children.Count)
-                    children[index].Remove();
+                if (index < parent.ChildrenCount)
+                    parent[index].Remove();
                 parent.Insert(index, value.Storage.Element);
             }
         }
@@ -1810,13 +1796,13 @@ public abstract class UIElement : IFullCloneable
 
         public bool TryGetChildCount(out int count)
         {
-            count = Origin is UIParent parent ? parent.Children().Count : 0;
+            count = Origin is UIParent parent ? parent.ChildrenCount : 0;
             return true;
         }
 
         public bool TryGetHasChild(out bool hasChild)
         {
-            hasChild = Origin is UIParent parent && parent.Children().Count > 0;
+            hasChild = Origin is UIParent { ChildrenCount: > 0 };
             return true;
         }
 
@@ -1842,7 +1828,7 @@ public abstract class UIElement : IFullCloneable
                     return false;
                 }
 
-                _enumerator = parent.Children().Deferred(_deferred).GetEnumerator();
+                _enumerator = new UIParent.ChildEnumerable(parent).Deferred(_deferred).GetEnumerator();
                 _hasEnumerator = true;
             }
 
@@ -1869,7 +1855,7 @@ public abstract class UIElement : IFullCloneable
             }
             else if (TryGetParent(out var parent))
             {
-                _enumerator = parent.Children().Deferred(_deferred).GetEnumerator();
+                _enumerator = new UIParent.ChildEnumerable(parent).Deferred(_deferred).GetEnumerator();
                 _hasEnumerator = true;
                 while (_enumerator.MoveNext())
                     if (_enumerator.Current == Origin)
@@ -1894,7 +1880,7 @@ public abstract class UIElement : IFullCloneable
             }
             else if (TryGetParent(out var parent))
             {
-                _enumerator = parent.Children().Deferred(_deferred).GetEnumerator();
+                _enumerator = new UIParent.ChildEnumerable(parent).Deferred(_deferred).GetEnumerator();
                 _hasEnumerator = true;
                 goto BEGIN;
             }

@@ -1,5 +1,3 @@
-using Vigilance.Math;
-
 namespace Vigilance.Core;
 
 public sealed class Timer

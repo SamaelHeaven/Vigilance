@@ -1,8 +1,3 @@
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Drawing;
-using Vigilance.Logging;
-
 namespace Vigilance.Systems;
 
 public sealed class AnimationSystem() : GameSystem(queryWithDisabled: true)

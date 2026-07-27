@@ -1,5 +1,4 @@
 using Box2D.NET;
-using Vigilance.Math;
 
 namespace Vigilance.Physics;
 

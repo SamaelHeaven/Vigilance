@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Vigilance.Codegen.Helpers;
 
 namespace Vigilance.Codegen.Generators;
 
@@ -11,6 +12,7 @@ public sealed class RenderCommandsGenerator : SourceGenerator
         sb.AppendLine(
             """
             using Vigilance.Core;
+            using ZLinq;
 
             namespace Vigilance.Drawing;
 
@@ -36,11 +38,12 @@ public sealed class RenderCommandsGenerator : SourceGenerator
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
             var items = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"entry.Item{n + 2}"));
+            var entryType = QueryHelper.NamedTuple(true, Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList());
             sb.AppendLine(
                 $$"""
                     public void AddEntries<{{(system ? "TSystem, " : "")}}{{typeParams}}>({{(
                         system ? "TSystem system, " : ""
-                    )}}{{$"Scene.EntryEnumerable<{typeParams}>"}} entries, Action<{{(
+                    )}}{{$"ZLinq.ValueEnumerable<Scene.EntryEnumerator<{typeParams}>, {entryType}>"}} entries, Action<{{(
                     system ? "TSystem, " : ""
                 )}}Entity, ({{typeParams}})> action)
                     {
@@ -79,7 +82,9 @@ public sealed class RenderCommandsGenerator : SourceGenerator
             $$"""
                 public void AddAssignableEntries<{{(system ? "TSystem, " : "")}}T0>({{(
                     system ? "TSystem system, " : ""
-                )}}Scene.AssignableEntriesEnumerable<T0> entries, Action<{{(system ? "TSystem, " : "")}}Entity, T0> action)
+                )}}ZLinq.ValueEnumerable<Scene.AssignableEntriesEnumerator<T0>, (Entity Entity, T0 Component)> entries, Action<{{(
+                system ? "TSystem, " : ""
+            )}}Entity, T0> action)
                 {
                     foreach (var entry in entries)
                         Add({{(system ? "system, " : "")}}entry.Item1, (T0)entry.Item2, action);

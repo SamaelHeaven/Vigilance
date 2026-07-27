@@ -1,7 +1,4 @@
 ﻿using Raylib_cs;
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Logging;
 
 namespace Vigilance.Input;
 

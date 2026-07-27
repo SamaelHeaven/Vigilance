@@ -1,5 +1,3 @@
-using Vigilance.Core;
-
 namespace Vigilance.Collections;
 
 public readonly ref struct BitHelper

@@ -1,5 +1,3 @@
-using Vigilance.Drawing;
-
 namespace Vigilance.Logging;
 
 public static class Ansi

@@ -1,10 +1,5 @@
 using System.Runtime.CompilerServices;
 using Raylib_cs;
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Logging;
-using Vigilance.Math;
-using ZLinq;
 using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;

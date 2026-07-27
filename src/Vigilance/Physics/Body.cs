@@ -1,10 +1,6 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using Box2D.NET;
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Math;
-using ZLinq;
 
 namespace Vigilance.Physics;
 

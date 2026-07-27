@@ -1,6 +1,3 @@
-using Vigilance.Core;
-using Vigilance.Math;
-
 namespace Vigilance.Drawing;
 
 public abstract class Drawable : IDrawable, IFullCloneable
