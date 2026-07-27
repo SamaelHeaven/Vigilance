@@ -1,5 +1,3 @@
-using ZLinq;
-
 namespace Vigilance.Net;
 
 internal static class HttpClientCore

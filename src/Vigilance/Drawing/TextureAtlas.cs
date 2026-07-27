@@ -1,8 +1,3 @@
-using Vigilance.Collections;
-using Vigilance.Math;
-using ZLinq;
-using ZLinq.Linq;
-
 namespace Vigilance.Drawing;
 
 public sealed class TextureAtlas : IArrayView<Box>

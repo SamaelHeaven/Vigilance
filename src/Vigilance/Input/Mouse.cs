@@ -1,8 +1,4 @@
 ﻿using Raylib_cs;
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Math;
-using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.Input;
 

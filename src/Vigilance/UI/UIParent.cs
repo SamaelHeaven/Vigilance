@@ -2,8 +2,6 @@ using System.Buffers;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Vigilance.Collections;
-using ZLinq;
 
 namespace Vigilance.UI;
 
@@ -20,11 +18,16 @@ public abstract class UIParent : UIElement
 
     public bool IsDeferred => _deferredCount != 0;
 
-    public ChildEnumerable Children()
+    public int ChildrenCount => _children.Count;
+
+    public UIElement this[int index] => _children[index];
+
+    public ValueEnumerable<ChildEnumerator, UIElement> Children(bool deferred = true)
     {
-        return new ChildEnumerable(this);
+        return new ChildEnumerable(this).Deferred(deferred).AsValueEnumerable();
     }
 
+    [OverloadResolutionPriority(2)]
     public void Add(UIElement? element)
     {
         if (element is null)
@@ -43,7 +46,7 @@ public abstract class UIParent : UIElement
     }
 
     [OverloadResolutionPriority(1)]
-    public void Add(in ReadOnlySpan<UIElement?> elements)
+    public void Add(params ReadOnlySpan<UIElement?> elements)
     {
         _children.EnsureCapacity(_children.Count + elements.Length);
         foreach (var element in elements)
@@ -260,12 +263,12 @@ public abstract class UIParent : UIElement
         }
     }
 
-    public struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>, IReadOnlyList<UIElement>
+    public struct ChildEnumerable : IStructEnumerable<ChildEnumerator, UIElement>
     {
         private readonly UIParent _parent;
         private bool _deferred;
 
-        internal ChildEnumerable(UIParent parent)
+        public ChildEnumerable(UIParent parent)
         {
             _parent = parent;
             _deferred = true;
@@ -288,10 +291,6 @@ public abstract class UIParent : UIElement
         {
             return new StructEnumerator<ChildEnumerator, UIElement>(GetEnumerator());
         }
-
-        public int Count => _parent._children.Count;
-
-        public UIElement this[int index] => _parent._children[index];
 
         [UnscopedRef]
         public ref ChildEnumerable Deferred(bool deferred = true)

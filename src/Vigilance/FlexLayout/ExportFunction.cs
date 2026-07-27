@@ -1,7 +1,5 @@
 ﻿// ReSharper disable CompareOfFloatsByEqualityOperator
 
-using Vigilance.Core;
-
 namespace Vigilance.FlexLayout;
 
 public partial class Node<TStorage>

@@ -1,9 +1,5 @@
 using System.Runtime.CompilerServices;
-using Vigilance.Core;
-using Vigilance.Drawing;
-using Vigilance.Math;
 using Color = Vigilance.Drawing.Color;
-using Vector2 = Vigilance.Math.Vector2;
 
 namespace Vigilance.UI;
 

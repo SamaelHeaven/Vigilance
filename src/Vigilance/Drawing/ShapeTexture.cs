@@ -1,5 +1,3 @@
-using Vigilance.Math;
-
 namespace Vigilance.Drawing;
 
 public readonly record struct ShapeTexture

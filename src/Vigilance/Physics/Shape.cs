@@ -1,7 +1,5 @@
 using System.ComponentModel;
 using Box2D.NET;
-using Vigilance.Core;
-using Vigilance.Math;
 
 namespace Vigilance.Physics;
 

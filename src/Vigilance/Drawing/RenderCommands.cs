@@ -1,7 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Logging;
 
 namespace Vigilance.Drawing;
 
@@ -44,7 +41,10 @@ public readonly ref partial struct RenderCommands
         Scene.RenderCommands.Add(RenderCommand.Make(Scene, entity, system, component, action));
     }
 
-    public void AddEntries<TComponent>(Scene.EntryEnumerable<TComponent> entries, Action<Entity, TComponent> action)
+    public void AddEntries<TComponent>(
+        ValueEnumerable<Scene.EntryEnumerator<TComponent>, (Entity Entity, TComponent Component)> entries,
+        Action<Entity, TComponent> action
+    )
     {
         foreach (var (entity, component) in entries)
             Add(entity, component, action);
@@ -52,7 +52,7 @@ public readonly ref partial struct RenderCommands
 
     public void AddEntries<TSystem, TComponent>(
         TSystem system,
-        Scene.EntryEnumerable<TComponent> entries,
+        ValueEnumerable<Scene.EntryEnumerator<TComponent>, (Entity Entity, TComponent Component)> entries,
         Action<TSystem, Entity, TComponent> action
     )
     {

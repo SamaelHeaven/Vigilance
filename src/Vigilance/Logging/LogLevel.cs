@@ -1,5 +1,4 @@
 using Raylib_cs;
-using Vigilance.Math;
 
 namespace Vigilance.Logging;
 

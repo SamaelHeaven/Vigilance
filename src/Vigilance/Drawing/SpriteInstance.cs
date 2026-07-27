@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using Vigilance.Math;
 
 namespace Vigilance.Drawing;
 

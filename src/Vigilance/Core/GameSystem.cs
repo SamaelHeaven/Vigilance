@@ -1,6 +1,3 @@
-using Vigilance.Drawing;
-using Vigilance.Physics;
-
 namespace Vigilance.Core;
 
 public delegate IEnumerable<IGameSystem> GameSystemsFunc();

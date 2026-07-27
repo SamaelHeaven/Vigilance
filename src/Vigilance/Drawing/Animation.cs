@@ -1,9 +1,3 @@
-using Vigilance.Collections;
-using Vigilance.Core;
-using Vigilance.Math;
-using ZLinq;
-using ZLinq.Linq;
-
 namespace Vigilance.Drawing;
 
 public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneable

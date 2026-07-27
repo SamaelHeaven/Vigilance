@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using Raylib_cs;
-using Vigilance.Logging;
 
 namespace Vigilance.Core;
 

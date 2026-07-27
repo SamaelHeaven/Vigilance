@@ -1,5 +1,3 @@
-using ZLinq;
-
 namespace Vigilance.Drawing;
 
 public sealed class SpriteAnimation : Animation<SpriteAnimationFrame>

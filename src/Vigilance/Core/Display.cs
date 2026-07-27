@@ -1,7 +1,4 @@
 using Raylib_cs;
-using Vigilance.Drawing;
-using Vigilance.Logging;
-using Vigilance.Math;
 using Color = Vigilance.Drawing.Color;
 using Image = Vigilance.Drawing.Image;
 using PixelFormat = Raylib_cs.PixelFormat;

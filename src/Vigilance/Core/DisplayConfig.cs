@@ -1,6 +1,3 @@
-using Vigilance.Drawing;
-using Vigilance.Math;
-
 namespace Vigilance.Core;
 
 public sealed class DisplayConfig

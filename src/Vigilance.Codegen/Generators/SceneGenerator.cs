@@ -173,7 +173,6 @@ public sealed class SceneGenerator : SourceGenerator
                 "AssignableEntities",
                 "_entity",
                 "TableEntity1Enumerator",
-                "Entities",
                 "private Entity _entity;",
                 "_entity = Core.Entity.Null;",
                 "_entity = _items.Current;"
@@ -193,7 +192,6 @@ public sealed class SceneGenerator : SourceGenerator
                 "AssignableComponents",
                 "(T0)_component",
                 "TableComponent1Enumerator",
-                "Components",
                 "private object _component = default!;",
                 "_component = default!;",
                 "_component = _items.Current;"
@@ -213,7 +211,6 @@ public sealed class SceneGenerator : SourceGenerator
                 "AssignableEntries",
                 "(_entity, (T0)_component)",
                 "TableEntry1Enumerator",
-                "Entries",
                 "private Entity _entity;\n        private object _component = default!;",
                 "_entity = Core.Entity.Null;\n            _component = default!;",
                 "var entry = _items.Current;\n                    _entity = entry.Item1;\n                    _component = entry.Item2;"
@@ -261,13 +258,7 @@ public sealed class SceneGenerator : SourceGenerator
 
     private static string NamedTuple(bool hasEntity, IReadOnlyList<string> componentTypes)
     {
-        var parts = new List<string>();
-        if (hasEntity)
-            parts.Add("Entity Entity");
-        parts.AddRange(
-            componentTypes.Select((t, n) => $"{t} Component{(componentTypes.Count == 1 ? "" : (n + 1).ToString())}")
-        );
-        return $"({string.Join(", ", parts)})";
+        return QueryHelper.NamedTuple(hasEntity, componentTypes);
     }
 
     private static string QueryIterator(
@@ -368,17 +359,17 @@ public sealed class SceneGenerator : SourceGenerator
                     private bool _withDisabled;
                     private bool _deferred;
                 
-                    internal {{name}}Enumerable(Scene scene)
+                    public {{name}}Enumerable(Scene scene)
                     {
                         _scene = scene;
                         _deferred = true;
                     }
-                    
+
                     public {{name}}Enumerator{{typeParams}} GetEnumerator()
                     {
                         return new {{name}}Enumerator{{typeParams}}(_scene, _withDisabled, _deferred);
                     }
-                    
+
                     public ZLinq.ValueEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}> AsValueEnumerable()
                     {
                         return new ZLinq.ValueEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}>(GetEnumerator());
@@ -538,11 +529,11 @@ public sealed class SceneGenerator : SourceGenerator
                     }
                 }
 
-                public {{name}}Enumerable{{typeParams}} {{methodName}}{{typeParams}}() {
+                public ZLinq.ValueEnumerable<{{name}}Enumerator{{typeParams}}, {{type}}> {{methodName}}{{typeParams}}(bool withDisabled = false, bool deferred = true) {
                     ThrowIfNotConfigured();
-                    return new {{name}}Enumerable{{typeParams}}(this);
+                    return new {{name}}Enumerable{{typeParams}}(this).WithDisabled(withDisabled).Deferred(deferred).AsValueEnumerable();
                 }
-                
+
             """;
     }
 
@@ -571,7 +562,7 @@ public sealed class SceneGenerator : SourceGenerator
                         private bool _withDisabled;
                         private bool _deferred;
                     
-                        internal {{namePrefix}}{{tableCount}}Enumerable(Scene scene, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}})
+                        public {{namePrefix}}{{tableCount}}Enumerable(Scene scene, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}})
                         {
                             _scene = scene;
                 {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _table{n} = table{n};"))}}
@@ -734,11 +725,11 @@ public sealed class SceneGenerator : SourceGenerator
                         }
                     }
 
-                    public {{namePrefix}}{{tableCount}}Enumerable {{methodName}}({{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}}) {
+                    public ZLinq.ValueEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}> {{methodName}}({{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}}, bool withDisabled = false, bool deferred = true) {
                         ThrowIfNotConfigured();
-                        return new {{namePrefix}}{{tableCount}}Enumerable(this, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"table{n}"))}});
+                        return new {{namePrefix}}{{tableCount}}Enumerable(this, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"table{n}"))}}).WithDisabled(withDisabled).Deferred(deferred).AsValueEnumerable();
                     }
-                    
+
                 """;
         tryCount = """
                         if (_withDisabled || _disabledTable.Count == 0)
@@ -780,7 +771,7 @@ public sealed class SceneGenerator : SourceGenerator
                     private bool _withDisabled;
                     private bool _deferred;
                 
-                    internal {{namePrefix}}{{tableCount}}Enumerable(Scene scene, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}})
+                    public {{namePrefix}}{{tableCount}}Enumerable(Scene scene, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}})
                     {
                         _scene = scene;
             {{string.Join("\n", Enumerable.Range(0, tableCount).Select(n => $"            _table{n} = table{n};"))}}
@@ -943,11 +934,11 @@ public sealed class SceneGenerator : SourceGenerator
                     }
                 }
 
-                public {{namePrefix}}{{tableCount}}Enumerable {{methodName}}({{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}}) {
+                public ZLinq.ValueEnumerable<{{namePrefix}}{{tableCount}}Enumerator, {{type}}> {{methodName}}({{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"Table table{n}"))}}, bool withDisabled = false, bool deferred = true) {
                     ThrowIfNotConfigured();
-                    return new {{namePrefix}}{{tableCount}}Enumerable(this, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"table{n}"))}});
+                    return new {{namePrefix}}{{tableCount}}Enumerable(this, {{string.Join(", ", Enumerable.Range(0, tableCount).Select(n => $"table{n}"))}}).WithDisabled(withDisabled).Deferred(deferred).AsValueEnumerable();
                 }
-                
+
             """;
     }
 
@@ -1108,7 +1099,6 @@ public sealed class SceneGenerator : SourceGenerator
         string methodName,
         string current,
         string iteratorType,
-        string iteratorFactoryMethod,
         string stateFieldDeclarations,
         string stateResetStatements,
         string moveNextStateAssignments
@@ -1122,12 +1112,12 @@ public sealed class SceneGenerator : SourceGenerator
                     private bool _withHidden;
                     private bool _deferred;
 
-                    internal {{name}}Enumerable(Scene scene)
+                    public {{name}}Enumerable(Scene scene)
                     {
                         _scene = scene;
                         _deferred = true;
                     }
-                    
+
                     public {{name}}Enumerator<T0> GetEnumerator()
                     {
                         return new {{name}}Enumerator<T0>(_scene, _withDisabled, _withHidden, _deferred);
@@ -1190,7 +1180,7 @@ public sealed class SceneGenerator : SourceGenerator
 
                     private void Initialize()
                     {
-                        _tables = _scene.Tables<T0>().WithHidden(_withHidden).GetEnumerator();
+                        _tables = new TableEnumerable<T0>(_scene).WithHidden(_withHidden).GetEnumerator();
                         _items = default;
                         _hasIterator = false;
                         {{stateResetStatements}}
@@ -1225,7 +1215,10 @@ public sealed class SceneGenerator : SourceGenerator
                     {
                         if (_tables.MoveNext())
                         {
-                            _items = _scene.{{iteratorFactoryMethod}}(_tables.Current).WithDisabled(_withDisabled).Deferred(false).GetEnumerator();
+                            _items = new {{iteratorType.Replace(
+                                "Enumerator",
+                                "Enumerable"
+                            )}}(_scene, _tables.Current).WithDisabled(_withDisabled).Deferred(false).GetEnumerator();
                             _hasIterator = true;
                             return true;
                         }
@@ -1290,12 +1283,12 @@ public sealed class SceneGenerator : SourceGenerator
                     }
                 }
                 
-                public {{name}}Enumerable<T0> {{methodName}}<T0>()
+                public ZLinq.ValueEnumerable<{{name}}Enumerator<T0>, {{type}}> {{methodName}}<T0>(bool withDisabled = false, bool withHidden = false, bool deferred = true)
                 {
                     ThrowIfNotConfigured();
-                    return new {{name}}Enumerable<T0>(this);
+                    return new {{name}}Enumerable<T0>(this).WithDisabled(withDisabled).WithHidden(withHidden).Deferred(deferred).AsValueEnumerable();
                 }
-                
+
             """;
     }
 }

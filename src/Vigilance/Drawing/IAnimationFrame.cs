@@ -1,5 +1,3 @@
-using Vigilance.Core;
-
 namespace Vigilance.Drawing;
 
 public interface IAnimationFrame

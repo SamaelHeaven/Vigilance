@@ -1,11 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Vigilance.Collections;
-using Vigilance.Drawing;
-using Vigilance.Logging;
-using Vigilance.Math;
-using Vigilance.Physics;
-using ZLinq;
 
 namespace Vigilance.Core;
 
@@ -109,25 +103,25 @@ public sealed partial class Scene
         }
     }
 
-    public TableEnumerable Tables()
+    public ValueEnumerable<TableEnumerator, Table> Tables(bool withHidden = false)
     {
-        return new TableEnumerable(this);
+        return new TableEnumerable(this).WithHidden(withHidden).AsValueEnumerable();
     }
 
-    public TableEnumerable<T> Tables<T>()
+    public ValueEnumerable<TableEnumerator<T>, Table> Tables<T>(bool withHidden = false)
     {
-        return new TableEnumerable<T>(this);
+        return new TableEnumerable<T>(this).WithHidden(withHidden).AsValueEnumerable();
     }
 
-    public SystemEnumerable Systems()
+    public ValueEnumerable<SystemEnumerator, IGameSystem> Systems()
     {
-        return new SystemEnumerable(this);
+        return new SystemEnumerable(this).AsValueEnumerable();
     }
 
-    public SystemEnumerable<T> Systems<T>()
+    public ValueEnumerable<SystemEnumerator<T>, T> Systems<T>()
         where T : IGameSystem
     {
-        return new SystemEnumerable<T>(this);
+        return new SystemEnumerable<T>(this).AsValueEnumerable();
     }
 
     public T System<T>()
@@ -476,11 +470,8 @@ public sealed partial class Scene
         }
 
         _isClearing = true;
-        var entities = Entities().WithDisabled();
-        var tables = Tables()
-            .WithHidden()
-            .AsValueEnumerable()
-            .Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
+        var entities = Entities(withDisabled: true);
+        var tables = Tables(withHidden: true).Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
         var flag = Core.Table.Flags.SilentOnImmutable;
         do
         {
@@ -587,10 +578,7 @@ public sealed partial class Scene
         }
 
         _destroyAction?.SafeInvoke(entity);
-        var tables = Tables()
-            .WithHidden()
-            .AsValueEnumerable()
-            .Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
+        var tables = Tables(withHidden: true).Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
         var entityTables = entity
             .Tables()
             .WithHidden()
@@ -729,7 +717,7 @@ public sealed partial class Scene
 
     private void UpdateInterpolatedEntities()
     {
-        foreach (var entity in AssignableEntities<IInterpolated>().WithDisabled())
+        foreach (var entity in AssignableEntities<IInterpolated>(withDisabled: true))
         {
             ref var interpolation = ref InterpolationTable.GetRef(entity).Value;
             var transform = entity.Transform;
@@ -899,7 +887,7 @@ public sealed partial class Scene
         private readonly Scene _scene;
         private bool _withHidden;
 
-        internal TableEnumerable(Scene scene)
+        public TableEnumerable(Scene scene)
         {
             _scene = scene;
         }
@@ -1011,7 +999,7 @@ public sealed partial class Scene
         private readonly Scene _scene;
         private bool _withHidden;
 
-        internal TableEnumerable(Scene scene)
+        public TableEnumerable(Scene scene)
         {
             _scene = scene;
         }
@@ -1021,7 +1009,15 @@ public sealed partial class Scene
             return new TableEnumerator<T>(_scene, _withHidden);
         }
 
-        public ValueEnumerable<StructEnumerator<TableEnumerator<T>, Table>, Table> AsValueEnumerable()
+        public ValueEnumerable<TableEnumerator<T>, Table> AsValueEnumerable()
+        {
+            return new ValueEnumerable<TableEnumerator<T>, Table>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<TableEnumerator<T>, Table>, Table> IStructEnumerable<
+            TableEnumerator<T>,
+            Table
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<TableEnumerator<T>, Table>(GetEnumerator());
         }
@@ -1034,7 +1030,7 @@ public sealed partial class Scene
         }
     }
 
-    public struct TableEnumerator<T> : IStructEnumerator<Table>
+    public struct TableEnumerator<T> : IStructEnumerator<Table>, IValueEnumerator<Table>
     {
         private readonly Scene _scene;
         private readonly bool _withHidden;
@@ -1063,7 +1059,7 @@ public sealed partial class Scene
 
         public void Reset()
         {
-            _enumerator = _scene.Tables().WithHidden(_withHidden).GetEnumerator();
+            _enumerator = new TableEnumerable(_scene).WithHidden(_withHidden).GetEnumerator();
             Current = null!;
         }
 
@@ -1073,13 +1069,39 @@ public sealed partial class Scene
         {
             _enumerator.Dispose();
         }
+
+        public bool TryGetNext(out Table current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = 0;
+            return false;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<Table> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<Table> destination, Index offset)
+        {
+            return false;
+        }
     }
 
     public readonly struct SystemEnumerable : IStructEnumerable<SystemEnumerator, IGameSystem>
     {
         private readonly Scene _scene;
 
-        internal SystemEnumerable(Scene scene)
+        public SystemEnumerable(Scene scene)
         {
             _scene = scene;
         }
@@ -1170,7 +1192,7 @@ public sealed partial class Scene
     {
         private readonly Scene _scene;
 
-        internal SystemEnumerable(Scene scene)
+        public SystemEnumerable(Scene scene)
         {
             _scene = scene;
         }
@@ -1180,13 +1202,21 @@ public sealed partial class Scene
             return new SystemEnumerator<T>(_scene);
         }
 
-        public ValueEnumerable<StructEnumerator<SystemEnumerator<T>, T>, T> AsValueEnumerable()
+        public ValueEnumerable<SystemEnumerator<T>, T> AsValueEnumerable()
+        {
+            return new ValueEnumerable<SystemEnumerator<T>, T>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<SystemEnumerator<T>, T>, T> IStructEnumerable<
+            SystemEnumerator<T>,
+            T
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<SystemEnumerator<T>, T>(GetEnumerator());
         }
     }
 
-    public struct SystemEnumerator<T> : IStructEnumerator<T>
+    public struct SystemEnumerator<T> : IStructEnumerator<T>, IValueEnumerator<T>
         where T : IGameSystem
     {
         private readonly Scene _scene;
@@ -1213,7 +1243,7 @@ public sealed partial class Scene
 
         public void Reset()
         {
-            _enumerator = _scene.Systems().GetEnumerator();
+            _enumerator = new SystemEnumerable(_scene).GetEnumerator();
             Current = default!;
         }
 
@@ -1222,6 +1252,32 @@ public sealed partial class Scene
         public void Dispose()
         {
             _enumerator.Dispose();
+        }
+
+        public bool TryGetNext(out T current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = 0;
+            return false;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<T> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<T> destination, Index offset)
+        {
+            return false;
         }
     }
 

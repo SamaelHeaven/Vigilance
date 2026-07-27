@@ -1,5 +1,3 @@
-using Vigilance.Core;
-
 namespace Vigilance.Logging;
 
 public sealed class LoggingConfig

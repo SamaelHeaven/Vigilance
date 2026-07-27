@@ -1,5 +1,3 @@
-using Vigilance.Math;
-
 namespace Vigilance.Core;
 
 public record struct Scale(Vector2 Value)

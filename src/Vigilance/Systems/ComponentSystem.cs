@@ -1,7 +1,3 @@
-using Vigilance.Core;
-using Vigilance.Drawing;
-using Vigilance.Logging;
-
 namespace Vigilance.Systems;
 
 public sealed class ComponentSystem : GameSystem

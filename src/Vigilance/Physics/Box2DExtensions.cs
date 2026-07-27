@@ -1,8 +1,5 @@
 using System.Runtime.CompilerServices;
 using Box2D.NET;
-using Vigilance.Collections;
-using Vigilance.Drawing;
-using Vigilance.Math;
 
 namespace Vigilance.Physics;
 

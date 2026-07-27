@@ -1,6 +1,3 @@
-using Vigilance.Core;
-using Vigilance.Math;
-
 namespace Vigilance.Physics;
 
 public record struct WorldDef

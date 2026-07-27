@@ -1,5 +1,3 @@
-using System.Numerics;
-
 namespace Vigilance.Math;
 
 public record struct Box

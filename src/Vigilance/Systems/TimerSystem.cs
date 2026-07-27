@@ -1,7 +1,3 @@
-using Vigilance.Collections;
-using Vigilance.Core;
-using Timer = Vigilance.Core.Timer;
-
 namespace Vigilance.Systems;
 
 public sealed class TimerSystem : GameSystem

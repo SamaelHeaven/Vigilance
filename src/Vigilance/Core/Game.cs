@@ -3,9 +3,6 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Raylib_cs;
-using Vigilance.Drawing;
-using Vigilance.Input;
-using Vigilance.Logging;
 using Music = Vigilance.Audio.Music;
 using Sound = Vigilance.Audio.Sound;
 

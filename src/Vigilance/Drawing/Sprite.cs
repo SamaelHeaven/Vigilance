@@ -1,6 +1,3 @@
-using Vigilance.Logging;
-using Vigilance.Math;
-
 namespace Vigilance.Drawing;
 
 public sealed class Sprite : Drawable<Sprite>

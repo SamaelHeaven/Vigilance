@@ -2,8 +2,6 @@ using System.Globalization;
 using System.Runtime;
 using System.Runtime.CompilerServices;
 using Raylib_cs;
-using Vigilance.Logging;
-using Vigilance.Physics;
 using Font = Vigilance.Drawing.Font;
 
 namespace Vigilance.Core;
