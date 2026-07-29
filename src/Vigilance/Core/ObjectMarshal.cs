@@ -62,14 +62,20 @@ public static class ObjectMarshal
 
     public static void Write(object source, object dest)
     {
-        if (source.GetType() != dest.GetType())
-            throw new InvalidOperationException(
-                $"Source type ({source.GetType()}) does not match dest type ({dest.GetType()})."
-            );
         var size = GetRawObjectDataSize(null, dest);
+        Debug.Assert(size == GetRawObjectDataSize(null, source));
         ref var sourceData = ref GetRawData(source);
         ref var destData = ref GetRawData(dest);
         BulkMoveWithWriteBarrier(null, ref destData, ref sourceData, size);
+    }
+
+    public static void Write(object source, object dest, int size)
+    {
+        Debug.Assert((uint)size == GetRawObjectDataSize(null, dest));
+        Debug.Assert((uint)size == GetRawObjectDataSize(null, source));
+        ref var sourceData = ref GetRawData(source);
+        ref var destData = ref GetRawData(dest);
+        BulkMoveWithWriteBarrier(null, ref destData, ref sourceData, (uint)size);
     }
 
     [SuppressMessage("ReSharper", "ClassNeverInstantiated.Local")]

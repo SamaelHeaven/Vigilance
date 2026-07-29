@@ -60,6 +60,17 @@ public readonly ref partial struct RenderCommands
             Add(system, entity, component, action);
     }
 
+    public void AddTableEntries<TSystem, TComponent>(
+        TSystem system,
+        Action<TSystem, Entity, TComponent> action,
+        bool withHidden = false
+    )
+        where TSystem : GameSystem
+    {
+        foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
+            table.AddRenderCommands(this, system, action);
+    }
+
     internal void Execute()
     {
         var scene = Scene;

@@ -6,6 +6,7 @@ public sealed class AnimationSystem() : GameSystem(queryWithDisabled: true)
 
     public override void Update()
     {
+        var delta = Time.Delta;
         Scene.BeginDefer();
         try
         {
@@ -14,7 +15,7 @@ public sealed class AnimationSystem() : GameSystem(queryWithDisabled: true)
                 {
                     if (animation.IsPaused)
                         continue;
-                    animation.Update();
+                    animation.Update(delta);
                     if (animation.IsPaused)
                         continue;
                     _resume.Add(animation);

@@ -68,6 +68,13 @@ public abstract class Table
 
     public abstract bool Remove(in Entity entity, out object component, Flags flags = Flags.None);
 
+    public abstract void AddRenderCommands<TSystem, TComponent>(
+        RenderCommands commands,
+        TSystem system,
+        Action<TSystem, Entity, TComponent> action
+    )
+        where TSystem : GameSystem;
+
     internal abstract void DequeueOperation();
 
     internal abstract void DequeueEvent();
@@ -113,6 +120,7 @@ public sealed class Table<T>
         IStructEnumerable<Table<T>.Enumerator, KeyValuePair<Entity, T>>
 {
     private const int SparseChunkSize = 2048;
+    private static readonly object _boxed = default(T)!;
     private Action<Entity, T>? _addAction;
     private ValueList<T> _components = [];
     private ValueList<EntityId> _entityIds = [];
@@ -359,7 +367,7 @@ public sealed class Table<T>
                 return false;
             else
                 throw new InvalidOperationException(
-                    $"Cannot remove {Type} because it implements {nameof(IRemoveImmutableComponent)}."
+                    $"Cannot remove {typeof(T)} because it implements {nameof(IRemoveImmutableComponent)}."
                 );
         if (Scene.IsDeferred)
         {
@@ -430,7 +438,7 @@ public sealed class Table<T>
                 return ComponentRef<T>.Null;
             else
                 throw new InvalidOperationException(
-                    $"Cannot set {Type} because it implements {nameof(IAddImmutableComponent)} and {nameof(ISetImmutableComponent)}."
+                    $"Cannot set {typeof(T)} because it implements {nameof(IAddImmutableComponent)} and {nameof(ISetImmutableComponent)}."
                 );
         if (!typeof(T).IsValueType)
         {
@@ -458,7 +466,7 @@ public sealed class Table<T>
                     return ComponentRef<T>.Null;
                 else
                     throw new InvalidOperationException(
-                        $"Cannot add {Type} because it implements {nameof(IAddImmutableComponent)}."
+                        $"Cannot add {typeof(T)} because it implements {nameof(IAddImmutableComponent)}."
                     );
             var index = _components.Count + 1;
             _components.Add(component);
@@ -474,7 +482,7 @@ public sealed class Table<T>
                 return ComponentRef<T>.Null;
             else
                 throw new InvalidOperationException(
-                    $"Cannot set {Type} because it implements {nameof(ISetImmutableComponent)}."
+                    $"Cannot set {typeof(T)} because it implements {nameof(ISetImmutableComponent)}."
                 );
         var denseIndex = sparseValue - 1;
         ref var componentRef = ref _components[denseIndex];
@@ -482,6 +490,58 @@ public sealed class Table<T>
         componentRef = component;
         Emit(Event<T>.Set(entity, oldValue, component));
         return new ComponentRef<T>(ref componentRef!, denseIndex);
+    }
+
+    public override void AddRenderCommands<TSystem, TComponent>(
+        RenderCommands commands,
+        TSystem system,
+        Action<TSystem, Entity, TComponent> action
+    )
+    {
+        if (!typeof(TComponent).IsAssignableFrom(typeof(T)))
+            throw new InvalidOperationException($"{typeof(T)} is not assignable to {typeof(TComponent)}");
+        if (typeof(TComponent) == typeof(T) || !typeof(T).IsValueType)
+        {
+            foreach (var (entity, component) in system.Entries<T>())
+            {
+                var componentRef = component;
+                commands.Add(system, entity, Unsafe.As<T, TComponent>(ref componentRef), action);
+            }
+
+            return;
+        }
+
+        AddBoxedRenderCommands(commands, system, action);
+    }
+
+    private static void AddBoxedRenderCommands<TSystem, TComponent>(
+        RenderCommands commands,
+        TSystem system,
+        Action<TSystem, Entity, TComponent> action
+    )
+        where TSystem : GameSystem
+    {
+        // ReSharper disable once VariableHidesOuterVariable
+        commands.AddEntries(
+            system,
+            (TSystem system, Entity entity, T component) =>
+            {
+                var boxed = _boxed;
+                ref var data = ref Unsafe.As<object, Data>(ref boxed);
+                data.Value = component;
+                action.Invoke(system, entity, (TComponent)boxed);
+            }
+        );
+
+        commands.Add(
+            () =>
+            {
+                var boxed = _boxed;
+                ref var data = ref Unsafe.As<object, Data>(ref boxed);
+                data.Value = default!;
+            },
+            ulong.MaxValue
+        );
     }
 
     internal override void DequeueOperation()
@@ -530,6 +590,13 @@ public sealed class Table<T>
             return;
         var chunk = new int[SparseChunkSize];
         _sparseChunks[chunkIndex] = chunk;
+    }
+
+    [SuppressMessage("ReSharper", "NotAccessedField.Local")]
+    [SuppressMessage("ReSharper", "ClassNeverInstantiated.Local")]
+    private sealed class Data
+    {
+        public required T Value;
     }
 
     private enum OperationType : sbyte
