@@ -396,7 +396,7 @@ public sealed unsafe partial class Shader : IDisposable
 
     ~Shader()
     {
-        Game.Defer(ReleaseUnmanagedResources);
+        Game.RunLater(ReleaseUnmanagedResources);
     }
 
     [GeneratedRegex(@"^\s*#version\s+(\S+)\s*$", RegexOptions.IgnoreCase | RegexOptions.Multiline)]

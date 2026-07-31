@@ -2,7 +2,7 @@ namespace Vigilance.UI;
 
 public class UISprite : UIContainer
 {
-    private Sprite _sprite = new();
+    private ValueSprite _sprite = new();
 
     public UISprite() { }
 
@@ -64,10 +64,5 @@ public class UISprite : UIContainer
     {
         _sprite.Camera = camera;
         graphics.DrawSprite(LayoutPosition, LayoutSize, _sprite);
-    }
-
-    protected override void OnClone()
-    {
-        _sprite = _sprite.DeepClone();
     }
 }

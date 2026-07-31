@@ -4,118 +4,48 @@ public sealed class ComponentSystem : GameSystem
 {
     public override void PreUpdate()
     {
-        foreach (var (entity, component) in AssignableEntries<IPreUpdatable>())
-            try
-            {
-                component.PreUpdate(entity);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        ForEach<IPreUpdatable>((entity, component) => component.PreUpdate(entity));
     }
 
     public override void Update()
     {
-        foreach (var (entity, component) in AssignableEntries<IUpdatable>())
-            try
-            {
-                component.Update(entity);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        ForEach<IUpdatable>((entity, component) => component.Update(entity));
     }
 
     public override void PostUpdate()
     {
-        foreach (var (entity, component) in AssignableEntries<IPostUpdatable>())
-            try
-            {
-                component.PostUpdate(entity);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        ForEach<IPostUpdatable>((entity, component) => component.PostUpdate(entity));
     }
 
     public override void PreFixedUpdate()
     {
-        foreach (var (entity, component) in AssignableEntries<IPreFixedUpdatable>())
-            try
-            {
-                component.PreFixedUpdate(entity);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        ForEach<IPreFixedUpdatable>((entity, component) => component.PreFixedUpdate(entity));
     }
 
     public override void FixedUpdate()
     {
-        foreach (var (entity, component) in AssignableEntries<IFixedUpdatable>())
-            try
-            {
-                component.FixedUpdate(entity);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        ForEach<IFixedUpdatable>((entity, component) => component.FixedUpdate(entity));
     }
 
     public override void PostFixedUpdate()
     {
-        foreach (var (entity, component) in AssignableEntries<IPostFixedUpdatable>())
-            try
-            {
-                component.PostFixedUpdate(entity);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        ForEach<IPostFixedUpdatable>((entity, component) => component.PostFixedUpdate(entity));
     }
 
     public override void PreRender()
     {
-        foreach (var (entity, component) in AssignableEntries<IPreRenderable>())
-            try
-            {
-                component.PreRender(entity);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        ForEach<IPreRenderable>((entity, component) => component.PreRender(entity));
     }
 
     public override void Render(RenderCommands commands)
     {
-        foreach (var (entity, component) in AssignableEntries<IRenderable>())
-            try
-            {
-                component.Render(entity, commands);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        ForEach<ComponentSystem, IRenderable>(
+            (system, entity, component) => component.Render(entity, new RenderCommands(system.Scene))
+        );
     }
 
     public override void PostRender()
     {
-        foreach (var (entity, component) in AssignableEntries<IPostRenderable>())
-            try
-            {
-                component.PostRender(entity);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        ForEach<IPostRenderable>((entity, component) => component.PostRender(entity));
     }
 }

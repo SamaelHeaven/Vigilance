@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-public abstract class Drawable : IDrawable, IFullCloneable
+public struct Drawable<TSelf>
 {
     public CameraProvider Camera { get; set; } = Drawing.DefaultCamera;
     public Vector2 Position { get; set; } = Vector2.Zero;
@@ -11,10 +11,14 @@ public abstract class Drawable : IDrawable, IFullCloneable
     public Shader? Shader { get; set; } = null;
     public ShapeTexture? ShapeTexture { get; set; } = null;
     public bool? Culling { get; set; } = null;
+    public Action<Transform, TSelf, Graphics>? OnBeginDrawing { get; set; } = null;
+    public Action<Transform, TSelf, Graphics>? OnEndDrawing { get; set; } = null;
+
+    public Drawable() { }
 
     public Transform Transform
     {
-        get => new(Position, Scale, Rotation, PivotPoint);
+        readonly get => new(Position, Scale, Rotation, PivotPoint);
         set
         {
             Position = value.Position;
@@ -24,13 +28,15 @@ public abstract class Drawable : IDrawable, IFullCloneable
         }
     }
 
-    public abstract void Draw(Transform transform, Graphics graphics);
-
-    public static DrawScope<T> EnterDrawing<T>(ref Transform transform, T drawable, Graphics graphics)
-        where T : Drawable<T>
+    public static DrawScope EnterDrawing(
+        scoped ref Transform transform,
+        in Drawable<TSelf> drawable,
+        in TSelf self,
+        Graphics graphics
+    )
     {
         var originalTransform = transform;
-        drawable.OnBeginDrawing?.SafeInvoke(originalTransform, drawable, graphics);
+        drawable.OnBeginDrawing?.Invoke(originalTransform, self, graphics);
         BlendMode? previousBlendMode = null;
         Shader? previousShader = null;
         ShapeTexture? previousShapeTexture = null;
@@ -45,9 +51,10 @@ public abstract class Drawable : IDrawable, IFullCloneable
             previousCulling = graphics.SetCulling(drawable.Culling.Value);
         transform += drawable.Transform;
         graphics.PushMatrix();
-        return new DrawScope<T>(
+        return new DrawScope(
             originalTransform,
-            drawable,
+            in self,
+            in drawable,
             graphics,
             previousBlendMode,
             previousShader,
@@ -56,36 +63,38 @@ public abstract class Drawable : IDrawable, IFullCloneable
         );
     }
 
-    public readonly record struct DrawScope<T>(
-        in Transform Transform,
-        T Drawable,
-        Graphics Graphics,
-        BlendMode? PreviousBlendMode = null,
-        Shader? PreviousShader = null,
-        ShapeTexture? PreviousShapeTexture = null,
-        bool? PreviousCulling = null
+    public readonly ref struct DrawScope(
+        scoped in Transform transform,
+        ref readonly TSelf self,
+        ref readonly Drawable<TSelf> drawable,
+        Graphics graphics,
+        BlendMode? previousBlendMode = null,
+        Shader? previousShader = null,
+        scoped in ShapeTexture? previousShapeTexture = null,
+        bool? previousCulling = null
     ) : IDisposable
-        where T : Drawable<T>
     {
+        private readonly Transform _transform = transform;
+        private readonly ref readonly TSelf _self = ref self;
+        private readonly ref readonly Drawable<TSelf> _drawable = ref drawable;
+        private readonly Graphics _graphics = graphics;
+        private readonly BlendMode? _previousBlendMode = previousBlendMode;
+        private readonly Shader? _previousShader = previousShader;
+        private readonly ShapeTexture? _previousShapeTexture = previousShapeTexture;
+        private readonly bool? _previousCulling = previousCulling;
+
         public void Dispose()
         {
-            Graphics.PopMatrix();
-            if (PreviousBlendMode.HasValue)
-                Graphics.SetBlendMode(PreviousBlendMode.Value);
-            if (PreviousShader is not null)
-                Graphics.SetShader(PreviousShader);
-            if (Drawable.ShapeTexture is not null)
-                Graphics.SetShapeTexture(PreviousShapeTexture);
-            if (PreviousCulling.HasValue)
-                Graphics.SetCulling(PreviousCulling.Value);
-            Drawable.OnEndDrawing?.SafeInvoke(Transform, Drawable, Graphics);
+            _graphics.PopMatrix();
+            if (_previousBlendMode.HasValue)
+                _graphics.SetBlendMode(_previousBlendMode.Value);
+            if (_previousShader is not null)
+                _graphics.SetShader(_previousShader);
+            if (_drawable.ShapeTexture is not null)
+                _graphics.SetShapeTexture(_previousShapeTexture);
+            if (_previousCulling.HasValue)
+                _graphics.SetCulling(_previousCulling.Value);
+            _drawable.OnEndDrawing?.Invoke(_transform, _self, _graphics);
         }
     }
-}
-
-public abstract class Drawable<TSelf> : Drawable
-    where TSelf : Drawable<TSelf>
-{
-    public Action<Transform, TSelf, Graphics>? OnBeginDrawing { get; set; } = null;
-    public Action<Transform, TSelf, Graphics>? OnEndDrawing { get; set; } = null;
 }

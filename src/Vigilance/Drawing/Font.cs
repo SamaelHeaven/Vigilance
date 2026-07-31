@@ -7,6 +7,7 @@ namespace Vigilance.Drawing;
 
 public sealed unsafe class Font : IDisposable
 {
+    public const int UnlimitedCharacters = -1;
     private const int AtlasSpacing = 4;
     private const int AtlasNbCols = 10;
     private static readonly FreeTypeLibrary _ftLibrary = new();
@@ -76,7 +77,7 @@ public sealed unsafe class Font : IDisposable
         float? fontSize = null,
         in Vector2? spacing = null,
         TextHeightMode? textHeightMode = null,
-        int visibleCharacters = Text.UnlimitedCharacters
+        int visibleCharacters = UnlimitedCharacters
     )
     {
         var fontSizeValue = fontSize ?? DefaultSize;
@@ -123,7 +124,7 @@ public sealed unsafe class Font : IDisposable
         string text,
         float? fontSize = null,
         in Vector2? spacing = null,
-        int visibleCharacters = Text.UnlimitedCharacters,
+        int visibleCharacters = UnlimitedCharacters,
         ValueDictionaryView<Rune, GlyphInfo> glyphInfos = default
     )
     {
@@ -293,7 +294,7 @@ public sealed unsafe class Font : IDisposable
 
     ~Font()
     {
-        Game.Defer(Dispose);
+        Game.RunLater(Dispose);
     }
 
     private void ReleaseUnmanagedResources()

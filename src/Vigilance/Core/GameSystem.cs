@@ -16,6 +16,8 @@ public interface IGameSystem : IComparable<IGameSystem>
 
 public abstract partial class GameSystem : IGameSystem
 {
+    private Scene _scene = null!;
+
     protected GameSystem(
         bool isDisabled = false,
         int order = 0,
@@ -29,7 +31,12 @@ public abstract partial class GameSystem : IGameSystem
         QueryDeferred = queryDeferred;
     }
 
-    public Scene Scene { get; private set; } = null!;
+    public Scene Scene
+    {
+        get => _scene;
+        protected init => _scene = value;
+    }
+
     public bool IsDisabled { get; set; }
     public bool QueryWithDisabled { get; set; }
     public bool QueryDeferred { get; protected set; }
@@ -37,7 +44,7 @@ public abstract partial class GameSystem : IGameSystem
 
     public void Configure(Scene scene)
     {
-        Scene = scene;
+        _scene = scene;
         var baseType = typeof(GameSystem);
         var initialize = Initialize;
         var start = Start;
@@ -136,6 +143,141 @@ public abstract partial class GameSystem : IGameSystem
     public virtual void WorldSensorBegin(Shape sensor, Shape visitor) { }
 
     public virtual void WorldSensorEnd(Shape sensor, Shape visitor) { }
+
+    public void ForEach<TComponent>(Action<TComponent> action, bool withHidden = false)
+    {
+        if (typeof(TComponent).IsValueType || typeof(TComponent).IsSealed)
+        {
+            Scene.Table<TComponent>().ForEach(this, action);
+            return;
+        }
+
+        if (QueryDeferred)
+            Scene.BeginDefer();
+        try
+        {
+            foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
+                table.ForEach(this, action);
+        }
+        finally
+        {
+            if (QueryDeferred)
+                Scene.EndDefer();
+        }
+    }
+
+    public void ForEach<TSelf, TComponent>(Action<TSelf, TComponent> action, bool withHidden = false)
+        where TSelf : GameSystem
+    {
+        if (typeof(TComponent).IsValueType || typeof(TComponent).IsSealed)
+        {
+            Scene.Table<TComponent>().ForEach((TSelf)this, action);
+            return;
+        }
+
+        if (QueryDeferred)
+            Scene.BeginDefer();
+        try
+        {
+            foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
+                table.ForEach((TSelf)this, action);
+        }
+        finally
+        {
+            if (QueryDeferred)
+                Scene.EndDefer();
+        }
+    }
+
+    public void ForEach<TComponent>(Action<Entity> action, bool withHidden = false)
+    {
+        if (typeof(TComponent).IsValueType || typeof(TComponent).IsSealed)
+        {
+            Scene.Table<TComponent>().ForEach(this, action);
+            return;
+        }
+
+        if (QueryDeferred)
+            Scene.BeginDefer();
+        try
+        {
+            foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
+                table.ForEach(this, action);
+        }
+        finally
+        {
+            if (QueryDeferred)
+                Scene.EndDefer();
+        }
+    }
+
+    public void ForEach<TSelf, TComponent>(Action<TSelf, Entity> action, bool withHidden = false)
+        where TSelf : GameSystem
+    {
+        if (typeof(TComponent).IsValueType || typeof(TComponent).IsSealed)
+        {
+            Scene.Table<TComponent>().ForEach((TSelf)this, action);
+            return;
+        }
+
+        if (QueryDeferred)
+            Scene.BeginDefer();
+        try
+        {
+            foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
+                table.ForEach((TSelf)this, action);
+        }
+        finally
+        {
+            if (QueryDeferred)
+                Scene.EndDefer();
+        }
+    }
+
+    public void ForEach<TComponent>(Action<Entity, TComponent> action, bool withHidden = false)
+    {
+        if (typeof(TComponent).IsValueType || typeof(TComponent).IsSealed)
+        {
+            Scene.Table<TComponent>().ForEach(this, action);
+            return;
+        }
+
+        if (QueryDeferred)
+            Scene.BeginDefer();
+        try
+        {
+            foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
+                table.ForEach(this, action);
+        }
+        finally
+        {
+            if (QueryDeferred)
+                Scene.EndDefer();
+        }
+    }
+
+    public void ForEach<TSelf, TComponent>(Action<TSelf, Entity, TComponent> action, bool withHidden = false)
+        where TSelf : GameSystem
+    {
+        if (typeof(TComponent).IsValueType || typeof(TComponent).IsSealed)
+        {
+            Scene.Table<TComponent>().ForEach((TSelf)this, action);
+            return;
+        }
+
+        if (QueryDeferred)
+            Scene.BeginDefer();
+        try
+        {
+            foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
+                table.ForEach((TSelf)this, action);
+        }
+        finally
+        {
+            if (QueryDeferred)
+                Scene.EndDefer();
+        }
+    }
 
     private void InternalPreUpdate()
     {

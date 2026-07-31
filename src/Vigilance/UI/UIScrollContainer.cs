@@ -5,8 +5,8 @@ namespace Vigilance.UI;
 public class UIScrollContainer : UIContainer
 {
     private bool _layout = false;
-    private Rectangle _scrollBarThumbRectangle = new();
-    private Rectangle _scrollBarTrackRectangle = new();
+    private ValueRectangle _scrollBarThumbRectangle = new();
+    private ValueRectangle _scrollBarTrackRectangle = new();
     private float? _thumbMouseDownX = null;
     private float? _thumbMouseDownY = null;
 
@@ -422,12 +422,6 @@ public class UIScrollContainer : UIContainer
         }
 
         _layout = false;
-    }
-
-    protected override void OnClone()
-    {
-        _scrollBarTrackRectangle = _scrollBarTrackRectangle.DeepClone();
-        _scrollBarThumbRectangle = _scrollBarThumbRectangle.DeepClone();
     }
 
     protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraProvider camera)

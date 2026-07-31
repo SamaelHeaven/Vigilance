@@ -4,11 +4,11 @@ namespace Vigilance.UI;
 
 public class UIText : UIElement
 {
-    private Text _text = new();
+    private ValueText _text = new();
 
     public UIText()
     {
-        Value = "";
+        Content = "";
     }
 
     public UIText(Color fill)
@@ -17,18 +17,18 @@ public class UIText : UIElement
         Fill = fill;
     }
 
-    public UIText(string value)
+    public UIText(string content)
     {
-        Value = value;
+        Content = content;
     }
 
-    public UIText(string value, Color fill)
-        : this(value)
+    public UIText(string content, Color fill)
+        : this(content)
     {
         Fill = fill;
     }
 
-    public string Value
+    public string Content
     {
         get;
         set
@@ -106,7 +106,7 @@ public class UIText : UIElement
             field = value;
             MarkDirty();
         }
-    } = Text.UnlimitedCharacters;
+    } = Font.UnlimitedCharacters;
 
     public TextHeightMode HeightMode
     {
@@ -144,11 +144,6 @@ public class UIText : UIElement
         graphics.DrawText(LayoutPosition, _text);
     }
 
-    protected override void OnClone()
-    {
-        _text = _text.DeepClone();
-    }
-
     protected override Vector2 Measure(float width, MeasureMode widthMode, float height, MeasureMode heightMode)
     {
         var maxWidth = widthMode == MeasureMode.Undefined ? float.PositiveInfinity : width;
@@ -156,22 +151,22 @@ public class UIText : UIElement
         switch (TextOverflow)
         {
             case TextOverflow.Clip:
-                _text.Value = Value;
+                _text.Content = Content;
                 return _text.Size;
             case TextOverflow.Ellipsis:
             {
                 const string ellipsis = "...";
-                _text.Value = Value;
+                _text.Content = Content;
                 if (_text.Size.X <= maxWidth)
                     return _text.Size;
                 var left = 0;
-                var right = Value.Length;
+                var right = Content.Length;
                 var result = "";
                 while (left <= right)
                 {
                     var mid = (left + right) / 2;
-                    var candidate = string.Concat(Value.AsSpan(0, mid), ellipsis);
-                    _text.Value = candidate;
+                    var candidate = string.Concat(Content.AsSpan(0, mid), ellipsis);
+                    _text.Content = candidate;
                     if (_text.Size.X <= maxWidth)
                     {
                         result = candidate;
@@ -183,25 +178,25 @@ public class UIText : UIElement
                     }
                 }
 
-                _text.Value = result;
+                _text.Content = result;
                 return _text.Size;
             }
             case TextOverflow.WrapCharacters:
             {
-                var initialCapacity = (int)(Value.Length * 1.25f);
+                var initialCapacity = (int)(Content.Length * 1.25f);
                 using var lines =
                     initialCapacity <= 256
                         ? new ValueStringBuilder(stackalloc char[initialCapacity])
                         : new ValueStringBuilder(initialCapacity);
                 using var currentLine =
-                    Value.Length <= 256
-                        ? new ValueStringBuilder(stackalloc char[Value.Length])
-                        : new ValueStringBuilder(Value.Length);
+                    Content.Length <= 256
+                        ? new ValueStringBuilder(stackalloc char[Content.Length])
+                        : new ValueStringBuilder(Content.Length);
                 var hasLines = false;
-                foreach (var character in Value)
+                foreach (var character in Content)
                 {
                     var candidate = string.Concat(currentLine.AsSpan(), character.ToString());
-                    _text.Value = candidate;
+                    _text.Content = candidate;
                     if (_text.Size.X > maxWidth && !currentLine.IsEmpty)
                     {
                         if (hasLines)
@@ -235,29 +230,29 @@ public class UIText : UIElement
                     lines.Append(currentLine.AsSpan());
                 }
 
-                _text.Value = lines.ToString();
+                _text.Content = lines.ToString();
                 return _text.Size;
             }
             case TextOverflow.WrapWords:
             default:
             {
-                var initialCapacity = (int)(Value.Length * 1.25f);
+                var initialCapacity = (int)(Content.Length * 1.25f);
                 using var lines =
                     initialCapacity <= 256
                         ? new ValueStringBuilder(stackalloc char[initialCapacity])
                         : new ValueStringBuilder(initialCapacity);
                 using var currentLine =
-                    Value.Length <= 256
-                        ? new ValueStringBuilder(stackalloc char[Value.Length])
-                        : new ValueStringBuilder(Value.Length);
+                    Content.Length <= 256
+                        ? new ValueStringBuilder(stackalloc char[Content.Length])
+                        : new ValueStringBuilder(Content.Length);
                 var hasLines = false;
-                foreach (var range in Value.AsSpan().Split(' '))
+                foreach (var range in Content.AsSpan().Split(' '))
                 {
-                    var word = Value.AsSpan(range);
+                    var word = Content.AsSpan(range);
                     var candidate = currentLine.IsEmpty
                         ? word.ToString()
                         : string.Concat(currentLine.AsSpan(), " ", word);
-                    _text.Value = candidate;
+                    _text.Content = candidate;
                     if (_text.Size.X > maxWidth && !currentLine.IsEmpty)
                     {
                         if (hasLines)
@@ -291,7 +286,7 @@ public class UIText : UIElement
                     lines.Append(currentLine.AsSpan());
                 }
 
-                _text.Value = lines.ToString();
+                _text.Content = lines.ToString();
                 return _text.Size;
             }
         }

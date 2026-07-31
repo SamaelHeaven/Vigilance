@@ -6,8 +6,8 @@ namespace Vigilance.Drawing;
 public record struct SpriteAnimationFrame : IAnimationFrame
 {
     public Texture? Texture { get; set; }
-    public Wrapper<Action<Transform, Sprite, Graphics>?>? OnBeginDrawing { get; set; }
-    public Wrapper<Action<Transform, Sprite, Graphics>?>? OnEndDrawing { get; set; }
+    public Wrapper<Action<Transform, ValueSprite, Graphics>?>? OnBeginDrawing { get; set; }
+    public Wrapper<Action<Transform, ValueSprite, Graphics>?>? OnEndDrawing { get; set; }
     public Wrapper<Box?>? Source { get; set; }
     public Wrapper<NPatchInfo?>? NPatchInfo { get; set; }
     public Wrapper<BlendMode?>? BlendMode { get; set; }
@@ -36,11 +36,13 @@ public record struct SpriteAnimationFrame : IAnimationFrame
 
     public readonly void Apply(Entity entity)
     {
+        if (entity.TryGetRef(out ComponentRef<ValueSprite> spriteRef))
+            Apply(ref spriteRef.Write);
         if (entity.TryGet(out Sprite sprite))
-            Apply(sprite);
+            Apply(ref sprite.Value);
     }
 
-    public readonly void Apply(Sprite sprite)
+    public readonly void Apply(ref ValueSprite sprite)
     {
         if (Texture is not null)
             sprite.Texture = Texture;

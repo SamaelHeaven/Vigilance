@@ -249,7 +249,7 @@ public sealed unsafe class VertexBuffer<T> : IList<T>, IValueListView<T>, IDispo
     private void ReleaseUnmanagedResources()
     {
         if (Id != 0)
-            Game.Defer(() => Rlgl.UnloadVertexBuffer(Id));
+            Game.RunLater(() => Rlgl.UnloadVertexBuffer(Id));
     }
 
     ~VertexBuffer()

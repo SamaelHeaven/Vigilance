@@ -23,7 +23,15 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
                 AllowMultiple = false,
                 Inherited = false
             )]
-            internal sealed class ValueWrapperAttribute<TValue> : System.Attribute;
+            internal sealed class ValueWrapperAttribute<TValue> : System.Attribute
+            {
+                public ValueWrapperAttribute(string fieldName = "Value")
+                {
+                    FieldName = fieldName;
+                }
+                
+                public string FieldName { get; }
+            }
         }
 
         #nullable restore
@@ -75,10 +83,12 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
             return null;
         if (context.Attributes.Length == 0)
             return null;
-        if (context.Attributes[0].AttributeClass is not { TypeArguments.Length: 1 } attributeClass)
+        var attribute = context.Attributes[0];
+        if (attribute.AttributeClass is not { TypeArguments.Length: 1 } attributeClass)
             return null;
         if (attributeClass.TypeArguments[0] is not INamedTypeSymbol wrapped || wrapped.TypeKind == TypeKind.Error)
             return null;
+        var fieldName = (string)attribute.ConstructorArguments[0].Value!;
         var sb = new StringBuilder();
         sb.AppendLine("#nullable enable");
         sb.AppendLine();
@@ -103,10 +113,14 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
             indent += "    ";
         }
 
+        if (wrapper is { IsValueType: true, IsRefLikeType: false } && !HasStructLayout(wrapper))
+            sb.AppendLine(
+                $"{indent}[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Auto)]"
+            );
         sb.AppendLine($"{indent}partial {TypeHeader(wrapper)}");
         sb.AppendLine($"{indent}{{");
         var body = indent + "    ";
-        EmitBody(sb, body, wrapper, wrapped);
+        EmitBody(sb, body, wrapper, wrapped, fieldName);
         sb.AppendLine($"{indent}}}");
         while (closers.Count > 0)
             sb.AppendLine(closers.Pop());
@@ -116,7 +130,13 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         return (hint, sb.ToString());
     }
 
-    private static void EmitBody(StringBuilder sb, string indent, INamedTypeSymbol wrapper, INamedTypeSymbol wrapped)
+    private static void EmitBody(
+        StringBuilder sb,
+        string indent,
+        INamedTypeSymbol wrapper,
+        INamedTypeSymbol wrapped,
+        string fieldName
+    )
     {
         var valueNames = new HashSet<string>();
         var methodNames = new HashSet<string>();
@@ -150,17 +170,17 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
             }
 
         var wrappedType = wrapped.ToDisplayString(_typeFormat);
-        if (valueNames.Add("Value") && !methodNames.Contains("Value"))
-            sb.AppendLine($"{indent}public {wrappedType} Value;");
+        if (valueNames.Add(fieldName) && !methodNames.Contains(fieldName))
+            sb.AppendLine($"{indent}public {wrappedType} {fieldName};");
         else
-            valueNames.Add("Value");
+            valueNames.Add(fieldName);
         var ctorRegion = new StringBuilder();
         if (ctorKeys.Add(wrapped.ToDisplayString(_keyFormat)))
         {
             ctorRegion.AppendLine();
-            ctorRegion.AppendLine($"{indent}public {wrapper.Name}({wrappedType} value)");
+            ctorRegion.AppendLine($"{indent}public {wrapper.Name}(in {wrappedType} value)");
             ctorRegion.AppendLine($"{indent}{{");
-            ctorRegion.AppendLine($"{indent}    Value = value;");
+            ctorRegion.AppendLine($"{indent}    {fieldName} = value;");
             ctorRegion.AppendLine($"{indent}}}");
         }
 
@@ -177,52 +197,53 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
             ctorRegion.AppendLine();
             ctorRegion.AppendLine($"{indent}public {wrapper.Name}({ParamsDecl(ctor.Parameters)})");
             ctorRegion.AppendLine($"{indent}{{");
-            ctorRegion.AppendLine($"{indent}    Value = new {wrappedType}({ArgsCall(ctor.Parameters)});");
+            ctorRegion.AppendLine($"{indent}    {fieldName} = new {wrappedType}({ArgsCall(ctor.Parameters)});");
             ctorRegion.AppendLine($"{indent}}}");
         }
 
         if (ctorRegion.Length > 0)
             sb.Append(ctorRegion);
         var memberRegion = new StringBuilder();
-        for (var t = wrapped; t is not null && !IsWalkBoundary(t); t = t.BaseType)
-            foreach (var member in t.GetMembers())
-            {
-                if (member.IsStatic || member.DeclaredAccessibility != Accessibility.Public)
-                    continue;
-                switch (member)
+        foreach (var source in MemberSourceChain(wrapped))
+            for (var t = source; t is not null && !IsWalkBoundary(t); t = t.BaseType)
+                foreach (var member in t.GetMembers())
                 {
-                    case IMethodSymbol { MethodKind: MethodKind.Ordinary } method:
-                        if (!SyntaxFacts.IsValidIdentifier(method.Name))
-                            continue;
-                        if (OverridesObjectMethod(method))
-                            continue;
-                        if (ContainsPointer(method.Parameters) || ContainsPointer(method.ReturnType))
-                            continue;
-                        if (valueNames.Contains(method.Name))
-                            continue;
-                        if (!methodKeys.Add(MethodKey(method)))
-                            continue;
-                        methodNames.Add(method.Name);
-                        EmitMethod(memberRegion, indent, method);
-                        break;
-                    case IPropertySymbol { IsIndexer: true } indexer:
-                        if (ContainsPointer(indexer.Parameters) || ContainsPointer(indexer.Type))
-                            continue;
-                        if (!indexerKeys.Add(ParamsKey(indexer.Parameters)))
-                            continue;
-                        EmitIndexer(memberRegion, indent, indexer);
-                        break;
-                    case IPropertySymbol property:
-                        if (ContainsPointer(property.Type))
-                            continue;
-                        if (!SyntaxFacts.IsValidIdentifier(property.Name))
-                            continue;
-                        if (methodNames.Contains(property.Name) || !valueNames.Add(property.Name))
-                            continue;
-                        EmitProperty(memberRegion, indent, property);
-                        break;
+                    if (member.IsStatic || member.DeclaredAccessibility != Accessibility.Public)
+                        continue;
+                    switch (member)
+                    {
+                        case IMethodSymbol { MethodKind: MethodKind.Ordinary } method:
+                            if (!SyntaxFacts.IsValidIdentifier(method.Name))
+                                continue;
+                            if (OverridesObjectMethod(method))
+                                continue;
+                            if (ContainsPointer(method.Parameters) || ContainsPointer(method.ReturnType))
+                                continue;
+                            if (valueNames.Contains(method.Name))
+                                continue;
+                            if (!methodKeys.Add(MethodKey(method)))
+                                continue;
+                            methodNames.Add(method.Name);
+                            EmitMethod(memberRegion, indent, method, fieldName, wrapper, wrapped);
+                            break;
+                        case IPropertySymbol { IsIndexer: true } indexer:
+                            if (ContainsPointer(indexer.Parameters) || ContainsPointer(indexer.Type))
+                                continue;
+                            if (!indexerKeys.Add(ParamsKey(indexer.Parameters)))
+                                continue;
+                            EmitIndexer(memberRegion, indent, indexer, fieldName, wrapper, wrapped);
+                            break;
+                        case IPropertySymbol property:
+                            if (ContainsPointer(property.Type))
+                                continue;
+                            if (!SyntaxFacts.IsValidIdentifier(property.Name))
+                                continue;
+                            if (methodNames.Contains(property.Name) || !valueNames.Add(property.Name))
+                                continue;
+                            EmitProperty(memberRegion, indent, property, fieldName, wrapper, wrapped);
+                            break;
+                    }
                 }
-            }
 
         if (memberRegion.Length > 0)
             sb.Append(memberRegion);
@@ -230,26 +251,35 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
             return;
         sb.AppendLine();
         sb.AppendLine(
-            $"{indent}public static implicit operator {wrappedType}({wrapper.Name}{TypeParamList(wrapper.TypeParameters)} wrapper)"
+            $"{indent}public static implicit operator {wrappedType}(in {wrapper.Name}{TypeParamList(wrapper.TypeParameters)} wrapper)"
         );
         sb.AppendLine($"{indent}{{");
-        sb.AppendLine($"{indent}    return wrapper.Value;");
+        sb.AppendLine($"{indent}    return wrapper.{fieldName};");
         sb.AppendLine($"{indent}}}");
     }
 
-    private static void EmitMethod(StringBuilder sb, string indent, IMethodSymbol method)
+    private static void EmitMethod(
+        StringBuilder sb,
+        string indent,
+        IMethodSymbol method,
+        string field,
+        INamedTypeSymbol wrapper,
+        INamedTypeSymbol wrapped
+    )
     {
         var typeParams = TypeParamList(method.TypeParameters);
+        var byRef = method.ReturnsByRef || method.ReturnsByRefReadonly;
         var returnType = method.ReturnsVoid
             ? "void"
             : ReturnPrefix(method) + method.ReturnType.ToDisplayString(_typeFormat);
         var constraints = Constraints(method.TypeParameters);
+        var readOnly = ForwardReadOnly(wrapper, wrapped, byRef, method.IsReadOnly);
         sb.AppendLine();
         sb.AppendLine(
-            $"{indent}public {returnType} {method.Name}{typeParams}({ParamsDecl(method.Parameters)}){constraints}"
+            $"{indent}public {readOnly}{returnType} {method.Name}{typeParams}({ParamsDecl(method.Parameters)}){constraints}"
         );
         sb.AppendLine($"{indent}{{");
-        var call = $"Value.{method.Name}{typeParams}({ArgsCall(method.Parameters)})";
+        var call = $"{field}.{method.Name}{typeParams}({ArgsCall(method.Parameters)})";
         if (method.ReturnsVoid)
             sb.AppendLine($"{indent}    {call};");
         else if (method.ReturnsByRef || method.ReturnsByRefReadonly)
@@ -259,56 +289,72 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         sb.AppendLine($"{indent}}}");
     }
 
-    private static void EmitProperty(StringBuilder sb, string indent, IPropertySymbol property)
+    private static void EmitProperty(
+        StringBuilder sb,
+        string indent,
+        IPropertySymbol property,
+        string field,
+        INamedTypeSymbol wrapper,
+        INamedTypeSymbol wrapped
+    )
     {
         var type = ReturnPrefix(property) + property.Type.ToDisplayString(_typeFormat);
         var byRef = property.ReturnsByRef || property.ReturnsByRefReadonly;
         var hasGet = property.GetMethod is { DeclaredAccessibility: Accessibility.Public };
         var hasSet = !byRef && property.SetMethod is { DeclaredAccessibility: Accessibility.Public, IsInitOnly: false };
+        var getReadOnly = ForwardReadOnly(wrapper, wrapped, byRef, property.GetMethod?.IsReadOnly ?? false);
         sb.AppendLine();
         if (hasGet && !hasSet)
         {
-            var expr = byRef ? $"ref Value.{property.Name}" : $"Value.{property.Name}";
-            sb.AppendLine($"{indent}public {type} {property.Name} => {expr};");
+            var expr = byRef ? $"ref {field}.{property.Name}" : $"{field}.{property.Name}";
+            sb.AppendLine($"{indent}public {getReadOnly}{type} {property.Name} => {expr};");
             return;
         }
 
         sb.AppendLine($"{indent}public {type} {property.Name}");
         sb.AppendLine($"{indent}{{");
         if (hasGet)
-            sb.AppendLine($"{indent}    get => Value.{property.Name};");
+            sb.AppendLine($"{indent}    {getReadOnly}get => {field}.{property.Name};");
         if (hasSet)
         {
             var setter = property.SetMethod!.IsInitOnly ? "init" : "set";
-            sb.AppendLine($"{indent}    {setter} => Value.{property.Name} = value;");
+            sb.AppendLine($"{indent}    {setter} => {field}.{property.Name} = value;");
         }
 
         sb.AppendLine($"{indent}}}");
     }
 
-    private static void EmitIndexer(StringBuilder sb, string indent, IPropertySymbol indexer)
+    private static void EmitIndexer(
+        StringBuilder sb,
+        string indent,
+        IPropertySymbol indexer,
+        string field,
+        INamedTypeSymbol wrapper,
+        INamedTypeSymbol wrapped
+    )
     {
         var type = ReturnPrefix(indexer) + indexer.Type.ToDisplayString(_typeFormat);
         var byRef = indexer.ReturnsByRef || indexer.ReturnsByRefReadonly;
         var hasGet = indexer.GetMethod is { DeclaredAccessibility: Accessibility.Public };
         var hasSet = !byRef && indexer.SetMethod is { DeclaredAccessibility: Accessibility.Public };
+        var getReadOnly = ForwardReadOnly(wrapper, wrapped, byRef, indexer.GetMethod?.IsReadOnly ?? false);
         var args = ArgsCall(indexer.Parameters);
         sb.AppendLine();
         if (hasGet && !hasSet)
         {
-            var expr = byRef ? $"ref Value[{args}]" : $"Value[{args}]";
-            sb.AppendLine($"{indent}public {type} this[{ParamsDecl(indexer.Parameters)}] => {expr};");
+            var expr = byRef ? $"ref {field}[{args}]" : $"{field}[{args}]";
+            sb.AppendLine($"{indent}public {getReadOnly}{type} this[{ParamsDecl(indexer.Parameters)}] => {expr};");
             return;
         }
 
         sb.AppendLine($"{indent}public {type} this[{ParamsDecl(indexer.Parameters)}]");
         sb.AppendLine($"{indent}{{");
         if (hasGet)
-            sb.AppendLine($"{indent}    get => Value[{args}];");
+            sb.AppendLine($"{indent}    {getReadOnly}get => {field}[{args}];");
         if (hasSet)
         {
             var setter = indexer.SetMethod!.IsInitOnly ? "init" : "set";
-            sb.AppendLine($"{indent}    {setter} => Value[{args}] = value;");
+            sb.AppendLine($"{indent}    {setter} => {field}[{args}] = value;");
         }
 
         sb.AppendLine($"{indent}}}");
@@ -425,6 +471,44 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         if (property.ReturnsByRefReadonly)
             return "ref readonly ";
         return property.ReturnsByRef ? "ref " : "";
+    }
+
+    private static IEnumerable<INamedTypeSymbol> MemberSourceChain(INamedTypeSymbol wrapped)
+    {
+        var current = wrapped;
+        for (var guard = 0; current is not null && guard < 32; guard++)
+        {
+            yield return current;
+            current = GetWrappedType(current);
+        }
+    }
+
+    private static INamedTypeSymbol? GetWrappedType(INamedTypeSymbol type)
+    {
+        foreach (var attribute in type.GetAttributes())
+            if (
+                attribute.AttributeClass is { Name: "ValueWrapperAttribute", TypeArguments.Length: 1 } attributeClass
+                && attributeClass.ContainingNamespace?.ToDisplayString() == "Vigilance.Core"
+            )
+                return attributeClass.TypeArguments[0] as INamedTypeSymbol;
+        return null;
+    }
+
+    private static string ForwardReadOnly(
+        INamedTypeSymbol wrapper,
+        INamedTypeSymbol wrapped,
+        bool byRef,
+        bool memberIsReadOnly
+    )
+    {
+        if (!wrapper.IsValueType || byRef)
+            return "";
+        return !wrapped.IsValueType || memberIsReadOnly ? "readonly " : "";
+    }
+
+    private static bool HasStructLayout(INamedTypeSymbol type)
+    {
+        return type.GetAttributes().Any(a => a.AttributeClass?.Name == "StructLayoutAttribute");
     }
 
     private static bool IsWalkBoundary(ITypeSymbol type)

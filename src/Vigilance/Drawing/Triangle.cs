@@ -1,22 +1,23 @@
 namespace Vigilance.Drawing;
 
-public sealed class Triangle : Drawable<Triangle>
+[ValueWrapper<Drawable<ValueTriangle>>("Drawable")]
+public partial struct ValueTriangle : IDrawable
 {
-    public Triangle() { }
-
-    public Triangle(Color fill)
+    public ValueTriangle(Color fill)
+        : this()
     {
         Fill = fill;
     }
 
-    public Triangle(Vector2 p1, Vector2 p2, Vector2 p3)
+    public ValueTriangle(Vector2 p1, Vector2 p2, Vector2 p3)
+        : this()
     {
         P1 = p1;
         P2 = p2;
         P3 = p3;
     }
 
-    public Triangle(Vector2 p1, Vector2 p2, Vector2 p3, Color fill)
+    public ValueTriangle(Vector2 p1, Vector2 p2, Vector2 p3, Color fill)
         : this(p1, p2, p3)
     {
         Fill = fill;
@@ -30,23 +31,23 @@ public sealed class Triangle : Drawable<Triangle>
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
 
-    public PointEnumerable Points => new(this);
+    public readonly PointEnumerable Points => new(this);
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Points)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawTriangle(transform, this);
     }
 
     public readonly struct PointEnumerable : IStructEnumerable<PointEnumerator, Vector2>, IReadOnlyCollection<Vector2>
     {
-        private readonly Triangle _triangle;
+        private readonly ValueTriangle _triangle;
 
-        internal PointEnumerable(Triangle triangle)
+        internal PointEnumerable(ValueTriangle triangle)
         {
             _triangle = triangle;
         }
@@ -66,10 +67,10 @@ public sealed class Triangle : Drawable<Triangle>
 
     public struct PointEnumerator : IStructEnumerator<Vector2>
     {
-        private readonly Triangle _triangle;
+        private readonly ValueTriangle _triangle;
         private int _index;
 
-        internal PointEnumerator(Triangle triangle)
+        internal PointEnumerator(ValueTriangle triangle)
         {
             _triangle = triangle;
             Reset();
@@ -107,6 +108,15 @@ public sealed class Triangle : Drawable<Triangle>
     }
 }
 
+[ValueWrapper<ValueTriangle>]
+public sealed partial class Triangle : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Points)]), true);
+    }
+}
+
 public static class TriangleExtensions
 {
     extension(Graphics graphics)
@@ -128,14 +138,14 @@ public static class TriangleExtensions
             graphics.StrokeCustomPolygon([v1, v2, v3], color, strokeWidth, camera);
         }
 
-        public void DrawTriangle(Triangle triangle)
+        public void DrawTriangle(in ValueTriangle triangle)
         {
             graphics.DrawTriangle(new Transform(), triangle);
         }
 
-        public void DrawTriangle(Transform transform, Triangle triangle)
+        public void DrawTriangle(Transform transform, in ValueTriangle triangle)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, triangle, graphics);
+            using var _ = Drawable<ValueTriangle>.EnterDrawing(ref transform, triangle.Drawable, triangle, graphics);
             var camera = triangle.Camera.Get();
             var position = transform.Position;
             var scale = transform.Scale;

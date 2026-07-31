@@ -3,21 +3,22 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class RegularPolygon : Drawable<RegularPolygon>
+[ValueWrapper<Drawable<ValueRegularPolygon>>("Drawable")]
+public partial struct ValueRegularPolygon : IDrawable
 {
-    public RegularPolygon() { }
-
-    public RegularPolygon(Color fill)
+    public ValueRegularPolygon(Color fill)
+        : this()
     {
         Fill = fill;
     }
 
-    public RegularPolygon(int sides)
+    public ValueRegularPolygon(int sides)
+        : this()
     {
         Sides = sides;
     }
 
-    public RegularPolygon(int sides, Color fill)
+    public ValueRegularPolygon(int sides, Color fill)
         : this(sides)
     {
         Fill = fill;
@@ -29,14 +30,23 @@ public sealed class RegularPolygon : Drawable<RegularPolygon>
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawRegularPolygon(transform, this);
+    }
+}
+
+[ValueWrapper<ValueRegularPolygon>]
+public sealed partial class RegularPolygon : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 }
 
@@ -112,14 +122,19 @@ public static class RegularPolygonExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawRegularPolygon(RegularPolygon polygon)
+        public void DrawRegularPolygon(in ValueRegularPolygon polygon)
         {
             graphics.DrawRegularPolygon(new Transform(), polygon);
         }
 
-        public void DrawRegularPolygon(Transform transform, RegularPolygon polygon)
+        public void DrawRegularPolygon(Transform transform, in ValueRegularPolygon polygon)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, polygon, graphics);
+            using var _ = Drawable<ValueRegularPolygon>.EnterDrawing(
+                ref transform,
+                polygon.Drawable,
+                polygon,
+                graphics
+            );
             var camera = polygon.Camera.Get();
             var sides = polygon.Sides;
             var fill = polygon.Fill;

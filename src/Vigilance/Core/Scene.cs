@@ -5,22 +5,22 @@ namespace Vigilance.Core;
 
 public sealed partial class Scene
 {
-    internal Table<Child> ChildTable;
-    internal Table<Disabled> DisabledTable;
+    internal readonly Table<Child> ChildTable;
+    internal readonly Table<Disabled> DisabledTable;
+    internal readonly Table<EntityTag> EntityTagTable;
+    internal readonly Table<Interpolation> InterpolationTable;
+    internal readonly Table<Name> NameTable;
+    internal readonly Table<Parent> ParentTable;
+    internal readonly Table<PivotPoint> PivotPointTable;
+    internal readonly Table<Position> PositionTable;
+    internal readonly Table<Rotation> RotationTable;
+    internal readonly Table<Scale> ScaleTable;
+    internal readonly Table<Transform> TransformTable;
+    internal readonly Table<ZIndex> ZIndexTable;
     internal Action<Graphics, Texture, Box>? DrawScreenAction;
-    internal Table<EntityTag> EntityTagTable;
-    internal Table<Interpolation> InterpolationTable;
-    internal Table<Name> NameTable;
-    internal Table<Parent> ParentTable;
-    internal Table<PivotPoint> PivotPointTable;
-    internal Table<Position> PositionTable;
     internal ValueList<RenderCommand> RenderCommands = [];
     internal ValueList<RenderComponents> RenderComponentsList = [];
     internal ValueList<RenderData> RenderDataList = [];
-    internal Table<Rotation> RotationTable;
-    internal Table<Scale> ScaleTable;
-    internal Table<Transform> TransformTable;
-    internal Table<ZIndex> ZIndexTable;
     private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
     private Action? _deferredAction;
     private int _deferredCount;
@@ -146,13 +146,18 @@ public sealed partial class Scene
         return Table<T>().Count;
     }
 
+    public Query Query(bool withDisabled = false, bool deferred = true)
+    {
+        return new Query(this, withDisabled, deferred);
+    }
+
     public void Restart()
     {
         if (!IsInitialized)
             return;
         if (Game.Scene == this)
         {
-            Game.Defer(RestartAction);
+            Game.RunNextFrame(RestartAction);
             return;
         }
 
@@ -523,6 +528,30 @@ public sealed partial class Scene
         _isClearing = false;
     }
 
+    public void Initialize()
+    {
+        if (IsInitialized)
+            return;
+        if (!IsConfigured)
+        {
+            try
+            {
+                _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToArray();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            foreach (var system in _systems)
+                system.Configure(this);
+            IsConfigured = true;
+        }
+
+        IsInitialized = true;
+        _initializeAction?.SafeInvoke();
+    }
+
     internal RenderComponents<T> RenderComponents<T>()
     {
         var index = Drawing.RenderComponents<T>.Index;
@@ -551,8 +580,7 @@ public sealed partial class Scene
 
     internal void Update()
     {
-        if (!IsInitialized)
-            Initialize();
+        Initialize();
         if (!IsStarted)
             Start();
         _preUpdateAction?.SafeInvoke();
@@ -580,9 +608,7 @@ public sealed partial class Scene
         _destroyAction?.SafeInvoke(entity);
         var tables = Tables(withHidden: true).Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
         var entityTables = entity
-            .Tables()
-            .WithHidden()
-            .AsValueEnumerable()
+            .Tables(withHidden: true)
             .Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
         var flag = Core.Table.Flags.SilentOnImmutable;
         do
@@ -614,29 +640,6 @@ public sealed partial class Scene
             return false;
         var info = _entities[entity.Index];
         return info.Index == entity.Index && info.Version == entity.Version;
-    }
-
-    private void Initialize()
-    {
-        if (!IsConfigured)
-        {
-            try
-            {
-                _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToArray();
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
-
-            foreach (var system in _systems)
-                system.Configure(this);
-            IsConfigured = true;
-        }
-
-        IsInitialized = true;
-        _initializeAction?.SafeInvoke();
-        Time.Restart();
     }
 
     private void Start()
@@ -743,7 +746,7 @@ public sealed partial class Scene
 
     ~Scene()
     {
-        Game.Defer(() => _onDispose?.SafeInvoke());
+        Game.RunLater(() => _onDispose?.SafeInvoke());
     }
 
     public void OnInstantiate(Action action)

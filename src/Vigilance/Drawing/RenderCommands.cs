@@ -1,12 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace Vigilance.Drawing;
 
-public readonly ref partial struct RenderCommands
+public readonly partial struct RenderCommands
 {
     public Scene Scene { get; }
 
-    internal RenderCommands(Scene scene)
+    public RenderCommands(Scene scene)
     {
         Scene = scene;
     }
@@ -50,6 +51,12 @@ public readonly ref partial struct RenderCommands
             Add(entity, component, action);
     }
 
+    public void AddEntries<TComponent>(Scene.RefEntryEnumerable<TComponent> entries, Action<Entity, TComponent> action)
+    {
+        foreach (var (entity, component) in entries)
+            Add(entity, component.Read, action);
+    }
+
     public void AddEntries<TSystem, TComponent>(
         TSystem system,
         ValueEnumerable<Scene.EntryEnumerator<TComponent>, (Entity Entity, TComponent Component)> entries,
@@ -60,26 +67,57 @@ public readonly ref partial struct RenderCommands
             Add(system, entity, component, action);
     }
 
-    public void AddTableEntries<TSystem, TComponent>(
+    public void AddEntries<TSystem, TComponent>(
+        TSystem system,
+        Scene.RefEntryEnumerable<TComponent> entries,
+        Action<TSystem, Entity, TComponent> action
+    )
+    {
+        foreach (var (entity, component) in entries)
+            Add(system, entity, component.Read, action);
+    }
+
+    public void AddEachEntries<TComponent>(
+        GameSystem system,
+        Action<Entity, TComponent> action,
+        bool withHidden = false
+    )
+    {
+        if (typeof(TComponent).IsValueType || typeof(TComponent).IsSealed)
+        {
+            Scene.Table<TComponent>().AddRenderCommands(this, system, action);
+            return;
+        }
+
+        foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
+            table.AddRenderCommands(this, system, action);
+    }
+
+    public void AddEachEntries<TSystem, TComponent>(
         TSystem system,
         Action<TSystem, Entity, TComponent> action,
         bool withHidden = false
     )
         where TSystem : GameSystem
     {
+        if (typeof(TComponent).IsValueType || typeof(TComponent).IsSealed)
+        {
+            Scene.Table<TComponent>().AddRenderCommands(this, system, action);
+            return;
+        }
+
         foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
             table.AddRenderCommands(this, system, action);
     }
 
-    internal void Execute()
+    public void Execute()
     {
-        var scene = Scene;
-        ref var commands = ref scene.RenderCommands;
+        ref var commands = ref Scene.RenderCommands;
         commands.Sort();
         foreach (ref var command in commands.AsSpan())
             try
             {
-                command.Invoke(scene);
+                command.Invoke(Scene);
             }
             catch (Exception e)
             {
@@ -87,12 +125,13 @@ public readonly ref partial struct RenderCommands
             }
 
         commands.Clear();
-        scene.RenderDataList.Clear();
+        Scene.RenderDataList.Clear();
         foreach (var table in Scene.RenderComponentsList)
             table.Clear();
     }
 }
 
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 public readonly unsafe struct RenderCommand : IComparable<RenderCommand>
 {
     private readonly ulong _order;

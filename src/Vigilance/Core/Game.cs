@@ -27,7 +27,7 @@ public static unsafe class Game
         set
         {
             ThrowIfNotRunning();
-            Defer(() =>
+            RunNextFrame(() =>
             {
                 if (_scene == value)
                     return;
@@ -64,7 +64,12 @@ public static unsafe class Game
             throw new InvalidOperationException($"{nameof(Game)} is already running.");
     }
 
-    public static void Defer(Action action)
+    public static void RunLater(Action action)
+    {
+        _actions.Push(action);
+    }
+
+    public static void RunNextFrame(Action action)
     {
         _actions.Push(action);
     }

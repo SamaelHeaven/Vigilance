@@ -68,6 +68,27 @@ public abstract class Table
 
     public abstract bool Remove(in Entity entity, out object component, Flags flags = Flags.None);
 
+    public abstract void ForEach<TComponent>(GameSystem system, Action<TComponent> action);
+
+    public abstract void ForEach<TSystem, TComponent>(TSystem system, Action<TSystem, TComponent> action)
+        where TSystem : GameSystem;
+
+    public abstract void ForEach(GameSystem system, Action<Entity> action);
+
+    public abstract void ForEach<TSystem>(TSystem system, Action<TSystem, Entity> action)
+        where TSystem : GameSystem;
+
+    public abstract void ForEach<TComponent>(GameSystem system, Action<Entity, TComponent> action);
+
+    public abstract void ForEach<TSystem, TComponent>(TSystem system, Action<TSystem, Entity, TComponent> action)
+        where TSystem : GameSystem;
+
+    public abstract void AddRenderCommands<TComponent>(
+        RenderCommands commands,
+        GameSystem system,
+        Action<Entity, TComponent> action
+    );
+
     public abstract void AddRenderCommands<TSystem, TComponent>(
         RenderCommands commands,
         TSystem system,
@@ -151,24 +172,23 @@ public sealed class Table<T>
         }
     }
 
-    public override bool IsHidden { get; } = typeof(IHiddenComponent).IsAssignableFrom(typeof(T));
+    public override bool IsHidden => typeof(IHiddenComponent).IsAssignableFrom(typeof(T));
 
-    public override bool SkipAddEvent { get; } = typeof(ISkipAddEventComponent).IsAssignableFrom(typeof(T));
+    public override bool SkipAddEvent => typeof(ISkipAddEventComponent).IsAssignableFrom(typeof(T));
 
-    public override bool SkipSetEvent { get; } = typeof(ISkipSetEventComponent).IsAssignableFrom(typeof(T));
+    public override bool SkipSetEvent => typeof(ISkipSetEventComponent).IsAssignableFrom(typeof(T));
 
-    public override bool SkipRemoveEvent { get; } = typeof(ISkipRemoveEventComponent).IsAssignableFrom(typeof(T));
+    public override bool SkipRemoveEvent => typeof(ISkipRemoveEventComponent).IsAssignableFrom(typeof(T));
 
-    public override bool SkipSetEventIfEqual { get; } =
-        typeof(ISkipSetEventIfEqualComponent).IsAssignableFrom(typeof(T));
+    public override bool SkipSetEventIfEqual => typeof(ISkipSetEventIfEqualComponent).IsAssignableFrom(typeof(T));
 
-    public override bool AddImmutable { get; } = typeof(IAddImmutableComponent).IsAssignableFrom(typeof(T));
+    public override bool AddImmutable => typeof(IAddImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public override bool SetImmutable { get; } = typeof(ISetImmutableComponent).IsAssignableFrom(typeof(T));
+    public override bool SetImmutable => typeof(ISetImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public override bool RemoveImmutable { get; } = typeof(IRemoveImmutableComponent).IsAssignableFrom(typeof(T));
+    public override bool RemoveImmutable => typeof(IRemoveImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public override bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
+    public override bool WriteImmutable => typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
     public override ValueListView<EntityId> EntityIds => _entityIds;
 
@@ -492,6 +512,208 @@ public sealed class Table<T>
         return new ComponentRef<T>(ref componentRef!, denseIndex);
     }
 
+    public override void ForEach<TComponent>(GameSystem system, Action<TComponent> action)
+    {
+        if (!typeof(TComponent).IsAssignableFrom(typeof(T)))
+            throw new InvalidOperationException($"{typeof(T)} is not assignable to {typeof(TComponent)}");
+        if (typeof(TComponent) == typeof(T) || !typeof(T).IsValueType)
+        {
+            foreach (var component in system.RefComponents<T>())
+                action.Invoke(Unsafe.As<T, TComponent>(ref component.Value));
+            return;
+        }
+
+        var boxed = _boxed;
+        ref var data = ref Unsafe.As<object, Data>(ref boxed);
+        if (WriteImmutable)
+            foreach (var componentRef in system.RefComponents<T>())
+                try
+                {
+                    data.Value = componentRef.Value;
+                    action.Invoke((TComponent)boxed);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+        else
+            foreach (var componentRef in system.RefComponents<T>())
+                try
+                {
+                    data.Value = componentRef.Value;
+                    action.Invoke((TComponent)boxed);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+                finally
+                {
+                    componentRef.Value = data.Value;
+                }
+
+        data.Value = default!;
+    }
+
+    public override void ForEach<TSystem, TComponent>(TSystem system, Action<TSystem, TComponent> action)
+    {
+        if (!typeof(TComponent).IsAssignableFrom(typeof(T)))
+            throw new InvalidOperationException($"{typeof(T)} is not assignable to {typeof(TComponent)}");
+        if (typeof(TComponent) == typeof(T) || !typeof(T).IsValueType)
+        {
+            foreach (var component in system.RefComponents<T>())
+                action.Invoke(system, Unsafe.As<T, TComponent>(ref component.Value));
+            return;
+        }
+
+        var boxed = _boxed;
+        ref var data = ref Unsafe.As<object, Data>(ref boxed);
+        if (WriteImmutable)
+            foreach (var componentRef in system.RefComponents<T>())
+                try
+                {
+                    data.Value = componentRef.Value;
+                    action.Invoke(system, (TComponent)boxed);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+        else
+            foreach (var componentRef in system.RefComponents<T>())
+                try
+                {
+                    data.Value = componentRef.Value;
+                    action.Invoke(system, (TComponent)boxed);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+                finally
+                {
+                    componentRef.Value = data.Value;
+                }
+
+        data.Value = default!;
+    }
+
+    public override void ForEach(GameSystem system, Action<Entity> action)
+    {
+        foreach (var entity in system.Entities<T>())
+            action.Invoke(entity);
+    }
+
+    public override void ForEach<TSystem>(TSystem system, Action<TSystem, Entity> action)
+    {
+        foreach (var entity in system.Entities<T>())
+            action.Invoke(system, entity);
+    }
+
+    public override void ForEach<TComponent>(GameSystem system, Action<Entity, TComponent> action)
+    {
+        if (!typeof(TComponent).IsAssignableFrom(typeof(T)))
+            throw new InvalidOperationException($"{typeof(T)} is not assignable to {typeof(TComponent)}");
+        if (typeof(TComponent) == typeof(T) || !typeof(T).IsValueType)
+        {
+            foreach (var (entity, component) in system.RefEntries<T>())
+                action.Invoke(entity, Unsafe.As<T, TComponent>(ref component.Value));
+            return;
+        }
+
+        var boxed = _boxed;
+        ref var data = ref Unsafe.As<object, Data>(ref boxed);
+        if (WriteImmutable)
+            foreach (var (entity, componentRef) in system.RefEntries<T>())
+                try
+                {
+                    data.Value = componentRef.Value;
+                    action.Invoke(entity, (TComponent)boxed);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+        else
+            foreach (var (entity, componentRef) in system.RefEntries<T>())
+                try
+                {
+                    data.Value = componentRef.Value;
+                    action.Invoke(entity, (TComponent)boxed);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+                finally
+                {
+                    componentRef.Value = data.Value;
+                }
+
+        data.Value = default!;
+    }
+
+    public override void ForEach<TSystem, TComponent>(TSystem system, Action<TSystem, Entity, TComponent> action)
+    {
+        if (!typeof(TComponent).IsAssignableFrom(typeof(T)))
+            throw new InvalidOperationException($"{typeof(T)} is not assignable to {typeof(TComponent)}");
+        if (typeof(TComponent) == typeof(T) || !typeof(T).IsValueType)
+        {
+            foreach (var (entity, component) in system.RefEntries<T>())
+                action.Invoke(system, entity, Unsafe.As<T, TComponent>(ref component.Value));
+            return;
+        }
+
+        var boxed = _boxed;
+        ref var data = ref Unsafe.As<object, Data>(ref boxed);
+        if (WriteImmutable)
+            foreach (var (entity, componentRef) in system.RefEntries<T>())
+                try
+                {
+                    data.Value = componentRef.Value;
+                    action.Invoke(system, entity, (TComponent)boxed);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+        else
+            foreach (var (entity, componentRef) in system.RefEntries<T>())
+                try
+                {
+                    data.Value = componentRef.Value;
+                    action.Invoke(system, entity, (TComponent)boxed);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+                finally
+                {
+                    componentRef.Value = data.Value;
+                }
+
+        data.Value = default!;
+    }
+
+    public override void AddRenderCommands<TComponent>(
+        RenderCommands commands,
+        GameSystem system,
+        Action<Entity, TComponent> action
+    )
+    {
+        if (!typeof(TComponent).IsAssignableFrom(typeof(T)))
+            throw new InvalidOperationException($"{typeof(T)} is not assignable to {typeof(TComponent)}");
+        if (typeof(TComponent) == typeof(T) || !typeof(T).IsValueType)
+        {
+            foreach (var (entity, componentRef) in system.RefEntries<T>())
+                commands.Add(entity, Unsafe.As<T, TComponent>(ref componentRef.Value), action);
+            return;
+        }
+
+        AddBoxedRenderCommands(commands, system, action);
+    }
+
     public override void AddRenderCommands<TSystem, TComponent>(
         RenderCommands commands,
         TSystem system,
@@ -502,16 +724,41 @@ public sealed class Table<T>
             throw new InvalidOperationException($"{typeof(T)} is not assignable to {typeof(TComponent)}");
         if (typeof(TComponent) == typeof(T) || !typeof(T).IsValueType)
         {
-            foreach (var (entity, component) in system.Entries<T>())
-            {
-                var componentRef = component;
-                commands.Add(system, entity, Unsafe.As<T, TComponent>(ref componentRef), action);
-            }
-
+            foreach (var (entity, componentRef) in system.RefEntries<T>())
+                commands.Add(system, entity, Unsafe.As<T, TComponent>(ref componentRef.Value), action);
             return;
         }
 
         AddBoxedRenderCommands(commands, system, action);
+    }
+
+    private static void AddBoxedRenderCommands<TComponent>(
+        RenderCommands commands,
+        GameSystem system,
+        Action<Entity, TComponent> action
+    )
+    {
+        // ReSharper disable once VariableHidesOuterVariable
+        commands.AddEntries(
+            system,
+            (Entity entity, T component) =>
+            {
+                var boxed = _boxed;
+                ref var data = ref Unsafe.As<object, Data>(ref boxed);
+                data.Value = component;
+                action.Invoke(entity, (TComponent)boxed);
+            }
+        );
+
+        commands.Add(
+            () =>
+            {
+                var boxed = _boxed;
+                ref var data = ref Unsafe.As<object, Data>(ref boxed);
+                data.Value = default!;
+            },
+            ulong.MaxValue
+        );
     }
 
     private static void AddBoxedRenderCommands<TSystem, TComponent>(

@@ -3,11 +3,11 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Ring : Drawable<Ring>
+[ValueWrapper<Drawable<ValueRing>>("Drawable")]
+public partial struct ValueRing : IDrawable
 {
-    public Ring() { }
-
-    public Ring(Color fill)
+    public ValueRing(Color fill)
+        : this()
     {
         Fill = fill;
     }
@@ -22,14 +22,23 @@ public sealed class Ring : Drawable<Ring>
     public int Segments { get; set; } = 0;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawRing(transform, this);
+    }
+}
+
+[ValueWrapper<ValueRing>]
+public sealed partial class Ring : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 }
 
@@ -173,14 +182,14 @@ public static class RingExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawRing(Ring ring)
+        public void DrawRing(in ValueRing ring)
         {
             graphics.DrawRing(new Transform(), ring);
         }
 
-        public void DrawRing(Transform transform, Ring ring)
+        public void DrawRing(Transform transform, in ValueRing ring)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, ring, graphics);
+            using var _ = Drawable<ValueRing>.EnterDrawing(ref transform, ring.Drawable, ring, graphics);
             var camera = ring.Camera.Get();
             var startAngle = ring.StartAngle;
             var endAngle = ring.EndAngle;

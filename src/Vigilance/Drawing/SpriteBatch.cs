@@ -97,7 +97,7 @@ public sealed unsafe class SpriteBatch : SpriteBatch<SpriteInstance>
     {
         if (Count == 0)
             return;
-        using var _ = EnterDrawing<SpriteBatch<SpriteInstance>>(ref transform, this, graphics);
+        using var _ = Drawable<SpriteBatch<SpriteInstance>>.EnterDrawing(ref transform, Drawable, this, graphics);
         InstanceBuffer.Sync();
         if (_configuredInstanceBufferVersion != InstanceBuffer.Version)
             ConfigureInstanceAttributes();
@@ -130,13 +130,12 @@ public sealed unsafe class SpriteBatch : SpriteBatch<SpriteInstance>
     }
 }
 
-public abstract class SpriteBatch<TInstance>
-    : Drawable<SpriteBatch<TInstance>>,
-        IList<TInstance>,
-        IValueListView<TInstance>
+public abstract class SpriteBatch<TInstance> : IDrawable, IList<TInstance>, IValueListView<TInstance>
     where TInstance : unmanaged
 {
     protected readonly VertexBuffer<TInstance> InstanceBuffer;
+
+    public Drawable<SpriteBatch<TInstance>> Drawable = new();
 
     protected SpriteBatch(in ReadOnlySpan<TInstance> instances, Texture texture, Shader shader)
     {
@@ -145,9 +144,83 @@ public abstract class SpriteBatch<TInstance>
         Shader = shader;
     }
 
+    public CameraProvider Camera
+    {
+        get => Drawable.Camera;
+        set => Drawable.Camera = value;
+    }
+
+    public Vector2 Position
+    {
+        get => Drawable.Position;
+        set => Drawable.Position = value;
+    }
+
+    public Vector2 Scale
+    {
+        get => Drawable.Scale;
+        set => Drawable.Scale = value;
+    }
+
+    public float Rotation
+    {
+        get => Drawable.Rotation;
+        set => Drawable.Rotation = value;
+    }
+
+    public Vector2 PivotPoint
+    {
+        get => Drawable.PivotPoint;
+        set => Drawable.PivotPoint = value;
+    }
+
+    public BlendMode? BlendMode
+    {
+        get => Drawable.BlendMode;
+        set => Drawable.BlendMode = value;
+    }
+
+    public Shader? Shader
+    {
+        get => Drawable.Shader;
+        set => Drawable.Shader = value;
+    }
+
+    public ShapeTexture? ShapeTexture
+    {
+        get => Drawable.ShapeTexture;
+        set => Drawable.ShapeTexture = value;
+    }
+
+    public bool? Culling
+    {
+        get => Drawable.Culling;
+        set => Drawable.Culling = value;
+    }
+
+    public Action<Transform, SpriteBatch<TInstance>, Graphics>? OnBeginDrawing
+    {
+        get => Drawable.OnBeginDrawing;
+        set => Drawable.OnBeginDrawing = value;
+    }
+
+    public Action<Transform, SpriteBatch<TInstance>, Graphics>? OnEndDrawing
+    {
+        get => Drawable.OnEndDrawing;
+        set => Drawable.OnEndDrawing = value;
+    }
+
+    public Transform Transform
+    {
+        get => Drawable.Transform;
+        set => Drawable.Transform = value;
+    }
+
     public Texture Texture { get; set; }
     public TextureFilter TextureFilter { get; set; } = Drawing.DefaultTextureFilter;
     public TextureWrap TextureWrap { get; set; } = Drawing.DefaultTextureWrap;
+
+    public abstract void Draw(Transform transform, Graphics graphics);
 
     public int Count => InstanceBuffer.Count;
     bool ICollection<TInstance>.IsReadOnly => false;
@@ -238,7 +311,10 @@ public abstract class SpriteBatch<TInstance>
         InstanceBuffer.Insert(index, item);
     }
 
-    public abstract override void Draw(Transform transform, Graphics graphics);
+    public static implicit operator Drawable<SpriteBatch<TInstance>>(SpriteBatch<TInstance> wrapper)
+    {
+        return wrapper.Drawable;
+    }
 }
 
 public static class SpriteBatchExtensions

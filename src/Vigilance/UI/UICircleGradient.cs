@@ -2,7 +2,7 @@ namespace Vigilance.UI;
 
 public class UICircleGradient : UIContainer
 {
-    private CircleGradient _circle = new();
+    private ValueCircleGradient _circle = new();
 
     public Color InnerFill
     {
@@ -52,10 +52,5 @@ public class UICircleGradient : UIContainer
         var size = LayoutSize;
         _circle.Camera = camera;
         graphics.DrawCircleGradient(new Transform(position + size * 0.5f, size), _circle);
-    }
-
-    protected override void OnClone()
-    {
-        _circle = _circle.DeepClone();
     }
 }

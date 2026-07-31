@@ -2,7 +2,7 @@ namespace Vigilance.UI;
 
 public class UICircle : UIContainer
 {
-    private Circle _circle = new();
+    private ValueCircle _circle = new();
 
     public UICircle() { }
 
@@ -59,10 +59,5 @@ public class UICircle : UIContainer
         var size = LayoutSize;
         _circle.Camera = camera;
         graphics.DrawCircle(new Transform(position + size * 0.5f, size), _circle);
-    }
-
-    protected override void OnClone()
-    {
-        _circle = _circle.DeepClone();
     }
 }

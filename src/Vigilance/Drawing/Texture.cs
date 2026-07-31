@@ -129,6 +129,6 @@ public sealed unsafe class Texture : IDisposable
 
     ~Texture()
     {
-        Game.Defer(ReleaseUnmanagedResources);
+        Game.RunLater(ReleaseUnmanagedResources);
     }
 }

@@ -172,6 +172,6 @@ public sealed class Sound : IDisposable
 
     ~Sound()
     {
-        Game.Defer(ReleaseUnmanagedResources);
+        Game.RunLater(ReleaseUnmanagedResources);
     }
 }

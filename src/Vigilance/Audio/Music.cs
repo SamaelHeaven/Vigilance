@@ -188,6 +188,6 @@ public sealed class Music : IDisposable
 
     ~Music()
     {
-        Game.Defer(ReleaseUnmanagedResources);
+        Game.RunLater(ReleaseUnmanagedResources);
     }
 }

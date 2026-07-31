@@ -9,7 +9,7 @@ public sealed class DrawableSystem(Graphics graphics) : GameSystem(queryWithDisa
 
     public override void Render(RenderCommands commands)
     {
-        commands.AddTableEntries<DrawableSystem, IDrawable>(
+        commands.AddEachEntries<DrawableSystem, IDrawable>(
             this,
             (system, entity, drawable) => drawable.Draw(entity.RenderTransform, system.Graphics)
         );

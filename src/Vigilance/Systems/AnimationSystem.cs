@@ -2,29 +2,35 @@ namespace Vigilance.Systems;
 
 public sealed class AnimationSystem() : GameSystem(queryWithDisabled: true)
 {
+    private TimeSpan _delta;
     private ValueList<IAnimation> _resume = [];
 
     public override void Update()
     {
-        var delta = Time.Delta;
+        _delta = Time.Delta;
         Scene.BeginDefer();
         try
         {
-            foreach (var animation in AssignableComponents<IAnimation>())
-                try
-                {
-                    if (animation.IsPaused)
-                        continue;
-                    animation.Update(delta);
-                    if (animation.IsPaused)
-                        continue;
-                    _resume.Add(animation);
-                    animation.IsPaused = true;
-                }
-                catch (Exception e)
-                {
-                    Log.Error(e);
-                }
+            foreach (var table in Scene.Tables<IAnimation>())
+                if (table.Type.IsValueType)
+                    table.ForEach<AnimationSystem, IAnimation>(
+                        this,
+                        static (system, animation) => animation.Update(system._delta)
+                    );
+                else
+                    table.ForEach<AnimationSystem, IAnimation>(
+                        this,
+                        static (system, animation) =>
+                        {
+                            if (animation.IsPaused)
+                                return;
+                            animation.Update(system._delta);
+                            if (animation.IsPaused)
+                                return;
+                            system._resume.Add(animation);
+                            animation.IsPaused = true;
+                        }
+                    );
 
             foreach (var animation in _resume)
                 try
@@ -46,14 +52,6 @@ public sealed class AnimationSystem() : GameSystem(queryWithDisabled: true)
 
     public override void PreRender()
     {
-        foreach (var (entity, animation) in AssignableEntries<IAnimation>())
-            try
-            {
-                animation.Apply(entity);
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        ForEach<IAnimation>((entity, animation) => animation.Apply(entity));
     }
 }

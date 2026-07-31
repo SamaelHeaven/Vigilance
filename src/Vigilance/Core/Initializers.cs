@@ -22,7 +22,7 @@ public static class Initializers
         InitializeCultureInfo();
         InitializeRaylib();
         Game.Initialize();
-        Game.Defer(() =>
+        Game.RunLater(() =>
         {
             Hooks.Initialize();
             FileSystem.Initialize();

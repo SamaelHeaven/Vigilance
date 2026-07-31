@@ -23,7 +23,7 @@ public sealed class VertexArray : IDisposable
     private void ReleaseUnmanagedResources()
     {
         if (Id != 0)
-            Game.Defer(() => Rlgl.UnloadVertexArray(Id));
+            Game.RunLater(() => Rlgl.UnloadVertexArray(Id));
     }
 
     ~VertexArray()

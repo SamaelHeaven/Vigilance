@@ -3,7 +3,8 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class RectangleGradient : Drawable<RectangleGradient>
+[ValueWrapper<Drawable<ValueRectangleGradient>>("Drawable")]
+public partial struct ValueRectangleGradient : IDrawable
 {
     public Color TopLeftFill { get; set; } = Drawing.DefaultFill;
     public Color BottomLeftFill { get; set; } = Drawing.DefaultFill;
@@ -15,7 +16,7 @@ public sealed class RectangleGradient : Drawable<RectangleGradient>
 
     public Color Fill
     {
-        get => TopLeftFill.Blend(BottomLeftFill).Blend(BottomRightFill).Blend(TopRightFill);
+        readonly get => TopLeftFill.Blend(BottomLeftFill).Blend(BottomRightFill).Blend(TopRightFill);
         set
         {
             TopLeftFill = value;
@@ -27,7 +28,7 @@ public sealed class RectangleGradient : Drawable<RectangleGradient>
 
     public Color TopFill
     {
-        get => TopLeftFill.Blend(TopRightFill);
+        readonly get => TopLeftFill.Blend(TopRightFill);
         set
         {
             TopLeftFill = value;
@@ -37,7 +38,7 @@ public sealed class RectangleGradient : Drawable<RectangleGradient>
 
     public Color BottomFill
     {
-        get => BottomLeftFill.Blend(BottomRightFill);
+        readonly get => BottomLeftFill.Blend(BottomRightFill);
         set
         {
             BottomLeftFill = value;
@@ -47,7 +48,7 @@ public sealed class RectangleGradient : Drawable<RectangleGradient>
 
     public Color LeftFill
     {
-        get => TopLeftFill.Blend(BottomLeftFill);
+        readonly get => TopLeftFill.Blend(BottomLeftFill);
         set
         {
             TopLeftFill = value;
@@ -57,7 +58,7 @@ public sealed class RectangleGradient : Drawable<RectangleGradient>
 
     public Color RightFill
     {
-        get => TopRightFill.Blend(BottomRightFill);
+        readonly get => TopRightFill.Blend(BottomRightFill);
         set
         {
             TopRightFill = value;
@@ -65,14 +66,23 @@ public sealed class RectangleGradient : Drawable<RectangleGradient>
         }
     }
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Fill)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawRectangleGradient(transform, this);
+    }
+}
+
+[ValueWrapper<ValueRectangleGradient>]
+public sealed partial class RectangleGradient : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Fill)]), true);
     }
 }
 
@@ -157,29 +167,40 @@ public static class RectangleGradientExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawRectangleGradient(RectangleGradient rectangle)
+        public void DrawRectangleGradient(in ValueRectangleGradient rectangle)
         {
             graphics.DrawRectangleGradient(new Transform(), rectangle);
         }
 
-        public void DrawRectangleGradient(float x, float y, float width, float height, RectangleGradient rectangle)
+        public void DrawRectangleGradient(
+            float x,
+            float y,
+            float width,
+            float height,
+            in ValueRectangleGradient rectangle
+        )
         {
             graphics.DrawRectangleGradient(new Vector2(x, y), new Vector2(width, height), rectangle);
         }
 
-        public void DrawRectangleGradient(Vector2 position, Vector2 size, RectangleGradient rectangle)
+        public void DrawRectangleGradient(Vector2 position, Vector2 size, in ValueRectangleGradient rectangle)
         {
             graphics.DrawRectangleGradient(new Transform(position + size * 0.5f, size), rectangle);
         }
 
-        public void DrawRectangleGradient(in Box box, RectangleGradient rectangle)
+        public void DrawRectangleGradient(in Box box, in ValueRectangleGradient rectangle)
         {
             graphics.DrawRectangleGradient(box.Position, box.Size, rectangle);
         }
 
-        public void DrawRectangleGradient(Transform transform, RectangleGradient rectangle)
+        public void DrawRectangleGradient(Transform transform, in ValueRectangleGradient rectangle)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, rectangle, graphics);
+            using var _ = Drawable<ValueRectangleGradient>.EnterDrawing(
+                ref transform,
+                rectangle.Drawable,
+                rectangle,
+                graphics
+            );
             var camera = rectangle.Camera.Get();
             var topLeftFill = rectangle.TopLeftFill;
             var bottomLeftFill = rectangle.BottomLeftFill;

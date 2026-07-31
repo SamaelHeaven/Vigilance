@@ -69,15 +69,6 @@ public static class ObjectMarshal
         BulkMoveWithWriteBarrier(null, ref destData, ref sourceData, size);
     }
 
-    public static void Write(object source, object dest, int size)
-    {
-        Debug.Assert((uint)size == GetRawObjectDataSize(null, dest));
-        Debug.Assert((uint)size == GetRawObjectDataSize(null, source));
-        ref var sourceData = ref GetRawData(source);
-        ref var destData = ref GetRawData(dest);
-        BulkMoveWithWriteBarrier(null, ref destData, ref sourceData, (uint)size);
-    }
-
     [SuppressMessage("ReSharper", "ClassNeverInstantiated.Local")]
     private sealed class RawData
     {

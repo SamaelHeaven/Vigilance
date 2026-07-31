@@ -9,8 +9,8 @@ public sealed class UISystem(Graphics graphics) : GameSystem(queryWithDisabled: 
 
     public override void Update()
     {
-        foreach (var (entity, element) in AssignableEntries<UIElement>())
-            try
+        ForEach<UIElement>(
+            (entity, element) =>
             {
                 if (!element.IsLayoutReady)
                 {
@@ -22,15 +22,12 @@ public sealed class UISystem(Graphics graphics) : GameSystem(queryWithDisabled: 
                 element.Update(entity);
                 element.CalculateLayout();
             }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
+        );
     }
 
     public override void Render(RenderCommands commands)
     {
-        commands.AddAssignableEntries<UISystem, UIElement>(
+        commands.AddEachEntries<UISystem, UIElement>(
             this,
             (system, entity, element) => element.Render(entity.RenderTransform, system.Graphics)
         );

@@ -3,22 +3,24 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Line : Drawable<Line>
+[ValueWrapper<Drawable<ValueLine>>("Drawable")]
+public partial struct ValueLine : IDrawable
 {
-    public Line() { }
-
-    public Line(Color color)
+    public ValueLine(Color color)
+        : this()
     {
         Color = color;
     }
 
-    public Line(Vector2 start, Vector2 end)
+    public ValueLine(Vector2 start, Vector2 end)
+        : this()
     {
         Start = start;
         End = end;
     }
 
-    public Line(Vector2 start, Vector2 end, Color color)
+    public ValueLine(Vector2 start, Vector2 end, Color color)
+        : this()
     {
         Start = start;
         End = end;
@@ -30,14 +32,23 @@ public sealed class Line : Drawable<Line>
     public Color Color { get; set; } = Drawing.DefaultFill;
     public float Thick { get; set; } = Drawing.DefaultStrokeWidth == 0 ? 1 : Drawing.DefaultStrokeWidth;
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawLine(transform, this);
+    }
+}
+
+[ValueWrapper<ValueLine>]
+public sealed partial class Line : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 }
 
@@ -82,14 +93,14 @@ public static class LineExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawLine(Line line)
+        public void DrawLine(in ValueLine line)
         {
             graphics.DrawLine(new Transform(), line);
         }
 
-        public void DrawLine(Transform transform, Line line)
+        public void DrawLine(Transform transform, in ValueLine line)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, line, graphics);
+            using var _ = Drawable<ValueLine>.EnterDrawing(ref transform, line.Drawable, line, graphics);
             var camera = line.Camera.Get();
             var position = transform.Position;
             var start = line.Start + position;

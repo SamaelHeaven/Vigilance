@@ -313,7 +313,7 @@ public sealed unsafe class Graphics
 
     #region ShapeTexture
 
-    public ShapeTexture? SetShapeTexture(ShapeTexture? shapeTexture)
+    public ShapeTexture? SetShapeTexture(in ShapeTexture? shapeTexture)
     {
         var previous = _shapeTexture;
         _shapeTexture = shapeTexture;
@@ -717,7 +717,26 @@ public sealed unsafe class Graphics
         var matrix = GetMatrix(camera);
         matrix *= Matrix3x2.CreateScale(scale) * Matrix3x2.CreateTranslation(offset);
         Rlgl.PushMatrix();
-        Rlgl.MultMatrixf(Matrix4x4.Transpose(matrix.ToMatrix4x4()));
+        var float16 = stackalloc float[16]
+        {
+            matrix.M11,
+            matrix.M12,
+            0,
+            0,
+            matrix.M21,
+            matrix.M22,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            matrix.M31,
+            matrix.M32,
+            0,
+            1,
+        };
+        Rlgl.MultMatrixf(float16);
     }
 
     public void EndDrawing()

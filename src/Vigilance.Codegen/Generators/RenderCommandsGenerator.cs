@@ -23,6 +23,8 @@ public sealed class RenderCommandsGenerator : SourceGenerator
         );
         AddEntriesEnumerable(sb, false);
         AddEntriesEnumerable(sb, true);
+        AddRefEntriesEnumerable(sb, false);
+        AddRefEntriesEnumerable(sb, true);
         AddAssignableEntriesEnumerable(sb, false);
         AddAssignableEntriesEnumerable(sb, true);
         AddEntriesGameSystem(sb, false);
@@ -37,7 +39,7 @@ public sealed class RenderCommandsGenerator : SourceGenerator
         for (var i = 1; i < 15; i++)
         {
             var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
-            var items = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"entry.Item{n + 2}"));
+            var items = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"entry.Component{n + 1}"));
             var entryType = QueryHelper.NamedTuple(true, Enumerable.Range(0, i + 1).Select(n => $"T{n}").ToList());
             sb.AppendLine(
                 $$"""
@@ -48,7 +50,30 @@ public sealed class RenderCommandsGenerator : SourceGenerator
                 )}}Entity, ({{typeParams}})> action)
                     {
                         foreach (var entry in entries)
-                            Add({{(system ? "system, " : "")}}entry.Item1, ({{items}}), action);
+                            Add({{(system ? "system, " : "")}}entry.Entity, ({{items}}), action);
+                    }
+                    
+                """
+            );
+        }
+    }
+
+    private static void AddRefEntriesEnumerable(StringBuilder sb, bool system)
+    {
+        for (var i = 1; i < 15; i++)
+        {
+            var typeParams = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"T{n}"));
+            var items = string.Join(", ", Enumerable.Range(0, i + 1).Select(n => $"entry.Component{n + 1}.Read"));
+            sb.AppendLine(
+                $$"""
+                    public void AddEntries<{{(system ? "TSystem, " : "")}}{{typeParams}}>({{(
+                        system ? "TSystem system, " : ""
+                    )}}Scene.RefEntryEnumerable<{{typeParams}}> entries, Action<{{(
+                    system ? "TSystem, " : ""
+                )}}Entity, ({{typeParams}})> action)
+                    {
+                        foreach (var entry in entries)
+                            Add({{(system ? "system, " : "")}}entry.Entity, ({{items}}), action);
                     }
                     
                 """
@@ -68,7 +93,7 @@ public sealed class RenderCommandsGenerator : SourceGenerator
                         system ? "TSystem, " : ""
                     )}}Entity, {{type}}> action) where TSystem : GameSystem
                     {
-                        AddEntries({{(system ? "system, " : "")}}system.Entries<{{typeParams}}>(), action);
+                        AddEntries({{(system ? "system, " : "")}}system.RefEntries<{{typeParams}}>(), action);
                     }
 
                 """
@@ -87,7 +112,7 @@ public sealed class RenderCommandsGenerator : SourceGenerator
             )}}Entity, T0> action)
                 {
                     foreach (var entry in entries)
-                        Add({{(system ? "system, " : "")}}entry.Item1, (T0)entry.Item2, action);
+                        Add({{(system ? "system, " : "")}}entry.Entity, entry.Component, action);
                 }
                 
             """

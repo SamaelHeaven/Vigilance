@@ -3,21 +3,22 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Grid : Drawable<Grid>
+[ValueWrapper<Drawable<ValueGrid>>("Drawable")]
+public partial struct ValueGrid : IDrawable
 {
-    public Grid() { }
-
-    public Grid(Color color)
+    public ValueGrid(Color color)
+        : this()
     {
         Color = color;
     }
 
-    public Grid(float cellSize)
+    public ValueGrid(float cellSize)
+        : this()
     {
         CellSize = cellSize;
     }
 
-    public Grid(float cellSize, Color color)
+    public ValueGrid(float cellSize, Color color)
         : this(cellSize)
     {
         Color = color;
@@ -27,14 +28,23 @@ public sealed class Grid : Drawable<Grid>
     public float Thick { get; set; } = Drawing.DefaultStrokeWidth == 0 ? 1 : Drawing.DefaultStrokeWidth;
     public Color Color { get; set; } = Drawing.DefaultFill;
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawGrid(transform, this);
+    }
+}
+
+[ValueWrapper<ValueGrid>]
+public sealed partial class Grid : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 }
 
@@ -109,29 +119,29 @@ public static class GridExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawGrid(Grid grid)
+        public void DrawGrid(in ValueGrid grid)
         {
             graphics.DrawGrid(new Transform(), grid);
         }
 
-        public void DrawGrid(float x, float y, float width, float height, Grid grid)
+        public void DrawGrid(float x, float y, float width, float height, in ValueGrid grid)
         {
             graphics.DrawGrid(new Vector2(x, y), new Vector2(width, height), grid);
         }
 
-        public void DrawGrid(Vector2 position, Vector2 size, Grid grid)
+        public void DrawGrid(Vector2 position, Vector2 size, in ValueGrid grid)
         {
             graphics.DrawGrid(new Transform(position + size * 0.5f, size), grid);
         }
 
-        public void DrawGrid(in Box box, Grid grid)
+        public void DrawGrid(in Box box, in ValueGrid grid)
         {
             graphics.DrawGrid(box.Position, box.Size, grid);
         }
 
-        public void DrawGrid(Transform transform, Grid grid)
+        public void DrawGrid(Transform transform, in ValueGrid grid)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, grid, graphics);
+            using var _ = Drawable<ValueGrid>.EnterDrawing(ref transform, grid.Drawable, grid, graphics);
             var camera = grid.Camera.Get();
             var color = grid.Color;
             var cellSize = grid.CellSize;

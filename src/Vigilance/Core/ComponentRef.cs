@@ -15,7 +15,7 @@ public readonly ref struct ComponentRef<T>
 
     public static ComponentRef<T> Null => new(ref Unsafe.NullRef<T>(), -1);
 
-    public static bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
+    public static bool WriteImmutable => typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
     public bool IsNull => Unsafe.IsNullRef(ref Value);
 
@@ -25,7 +25,7 @@ public readonly ref struct ComponentRef<T>
     {
         get
         {
-            if (!IsNull && WriteImmutable)
+            if (WriteImmutable)
                 throw new InvalidOperationException(
                     $"Cannot write {typeof(T)} because it implements {nameof(IWriteImmutableComponent)}."
                 );
