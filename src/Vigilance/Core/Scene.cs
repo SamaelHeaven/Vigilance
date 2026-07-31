@@ -736,27 +736,39 @@ public sealed partial class Scene
 
     private void UpdateInterpolatedEntities()
     {
-        foreach (var entity in AssignableEntities<IInterpolated>(withDisabled: true))
+        BeginDefer();
+        try
         {
-            ref var interpolation = ref InterpolationTable.GetRef(entity).Value;
-            var transform = entity.Transform;
-            Interpolation oldInterpolation;
-            if (Unsafe.IsNullRef(ref interpolation))
+            foreach (var table in Tables<IInterpolated>(withHidden: true))
+            foreach (var entityId in table.EntityIds)
             {
-                SuspendDefer();
-                interpolation = ref InterpolationTable.Set(entity, new Interpolation(transform, transform)).Value;
-                oldInterpolation = new Interpolation();
-                ResumeDefer();
-            }
-            else
-            {
-                oldInterpolation = interpolation;
-                interpolation.Start = transform;
-                if (Precision.AreEqual(interpolation.Start, oldInterpolation.Start))
-                    continue;
-            }
+                var entity = new Entity(entityId, this);
+                ref var interpolation = ref InterpolationTable.GetRef(entity).Value;
+                var transform = entity.Transform;
+                Interpolation oldInterpolation;
+                if (Unsafe.IsNullRef(ref interpolation))
+                {
+                    SuspendDefer();
+                    interpolation = ref InterpolationTable.Set(entity, new Interpolation(transform, transform)).Value;
+                    oldInterpolation = new Interpolation();
+                    ResumeDefer();
+                }
+                else
+                {
+                    oldInterpolation = interpolation;
+                    interpolation.Start = transform;
+                    if (Precision.AreEqual(interpolation.Start, oldInterpolation.Start))
+                        continue;
+                }
 
-            InterpolationTable.Enqueue(Core.Table.Event<Interpolation>.Set(entity, oldInterpolation, interpolation));
+                InterpolationTable.Enqueue(
+                    Core.Table.Event<Interpolation>.Set(entity, oldInterpolation, interpolation)
+                );
+            }
+        }
+        finally
+        {
+            EndDefer();
         }
     }
 
