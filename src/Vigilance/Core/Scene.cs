@@ -739,7 +739,7 @@ public sealed partial class Scene
         BeginDefer();
         try
         {
-            foreach (var table in Tables<IInterpolated>(withHidden: true))
+            foreach (var table in Tables<IInterpolated>())
             foreach (var entityId in table.EntityIds)
             {
                 var entity = new Entity(entityId, this);
