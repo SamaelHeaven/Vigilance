@@ -34,6 +34,7 @@ public sealed partial class Scene
     private Action<Entity>? _instantiateAction;
     private bool _isClearing;
     private bool _isFlushing;
+    private bool _isInitializing;
     private ValueDictionary<Type, Delegate> _listeners = [];
     private ValueDictionary<string, EntityId> _nameMap = [];
     private Action? _onDispose;
@@ -530,8 +531,9 @@ public sealed partial class Scene
 
     public void Initialize()
     {
-        if (IsInitialized)
+        if (IsInitialized || _isInitializing)
             return;
+        _isInitializing = true;
         if (!IsConfigured)
         {
             try
@@ -544,12 +546,21 @@ public sealed partial class Scene
             }
 
             foreach (var system in _systems)
-                system.Configure(this);
+                try
+                {
+                    system.Configure(this);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
             IsConfigured = true;
         }
 
         IsInitialized = true;
         _initializeAction?.SafeInvoke();
+        _isInitializing = false;
     }
 
     internal RenderComponents<T> RenderComponents<T>()
