@@ -580,7 +580,12 @@ public sealed partial class Scene
 
     internal void Update()
     {
-        Initialize();
+        if (!IsInitialized)
+        {
+            Initialize();
+            Time.Restart();
+        }
+
         if (!IsStarted)
             Start();
         _preUpdateAction?.SafeInvoke();
