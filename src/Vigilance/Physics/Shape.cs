@@ -24,10 +24,10 @@ public readonly record struct Shape : IShape
 
     public bool IsSensor => B2Shapes.b2Shape_IsSensor(_id);
 
-    public object? Data
+    public Primitive Data
     {
-        get => B2Shapes.b2Shape_GetUserData(_id).oValue;
-        set => B2Shapes.b2Shape_SetUserData(_id, new B2UserData(value));
+        get => B2Shapes.b2Shape_GetUserData(_id).ToPrimitive();
+        set => B2Shapes.b2Shape_SetUserData(_id, B2UserData.FromPrimitive(value));
     }
 
     public ShapeFilter Filter

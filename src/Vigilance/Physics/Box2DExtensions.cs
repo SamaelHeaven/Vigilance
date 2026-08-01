@@ -119,4 +119,52 @@ public static class Box2DExtensions
             return World.MetersToPixels(new Vector2(x, y));
         }
     }
+
+    extension(in B2UserData userData)
+    {
+        public static B2UserData FromPrimitive(in Primitive primitive)
+        {
+            return primitive.Type switch
+            {
+                PrimitiveType.Long => new B2UserData(primitive.Long),
+                PrimitiveType.ULong => new B2UserData(primitive.ULong),
+                PrimitiveType.Double => new B2UserData(primitive.Double),
+                PrimitiveType.Object => new B2UserData(primitive.Object),
+                PrimitiveType.Bool => new B2UserData(primitive.Bool ? 1 : 0),
+                PrimitiveType.SByte => new B2UserData(primitive.SByte),
+                PrimitiveType.Byte => new B2UserData(primitive.Byte),
+                PrimitiveType.Short => new B2UserData(primitive.Short),
+                PrimitiveType.UShort => new B2UserData(primitive.UShort),
+                PrimitiveType.Int => new B2UserData(primitive.Int),
+                PrimitiveType.UInt => new B2UserData(primitive.UInt),
+                PrimitiveType.Float => new B2UserData(primitive.Float),
+                PrimitiveType.NInt => new B2UserData(primitive.NInt),
+                PrimitiveType.NUInt => new B2UserData(primitive.NUInt),
+                _ => default,
+            };
+        }
+
+        public Primitive ToPrimitive()
+        {
+            var type = (PrimitiveType)userData.type;
+            return type switch
+            {
+                PrimitiveType.Long => userData.iValue,
+                PrimitiveType.ULong => userData.ulValue,
+                PrimitiveType.Double => userData.dValue,
+                PrimitiveType.Object => Primitive.From(userData.oValue),
+                PrimitiveType.Bool => userData.iValue != 0,
+                PrimitiveType.SByte => (sbyte)userData.iValue,
+                PrimitiveType.Byte => (byte)userData.iValue,
+                PrimitiveType.Short => (short)userData.iValue,
+                PrimitiveType.UShort => (ushort)userData.iValue,
+                PrimitiveType.Int => (int)userData.iValue,
+                PrimitiveType.UInt => (uint)userData.iValue,
+                PrimitiveType.Float => (float)userData.dValue,
+                PrimitiveType.NInt => (nint)userData.iValue,
+                PrimitiveType.NUInt => (nuint)userData.ulValue,
+                _ => new Primitive { Type = type },
+            };
+        }
+    }
 }
