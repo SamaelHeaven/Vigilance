@@ -89,11 +89,11 @@ public sealed class DrawingConfig
     public TextureFilter DefaultTextureFilter { get; set; } = TextureFilter.Nearest;
     public CameraProvider DefaultCamera { get; set; } = Camera.Scene;
     public Func<Texture> DefaultTexture { get; set; } = () => Texture.Empty;
-    public bool DefaultCulling { get; set; } = false;
+    public bool DefaultCulling { get; set; } = true;
     public BlendMode DefaultBlendMode { get; set; } = BlendMode.Alpha;
     public Func<Shader> DefaultShader { get; set; } = () => Shader.Default;
     public float SegmentsErrorRate { get; set; } = 0.5f;
-    public TimeSpan RenderTexturePoolLifetime { get; set; } = TimeSpan.FromSeconds(5);
+    public TimeSpan RenderTexturePoolLifetime { get; set; } = TimeSpan.FromSeconds(30);
 
     public Func<(int Width, int Height), (int Width, int Height)> RenderTexturePoolRoundFunc { get; set; } =
         value => (value.Width.RoundUpToMultipleOf(128), value.Height.RoundUpToMultipleOf(128));

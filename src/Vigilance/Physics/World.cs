@@ -90,7 +90,7 @@ public sealed class World
         var value = B2Worlds.b2World_GetUserData(worldId).oValue;
         if (value is WeakReference<Scene> sceneRef)
             return sceneRef.TryGetTarget(out var scene) ? scene.World : null;
-        return ((WeakReference<World>)value).TryGetTarget(out var world) ? world : null;
+        return Unsafe.As<object, WeakReference<World>>(ref value).TryGetTarget(out var world) ? world : null;
     }
 
     internal static Scene? GetScene(B2WorldId worldId)
@@ -98,7 +98,7 @@ public sealed class World
         var value = B2Worlds.b2World_GetUserData(worldId).oValue;
         if (value is WeakReference<Scene> sceneRef)
             return sceneRef.TryGetTarget(out var scene) ? scene : null;
-        return ((WeakReference<World>)value).TryGetTarget(out var world) ? world.Scene : null;
+        return Unsafe.As<object, WeakReference<World>>(ref value).TryGetTarget(out var world) ? world.Scene : null;
     }
 
     internal static void Initialize()

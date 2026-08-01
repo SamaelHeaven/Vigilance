@@ -223,28 +223,73 @@ public sealed partial class Scene
         return entity;
     }
 
-    public Entity Lookup(int index, int version)
-    {
-        ThrowIfNotConfigured();
-        if (index == 0 || (uint)index >= (uint)_entities.Count)
-            return Core.Entity.Null;
-        var id = _entities[index];
-        if (id.Index != index || id.Version != version)
-            return Core.Entity.Null;
-        return new Entity(index, version, this);
-    }
-
     public Entity Lookup(EntityId id)
     {
-        ThrowIfNotConfigured();
-        return Lookup(id.Index, id.Version);
+        if (id.Index == 0 || (uint)id.Index >= (uint)_entities.Count)
+            return Core.Entity.Null;
+        var entityId = _entities[id.Index];
+        if (entityId.Index != id.Index || entityId.Version != id.Version)
+            return Core.Entity.Null;
+        return new Entity(id.Index, id.Version, this);
     }
 
     public Entity Lookup(string name)
     {
-        ThrowIfNotConfigured();
         ref var id = ref _nameMap.GetValueRefOrNullRef(name);
         return Unsafe.IsNullRef(ref id) ? Core.Entity.Null : new Entity(id, this);
+    }
+
+    public Entity Lookup<T>()
+    {
+        var entityIds = Table<T>().EntityIds;
+        return entityIds.Count == 0 ? Core.Entity.Null : new Entity(entityIds[0], this);
+    }
+
+    public bool TryLookup(EntityId id, out Entity entity)
+    {
+        entity = Lookup(id);
+        return !entity.IsNull;
+    }
+
+    public bool TryLookup(string name, out Entity entity)
+    {
+        entity = Lookup(name);
+        return !entity.IsNull;
+    }
+
+    public bool TryLookup<T>(out Entity entity)
+    {
+        entity = Lookup<T>();
+        return !entity.IsNull;
+    }
+
+    public bool TryLookup<T>(out T component)
+    {
+        var components = Table<T>().Components;
+        if (components.Count == 0)
+        {
+            Unsafe.SkipInit(out component);
+            return false;
+        }
+
+        component = components[0];
+        return true;
+    }
+
+    public bool TryLookup<T>(out Entity entity, out T component)
+    {
+        var table = Table<T>();
+        var entityIds = table.EntityIds;
+        if (entityIds.Count == 0)
+        {
+            Unsafe.SkipInit(out entity);
+            Unsafe.SkipInit(out component);
+            return false;
+        }
+
+        entity = new Entity(entityIds[0], this);
+        component = table.Components[0];
+        return true;
     }
 
     public void On<T>(Action<T> action)
@@ -361,7 +406,7 @@ public sealed partial class Scene
         var type = typeof(T);
         if (!_listeners.TryGetValue(type, out var handlers))
             return;
-        Signal<T>.SafeInvoke((Func<T, bool>)handlers, @event);
+        Signal<T>.SafeInvoke(Unsafe.As<Delegate, Func<T, bool>>(ref handlers), @event);
     }
 
     public void Enqueue<T>(in T @event)
@@ -385,12 +430,13 @@ public sealed partial class Scene
                 () =>
                 {
                     if (queue.TryDequeue(out var @event))
-                        Signal<T>.SafeInvoke((Func<T, bool>)handlers, @event);
+                        Signal<T>.SafeInvoke(Unsafe.As<Delegate, Func<T, bool>>(ref handlers), @event);
                 }
             );
         }
 
-        ((Action<T>)events.EnqueueAction).Invoke(@event);
+        var action = events.EnqueueAction;
+        Unsafe.As<Delegate, Action<T>>(ref action).Invoke(@event);
         Enqueue(Event.Custom(type));
     }
 
@@ -456,10 +502,10 @@ public sealed partial class Scene
         var index = Core.Table<T>.Index;
         while (_sparseTables.Count <= index)
             _sparseTables.Add(null);
-        var table = (Table<T>?)_sparseTables[index];
+        ref var table = ref Unsafe.As<Table?, Table<T>?>(ref _sparseTables[index]);
         if (table is not null)
             return table;
-        _sparseTables[index] = table = new Table<T>(this);
+        table = new Table<T>(this);
         _tables.Add(table);
         return table;
     }
@@ -568,10 +614,10 @@ public sealed partial class Scene
         var index = Drawing.RenderComponents<T>.Index;
         while (_sparseRenderComponentsList.Count <= index)
             _sparseRenderComponentsList.Add(null);
-        var table = (RenderComponents<T>?)_sparseRenderComponentsList[index];
+        ref var table = ref Unsafe.As<RenderComponents?, RenderComponents<T>?>(ref _sparseRenderComponentsList[index]);
         if (table is not null)
             return table;
-        _sparseRenderComponentsList[index] = table = new RenderComponents<T>();
+        table = new RenderComponents<T>();
         RenderComponentsList.Add(table);
         return table;
     }
@@ -613,7 +659,7 @@ public sealed partial class Scene
 
     internal void Destroy(in Entity entity)
     {
-        if (_isClearing)
+        if (_isClearing || entity.IsNull)
             return;
         if (IsDeferred)
         {
@@ -702,13 +748,13 @@ public sealed partial class Scene
                     Clear();
                     break;
                 case EventType.Custom:
-                    _customEvents[(Type)@event.Data].DequeueAction.SafeInvoke();
+                    _customEvents[Unsafe.As<object, Type>(ref @event.Data)].DequeueAction.SafeInvoke();
                     break;
                 case EventType.TableOperation:
-                    ((Table)@event.Data).DequeueOperation();
+                    Unsafe.As<object, Table>(ref @event.Data).DequeueOperation();
                     break;
                 case EventType.TableEvent:
-                    ((Table)@event.Data).DequeueEvent();
+                    Unsafe.As<object, Table>(ref @event.Data).DequeueEvent();
                     break;
             }
 
@@ -1312,18 +1358,19 @@ public sealed partial class Scene
         }
     }
 
-    internal readonly record struct Event
+    internal record struct Event
     {
+        public object Data;
+
+        public EntityId EntityId;
+        public EventType EventType;
+
         public Event(EventType eventType, EntityId entityId, object data)
         {
             EntityId = entityId;
             Data = data;
             EventType = eventType;
         }
-
-        public EntityId EntityId { get; }
-        public object Data { get; }
-        public EventType EventType { get; }
 
         public static Event Instantiate(in Entity entity)
         {

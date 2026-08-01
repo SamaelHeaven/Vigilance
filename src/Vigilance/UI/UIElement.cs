@@ -180,7 +180,16 @@ public abstract class UIElement : IFullCloneable
 
     public UIParent? Parent { get; internal set; }
 
-    public UIParent? Root => (UIParent?)this.Ancestors().LastOrDefault();
+    public UIElement Root
+    {
+        get
+        {
+            var element = this;
+            while (element.Parent is not null)
+                element = element.Parent;
+            return element;
+        }
+    }
 
     public bool IsDisabled { get; set; }
 
@@ -1911,77 +1920,86 @@ public static partial class UIElementExtensions
 
         public Action<T> OnImmediate
         {
-            set => element.OnImmediateSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnImmediateSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnUpdate
         {
-            set => element.OnUpdateSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnUpdateSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnDisabledUpdate
         {
-            set => element.OnDisabledUpdateSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnDisabledUpdateSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnDirty
         {
-            set => element.OnDirtySignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnDirtySignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnLayout
         {
-            set => element.OnLayoutSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnLayoutSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnMouseEnter
         {
-            set => element.OnMouseEnterSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnMouseEnterSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnMouseExit
         {
-            set => element.OnMouseExitSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnMouseExitSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnClick
         {
-            set => element.OnClickSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnClickSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnPress
         {
-            set => element.OnPressSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnPressSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnRelease
         {
-            set => element.OnReleaseSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnReleaseSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnClone
         {
-            set => element.OnCloneSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnCloneSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<T> OnResetLayoutAndTransform
         {
-            set => element.OnResetLayoutAndTransformSignal.Subscribe(e => value.Invoke((T)e));
+            set => element.OnResetLayoutAndTransformSignal.Subscribe(e => value.Invoke(Unsafe.As<UIElement, T>(ref e)));
         }
 
         public Action<UIElement, Graphics, CameraProvider> OnBeginRender
         {
-            set => element.OnBeginRenderSignal.Subscribe((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
+            set =>
+                element.OnBeginRenderSignal.Subscribe(
+                    (e, graphics, camera) => value.Invoke(Unsafe.As<UIElement, T>(ref e), graphics, camera)
+                );
         }
 
         public Action<UIElement, Graphics, CameraProvider> OnRender
         {
-            set => element.OnRenderSignal.Subscribe((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
+            set =>
+                element.OnRenderSignal.Subscribe(
+                    (e, graphics, camera) => value.Invoke(Unsafe.As<UIElement, T>(ref e), graphics, camera)
+                );
         }
 
         public Action<UIElement, Graphics, CameraProvider> OnEndRender
         {
-            set => element.OnEndRenderSignal.Subscribe((e, graphics, camera) => value.Invoke((T)e, graphics, camera));
+            set =>
+                element.OnEndRenderSignal.Subscribe(
+                    (e, graphics, camera) => value.Invoke(Unsafe.As<UIElement, T>(ref e), graphics, camera)
+                );
         }
 
         public T DeepClone(UIElement.CloneOptions options)

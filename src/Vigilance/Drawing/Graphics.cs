@@ -71,7 +71,7 @@ public sealed unsafe class Graphics
     public bool IsBoxInBounds(in Box box, Camera? camera, float offset = 0)
     {
         var matrix = GetMatrix(camera);
-        return Collision.CheckPolygons(box.Transform(matrix), new Quad(GetBounds(matrix, offset)));
+        return Collision.CheckParallelograms(box.Transform(matrix), new Quad(GetBounds(matrix, offset)));
     }
 
     public bool IsPolygonInBounds(IEnumerable<Vector2> points, Camera? camera, float offset = 0)
