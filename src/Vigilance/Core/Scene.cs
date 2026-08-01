@@ -245,6 +245,12 @@ public sealed partial class Scene
         return entityIds.Count == 0 ? Core.Entity.Null : new Entity(entityIds[0], this);
     }
 
+    public Entity Lookup(Table table)
+    {
+        var entityIds = table.EntityIds;
+        return entityIds.Count == 0 ? Core.Entity.Null : new Entity(entityIds[0], this);
+    }
+
     public bool TryLookup(EntityId id, out Entity entity)
     {
         entity = Lookup(id);
@@ -260,6 +266,12 @@ public sealed partial class Scene
     public bool TryLookup<T>(out Entity entity)
     {
         entity = Lookup<T>();
+        return !entity.IsNull;
+    }
+
+    public bool TryLookup(Table table, out Entity entity)
+    {
+        entity = Lookup(table);
         return !entity.IsNull;
     }
 
