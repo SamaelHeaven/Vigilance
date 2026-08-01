@@ -622,7 +622,10 @@ public readonly record struct Primitive : IUnion
             PrimitiveType.Double => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(Double)])),
             PrimitiveType.NInt => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(NInt)])),
             PrimitiveType.NUInt => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(NUInt)])),
-            PrimitiveType.Object => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(Object)])),
+            PrimitiveType.Object => ObjectPrinter.Print(
+                this,
+                ObjectPrinter.Include([nameof(Type), nameof(Object), nameof(UnderlyingType)])
+            ),
             _ => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type)])),
         };
     }
