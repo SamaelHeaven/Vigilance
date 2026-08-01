@@ -636,16 +636,16 @@ public enum PrimitiveType : sbyte
     Double = (sbyte)B2UserDataType.Double,
     Object = (sbyte)B2UserDataType.Ref,
 
-    Bool,
-    SByte,
-    Byte,
-    Short,
-    UShort,
-    Int,
-    UInt,
-    Float,
-    NInt,
-    NUInt,
+    Bool = sbyte.MaxValue - 9,
+    SByte = sbyte.MaxValue - 8,
+    Byte = sbyte.MaxValue - 7,
+    Short = sbyte.MaxValue - 6,
+    UShort = sbyte.MaxValue - 5,
+    Int = sbyte.MaxValue - 4,
+    UInt = sbyte.MaxValue - 3,
+    Float = sbyte.MaxValue - 2,
+    NInt = sbyte.MaxValue - 1,
+    NUInt = sbyte.MaxValue,
 }
 
 public static class PrimitiveTypeExtensions
