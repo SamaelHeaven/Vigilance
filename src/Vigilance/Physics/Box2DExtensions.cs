@@ -140,7 +140,7 @@ public static class Box2DExtensions
                 PrimitiveType.Float => new B2UserData(primitive.Float),
                 PrimitiveType.NInt => new B2UserData(primitive.NInt),
                 PrimitiveType.NUInt => new B2UserData(primitive.NUInt),
-                _ => default,
+                _ => B2UserData.Empty,
             };
         }
 

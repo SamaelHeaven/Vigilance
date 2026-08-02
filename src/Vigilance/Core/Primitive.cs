@@ -11,6 +11,8 @@ public readonly record struct Primitive : IUnion
 {
     private string InvalidMessage => $"{nameof(Primitive)} contains a {Type}.";
 
+    public static Primitive None => new() { Type = PrimitiveType.None };
+
     [field: FieldOffset(0)]
     public bool Bool
     {

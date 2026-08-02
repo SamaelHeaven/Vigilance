@@ -67,7 +67,7 @@ public sealed class World
     ~World()
     {
         if (!_disposed)
-            Game.RunLater(ReleaseUnmanagedResources);
+            Game.RunLater(this, world => world.ReleaseUnmanagedResources());
     }
 
     private void ReleaseUnmanagedResources()

@@ -175,8 +175,10 @@ public sealed class Music : IDisposable
         {
             var music = _musics[i];
             Raylib.UpdateMusicStream(music._music);
-            if (!Raylib.IsMusicStreamPlaying(music._music))
-                _musics.RemoveAt(i);
+            if (Raylib.IsMusicStreamPlaying(music._music))
+                continue;
+            _musics[i] = _musics[^1];
+            _musics.RemoveAt(_musics.Count - 1);
         }
     }
 
@@ -188,6 +190,6 @@ public sealed class Music : IDisposable
 
     ~Music()
     {
-        Game.RunLater(ReleaseUnmanagedResources);
+        Game.RunLater(this, music => music.ReleaseUnmanagedResources());
     }
 }

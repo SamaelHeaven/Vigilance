@@ -158,8 +158,10 @@ public sealed class Sound : IDisposable
         for (var i = _sounds.Count - 1; i >= 0; i--)
         {
             var sound = _sounds[i];
-            if (!sound.IsPlaying)
-                _sounds.RemoveAt(i);
+            if (sound.IsPlaying)
+                continue;
+            _sounds[i] = _sounds[^1];
+            _sounds.RemoveAt(_sounds.Count - 1);
         }
     }
 
@@ -172,6 +174,6 @@ public sealed class Sound : IDisposable
 
     ~Sound()
     {
-        Game.RunLater(ReleaseUnmanagedResources);
+        Game.RunLater(this, sound => sound.ReleaseUnmanagedResources());
     }
 }

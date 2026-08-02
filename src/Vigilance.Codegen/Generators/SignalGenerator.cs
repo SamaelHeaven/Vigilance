@@ -78,6 +78,10 @@ public sealed class SignalGenerator : SourceGenerator
                     invokeParams == "" ? "" : $", {invokeParams}"
                 )}})
                 {
+                    if (handlers is null)
+                        return false;
+                    if (handlers.HasSingleTarget)
+                        return handlers.Invoke({{invokeArgs}});
                     foreach (var handler in Delegate.EnumerateInvocationList(handlers))
                         if (handler.Invoke({{invokeArgs}}))
                             return true;
@@ -93,6 +97,18 @@ public sealed class SignalGenerator : SourceGenerator
                     invokeParams == "" ? "" : $", {invokeParams}"
                 )}})
                 {
+                    if (handlers is null)
+                        return false;
+                    if (handlers.HasSingleTarget)
+                        try
+                        {
+                            return handlers.Invoke({{invokeArgs}});
+                        }
+                        catch (System.Exception e)
+                        {
+                            Log.Error(e);
+                            return false;
+                        }
                     foreach (var handler in Delegate.EnumerateInvocationList(handlers))
                         try
                         {

@@ -156,6 +156,6 @@ public sealed unsafe class Image : IDisposable
 
     ~Image()
     {
-        Game.RunLater(ReleaseUnmanagedResources);
+        Game.RunLater(this, image => image.ReleaseUnmanagedResources());
     }
 }

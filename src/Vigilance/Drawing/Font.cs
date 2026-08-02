@@ -50,8 +50,8 @@ public sealed unsafe class Font : IDisposable
     {
         ReleaseUnmanagedResources();
         GC.SuppressFinalize(this);
-        _glyphInfos.Clear();
-        _strokes.Clear();
+        _glyphInfos = [];
+        _strokes = [];
         _buffer = 0;
         _face = null;
         _spaceSize = 0;
@@ -294,7 +294,7 @@ public sealed unsafe class Font : IDisposable
 
     ~Font()
     {
-        Game.RunLater(Dispose);
+        Game.RunLater(this, font => font.ReleaseUnmanagedResources());
     }
 
     private void ReleaseUnmanagedResources()

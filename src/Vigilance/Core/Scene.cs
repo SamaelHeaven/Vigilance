@@ -22,8 +22,8 @@ public sealed partial class Scene
     internal ValueList<RenderComponents> RenderComponentsList = [];
     internal ValueList<RenderData> RenderDataList = [];
     private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
-    private Action? _deferredAction;
     private int _deferredCount;
+    private ValueList<Job> _deferredJobs = [];
     private Action<Entity>? _destroyAction;
     private ValueList<bool> _destroyedEntities = [];
     private ValueList<EntityId> _entities = [];
@@ -456,11 +456,22 @@ public sealed partial class Scene
     {
         if (IsDeferred)
         {
-            _deferredAction += action;
+            _deferredJobs.Add(Job.From(action));
             return;
         }
 
         action.SafeInvoke();
+    }
+
+    public void Defer<T>(in T context, Action<T> action)
+    {
+        if (IsDeferred)
+        {
+            _deferredJobs.Add(Job.From(context, action));
+            return;
+        }
+
+        action.SafeInvoke(context);
     }
 
     public void ThrowIfNotConfigured()
@@ -616,8 +627,9 @@ public sealed partial class Scene
             IsConfigured = true;
         }
 
-        IsInitialized = true;
         _initializeAction?.SafeInvoke();
+        Game.InvokeJobs();
+        IsInitialized = true;
         _isInitializing = false;
     }
 
@@ -639,6 +651,7 @@ public sealed partial class Scene
         if (!IsStarted)
             return;
         _stopAction?.SafeInvoke();
+        Game.InvokeJobs();
         IsStarted = false;
     }
 
@@ -658,8 +671,11 @@ public sealed partial class Scene
         if (!IsStarted)
             Start();
         _preUpdateAction?.SafeInvoke();
+        Game.InvokeJobs();
         _updateAction?.SafeInvoke();
+        Game.InvokeJobs();
         _postUpdateAction?.SafeInvoke();
+        Game.InvokeJobs();
         for (
             Time.FixedAccumulator += Time.Delta;
             Time.FixedAccumulator >= Time.FixedDelta;
@@ -719,6 +735,7 @@ public sealed partial class Scene
     private void Start()
     {
         _startAction?.SafeInvoke();
+        Game.InvokeJobs();
         IsStarted = true;
     }
 
@@ -726,8 +743,11 @@ public sealed partial class Scene
     {
         UpdateInterpolatedEntities();
         _preFixedUpdateAction?.SafeInvoke();
+        Game.InvokeJobs();
         _fixedUpdateAction?.SafeInvoke();
+        Game.InvokeJobs();
         _postFixedUpdateAction?.SafeInvoke();
+        Game.InvokeJobs();
     }
 
     private void RestartAction()
@@ -771,18 +791,30 @@ public sealed partial class Scene
             }
 
         _isFlushing = false;
-        var action = _deferredAction;
-        _deferredAction = null;
-        action?.SafeInvoke();
+        if (_deferredJobs.Count == 0)
+            return;
+        using var pooledJobs = _deferredJobs.AsValueEnumerable().ToArrayPool();
+        _deferredJobs.Clear();
+        foreach (var job in pooledJobs.Span)
+            try
+            {
+                job.Invoke();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     private void Render()
     {
         var commands = new RenderCommands(this);
         _preRenderAction?.SafeInvoke();
+        Game.InvokeJobs();
         try
         {
             _renderAction?.SafeInvoke(commands);
+            Game.InvokeJobs();
         }
         finally
         {
@@ -790,6 +822,7 @@ public sealed partial class Scene
         }
 
         _postRenderAction?.SafeInvoke();
+        Game.InvokeJobs();
     }
 
     private void UpdateInterpolatedEntities()
@@ -832,7 +865,9 @@ public sealed partial class Scene
 
     ~Scene()
     {
-        Game.RunLater(() => _onDispose?.SafeInvoke());
+        if (_onDispose is null)
+            return;
+        Game.RunLater(_onDispose, onDispose => onDispose.SafeInvoke());
     }
 
     public void OnInstantiate(Action action)
