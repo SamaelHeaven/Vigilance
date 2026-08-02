@@ -138,8 +138,8 @@ public static class Box2DExtensions
                 PrimitiveType.Int => new B2UserData(primitive.Int),
                 PrimitiveType.UInt => new B2UserData(primitive.UInt),
                 PrimitiveType.Float => new B2UserData(primitive.Float),
-                PrimitiveType.NInt => new B2UserData(primitive.NInt),
-                PrimitiveType.NUInt => new B2UserData(primitive.NUInt),
+                PrimitiveType.IntPtr => new B2UserData(primitive.IntPtr),
+                PrimitiveType.UIntPtr => new B2UserData(primitive.UIntPtr),
                 _ => B2UserData.Empty,
             };
         }
@@ -161,8 +161,8 @@ public static class Box2DExtensions
                 PrimitiveType.Int => (int)userData.iValue,
                 PrimitiveType.UInt => (uint)userData.iValue,
                 PrimitiveType.Float => (float)userData.dValue,
-                PrimitiveType.NInt => (nint)userData.iValue,
-                PrimitiveType.NUInt => (nuint)userData.ulValue,
+                PrimitiveType.IntPtr => (nint)userData.iValue,
+                PrimitiveType.UIntPtr => (nuint)userData.ulValue,
                 _ => new Primitive { Type = type },
             };
         }

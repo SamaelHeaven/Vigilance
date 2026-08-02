@@ -364,6 +364,16 @@ public struct ValueEntitySparseSet<TValue>
         return _sparseSet.TryGetValue(key, out value);
     }
 
+    public readonly TValue? GetValueOrDefault(in Entity key)
+    {
+        return _sparseSet.GetValueOrDefault(key);
+    }
+
+    public readonly TValue GetValueOrDefault(in Entity key, in TValue defaultValue)
+    {
+        return _sparseSet.GetValueOrDefault(key, defaultValue);
+    }
+
     public bool Remove(in Entity key)
     {
         return _sparseSet.Remove(key);
@@ -539,6 +549,16 @@ public struct ValueEntitySparseSet<TValue, TStorage>
     public readonly bool TryGetValue(in Entity key, [MaybeNullWhen(false)] out TValue value)
     {
         return _sparseSet.TryGetValue(key.Id, out value);
+    }
+
+    public readonly TValue? GetValueOrDefault(in Entity key)
+    {
+        return _sparseSet.GetValueOrDefault(key.Id);
+    }
+
+    public readonly TValue GetValueOrDefault(in Entity key, in TValue defaultValue)
+    {
+        return _sparseSet.GetValueOrDefault(key.Id, defaultValue);
     }
 
     public bool Remove(in Entity key)

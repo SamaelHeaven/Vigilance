@@ -355,6 +355,16 @@ public class SparseSet<TKey, TValue, TStorage>
         return _sparseSet.TryGetValue(key, out value);
     }
 
+    public TValue? GetValueOrDefault(in TKey key)
+    {
+        return _sparseSet.GetValueOrDefault(key);
+    }
+
+    public TValue GetValueOrDefault(in TKey key, in TValue defaultValue)
+    {
+        return _sparseSet.GetValueOrDefault(key, defaultValue);
+    }
+
     public bool Remove(in TKey key)
     {
         return _sparseSet.Remove(key);

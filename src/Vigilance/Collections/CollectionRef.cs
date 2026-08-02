@@ -1297,6 +1297,16 @@ public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
         return _ref.TryGetValue(key, out value);
     }
 
+    public readonly TValue? GetValueOrDefault(scoped in TKey key)
+    {
+        return _ref.GetValueOrDefault(key);
+    }
+
+    public readonly TValue GetValueOrDefault(scoped in TKey key, in TValue defaultValue)
+    {
+        return _ref.GetValueOrDefault(key, defaultValue);
+    }
+
     public bool Remove(scoped in TKey key)
     {
         return _ref.Remove(key);
@@ -1972,6 +1982,16 @@ public ref struct ValueEntitySparseSetRef<TValue, TStorage>
     public readonly bool TryGetValue(scoped in Entity key, [MaybeNullWhen(false)] out TValue value)
     {
         return _ref.TryGetValue(key, out value);
+    }
+
+    public readonly TValue? GetValueOrDefault(scoped in Entity key)
+    {
+        return _ref.GetValueOrDefault(key);
+    }
+
+    public readonly TValue GetValueOrDefault(scoped in Entity key, in TValue defaultValue)
+    {
+        return _ref.GetValueOrDefault(key, defaultValue);
     }
 
     public bool Remove(scoped in Entity key)

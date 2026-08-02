@@ -91,17 +91,17 @@ public readonly record struct Primitive : IUnion
     }
 
     [field: FieldOffset(0)]
-    public nint NInt
+    public nint IntPtr
     {
-        get => Type == PrimitiveType.NInt ? field : throw new InvalidOperationException(InvalidMessage);
-        init => field = Type == PrimitiveType.NInt ? value : throw new InvalidOperationException(InvalidMessage);
+        get => Type == PrimitiveType.IntPtr ? field : throw new InvalidOperationException(InvalidMessage);
+        init => field = Type == PrimitiveType.IntPtr ? value : throw new InvalidOperationException(InvalidMessage);
     }
 
     [field: FieldOffset(0)]
-    public nuint NUInt
+    public nuint UIntPtr
     {
-        get => Type == PrimitiveType.NUInt ? field : throw new InvalidOperationException(InvalidMessage);
-        init => field = Type == PrimitiveType.NUInt ? value : throw new InvalidOperationException(InvalidMessage);
+        get => Type == PrimitiveType.UIntPtr ? field : throw new InvalidOperationException(InvalidMessage);
+        init => field = Type == PrimitiveType.UIntPtr ? value : throw new InvalidOperationException(InvalidMessage);
     }
 
     [field: FieldOffset(8)]
@@ -182,14 +182,14 @@ public readonly record struct Primitive : IUnion
 
     public Primitive(nint value)
     {
-        Type = PrimitiveType.NInt;
-        NInt = value;
+        Type = PrimitiveType.IntPtr;
+        IntPtr = value;
     }
 
     public Primitive(nuint value)
     {
-        Type = PrimitiveType.NUInt;
-        NUInt = value;
+        Type = PrimitiveType.UIntPtr;
+        UIntPtr = value;
     }
 
     public static Primitive From<T>(T value)
@@ -305,8 +305,8 @@ public readonly record struct Primitive : IUnion
                 PrimitiveType.ULong => ULong,
                 PrimitiveType.Float => Float,
                 PrimitiveType.Double => Double,
-                PrimitiveType.NInt => NInt,
-                PrimitiveType.NUInt => NUInt,
+                PrimitiveType.IntPtr => IntPtr,
+                PrimitiveType.UIntPtr => UIntPtr,
                 PrimitiveType.Object => Object,
                 _ => null,
             };
@@ -332,8 +332,8 @@ public readonly record struct Primitive : IUnion
                 PrimitiveType.ULong => typeof(ulong),
                 PrimitiveType.Float => typeof(float),
                 PrimitiveType.Double => typeof(double),
-                PrimitiveType.NInt => typeof(nint),
-                PrimitiveType.NUInt => typeof(nuint),
+                PrimitiveType.IntPtr => typeof(nint),
+                PrimitiveType.UIntPtr => typeof(nuint),
                 PrimitiveType.Object => Object?.GetType()!,
                 _ => null!,
             };
@@ -474,9 +474,9 @@ public readonly record struct Primitive : IUnion
 
     public bool TryGetValue(out nint value)
     {
-        if (Type == PrimitiveType.NInt)
+        if (Type == PrimitiveType.IntPtr)
         {
-            value = NInt;
+            value = IntPtr;
             return true;
         }
 
@@ -486,9 +486,9 @@ public readonly record struct Primitive : IUnion
 
     public bool TryGetValue(out nuint value)
     {
-        if (Type == PrimitiveType.NUInt)
+        if (Type == PrimitiveType.UIntPtr)
         {
-            value = NUInt;
+            value = UIntPtr;
             return true;
         }
 
@@ -546,11 +546,11 @@ public readonly record struct Primitive : IUnion
             case PrimitiveType.Double when typeof(T) == typeof(double):
                 Unsafe.As<T, double>(ref value) = Double;
                 return true;
-            case PrimitiveType.NInt when typeof(T) == typeof(nint):
-                Unsafe.As<T, nint>(ref value) = NInt;
+            case PrimitiveType.IntPtr when typeof(T) == typeof(nint):
+                Unsafe.As<T, nint>(ref value) = IntPtr;
                 return true;
-            case PrimitiveType.NUInt when typeof(T) == typeof(nuint):
-                Unsafe.As<T, nuint>(ref value) = NUInt;
+            case PrimitiveType.UIntPtr when typeof(T) == typeof(nuint):
+                Unsafe.As<T, nuint>(ref value) = UIntPtr;
                 return true;
             case PrimitiveType.Object:
                 var obj = Object;
@@ -578,8 +578,8 @@ public readonly record struct Primitive : IUnion
             PrimitiveType.ULong => other.Type == PrimitiveType.ULong && other.ULong == ULong,
             PrimitiveType.Float => other.Type == PrimitiveType.Float && other.Float.Equals(Float),
             PrimitiveType.Double => other.Type == PrimitiveType.Double && other.Double.Equals(Double),
-            PrimitiveType.NInt => other.Type == PrimitiveType.NInt && other.NInt == NInt,
-            PrimitiveType.NUInt => other.Type == PrimitiveType.NUInt && other.NUInt == NUInt,
+            PrimitiveType.IntPtr => other.Type == PrimitiveType.IntPtr && other.IntPtr == IntPtr,
+            PrimitiveType.UIntPtr => other.Type == PrimitiveType.UIntPtr && other.UIntPtr == UIntPtr,
             PrimitiveType.Object => other.Type == PrimitiveType.Object && Equals(other.Object, Object),
             _ => other.Type == Type,
         };
@@ -600,8 +600,8 @@ public readonly record struct Primitive : IUnion
             PrimitiveType.ULong => HashCode.Combine(Type, ULong),
             PrimitiveType.Float => HashCode.Combine(Type, Float),
             PrimitiveType.Double => HashCode.Combine(Type, Double),
-            PrimitiveType.NInt => HashCode.Combine(Type, NInt),
-            PrimitiveType.NUInt => HashCode.Combine(Type, NUInt),
+            PrimitiveType.IntPtr => HashCode.Combine(Type, IntPtr),
+            PrimitiveType.UIntPtr => HashCode.Combine(Type, UIntPtr),
             PrimitiveType.Object => HashCode.Combine(Type, Object),
             _ => Type.GetHashCode(),
         };
@@ -622,8 +622,8 @@ public readonly record struct Primitive : IUnion
             PrimitiveType.ULong => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(ULong)])),
             PrimitiveType.Float => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(Float)])),
             PrimitiveType.Double => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(Double)])),
-            PrimitiveType.NInt => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(NInt)])),
-            PrimitiveType.NUInt => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(NUInt)])),
+            PrimitiveType.IntPtr => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(IntPtr)])),
+            PrimitiveType.UIntPtr => ObjectPrinter.Print(this, ObjectPrinter.Include([nameof(Type), nameof(UIntPtr)])),
             PrimitiveType.Object => ObjectPrinter.Print(
                 this,
                 ObjectPrinter.Include([nameof(Type), nameof(Object), nameof(UnderlyingType)])
@@ -649,8 +649,8 @@ public enum PrimitiveType : sbyte
     Int = sbyte.MaxValue - 4,
     UInt = sbyte.MaxValue - 3,
     Float = sbyte.MaxValue - 2,
-    NInt = sbyte.MaxValue - 1,
-    NUInt = sbyte.MaxValue,
+    IntPtr = sbyte.MaxValue - 1,
+    UIntPtr = sbyte.MaxValue,
 }
 
 public static class PrimitiveTypeExtensions
@@ -674,8 +674,8 @@ public static class PrimitiveTypeExtensions
                     PrimitiveType.ULong => typeof(ulong),
                     PrimitiveType.Float => typeof(float),
                     PrimitiveType.Double => typeof(double),
-                    PrimitiveType.NInt => typeof(nint),
-                    PrimitiveType.NUInt => typeof(nuint),
+                    PrimitiveType.IntPtr => typeof(nint),
+                    PrimitiveType.UIntPtr => typeof(nuint),
                     PrimitiveType.Object => typeof(object),
                     _ => null!,
                 };

@@ -693,6 +693,16 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         return true;
     }
 
+    public readonly TValue? GetValueOrDefault(in TKey key)
+    {
+        return TryGetValue(key, out var value) ? value : default;
+    }
+
+    public readonly TValue GetValueOrDefault(in TKey key, in TValue defaultValue)
+    {
+        return TryGetValue(key, out var value) ? value : defaultValue;
+    }
+
     public bool Remove(in TKey key)
     {
         AssertValid();

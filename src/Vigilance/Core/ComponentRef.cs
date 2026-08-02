@@ -45,7 +45,13 @@ public readonly ref struct ComponentRef<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T? GetOrDefault(in T? defaultValue = default)
+    public T? GetOrDefault()
+    {
+        return IsNull ? default : Read;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public T GetOrDefault(in T defaultValue)
     {
         return IsNull ? defaultValue : Read;
     }

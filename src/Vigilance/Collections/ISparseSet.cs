@@ -153,6 +153,10 @@ public interface ISparseSet<TKey, TValue, TStorage> : ISparseSet<TValue, TStorag
 
     bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value);
 
+    TValue? GetValueOrDefault(in TKey key);
+
+    TValue GetValueOrDefault(in TKey key, in TValue defaultValue);
+
     bool Remove(in TKey key);
 
     int GetKeyIndex(in TKey key);

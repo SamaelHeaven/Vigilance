@@ -1071,6 +1071,16 @@ public readonly record struct SparseSetView<TKey, TValue, TStorage>
         return _sparseSet.TryGetValue(key, out value);
     }
 
+    public TValue? GetValueOrDefault(in TKey key)
+    {
+        return _sparseSet.GetValueOrDefault(key);
+    }
+
+    public TValue GetValueOrDefault(in TKey key, in TValue defaultValue)
+    {
+        return _sparseSet.GetValueOrDefault(key, defaultValue);
+    }
+
     public int GetKeyIndex(in TKey key)
     {
         return _sparseSet.GetKeyIndex(key);
@@ -1324,6 +1334,16 @@ public readonly record struct EntitySparseSetView<TValue, TStorage>
         return _sparseSet.TryGetValue(key, out value);
     }
 
+    public TValue? GetValueOrDefault(in Entity key)
+    {
+        return _sparseSet.GetValueOrDefault(key);
+    }
+
+    public TValue GetValueOrDefault(in Entity key, in TValue defaultValue)
+    {
+        return _sparseSet.GetValueOrDefault(key, defaultValue);
+    }
+
     public int GetKeyIndex(in Entity key)
     {
         return _sparseSet.GetKeyIndex(key);
@@ -1366,6 +1386,16 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
     public bool TryGetValue(scoped in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
         return _sparseSet.TryGetValue(key, out value);
+    }
+
+    public TValue? GetValueOrDefault(scoped in TKey key)
+    {
+        return _sparseSet.GetValueOrDefault(key);
+    }
+
+    public TValue GetValueOrDefault(scoped in TKey key, TValue defaultValue)
+    {
+        return _sparseSet.GetValueOrDefault(key, defaultValue);
     }
 
     public int GetKeyIndex(scoped in TKey key)
@@ -1543,6 +1573,16 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
         public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
         {
             return _sparseSet.TryGetValue(key, out value);
+        }
+
+        public TValue? GetValueOrDefault(in TKey key)
+        {
+            return _sparseSet.GetValueOrDefault(key);
+        }
+
+        public TValue GetValueOrDefault(in TKey key, in TValue defaultValue)
+        {
+            return _sparseSet.GetValueOrDefault(key, defaultValue);
         }
     }
 }
@@ -1994,6 +2034,16 @@ public readonly ref struct ValueEntitySparseSetView<TValue, TStorage>
         return _sparseSet.TryGetValue(key, out value);
     }
 
+    public TValue? GetValueOrDefault(scoped in Entity key)
+    {
+        return _sparseSet.GetValueOrDefault(key);
+    }
+
+    public TValue GetValueOrDefault(scoped in Entity key, in TValue defaultValue)
+    {
+        return _sparseSet.GetValueOrDefault(key, defaultValue);
+    }
+
     public int GetKeyIndex(scoped in Entity key)
     {
         return _sparseSet.GetKeyIndex(key);
@@ -2165,6 +2215,16 @@ public readonly ref struct ValueEntitySparseSetView<TValue, TStorage>
         public bool TryGetValue(in Entity key, [MaybeNullWhen(false)] out TValue value)
         {
             return _sparseSet.TryGetValue(key, out value);
+        }
+
+        public TValue? GetValueOrDefault(in Entity key)
+        {
+            return _sparseSet.GetValueOrDefault(key);
+        }
+
+        public TValue GetValueOrDefault(in Entity key, in TValue defaultValue)
+        {
+            return _sparseSet.GetValueOrDefault(key, defaultValue);
         }
 
         public int GetKeyIndex(in Entity key)

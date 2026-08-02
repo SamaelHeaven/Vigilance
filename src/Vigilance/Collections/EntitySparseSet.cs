@@ -368,6 +368,16 @@ public class EntitySparseSet<TValue, TStorage>
         return _sparseSet.TryGetValue(key.Id, out value);
     }
 
+    public TValue? GetValueOrDefault(in Entity key)
+    {
+        return _sparseSet.GetValueOrDefault(key.Id);
+    }
+
+    public TValue GetValueOrDefault(in Entity key, in TValue defaultValue)
+    {
+        return _sparseSet.GetValueOrDefault(key.Id, defaultValue);
+    }
+
     public bool Remove(in Entity key)
     {
         return _sparseSet.Remove(key.Id);
