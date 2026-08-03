@@ -8,11 +8,13 @@ public abstract class SourceGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var compilationProvider = context.CompilationProvider;
+        var compilationProvider = context.CompilationProvider.Select(static (compilation, _) => IsEngine(compilation));
         context.RegisterSourceOutput(
             compilationProvider,
-            (spc, _) =>
+            (spc, isEngine) =>
             {
+                if (!isEngine)
+                    return;
                 var sb = new StringBuilder();
                 sb.Append(
                     """
@@ -39,4 +41,9 @@ public abstract class SourceGenerator : IIncrementalGenerator
     }
 
     protected abstract void Generate(StringBuilder sb);
+
+    private static bool IsEngine(Compilation compilation)
+    {
+        return compilation.Assembly.GetTypeByMetadataName("Vigilance.Core.Game") is not null;
+    }
 }

@@ -13,30 +13,6 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
 {
     private const string AttributeMetadataName = "Vigilance.Core.ValueWrapperAttribute`1";
 
-    private const string AttributeSource = """
-        #nullable enable
-
-        namespace Vigilance.Core
-        {
-            [System.AttributeUsage(
-                System.AttributeTargets.Class | System.AttributeTargets.Struct,
-                AllowMultiple = false,
-                Inherited = false
-            )]
-            internal sealed class ValueWrapperAttribute<TValue> : System.Attribute
-            {
-                public ValueWrapperAttribute(string fieldName = "Value")
-                {
-                    FieldName = fieldName;
-                }
-                
-                public string FieldName { get; }
-            }
-        }
-
-        #nullable restore
-        """;
-
     private static readonly SymbolDisplayFormat _typeFormat = new(
         SymbolDisplayGlobalNamespaceStyle.Included,
         SymbolDisplayTypeQualificationStyle.NameAndContainingTypesAndNamespaces,
@@ -55,40 +31,66 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        context.RegisterPostInitializationOutput(ctx =>
-            ctx.AddSource("ValueWrapperAttribute.g.cs", SourceText.From(AttributeSource, Encoding.UTF8))
+        var wrappers = context.SyntaxProvider.ForAttributeWithMetadataName(
+            AttributeMetadataName,
+            static (node, _) => node is TypeDeclarationSyntax,
+            static (ctx, _) => Build(ctx)
         );
-        var wrappers = context
-            .SyntaxProvider.ForAttributeWithMetadataName(
-                AttributeMetadataName,
-                static (node, _) => node is TypeDeclarationSyntax,
-                static (ctx, _) => Build(ctx)
-            )
-            .Where(static result => result is not null);
         context.RegisterSourceOutput(
             wrappers,
             static (spc, result) =>
-                spc.AddSource(result!.Value.HintName, SourceText.From(result.Value.Source, Encoding.UTF8))
+            {
+                foreach (var diagnostic in result.Diagnostics)
+                    spc.ReportDiagnostic(diagnostic);
+                if (result is { HintName: not null, Source: not null })
+                    spc.AddSource(result.HintName, SourceText.From(result.Source, Encoding.UTF8));
+            }
         );
     }
 
-    private static (string HintName, string Source)? Build(GeneratorAttributeSyntaxContext context)
+    private static Result Build(GeneratorAttributeSyntaxContext context)
     {
-        if (context.TargetSymbol is not INamedTypeSymbol wrapper)
-            return null;
+        if (context.TargetSymbol is not INamedTypeSymbol wrapper || context.Attributes.Length == 0)
+            return Result.Empty;
+        var attribute = context.Attributes[0];
+        var location = AttributeLocation(attribute, wrapper);
+        var name = wrapper.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+        if (wrapper.IsStatic)
+            return Result.Error(Diagnostics.ValueWrapperTypeMustNotBeStatic, location, name);
         if (
             context.TargetNode is not TypeDeclarationSyntax targetSyntax
             || !targetSyntax.Modifiers.Any(SyntaxKind.PartialKeyword)
         )
-            return null;
-        if (context.Attributes.Length == 0)
-            return null;
-        var attribute = context.Attributes[0];
-        if (attribute.AttributeClass is not { TypeArguments.Length: 1 } attributeClass)
-            return null;
-        if (attributeClass.TypeArguments[0] is not INamedTypeSymbol wrapped || wrapped.TypeKind == TypeKind.Error)
-            return null;
-        var fieldName = (string)attribute.ConstructorArguments[0].Value!;
+            return Result.Error(Diagnostics.ValueWrapperTypeMustBePartial, location, name);
+        for (var enclosing = wrapper.ContainingType; enclosing is not null; enclosing = enclosing.ContainingType)
+            if (!IsPartial(enclosing))
+                return Result.Error(
+                    Diagnostics.ValueWrapperContainingTypeMustBePartial,
+                    location,
+                    name,
+                    enclosing.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)
+                );
+        if (
+            attribute.AttributeClass is not { TypeArguments.Length: 1 } attributeClass
+            // ReSharper disable once MergeIntoNegatedPattern
+            || attributeClass.TypeArguments[0] is not INamedTypeSymbol wrapped
+            || wrapped.TypeKind == TypeKind.Error
+            || wrapped.IsStatic
+        )
+            return Result.Error(Diagnostics.ValueWrapperValueTypeInvalid, location, name);
+        var visited = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default) { wrapper };
+        for (var current = wrapped; current is not null; current = GetWrappedType(current))
+            if (!visited.Add(current))
+                return Result.Error(
+                    Diagnostics.ValueWrapperCircularWrapping,
+                    location,
+                    name,
+                    current.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)
+                );
+        var fieldName =
+            attribute.ConstructorArguments.Length == 1 ? attribute.ConstructorArguments[0].Value as string : "Value";
+        if (fieldName is null || !SyntaxFacts.IsValidIdentifier(fieldName))
+            return Result.Error(Diagnostics.ValueWrapperFieldNameInvalid, location, name, fieldName ?? "<null>");
         var sb = new StringBuilder();
         sb.AppendLine("#nullable enable");
         sb.AppendLine();
@@ -127,7 +129,26 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("#nullable restore");
         var hint = SanitizeHint(wrapper) + ".ValueWrapper.g.cs";
-        return (hint, sb.ToString());
+        return Result.Success(hint, sb.ToString());
+    }
+
+    private static bool IsPartial(INamedTypeSymbol type)
+    {
+        foreach (var reference in type.DeclaringSyntaxReferences)
+            if (
+                reference.GetSyntax() is TypeDeclarationSyntax declaration
+                && declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
+            )
+                return true;
+        return false;
+    }
+
+    private static Location AttributeLocation(AttributeData attribute, INamedTypeSymbol wrapper)
+    {
+        var reference = attribute.ApplicationSyntaxReference;
+        if (reference is not null)
+            return Location.Create(reference.SyntaxTree, reference.Span);
+        return wrapper.Locations.FirstOrDefault() ?? Location.None;
     }
 
     private static void EmitBody(
@@ -581,5 +602,33 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         foreach (var ch in wrapper.ToDisplayString())
             sb.Append(char.IsLetterOrDigit(ch) ? ch : '_');
         return sb.ToString();
+    }
+
+    private sealed class Result
+    {
+        public static readonly Result Empty = new(null, null, ImmutableArray<Diagnostic>.Empty);
+
+        private Result(string? hintName, string? source, ImmutableArray<Diagnostic> diagnostics)
+        {
+            HintName = hintName;
+            Source = source;
+            Diagnostics = diagnostics;
+        }
+
+        public string? HintName { get; }
+
+        public string? Source { get; }
+
+        public ImmutableArray<Diagnostic> Diagnostics { get; }
+
+        public static Result Success(string hintName, string source)
+        {
+            return new Result(hintName, source, ImmutableArray<Diagnostic>.Empty);
+        }
+
+        public static Result Error(DiagnosticDescriptor descriptor, Location location, params object?[] arguments)
+        {
+            return new Result(null, null, [Diagnostic.Create(descriptor, location, arguments)]);
+        }
     }
 }

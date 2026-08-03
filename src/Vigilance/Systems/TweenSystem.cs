@@ -7,12 +7,11 @@ public sealed class TweenSystem : GameSystem
     public override void Update()
     {
         var delta = Time.Delta;
+        foreach (var tweenRef in RefComponents<ValueTween>())
+            tweenRef.Write.Update(delta);
         Scene.BeginDefer();
         try
         {
-            foreach (var tweenRef in RefComponents<ValueTween>())
-                tweenRef.Write.Update(delta);
-
             foreach (var tweenRef in RefComponents<Tween>())
             {
                 var tween = tweenRef.Read;

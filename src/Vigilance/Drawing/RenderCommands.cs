@@ -78,39 +78,6 @@ public readonly partial struct RenderCommands
             Add(system, entity, component.Read, action);
     }
 
-    public void AddEachEntries<TComponent>(
-        GameSystem system,
-        Action<Entity, TComponent> action,
-        bool withHidden = false
-    )
-    {
-        if (typeof(TComponent).IsValueType || typeof(TComponent).IsSealed)
-        {
-            Scene.Table<TComponent>().AddRenderCommands(this, system, action);
-            return;
-        }
-
-        foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
-            table.AddRenderCommands(this, system, action);
-    }
-
-    public void AddEachEntries<TSystem, TComponent>(
-        TSystem system,
-        Action<TSystem, Entity, TComponent> action,
-        bool withHidden = false
-    )
-        where TSystem : GameSystem
-    {
-        if (typeof(TComponent).IsValueType || typeof(TComponent).IsSealed)
-        {
-            Scene.Table<TComponent>().AddRenderCommands(this, system, action);
-            return;
-        }
-
-        foreach (var table in Scene.Tables<TComponent>(withHidden: withHidden))
-            table.AddRenderCommands(this, system, action);
-    }
-
     public void Execute()
     {
         ref var commands = ref Scene.RenderCommands;

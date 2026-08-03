@@ -39,7 +39,7 @@ public interface IRenderable
 {
     void Render(Entity entity, RenderCommands commands)
     {
-        commands.Add(entity, this, (entity, component) => component.Render(entity));
+        commands.Add(entity, this, static (entity, component) => component.Render(entity));
     }
 
     void Render(Entity entity);

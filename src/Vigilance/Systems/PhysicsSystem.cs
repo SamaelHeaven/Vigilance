@@ -1,15 +1,8 @@
 namespace Vigilance.Systems;
 
-public sealed class PhysicsSystem : GameSystem
+public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true, order: 1)
 {
     private Table<Body> _bodies = null!;
-
-    public PhysicsSystem()
-        : base(queryWithDisabled: true)
-    {
-        Order = 1;
-    }
-
     public Graphics DebugDrawGraphics { get; set; } = Renderer.Graphics;
     public bool IsDebugDrawEnabled { get; set; } = false;
     public DebugDrawFlags DebugDrawFlags { get; set; } = DebugDrawFlags.Default;

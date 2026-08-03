@@ -1,57 +1,85 @@
 namespace Vigilance.Systems;
 
-public sealed class AnimationSystem() : GameSystem(queryWithDisabled: true)
+public sealed class AnimationSystem() : GameSystem<AnimationSystem>(queryWithDisabled: true)
 {
-    private TimeSpan _delta;
     private ValueList<IAnimation> _resume = [];
 
-    public override void Update()
+    [GenericRegistry]
+    public static void Register<T>()
+        where T : IAnimation
     {
-        _delta = Time.Delta;
-        Scene.BeginDefer();
-        try
-        {
-            foreach (var table in Scene.Tables<IAnimation>())
-                if (table.Type.IsValueType)
-                    table.ForEach<AnimationSystem, IAnimation>(
-                        this,
-                        static (system, animation) => animation.Update(system._delta)
-                    );
-                else
-                    table.ForEach<AnimationSystem, IAnimation>(
-                        this,
-                        static (system, animation) =>
-                        {
-                            if (animation.IsPaused)
-                                return;
-                            animation.Update(system._delta);
-                            if (animation.IsPaused)
-                                return;
-                            system._resume.Add(animation);
-                            animation.IsPaused = true;
-                        }
-                    );
+        ConfigureEach(
+            typeof(T),
+            system =>
+            {
+                system.Scene.OnUpdate(system.Update<T>);
+                system.Scene.OnPreRender(system.PreRender<T>);
+            }
+        );
+    }
 
-            foreach (var animation in _resume)
+    private void Update<T>()
+        where T : IAnimation
+    {
+        var delta = Time.Delta;
+        if (typeof(T).IsValueType)
+        {
+            foreach (var animationRef in RefComponents<T>())
                 try
                 {
-                    animation.IsPaused = false;
+                    animationRef.AsWritable().Value.Update(delta);
                 }
                 catch (Exception e)
                 {
                     Log.Error(e);
                 }
 
-            _resume.Clear();
+            return;
         }
-        finally
-        {
-            Scene.EndDefer();
-        }
+
+        Scene.BeginDefer();
+        foreach (var animationRef in RefComponents<T>())
+            try
+            {
+                var animation = animationRef.Read;
+                if (animation.IsPaused)
+                    continue;
+                animation.Update(delta);
+                if (animation.IsPaused)
+                    continue;
+                _resume.Add(animation);
+                animation.IsPaused = true;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+        foreach (var animation in _resume)
+            try
+            {
+                animation.IsPaused = false;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+        _resume.Clear();
+        Scene.EndDefer();
     }
 
-    public override void PreRender()
+    private void PreRender<T>()
+        where T : IAnimation
     {
-        ForEach<IAnimation>((entity, animation) => animation.Apply(entity));
+        foreach (var (entity, animationRef) in RefEntries<T>())
+            try
+            {
+                animationRef.AsWritable().Value.Apply(entity);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 }
