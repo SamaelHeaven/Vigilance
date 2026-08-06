@@ -1,6 +1,8 @@
+using System.Runtime.CompilerServices;
+
 namespace Vigilance.Drawing;
 
-public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneable
+public struct ValueAnimation<TFrame> : IAnimation, IArrayView<TFrame>
     where TFrame : IAnimationFrame
 {
     public const int InfiniteCycleCount = -1;
@@ -9,7 +11,7 @@ public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneab
     private int? _nextIndex;
     private int _startIndex;
 
-    public Animation(
+    public ValueAnimation(
         IEnumerable<TFrame> frames,
         TimeSpan delay,
         int cycleCount = InfiniteCycleCount,
@@ -17,7 +19,17 @@ public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneab
     )
         : this(frames.ToArray(), delay, cycleCount, startIndex) { }
 
-    public Animation(TFrame[] frames, TimeSpan delay, int cycleCount = InfiniteCycleCount, int startIndex = 0)
+    [OverloadResolutionPriority(1)]
+    public ValueAnimation(
+        in ReadOnlySpan<TFrame> frames,
+        TimeSpan delay,
+        int cycleCount = InfiniteCycleCount,
+        int startIndex = 0
+    )
+        : this(frames.ToArray(), delay, cycleCount, startIndex) { }
+
+    [OverloadResolutionPriority(2)]
+    public ValueAnimation(TFrame[] frames, TimeSpan delay, int cycleCount = InfiniteCycleCount, int startIndex = 0)
     {
         if (frames.Length == 0)
             throw new ArgumentException($"{nameof(Animation<>)} must have at least one frame.");
@@ -37,13 +49,13 @@ public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneab
     public Action? OnComplete { get; set; }
     public Action? OnRepeat { get; set; }
 
-    public ref TFrame Frame => ref _frames[_index];
-    public bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
-    public int FrameCount => _frames.Length;
+    public readonly ref TFrame Frame => ref _frames[_index];
+    public readonly bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
+    public readonly int FrameCount => _frames.Length;
 
     public int Index
     {
-        get => _index;
+        readonly get => _index;
         set
         {
             _index = value.Clamp(0, _frames.Length - 1);
@@ -53,13 +65,13 @@ public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneab
 
     public int StartIndex
     {
-        get => _startIndex;
+        readonly get => _startIndex;
         set => _startIndex = value.Clamp(0, _frames.Length - 1);
     }
 
     public int? NextIndex
     {
-        get => _nextIndex;
+        readonly get => _nextIndex;
         set => _nextIndex = value?.Clamp(0, _frames.Length - 1);
     }
 
@@ -100,18 +112,22 @@ public class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneab
         CurrentCycle = 0;
     }
 
-    public ArrayEnumerator<TFrame> GetEnumerator()
+    public readonly ArrayEnumerator<TFrame> GetEnumerator()
     {
         return _frames;
     }
 
-    public ValueEnumerable<FromArray<TFrame>, TFrame> AsValueEnumerable()
+    public readonly ValueEnumerable<FromArray<TFrame>, TFrame> AsValueEnumerable()
     {
         return _frames.AsValueEnumerable();
     }
 
-    public Span<TFrame> AsSpan()
+    public readonly Span<TFrame> AsSpan()
     {
         return _frames;
     }
 }
+
+[ValueWrapper(typeof(ValueAnimation<>))]
+public sealed partial class Animation<TFrame> : IAnimation, IArrayView<TFrame>, IShallowCloneable
+    where TFrame : IAnimationFrame;

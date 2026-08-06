@@ -123,7 +123,7 @@ public static class Diagnostics
         Category,
         DiagnosticSeverity.Error,
         true,
-        "The type argument of [ValueWrapper] must be a resolvable class or struct."
+        "The type passed to [ValueWrapper] must be a resolvable class or struct."
     );
 
     public static readonly DiagnosticDescriptor ValueWrapperFieldNameInvalid = new(

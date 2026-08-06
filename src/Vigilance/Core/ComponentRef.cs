@@ -59,26 +59,26 @@ public readonly ref struct ComponentRef<T>
         return IsNull ? defaultValue : Read;
     }
 
-    public Writable AsWritable()
+    public WritableComponentRef<T> AsWritable()
     {
-        return new Writable(this);
+        return new WritableComponentRef<T>(this);
     }
+}
 
-    public ref struct Writable(scoped in ComponentRef<T> componentRef)
+public ref struct WritableComponentRef<T>(scoped in ComponentRef<T> componentRef)
+{
+    private readonly ComponentRef<T> _componentRef = componentRef;
+    private T _value = default!;
+
+    [UnscopedRef]
+    public ref T Value
     {
-        private readonly ComponentRef<T> _componentRef = componentRef;
-        private T _value;
-
-        [UnscopedRef]
-        public ref T Value
+        get
         {
-            get
-            {
-                if (!WriteImmutable)
-                    return ref _componentRef.Write;
-                _value = _componentRef.Read;
-                return ref _value;
-            }
+            if (!ComponentRef<T>.WriteImmutable)
+                return ref _componentRef.Write;
+            _value = _componentRef.Read;
+            return ref _value;
         }
     }
 }

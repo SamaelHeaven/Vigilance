@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueSprite>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueSprite>), "Drawable")]
 public partial struct ValueSprite : IDrawable
 {
     public ValueSprite(Texture texture)
@@ -30,7 +30,7 @@ public partial struct ValueSprite : IDrawable
     }
 }
 
-[ValueWrapper<ValueSprite>]
+[ValueWrapper(typeof(ValueSprite))]
 public sealed partial class Sprite : IDrawable, IFullCloneable
 {
     public override string ToString()

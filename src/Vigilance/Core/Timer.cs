@@ -59,5 +59,5 @@ public struct ValueTimer
     }
 }
 
-[ValueWrapper<ValueTimer>]
+[ValueWrapper(typeof(ValueTimer))]
 public sealed partial class Timer;

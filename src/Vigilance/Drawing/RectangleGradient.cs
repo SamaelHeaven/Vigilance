@@ -3,7 +3,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueRectangleGradient>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueRectangleGradient>), "Drawable")]
 public partial struct ValueRectangleGradient : IDrawable
 {
     public Color TopLeftFill { get; set; } = Drawing.DefaultFill;
@@ -77,7 +77,7 @@ public partial struct ValueRectangleGradient : IDrawable
     }
 }
 
-[ValueWrapper<ValueRectangleGradient>]
+[ValueWrapper(typeof(ValueRectangleGradient))]
 public sealed partial class RectangleGradient : IDrawable, IFullCloneable
 {
     public override string ToString()
@@ -148,12 +148,11 @@ public static class RectangleGradientExtensions
             var bottomRightColorValue = bottomRightColor ?? Drawing.DefaultFill.Or(Color.White);
             var topRightColorValue = topRightColor ?? Drawing.DefaultFill.Or(Color.White);
             if (
-                (
-                    topLeftColorValue == Color.Transparent
+                topLeftColorValue == Color.Transparent
                     && bottomLeftColorValue == Color.Transparent
                     && bottomRightColorValue == Color.Transparent
                     && topRightColorValue == Color.Transparent
-                ) || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera)
             )
                 return;
             graphics.BeginDrawing(camera);

@@ -1,15 +1,51 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Vigilance.Collections;
 
+public interface ICollectionView<TValue> : ICollection<TValue>, IReadOnlyCollection<TValue>
+{
+    new int Count { get; }
+
+    int ICollection<TValue>.Count => Count;
+
+    bool ICollection<TValue>.IsReadOnly => true;
+
+    void ICollection<TValue>.Add(TValue item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Add)}() on a collection view is not supported.");
+    }
+
+    void ICollection<TValue>.Clear()
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Clear)}() on a collection view is not supported.");
+    }
+
+    bool ICollection<TValue>.Remove(TValue item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Remove)}() on a collection view is not supported.");
+    }
+
+    int IReadOnlyCollection<TValue>.Count => Count;
+}
+
 public interface ISpanView<TValue>
     : IStructEnumerable<SpanViewEnumerator<TValue>, TValue>,
-        IReadOnlyCollection<TValue>,
+        ICollectionView<TValue>,
         IReadOnlySpan<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsSpan().Length;
+    int ICollectionView<TValue>.Count => AsSpan().Length;
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsSpan().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsSpan().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<StructEnumerator<SpanViewEnumerator<TValue>, TValue>, TValue> IStructEnumerable<
         SpanViewEnumerator<TValue>,
@@ -31,10 +67,21 @@ public interface ISpanView<TValue>
 
 public interface IListView<TValue>
     : IStructEnumerable<List<TValue>.Enumerator, TValue>,
+        ICollectionView<TValue>,
         IReadOnlyList<TValue>,
         IReadOnlySpan<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsSpan().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsSpan().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     TValue IReadOnlyList<TValue>.this[int index] => AsSpan()[index];
 
@@ -58,10 +105,21 @@ public interface IListView<TValue>
 
 public interface IValueListView<TValue>
     : IStructEnumerable<ValueList<TValue>.Enumerator, TValue>,
+        ICollectionView<TValue>,
         IReadOnlyList<TValue>,
         IReadOnlySpan<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsSpan().Length;
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsSpan().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsSpan().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     TValue IReadOnlyList<TValue>.this[int index] => AsSpan()[index];
 
@@ -85,10 +143,20 @@ public interface IValueListView<TValue>
 
 public interface IDictionaryView<TKey, TValue>
     : IStructEnumerable<Dictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
-        IReadOnlyCollection<KeyValuePair<TKey, TValue>>
+        ICollectionView<KeyValuePair<TKey, TValue>>
     where TKey : notnull
 {
-    int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+    int ICollectionView<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<
         StructEnumerator<Dictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
@@ -103,10 +171,20 @@ public interface IDictionaryView<TKey, TValue>
 
 public interface ISortedDictionaryView<TKey, TValue>
     : IStructEnumerable<SortedDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
-        IReadOnlyCollection<KeyValuePair<TKey, TValue>>
+        ICollectionView<KeyValuePair<TKey, TValue>>
     where TKey : notnull
 {
-    int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+    int ICollectionView<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<
         StructEnumerator<SortedDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
@@ -121,11 +199,19 @@ public interface ISortedDictionaryView<TKey, TValue>
     new ValueEnumerable<FromSortedDictionary<TKey, TValue>, KeyValuePair<TKey, TValue>> AsValueEnumerable();
 }
 
-public interface IHashSetView<TValue>
-    : IStructEnumerable<HashSet<TValue>.Enumerator, TValue>,
-        IReadOnlyCollection<TValue>
+public interface IHashSetView<TValue> : IStructEnumerable<HashSet<TValue>.Enumerator, TValue>, ICollectionView<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<StructEnumerator<HashSet<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         HashSet<TValue>.Enumerator,
@@ -140,9 +226,19 @@ public interface IHashSetView<TValue>
 
 public interface ISortedSetView<TValue>
     : IStructEnumerable<SortedSet<TValue>.Enumerator, TValue>,
-        IReadOnlyCollection<TValue>
+        ICollectionView<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<StructEnumerator<SortedSet<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         SortedSet<TValue>.Enumerator,
@@ -157,9 +253,19 @@ public interface ISortedSetView<TValue>
 
 public interface ILinkedListView<TValue>
     : IStructEnumerable<LinkedList<TValue>.Enumerator, TValue>,
-        IReadOnlyCollection<TValue>
+        ICollectionView<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<StructEnumerator<LinkedList<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         LinkedList<TValue>.Enumerator,
@@ -172,9 +278,19 @@ public interface ILinkedListView<TValue>
     new ValueEnumerable<FromLinkedList<TValue>, TValue> AsValueEnumerable();
 }
 
-public interface IQueueView<TValue> : IStructEnumerable<Queue<TValue>.Enumerator, TValue>, IReadOnlyCollection<TValue>
+public interface IQueueView<TValue> : IStructEnumerable<Queue<TValue>.Enumerator, TValue>, ICollectionView<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<StructEnumerator<Queue<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         Queue<TValue>.Enumerator,
@@ -189,9 +305,19 @@ public interface IQueueView<TValue> : IStructEnumerable<Queue<TValue>.Enumerator
 
 public interface IValueQueueView<TValue>
     : IStructEnumerable<ValueQueue<TValue>.Enumerator, TValue>,
-        IReadOnlyCollection<TValue>
+        ICollectionView<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<StructEnumerator<ValueQueue<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         ValueQueue<TValue>.Enumerator,
@@ -204,9 +330,19 @@ public interface IValueQueueView<TValue>
     new ValueEnumerable<ValueQueue<TValue>.Enumerator, TValue> AsValueEnumerable();
 }
 
-public interface IStackView<TValue> : IStructEnumerable<Stack<TValue>.Enumerator, TValue>, IReadOnlyCollection<TValue>
+public interface IStackView<TValue> : IStructEnumerable<Stack<TValue>.Enumerator, TValue>, ICollectionView<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<StructEnumerator<Stack<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         Stack<TValue>.Enumerator,
@@ -221,9 +357,19 @@ public interface IStackView<TValue> : IStructEnumerable<Stack<TValue>.Enumerator
 
 public interface IValueStackView<TValue>
     : IStructEnumerable<ValueStack<TValue>.Enumerator, TValue>,
-        IReadOnlyCollection<TValue>
+        ICollectionView<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<StructEnumerator<ValueStack<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         ValueStack<TValue>.Enumerator,
@@ -238,10 +384,21 @@ public interface IValueStackView<TValue>
 
 public interface IArrayView<TValue>
     : IStructEnumerable<ArrayEnumerator<TValue>, TValue>,
+        ICollectionView<TValue>,
         IReadOnlyList<TValue>,
         IReadOnlySpan<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsSpan().Length;
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsSpan().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsSpan().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     TValue IReadOnlyList<TValue>.this[int index] => AsSpan()[index];
 
@@ -265,68 +422,156 @@ public interface IArrayView<TValue>
 
 public interface ISparseSetView<TKey, TValue, TStorage>
     : IStructEnumerable<SparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
-        IReadOnlyCollection<KeyValuePair<TKey, TValue>>
+        ICollectionView<KeyValuePair<TKey, TValue>>
     where TStorage : IList<TValue>
 {
-    int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+    int ICollectionView<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 }
 
 public interface IEntitySparseSetView<TValue, TStorage>
     : IStructEnumerable<EntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>,
-        IReadOnlyCollection<KeyValuePair<Entity, TValue>>
+        ICollectionView<KeyValuePair<Entity, TValue>>
     where TStorage : IList<TValue>
 {
-    int IReadOnlyCollection<KeyValuePair<Entity, TValue>>.Count => AsValueEnumerable().Count();
+    int ICollectionView<KeyValuePair<Entity, TValue>>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<KeyValuePair<Entity, TValue>>.Contains(KeyValuePair<Entity, TValue> item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<KeyValuePair<Entity, TValue>>.CopyTo(KeyValuePair<Entity, TValue>[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 }
 
 public interface IValueSparseSetView<TKey, TValue, TStorage>
     : IStructEnumerable<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>,
-        IReadOnlyCollection<KeyValuePair<TKey, TValue>>
+        ICollectionView<KeyValuePair<TKey, TValue>>
     where TStorage : IList<TValue>
 {
-    int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+    int ICollectionView<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 }
 
-public interface ISparseSetView<TKey> : IStructEnumerable<SparseSet<TKey>.Enumerator, TKey>, IReadOnlyCollection<TKey>
+public interface ISparseSetView<TKey> : IStructEnumerable<SparseSet<TKey>.Enumerator, TKey>, ICollectionView<TKey>
 {
-    int IReadOnlyCollection<TKey>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TKey>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TKey>.Contains(TKey item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<TKey>.CopyTo(TKey[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 }
 
-public interface IEntitySparseSetView
-    : IStructEnumerable<EntitySparseSet.Enumerator, Entity>,
-        IReadOnlyCollection<Entity>
+public interface IEntitySparseSetView : IStructEnumerable<EntitySparseSet.Enumerator, Entity>, ICollectionView<Entity>
 {
-    int IReadOnlyCollection<Entity>.Count => AsValueEnumerable().Count();
+    int ICollectionView<Entity>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<Entity>.Contains(Entity item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<Entity>.CopyTo(Entity[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 }
 
 public interface IValueSparseSetView<TKey>
     : IStructEnumerable<ValueSparseSet<TKey>.Enumerator, TKey>,
-        IReadOnlyCollection<TKey>
+        ICollectionView<TKey>
 {
-    int IReadOnlyCollection<TKey>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TKey>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TKey>.Contains(TKey item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<TKey>.CopyTo(TKey[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 }
 
 public interface IValueEntitySparseSetView
     : IStructEnumerable<ValueEntitySparseSet.Enumerator, Entity>,
-        IReadOnlyCollection<Entity>
+        ICollectionView<Entity>
 {
-    int IReadOnlyCollection<Entity>.Count => AsValueEnumerable().Count();
+    int ICollectionView<Entity>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<Entity>.Contains(Entity item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<Entity>.CopyTo(Entity[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 }
 
 public interface IValueEntitySparseSetView<TValue, TStorage>
     : IStructEnumerable<ValueEntitySparseSet<TValue, TStorage>.Enumerator, KeyValuePair<Entity, TValue>>,
-        IReadOnlyCollection<KeyValuePair<Entity, TValue>>
+        ICollectionView<KeyValuePair<Entity, TValue>>
     where TStorage : IList<TValue>
 {
-    int IReadOnlyCollection<KeyValuePair<Entity, TValue>>.Count => AsValueEnumerable().Count();
+    int ICollectionView<KeyValuePair<Entity, TValue>>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<KeyValuePair<Entity, TValue>>.Contains(KeyValuePair<Entity, TValue> item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<KeyValuePair<Entity, TValue>>.CopyTo(KeyValuePair<Entity, TValue>[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 }
 
 public interface IValueDictionaryView<TKey, TValue>
     : IStructEnumerable<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
-        IReadOnlyCollection<KeyValuePair<TKey, TValue>>
+        ICollectionView<KeyValuePair<TKey, TValue>>
     where TKey : notnull
 {
-    int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+    int ICollectionView<KeyValuePair<TKey, TValue>>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<
         StructEnumerator<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>>,
@@ -343,9 +588,19 @@ public interface IValueDictionaryView<TKey, TValue>
 
 public interface IValueHashSetView<TValue>
     : IStructEnumerable<ValueHashSet<TValue>.Enumerator, TValue>,
-        IReadOnlyCollection<TValue>
+        ICollectionView<TValue>
 {
-    int IReadOnlyCollection<TValue>.Count => AsValueEnumerable().Count();
+    int ICollectionView<TValue>.Count => AsValueEnumerable().Count();
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return AsValueEnumerable().Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+    }
 
     ValueEnumerable<StructEnumerator<ValueHashSet<TValue>.Enumerator, TValue>, TValue> IStructEnumerable<
         ValueHashSet<TValue>.Enumerator,
@@ -385,6 +640,16 @@ public readonly record struct ListView<TValue> : IListView<TValue>
     }
 
     public TValue this[int index] => _list[index];
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return _list.Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        _list.CopyTo(array, arrayIndex);
+    }
 
     public static implicit operator ListView<TValue>(List<TValue> list)
     {
@@ -443,6 +708,33 @@ public readonly ref struct ValueListView<TValue> : IValueListView<TValue>
 
     public TValue this[int index] => _list[index];
 
+    bool ICollection<TValue>.IsReadOnly => true;
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return _list.Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        _list.CopyTo(array, arrayIndex);
+    }
+
+    void ICollection<TValue>.Add(TValue item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Add)}() on a collection view is not supported.");
+    }
+
+    void ICollection<TValue>.Clear()
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Clear)}() on a collection view is not supported.");
+    }
+
+    bool ICollection<TValue>.Remove(TValue item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Remove)}() on a collection view is not supported.");
+    }
+
     public static implicit operator ValueListView<TValue>(in ValueList<TValue> list)
     {
         return new ValueListView<TValue>(ref Unsafe.AsRef(in list));
@@ -500,6 +792,16 @@ public readonly ref struct ValueListView<TValue> : IValueListView<TValue>
         }
 
         public TValue this[int index] => _list[index];
+
+        bool ICollection<TValue>.Contains(TValue item)
+        {
+            return _list.Contains(item);
+        }
+
+        void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+        {
+            _list.CopyTo(array, arrayIndex);
+        }
     }
 }
 
@@ -530,6 +832,11 @@ public readonly record struct DictionaryView<TKey, TValue>
     }
 
     public int Count => _dictionary.Count;
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+    {
+        return _dictionary.Contains(item);
+    }
 
     public bool ContainsKey(TKey key)
     {
@@ -674,11 +981,6 @@ public readonly record struct SortedSetView<TValue> : ISortedSetView<TValue>, IR
         _sortedSet = sortedSet;
     }
 
-    public bool Contains(TValue item)
-    {
-        return _sortedSet.Contains(item);
-    }
-
     public bool IsProperSubsetOf(IEnumerable<TValue> other)
     {
         return _sortedSet.IsProperSubsetOf(other);
@@ -709,6 +1011,11 @@ public readonly record struct SortedSetView<TValue> : ISortedSetView<TValue>, IR
         return _sortedSet.SetEquals(other);
     }
 
+    public bool Contains(TValue item)
+    {
+        return _sortedSet.Contains(item);
+    }
+
     public SortedSet<TValue>.Enumerator GetEnumerator()
     {
         return _sortedSet.GetEnumerator();
@@ -720,6 +1027,11 @@ public readonly record struct SortedSetView<TValue> : ISortedSetView<TValue>, IR
     }
 
     public int Count => _sortedSet.Count;
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        _sortedSet.CopyTo(array, arrayIndex);
+    }
 
     public static implicit operator SortedSetView<TValue>(SortedSet<TValue> sortedSet)
     {
@@ -748,6 +1060,16 @@ public readonly record struct LinkedListView<TValue> : ILinkedListView<TValue>
 
     public int Count => _linkedList.Count;
 
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return _linkedList.Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        _linkedList.CopyTo(array, arrayIndex);
+    }
+
     public static implicit operator LinkedListView<TValue>(LinkedList<TValue> linkedList)
     {
         return new LinkedListView<TValue>(linkedList);
@@ -774,6 +1096,16 @@ public readonly record struct QueueView<TValue> : IQueueView<TValue>
     }
 
     public int Count => _queue.Count;
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return _queue.Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        _queue.CopyTo(array, arrayIndex);
+    }
 
     public static implicit operator QueueView<TValue>(Queue<TValue> queue)
     {
@@ -825,6 +1157,33 @@ public readonly ref struct ValueQueueView<TValue> : IValueQueueView<TValue>
 
     public int Count => _queue.Count;
 
+    bool ICollection<TValue>.IsReadOnly => true;
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return _queue.Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        _queue.CopyTo(array, arrayIndex);
+    }
+
+    void ICollection<TValue>.Add(TValue item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Add)}() on a collection view is not supported.");
+    }
+
+    void ICollection<TValue>.Clear()
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Clear)}() on a collection view is not supported.");
+    }
+
+    bool ICollection<TValue>.Remove(TValue item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Remove)}() on a collection view is not supported.");
+    }
+
     public static implicit operator ValueQueueView<TValue>(in ValueQueue<TValue> queue)
     {
         return new ValueQueueView<TValue>(ref Unsafe.AsRef(in queue));
@@ -875,6 +1234,16 @@ public readonly ref struct ValueQueueView<TValue> : IValueQueueView<TValue>
         }
 
         public int Count => _queue.Count;
+
+        bool ICollection<TValue>.Contains(TValue item)
+        {
+            return _queue.Contains(item);
+        }
+
+        void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+        {
+            _queue.CopyTo(array, arrayIndex);
+        }
     }
 }
 
@@ -898,6 +1267,16 @@ public readonly record struct StackView<TValue> : IStackView<TValue>
     }
 
     public int Count => _stack.Count;
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return _stack.Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        _stack.CopyTo(array, arrayIndex);
+    }
 
     public static implicit operator StackView<TValue>(Stack<TValue> stack)
     {
@@ -949,6 +1328,33 @@ public readonly ref struct ValueStackView<TValue> : IValueStackView<TValue>
 
     public int Count => _stack.Count;
 
+    bool ICollection<TValue>.IsReadOnly => true;
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return _stack.Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        _stack.CopyTo(array, arrayIndex);
+    }
+
+    void ICollection<TValue>.Add(TValue item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Add)}() on a collection view is not supported.");
+    }
+
+    void ICollection<TValue>.Clear()
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Clear)}() on a collection view is not supported.");
+    }
+
+    bool ICollection<TValue>.Remove(TValue item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Remove)}() on a collection view is not supported.");
+    }
+
     public static implicit operator ValueStackView<TValue>(in ValueStack<TValue> stack)
     {
         return new ValueStackView<TValue>(ref Unsafe.AsRef(in stack));
@@ -999,6 +1405,16 @@ public readonly ref struct ValueStackView<TValue> : IValueStackView<TValue>
         }
 
         public int Count => _stack.Count;
+
+        bool ICollection<TValue>.Contains(TValue item)
+        {
+            return _stack.Contains(item);
+        }
+
+        void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+        {
+            _stack.CopyTo(array, arrayIndex);
+        }
     }
 }
 
@@ -1155,6 +1571,11 @@ public readonly record struct SparseSetView<TKey> : ISparseSetView<TKey>, IReadO
         return new StructEnumerator<SparseSet<TKey>.Enumerator, TKey>(GetEnumerator());
     }
 
+    bool ICollection<TKey>.Contains(TKey item)
+    {
+        return Contains(item);
+    }
+
     public bool Contains(in TKey key)
     {
         return _sparseSet.Contains(key);
@@ -1200,6 +1621,11 @@ public readonly record struct EntitySparseSetView : IEntitySparseSetView, IReadO
     >.AsValueEnumerable()
     {
         return new StructEnumerator<EntitySparseSet.Enumerator, Entity>(GetEnumerator());
+    }
+
+    bool ICollection<Entity>.Contains(Entity item)
+    {
+        return Contains(item);
     }
 
     public Entity this[int index] => _sparseSet[index];
@@ -1460,6 +1886,34 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
 
     TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
 
+    bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => true;
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+    {
+        return TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        _sparseSet.CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Add)}() on a collection view is not supported.");
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.Clear()
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Clear)}() on a collection view is not supported.");
+    }
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Remove)}() on a collection view is not supported.");
+    }
+
     public static implicit operator ValueSparseSetView<TKey, TValue, TStorage>(
         in ValueSparseSet<TKey, TValue, TStorage> sparseSet
     )
@@ -1555,6 +2009,16 @@ public readonly ref struct ValueSparseSetView<TKey, TValue, TStorage>
             return new StructEnumerator<ValueSparseSet<TKey, TValue, TStorage>.Enumerator, KeyValuePair<TKey, TValue>>(
                 GetEnumerator()
             );
+        }
+
+        bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+        {
+            return TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
+        }
+
+        void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        {
+            _sparseSet.CopyTo(array.AsSpan(), arrayIndex);
         }
 
         public ValueEnumerable<
@@ -1680,6 +2144,33 @@ public readonly ref struct ValueSparseSetView<TKey> : IValueSparseSetView<TKey>,
         return GetEnumerator();
     }
 
+    bool ICollection<TKey>.IsReadOnly => true;
+
+    bool ICollection<TKey>.Contains(TKey item)
+    {
+        return Contains(item);
+    }
+
+    void ICollection<TKey>.CopyTo(TKey[] array, int arrayIndex)
+    {
+        _sparseSet.CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    void ICollection<TKey>.Add(TKey item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Add)}() on a collection view is not supported.");
+    }
+
+    void ICollection<TKey>.Clear()
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Clear)}() on a collection view is not supported.");
+    }
+
+    bool ICollection<TKey>.Remove(TKey item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Remove)}() on a collection view is not supported.");
+    }
+
     public static implicit operator ValueSparseSetView<TKey>(in ValueSparseSet<TKey> sparseSet)
     {
         return new ValueSparseSetView<TKey>(ref Unsafe.AsRef(in sparseSet));
@@ -1772,6 +2263,16 @@ public readonly ref struct ValueSparseSetView<TKey> : IValueSparseSetView<TKey>,
         >.AsValueEnumerable()
         {
             return new StructEnumerator<ValueSparseSet<TKey>.Enumerator, TKey>(GetEnumerator());
+        }
+
+        bool ICollection<TKey>.Contains(TKey item)
+        {
+            return Contains(item);
+        }
+
+        void ICollection<TKey>.CopyTo(TKey[] array, int arrayIndex)
+        {
+            _sparseSet.CopyTo(array.AsSpan(), arrayIndex);
         }
 
         public bool Contains(in TKey key)
@@ -1887,6 +2388,33 @@ public readonly ref struct ValueEntitySparseSetView
         return GetEnumerator();
     }
 
+    bool ICollection<Entity>.IsReadOnly => true;
+
+    bool ICollection<Entity>.Contains(Entity item)
+    {
+        return Contains(item);
+    }
+
+    void ICollection<Entity>.CopyTo(Entity[] array, int arrayIndex)
+    {
+        _sparseSet.CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    void ICollection<Entity>.Add(Entity item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Add)}() on a collection view is not supported.");
+    }
+
+    void ICollection<Entity>.Clear()
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Clear)}() on a collection view is not supported.");
+    }
+
+    bool ICollection<Entity>.Remove(Entity item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Remove)}() on a collection view is not supported.");
+    }
+
     public static implicit operator ValueEntitySparseSetView(in ValueEntitySparseSet sparseSet)
     {
         return new ValueEntitySparseSetView(ref Unsafe.AsRef(in sparseSet));
@@ -1980,6 +2508,16 @@ public readonly ref struct ValueEntitySparseSetView
         >.AsValueEnumerable()
         {
             return new StructEnumerator<ValueEntitySparseSet.Enumerator, Entity>(GetEnumerator());
+        }
+
+        bool ICollection<Entity>.Contains(Entity item)
+        {
+            return Contains(item);
+        }
+
+        void ICollection<Entity>.CopyTo(Entity[] array, int arrayIndex)
+        {
+            _sparseSet.CopyTo(array.AsSpan(), arrayIndex);
         }
 
         public bool Contains(in Entity key)
@@ -2106,6 +2644,34 @@ public readonly ref struct ValueEntitySparseSetView<TValue, TStorage>
 
     TValue IReadOnlyDictionary<Entity, TValue>.this[Entity key] => this[key];
 
+    bool ICollection<KeyValuePair<Entity, TValue>>.IsReadOnly => true;
+
+    bool ICollection<KeyValuePair<Entity, TValue>>.Contains(KeyValuePair<Entity, TValue> item)
+    {
+        return TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
+    }
+
+    void ICollection<KeyValuePair<Entity, TValue>>.CopyTo(KeyValuePair<Entity, TValue>[] array, int arrayIndex)
+    {
+        ArgumentNullException.ThrowIfNull(array);
+        _sparseSet.CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    void ICollection<KeyValuePair<Entity, TValue>>.Add(KeyValuePair<Entity, TValue> item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Add)}() on a collection view is not supported.");
+    }
+
+    void ICollection<KeyValuePair<Entity, TValue>>.Clear()
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Clear)}() on a collection view is not supported.");
+    }
+
+    bool ICollection<KeyValuePair<Entity, TValue>>.Remove(KeyValuePair<Entity, TValue> item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Remove)}() on a collection view is not supported.");
+    }
+
     public static implicit operator ValueEntitySparseSetView<TValue, TStorage>(
         in ValueEntitySparseSet<TValue, TStorage> sparseSet
     )
@@ -2205,6 +2771,16 @@ public readonly ref struct ValueEntitySparseSetView<TValue, TStorage>
                 ValueEntitySparseSet<TValue, TStorage>.Enumerator,
                 KeyValuePair<Entity, TValue>
             >(GetEnumerator());
+        }
+
+        bool ICollection<KeyValuePair<Entity, TValue>>.Contains(KeyValuePair<Entity, TValue> item)
+        {
+            return TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
+        }
+
+        void ICollection<KeyValuePair<Entity, TValue>>.CopyTo(KeyValuePair<Entity, TValue>[] array, int arrayIndex)
+        {
+            _sparseSet.CopyTo(array.AsSpan(), arrayIndex);
         }
 
         public bool ContainsKey(in Entity key)
@@ -2328,6 +2904,33 @@ public readonly ref struct ValueDictionaryView<TKey, TValue>
 
     TValue IReadOnlyDictionary<TKey, TValue>.this[TKey key] => this[key];
 
+    bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly => true;
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+    {
+        return TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+    {
+        _dictionary.CopyTo(array.AsSpan(), arrayIndex);
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Add)}() on a collection view is not supported.");
+    }
+
+    void ICollection<KeyValuePair<TKey, TValue>>.Clear()
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Clear)}() on a collection view is not supported.");
+    }
+
+    bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Remove)}() on a collection view is not supported.");
+    }
+
     public static implicit operator ValueDictionaryView<TKey, TValue>(in ValueDictionary<TKey, TValue> dictionary)
     {
         return new ValueDictionaryView<TKey, TValue>(ref Unsafe.AsRef(in dictionary));
@@ -2407,6 +3010,16 @@ public readonly ref struct ValueDictionaryView<TKey, TValue>
         public ValueEnumerable<ValueDictionary<TKey, TValue>.Enumerator, KeyValuePair<TKey, TValue>> AsValueEnumerable()
         {
             return _dictionary.AsValueEnumerable();
+        }
+
+        bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+        {
+            return TryGetValue(item.Key, out var value) && EqualityComparer<TValue>.Default.Equals(value, item.Value);
+        }
+
+        void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        {
+            _dictionary.CopyTo(array.AsSpan(), arrayIndex);
         }
 
         public bool ContainsKey(in TKey key)
@@ -2510,6 +3123,33 @@ public readonly ref struct ValueHashSetView<TValue> : IValueHashSetView<TValue>,
         return Contains(item);
     }
 
+    bool ICollection<TValue>.IsReadOnly => true;
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        _hashSet.CopyTo(array, arrayIndex);
+    }
+
+    void ICollection<TValue>.Add(TValue item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Add)}() on a collection view is not supported.");
+    }
+
+    void ICollection<TValue>.Clear()
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Clear)}() on a collection view is not supported.");
+    }
+
+    bool ICollection<TValue>.Remove(TValue item)
+    {
+        throw new NotSupportedException($"{nameof(ICollection<>.Remove)}() on a collection view is not supported.");
+    }
+
     public static implicit operator ValueHashSetView<TValue>(in ValueHashSet<TValue> hashSet)
     {
         return new ValueHashSetView<TValue>(ref Unsafe.AsRef(in hashSet));
@@ -2596,6 +3236,16 @@ public readonly ref struct ValueHashSetView<TValue> : IValueHashSetView<TValue>,
             return _hashSet.AsValueEnumerable();
         }
 
+        bool ICollection<TValue>.Contains(TValue item)
+        {
+            return Contains(item);
+        }
+
+        void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+        {
+            _hashSet.CopyTo(array, arrayIndex);
+        }
+
         public bool Contains(in TValue item)
         {
             return _hashSet.Contains(item);
@@ -2640,6 +3290,16 @@ public readonly record struct ArrayView<TValue> : IArrayView<TValue>
     }
 
     public TValue this[int index] => _array[index];
+
+    bool ICollection<TValue>.Contains(TValue item)
+    {
+        return _array.Contains(item);
+    }
+
+    void ICollection<TValue>.CopyTo(TValue[] array, int arrayIndex)
+    {
+        _array.CopyTo(array, arrayIndex);
+    }
 
     public static implicit operator ArrayView<TValue>(TValue[] array)
     {

@@ -30,19 +30,27 @@ public sealed class HttpHeaders : Dictionary<string, string>
     public HttpHeaders(IEnumerable<(string, string)> headers)
         : this()
     {
-        if (headers.TryGetNonEnumeratedCount(out var count))
+        using var enumerator = headers.AsFastEnumerable().GetEnumerator();
+        if (enumerator.TryGetNonEnumeratedCount(out var count))
             EnsureCapacity(count);
-        foreach (var (key, value) in headers.AsFastEnumerable())
+        while (enumerator.MoveNext())
+        {
+            var (key, value) = enumerator.Current;
             Add(key, value);
+        }
     }
 
     public HttpHeaders(IEnumerable<KeyValuePair<string, string>> headers)
         : this()
     {
-        if (headers.TryGetNonEnumeratedCount(out var count))
+        using var enumerator = headers.AsFastEnumerable().GetEnumerator();
+        if (enumerator.TryGetNonEnumeratedCount(out var count))
             EnsureCapacity(count);
-        foreach (var (key, value) in headers.AsFastEnumerable())
+        while (enumerator.MoveNext())
+        {
+            var (key, value) = enumerator.Current;
             Add(key, value);
+        }
     }
 }
 

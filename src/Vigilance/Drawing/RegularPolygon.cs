@@ -3,7 +3,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueRegularPolygon>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueRegularPolygon>), "Drawable")]
 public partial struct ValueRegularPolygon : IDrawable
 {
     public ValueRegularPolygon(Color fill)
@@ -41,7 +41,7 @@ public partial struct ValueRegularPolygon : IDrawable
     }
 }
 
-[ValueWrapper<ValueRegularPolygon>]
+[ValueWrapper(typeof(ValueRegularPolygon))]
 public sealed partial class RegularPolygon : IDrawable, IFullCloneable
 {
     public override string ToString()
@@ -78,7 +78,7 @@ public static class RegularPolygonExtensions
             if (
                 color == Color.Transparent
                 || sides < 3
-                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -114,7 +114,7 @@ public static class RegularPolygonExtensions
                 colorValue == Color.Transparent
                 || sides < 3
                 || strokeWidthValue <= 0
-                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
             )
                 return;
             graphics.BeginDrawing(camera);

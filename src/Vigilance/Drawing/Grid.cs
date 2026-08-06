@@ -3,7 +3,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueGrid>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueGrid>), "Drawable")]
 public partial struct ValueGrid : IDrawable
 {
     public ValueGrid(Color color)
@@ -39,7 +39,7 @@ public partial struct ValueGrid : IDrawable
     }
 }
 
-[ValueWrapper<ValueGrid>]
+[ValueWrapper(typeof(ValueGrid))]
 public sealed partial class Grid : IDrawable, IFullCloneable
 {
     public override string ToString()
@@ -92,7 +92,7 @@ public static class GridExtensions
             if (
                 colorValue == Color.Transparent
                 || thickValue <= 0
-                || (culling && !graphics.IsBoxInBounds(position, size, camera, thickValue * 0.5f))
+                || culling && !graphics.IsBoxInBounds(position, size, camera, thickValue * 0.5f)
             )
                 return;
             cellSize = cellSize.Max(1);

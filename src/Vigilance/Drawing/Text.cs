@@ -4,7 +4,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueText>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueText>), "Drawable")]
 public partial struct ValueText : IDrawable
 {
     private Vector2? _sizeCache = null;
@@ -108,7 +108,7 @@ public partial struct ValueText : IDrawable
     }
 }
 
-[ValueWrapper<ValueText>]
+[ValueWrapper(typeof(ValueText))]
 public sealed partial class Text : IDrawable, IFullCloneable
 {
     public override string ToString()

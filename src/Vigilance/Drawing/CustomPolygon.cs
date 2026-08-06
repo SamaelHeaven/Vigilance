@@ -5,7 +5,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueCustomPolygon>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueCustomPolygon>), "Drawable")]
 public partial struct ValueCustomPolygon : IDrawable
 {
     private ValueList<Vector2> _points;
@@ -71,7 +71,7 @@ public partial struct ValueCustomPolygon : IDrawable
     }
 }
 
-[ValueWrapper<ValueCustomPolygon>]
+[ValueWrapper(typeof(ValueCustomPolygon))]
 public sealed partial class CustomPolygon : IDrawable, IFullCloneable
 {
     object IDeepCloneable.DeepClone()
@@ -107,7 +107,7 @@ public static class CustomPolygonExtensions
             if (
                 colorValue == Color.Transparent
                 || points.Length < 3
-                || (graphics.Culling() && !graphics.IsPolygonInBounds(points, camera))
+                || graphics.Culling() && !graphics.IsPolygonInBounds(points, camera)
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -143,7 +143,7 @@ public static class CustomPolygonExtensions
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
                 || points.Length < 3
-                || (graphics.Culling() && !graphics.IsPolygonInBounds(points, camera, strokeWidthValue * 0.5f))
+                || graphics.Culling() && !graphics.IsPolygonInBounds(points, camera, strokeWidthValue * 0.5f)
             )
                 return;
             graphics.BeginDrawing(camera);

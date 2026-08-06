@@ -341,10 +341,10 @@ public static class Collision
                 - (start1.Y - end1.Y) * (start2.X * end2.Y - start2.Y * end2.X)
             ) / div;
         if (
-            ((start1.X - end1.X).Abs() > float.Epsilon && (xi < start1.X.Min(end1.X) || xi > start1.X.Max(end1.X)))
-            || ((start2.X - end2.X).Abs() > float.Epsilon && (xi < start2.X.Min(end2.X) || xi > start2.X.Max(end2.X)))
-            || ((start1.Y - end1.Y).Abs() > float.Epsilon && (yi < start1.Y.Min(end1.Y) || yi > start1.Y.Max(end1.Y)))
-            || ((start2.Y - end2.Y).Abs() > float.Epsilon && (yi < start2.Y.Min(end2.Y) || yi > start2.Y.Max(end2.Y)))
+            (start1.X - end1.X).Abs() > float.Epsilon && (xi < start1.X.Min(end1.X) || xi > start1.X.Max(end1.X))
+            || (start2.X - end2.X).Abs() > float.Epsilon && (xi < start2.X.Min(end2.X) || xi > start2.X.Max(end2.X))
+            || (start1.Y - end1.Y).Abs() > float.Epsilon && (yi < start1.Y.Min(end1.Y) || yi > start1.Y.Max(end1.Y))
+            || (start2.Y - end2.Y).Abs() > float.Epsilon && (yi < start2.Y.Min(end2.Y) || yi > start2.Y.Max(end2.Y))
         )
             collision = false;
         if (collision)

@@ -15,6 +15,7 @@ public interface ISparseSet<TValue, TStorage> : ISparseSet
 {
     public readonly struct ValueEnumerable
         : IReadOnlyList<TValue>,
+            ICollection<TValue>,
             IStructEnumerable<ValueEnumerable.Enumerator, TValue>
     {
         private readonly TStorage _values;
@@ -121,7 +122,34 @@ public interface ISparseSet<TValue, TStorage> : ISparseSet
             public void Dispose() { }
         }
 
+        void ICollection<TValue>.Add(TValue item)
+        {
+            throw new NotSupportedException($"{nameof(ValueEnumerable)} is read-only.");
+        }
+
+        void ICollection<TValue>.Clear()
+        {
+            throw new NotSupportedException($"{nameof(ValueEnumerable)} is read-only.");
+        }
+
+        bool ICollection<TValue>.Remove(TValue item)
+        {
+            throw new NotSupportedException($"{nameof(ValueEnumerable)} is read-only.");
+        }
+
+        public bool Contains(TValue item)
+        {
+            return _values.Contains(item);
+        }
+
+        public void CopyTo(TValue[] array, int arrayIndex)
+        {
+            _values.CopyTo(array, arrayIndex);
+        }
+
         public int Count => _values.Count;
+
+        bool ICollection<TValue>.IsReadOnly => true;
 
         public TValue this[int index] => _values[index];
     }

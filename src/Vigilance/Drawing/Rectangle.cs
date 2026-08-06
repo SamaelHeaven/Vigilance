@@ -3,7 +3,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueRectangle>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueRectangle>), "Drawable")]
 public partial struct ValueRectangle : IDrawable
 {
     public ValueRectangle(Color fill)
@@ -30,7 +30,7 @@ public partial struct ValueRectangle : IDrawable
     }
 }
 
-[ValueWrapper<ValueRectangle>]
+[ValueWrapper(typeof(ValueRectangle))]
 public sealed partial class Rectangle : IDrawable, IFullCloneable
 {
     public override string ToString()
@@ -65,7 +65,7 @@ public static class RectangleExtensions
             var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
             if (
                 colorValue == Color.Transparent
-                || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera)
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -104,7 +104,7 @@ public static class RectangleExtensions
             if (
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
-                || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera)
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -157,7 +157,7 @@ public static class RectangleExtensions
             var radiusValue = radius ?? Drawing.DefaultRadius.Or(1);
             if (
                 colorValue == Color.Transparent
-                || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera)
             )
                 return;
             var minSize = size.Abs().Min();
@@ -223,7 +223,7 @@ public static class RectangleExtensions
             if (
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
-                || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera, strokeWidthValue))
+                || graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera, strokeWidthValue)
             )
                 return;
             position += strokeWidthValue;

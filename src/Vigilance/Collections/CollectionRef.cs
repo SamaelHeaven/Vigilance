@@ -847,7 +847,7 @@ public ref struct ValueDictionaryRef<TKey, TValue>
         _ref.CopyTo(ref dictionary);
     }
 
-    public ref TValue GetValueRefOrNullRef(in TKey key)
+    public readonly ref TValue GetValueRefOrNullRef(in TKey key)
     {
         return ref _ref.GetValueRefOrNullRef(key);
     }

@@ -3,7 +3,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueCircleGradient>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueCircleGradient>), "Drawable")]
 public partial struct ValueCircleGradient : IDrawable
 {
     public Color InnerFill { get; set; } = Drawing.DefaultFill;
@@ -34,7 +34,7 @@ public partial struct ValueCircleGradient : IDrawable
     }
 }
 
-[ValueWrapper<ValueCircleGradient>]
+[ValueWrapper(typeof(ValueCircleGradient))]
 public sealed partial class CircleGradient : IDrawable, IFullCloneable
 {
     public override string ToString()
@@ -58,8 +58,8 @@ public static class CircleGradientExtensions
             var innerColorValue = innerColor ?? Drawing.DefaultFill.Or(Color.White);
             var outerColorValue = outerColor ?? Drawing.DefaultFill.Or(Color.White);
             if (
-                (innerColorValue == Color.Transparent && outerColorValue == Color.Transparent)
-                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+                innerColorValue == Color.Transparent && outerColorValue == Color.Transparent
+                || graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
             )
                 return;
             graphics.BeginDrawing(camera);

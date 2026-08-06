@@ -1,6 +1,6 @@
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueTriangle>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueTriangle>), "Drawable")]
 public partial struct ValueTriangle : IDrawable
 {
     public ValueTriangle(Color fill)
@@ -108,7 +108,7 @@ public partial struct ValueTriangle : IDrawable
     }
 }
 
-[ValueWrapper<ValueTriangle>]
+[ValueWrapper(typeof(ValueTriangle))]
 public sealed partial class Triangle : IDrawable, IFullCloneable
 {
     public override string ToString()

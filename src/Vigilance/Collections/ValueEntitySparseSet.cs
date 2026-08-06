@@ -664,13 +664,13 @@ public struct ValueEntitySparseSet<TValue, TStorage>
         set => this[key] = value;
     }
 
-    readonly ICollection<TValue> IDictionary<Entity, TValue>.Values => _sparseSet.Values.AsReadOnly();
+    readonly ICollection<TValue> IDictionary<Entity, TValue>.Values => _sparseSet.Values;
 
-    readonly ICollection<Entity> IDictionary<Entity, TValue>.Keys => Keys.AsReadOnly();
+    readonly ICollection<Entity> IDictionary<Entity, TValue>.Keys => Keys;
 
     readonly IEnumerable<Entity> IReadOnlyDictionary<Entity, TValue>.Keys => Keys;
 
-    readonly IEnumerable<TValue> IReadOnlyDictionary<Entity, TValue>.Values => _sparseSet.Values.AsReadOnly();
+    readonly IEnumerable<TValue> IReadOnlyDictionary<Entity, TValue>.Values => _sparseSet.Values;
 
     readonly bool IReadOnlyDictionary<Entity, TValue>.TryGetValue(Entity key, [MaybeNullWhen(false)] out TValue value)
     {
@@ -748,9 +748,37 @@ public struct ValueEntitySparseSet<TValue, TStorage>
         }
     }
 
-    public readonly struct KeyEnumerable : IReadOnlyList<Entity>, IStructEnumerable<KeyEnumerable.Enumerator, Entity>
+    public readonly struct KeyEnumerable
+        : IReadOnlyList<Entity>,
+            ICollection<Entity>,
+            IStructEnumerable<KeyEnumerable.Enumerator, Entity>
     {
         private readonly ValueEntitySparseSet<TValue, TStorage> _sparseSet;
+
+        void ICollection<Entity>.Add(Entity item)
+        {
+            throw new NotSupportedException($"{nameof(KeyEnumerable)} is read-only.");
+        }
+
+        void ICollection<Entity>.Clear()
+        {
+            throw new NotSupportedException($"{nameof(KeyEnumerable)} is read-only.");
+        }
+
+        public bool Contains(Entity item)
+        {
+            return _sparseSet.ContainsKey(item);
+        }
+
+        public void CopyTo(Entity[] array, int arrayIndex)
+        {
+            AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+        }
+
+        bool ICollection<Entity>.Remove(Entity item)
+        {
+            throw new NotSupportedException($"{nameof(KeyEnumerable)} is read-only.");
+        }
 
         internal KeyEnumerable(in ValueEntitySparseSet<TValue, TStorage> sparseSet)
         {
@@ -758,6 +786,8 @@ public struct ValueEntitySparseSet<TValue, TStorage>
         }
 
         public int Count => _sparseSet.Count;
+
+        bool ICollection<Entity>.IsReadOnly => true;
 
         public Entity this[int index] => new(_sparseSet._sparseSet.Keys[index], _sparseSet.Scene);
 

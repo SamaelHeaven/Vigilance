@@ -3,7 +3,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueRing>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueRing>), "Drawable")]
 public partial struct ValueRing : IDrawable
 {
     public ValueRing(Color fill)
@@ -33,7 +33,7 @@ public partial struct ValueRing : IDrawable
     }
 }
 
-[ValueWrapper<ValueRing>]
+[ValueWrapper(typeof(ValueRing))]
 public sealed partial class Ring : IDrawable, IFullCloneable
 {
     public override string ToString()
@@ -85,7 +85,7 @@ public static class RingExtensions
             var radius = innerRadius.Max(outerRadius);
             if (
                 colorValue == Color.Transparent
-                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
             )
                 return;
             segments = Drawing.CalculateSegments(radius, startAngle, endAngle, segments);
@@ -140,10 +140,8 @@ public static class RingExtensions
             if (
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
-                || (
-                    graphics.Culling()
+                || graphics.Culling()
                     && !graphics.IsBoxInBounds(center - maxRadius, new Vector2(maxRadius * 2), camera, strokeWidthValue)
-                )
             )
                 return;
             var startDirection = startAngle.Min(endAngle).DegToDirection();

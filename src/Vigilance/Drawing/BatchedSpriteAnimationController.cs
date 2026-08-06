@@ -1,22 +1,29 @@
-using System.Runtime.CompilerServices;
-
 namespace Vigilance.Drawing;
 
-public sealed class BatchedSpriteAnimationController : AnimationController<BatchedSpriteAnimation>
-{
-    [OverloadResolutionPriority(1)]
-    public BatchedSpriteAnimationController(params ReadOnlySpan<(string, BatchedSpriteAnimation)> animations)
-        : base(animations) { }
+[ValueWrapper(typeof(ValueAnimationController<,>), typeParams: [typeof(string), typeof(ValueBatchedSpriteAnimation)])]
+public partial struct ValueBatchedSpriteAnimationController
+    : IAnimation,
+        IValueDictionaryView<string, ValueBatchedSpriteAnimation>,
+        IReadOnlyDictionary<string, ValueBatchedSpriteAnimation>;
 
-    [OverloadResolutionPriority(1)]
-    public BatchedSpriteAnimationController(
-        params ReadOnlySpan<KeyValuePair<string, BatchedSpriteAnimation>> animations
-    )
-        : base(animations) { }
+[ValueWrapper(typeof(ValueAnimationController<,>), typeParams: [typeof(string), typeof(BatchedSpriteAnimation)])]
+public sealed partial class BatchedSpriteAnimationController
+    : IAnimation,
+        IValueDictionaryView<string, BatchedSpriteAnimation>,
+        IReadOnlyDictionary<string, BatchedSpriteAnimation>,
+        IShallowCloneable;
 
-    public BatchedSpriteAnimationController(IEnumerable<(string, BatchedSpriteAnimation)> animations)
-        : base(animations) { }
+[ValueWrapper(typeof(ValueAnimationController<,>), typeParams: [null, typeof(ValueBatchedSpriteAnimation)])]
+public partial struct ValueBatchedSpriteAnimationController<TKey>
+    : IAnimation,
+        IValueDictionaryView<TKey, ValueBatchedSpriteAnimation>,
+        IReadOnlyDictionary<TKey, ValueBatchedSpriteAnimation>
+    where TKey : notnull;
 
-    public BatchedSpriteAnimationController(IEnumerable<KeyValuePair<string, BatchedSpriteAnimation>> animations)
-        : base(animations) { }
-}
+[ValueWrapper(typeof(ValueAnimationController<,>), typeParams: [null, typeof(BatchedSpriteAnimation)])]
+public sealed partial class BatchedSpriteAnimationController<TKey>
+    : IAnimation,
+        IValueDictionaryView<TKey, BatchedSpriteAnimation>,
+        IReadOnlyDictionary<TKey, BatchedSpriteAnimation>,
+        IShallowCloneable
+    where TKey : notnull;

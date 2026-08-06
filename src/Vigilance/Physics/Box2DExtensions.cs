@@ -106,7 +106,7 @@ public static class Box2DExtensions
         public Color ToColor()
         {
             var value = (uint)hexColor;
-            return new Color((byte)((value >> 16) & 0xff), (byte)((value >> 8) & 0xff), (byte)(value & 0xff));
+            return new Color((byte)(value >> 16 & 0xff), (byte)(value >> 8 & 0xff), (byte)(value & 0xff));
         }
     }
 

@@ -341,9 +341,9 @@ public record struct Color
     {
         return new Color
         {
-            R = (byte)((hex >> 24) & 0xff),
-            G = (byte)((hex >> 16) & 0xff),
-            B = (byte)((hex >> 8) & 0xff),
+            R = (byte)(hex >> 24 & 0xff),
+            G = (byte)(hex >> 16 & 0xff),
+            B = (byte)(hex >> 8 & 0xff),
             A = (byte)(hex & 0xff),
         };
     }
@@ -428,7 +428,7 @@ public record struct Color
             var lo = HexValue(hex[index + 1]);
             if (hi < 0 || lo < 0)
                 return false;
-            value = (byte)((hi << 4) | lo);
+            value = (byte)(hi << 4 | lo);
             return true;
         }
 
@@ -484,7 +484,7 @@ public record struct Color
 
     public readonly uint ToInt()
     {
-        return ((uint)R << 24) | ((uint)G << 16) | ((uint)B << 8) | A;
+        return (uint)R << 24 | (uint)G << 16 | (uint)B << 8 | A;
     }
 
     public readonly (float H, float S, float V) ToHsv()

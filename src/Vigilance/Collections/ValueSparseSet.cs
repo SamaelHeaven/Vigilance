@@ -574,7 +574,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         get
         {
             AssertValid();
-            return _values.AsFastEnumerable();
+            return _values.AsReadOnly();
         }
     }
 
@@ -583,13 +583,13 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         get
         {
             AssertValid();
-            return _keys.AsFastEnumerable();
+            return Keys.AsEnumerable();
         }
     }
 
-    readonly IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => _keys.AsFastEnumerable();
+    readonly IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys.AsEnumerable();
 
-    readonly IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => _values.AsFastEnumerable();
+    readonly IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
 
     readonly bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {

@@ -11,7 +11,7 @@ namespace Vigilance.Codegen.Generators;
 [Generator]
 public sealed class ValueWrapperGenerator : IIncrementalGenerator
 {
-    private const string AttributeMetadataName = "Vigilance.Core.ValueWrapperAttribute`1";
+    private const string AttributeMetadataName = "Vigilance.Core.ValueWrapperAttribute";
 
     private static readonly SymbolDisplayFormat _typeFormat = new(
         SymbolDisplayGlobalNamespaceStyle.Included,
@@ -71,9 +71,7 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
                     enclosing.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)
                 );
         if (
-            attribute.AttributeClass is not { TypeArguments.Length: 1 } attributeClass
-            // ReSharper disable once MergeIntoNegatedPattern
-            || attributeClass.TypeArguments[0] is not INamedTypeSymbol wrapped
+            ResolveWrapped(attribute, wrapper) is not { } wrapped
             || wrapped.TypeKind == TypeKind.Error
             || wrapped.IsStatic
         )
@@ -88,7 +86,7 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
                     current.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat)
                 );
         var fieldName =
-            attribute.ConstructorArguments.Length == 1 ? attribute.ConstructorArguments[0].Value as string : "Value";
+            attribute.ConstructorArguments.Length > 1 ? attribute.ConstructorArguments[1].Value as string : "Value";
         if (fieldName is null || !SyntaxFacts.IsValidIdentifier(fieldName))
             return Result.Error(Diagnostics.ValueWrapperFieldNameInvalid, location, name, fieldName ?? "<null>");
         var sb = new StringBuilder();
@@ -165,11 +163,13 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         var ctorKeys = new HashSet<string>();
         var indexerKeys = new HashSet<string>();
         var hasImplicitToWrapped = false;
+        var hasDeclaredConstructor = false;
         foreach (var member in wrapper.GetMembers())
             switch (member)
             {
                 case IMethodSymbol { MethodKind: MethodKind.Constructor, IsImplicitlyDeclared: false } ctor:
                     ctorKeys.Add(ParamsKey(ctor.Parameters));
+                    hasDeclaredConstructor = true;
                     break;
                 case IMethodSymbol { MethodKind: MethodKind.Conversion, Name: "op_Implicit" } conv
                     when SymbolEqualityComparer.Default.Equals(conv.ReturnType, wrapped):
@@ -196,7 +196,7 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         else
             valueNames.Add(fieldName);
         var ctorRegion = new StringBuilder();
-        if (ctorKeys.Add(wrapped.ToDisplayString(_keyFormat)))
+        if (!hasDeclaredConstructor && ctorKeys.Add(wrapped.ToDisplayString(_keyFormat)))
         {
             ctorRegion.AppendLine();
             ctorRegion.AppendLine($"{indent}public {wrapper.Name}(in {wrappedType} value)");
@@ -209,6 +209,8 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         {
             if (ctor.DeclaredAccessibility != Accessibility.Public)
                 continue;
+            if (ctor.IsImplicitlyDeclared && !HasParameterlessConstructor(wrapped))
+                continue;
             if (ContainsPointer(ctor.Parameters) || ContainsPointer(ctor.ReturnType))
                 continue;
             var key = ParamsKey(ctor.Parameters);
@@ -216,6 +218,7 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
                 continue;
 
             ctorRegion.AppendLine();
+            AppendAttributes(ctorRegion, indent, ctor);
             ctorRegion.AppendLine($"{indent}public {wrapper.Name}({ParamsDecl(ctor.Parameters)})");
             ctorRegion.AppendLine($"{indent}{{");
             ctorRegion.AppendLine($"{indent}    {fieldName} = new {wrappedType}({ArgsCall(ctor.Parameters)});");
@@ -225,11 +228,28 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         if (ctorRegion.Length > 0)
             sb.Append(ctorRegion);
         var memberRegion = new StringBuilder();
+        var explicitKeys = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
         foreach (var source in MemberSourceChain(wrapped))
             for (var t = source; t is not null && !IsWalkBoundary(t); t = t.BaseType)
                 foreach (var member in t.GetMembers())
                 {
-                    if (member.IsStatic || member.DeclaredAccessibility != Accessibility.Public)
+                    if (member.IsStatic)
+                        continue;
+                    if (ExplicitInterfaceMember(member) is { } interfaceMember)
+                    {
+                        EmitExplicitInterfaceMember(
+                            memberRegion,
+                            indent,
+                            member,
+                            interfaceMember,
+                            fieldName,
+                            wrapper,
+                            explicitKeys
+                        );
+                        continue;
+                    }
+
+                    if (member.DeclaredAccessibility != Accessibility.Public)
                         continue;
                     switch (member)
                     {
@@ -296,6 +316,7 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         var constraints = Constraints(method.TypeParameters);
         var readOnly = ForwardReadOnly(wrapper, wrapped, byRef, method.IsReadOnly);
         sb.AppendLine();
+        AppendAttributes(sb, indent, method);
         sb.AppendLine(
             $"{indent}public {readOnly}{returnType} {method.Name}{typeParams}({ParamsDecl(method.Parameters)}){constraints}"
         );
@@ -325,6 +346,7 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         var hasSet = !byRef && property.SetMethod is { DeclaredAccessibility: Accessibility.Public, IsInitOnly: false };
         var getReadOnly = ForwardReadOnly(wrapper, wrapped, byRef, property.GetMethod?.IsReadOnly ?? false);
         sb.AppendLine();
+        AppendAttributes(sb, indent, property);
         if (hasGet && !hasSet)
         {
             var expr = byRef ? $"ref {field}.{property.Name}" : $"{field}.{property.Name}";
@@ -361,6 +383,7 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
         var getReadOnly = ForwardReadOnly(wrapper, wrapped, byRef, indexer.GetMethod?.IsReadOnly ?? false);
         var args = ArgsCall(indexer.Parameters);
         sb.AppendLine();
+        AppendAttributes(sb, indent, indexer);
         if (hasGet && !hasSet)
         {
             var expr = byRef ? $"ref {field}[{args}]" : $"{field}[{args}]";
@@ -378,6 +401,137 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
             sb.AppendLine($"{indent}    {setter} => {field}[{args}] = value;");
         }
 
+        sb.AppendLine($"{indent}}}");
+    }
+
+    private static ISymbol? ExplicitInterfaceMember(ISymbol member)
+    {
+        return member switch
+        {
+            IMethodSymbol
+            {
+                MethodKind: MethodKind.ExplicitInterfaceImplementation,
+                ExplicitInterfaceImplementations.Length: > 0
+            } method => method.ExplicitInterfaceImplementations[0],
+            IPropertySymbol { ExplicitInterfaceImplementations.Length: > 0 } property =>
+                property.ExplicitInterfaceImplementations[0],
+            _ => null,
+        };
+    }
+
+    private static void EmitExplicitInterfaceMember(
+        StringBuilder sb,
+        string indent,
+        ISymbol member,
+        ISymbol interfaceMember,
+        string field,
+        INamedTypeSymbol wrapper,
+        HashSet<ISymbol> emitted
+    )
+    {
+        if (interfaceMember.ContainingType is not { } interfaceType)
+            return;
+        // Only forward when the wrapper declares the interface, and only once per interface member.
+        if (!wrapper.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, interfaceType)))
+            return;
+        if (!emitted.Add(interfaceMember))
+            return;
+        var interfaceName = interfaceType.ToDisplayString(_typeFormat);
+        // Boxing the wrapped value to the interface dispatches to its explicit implementation.
+        var target = $"(({interfaceName}){field})";
+        var readOnly = wrapper.IsValueType ? "readonly " : "";
+        switch (member)
+        {
+            case IMethodSymbol { ReturnsByRef: false, ReturnsByRefReadonly: false } method:
+                EmitExplicitMethod(sb, indent, method, interfaceName, interfaceMember.Name, target, readOnly);
+                break;
+            case IPropertySymbol { IsIndexer: true, ReturnsByRef: false, ReturnsByRefReadonly: false } indexer:
+                EmitExplicitIndexer(sb, indent, indexer, interfaceName, target, readOnly);
+                break;
+            case IPropertySymbol { IsIndexer: false, ReturnsByRef: false, ReturnsByRefReadonly: false } property:
+                EmitExplicitProperty(sb, indent, property, interfaceName, interfaceMember.Name, target, readOnly);
+                break;
+        }
+    }
+
+    private static void EmitExplicitMethod(
+        StringBuilder sb,
+        string indent,
+        IMethodSymbol method,
+        string interfaceName,
+        string name,
+        string target,
+        string readOnly
+    )
+    {
+        var typeParams = TypeParamList(method.TypeParameters);
+        var returnType = method.ReturnsVoid ? "void" : method.ReturnType.ToDisplayString(_typeFormat);
+        var call = $"{target}.{name}{typeParams}({ArgsCall(method.Parameters)})";
+        sb.AppendLine();
+        sb.AppendLine(
+            $"{indent}{readOnly}{returnType} {interfaceName}.{name}{typeParams}({ParamsDecl(method.Parameters)})"
+        );
+        sb.AppendLine($"{indent}{{");
+        sb.AppendLine(method.ReturnsVoid ? $"{indent}    {call};" : $"{indent}    return {call};");
+        sb.AppendLine($"{indent}}}");
+    }
+
+    private static void EmitExplicitProperty(
+        StringBuilder sb,
+        string indent,
+        IPropertySymbol property,
+        string interfaceName,
+        string name,
+        string target,
+        string readOnly
+    )
+    {
+        var type = property.Type.ToDisplayString(_typeFormat);
+        var hasGet = property.GetMethod is not null;
+        var hasSet = property.SetMethod is { IsInitOnly: false };
+        sb.AppendLine();
+        if (hasGet && !hasSet)
+        {
+            sb.AppendLine($"{indent}{readOnly}{type} {interfaceName}.{name} => {target}.{name};");
+            return;
+        }
+
+        sb.AppendLine($"{indent}{type} {interfaceName}.{name}");
+        sb.AppendLine($"{indent}{{");
+        if (hasGet)
+            sb.AppendLine($"{indent}    {readOnly}get => {target}.{name};");
+        if (hasSet)
+            sb.AppendLine($"{indent}    set => {target}.{name} = value;");
+        sb.AppendLine($"{indent}}}");
+    }
+
+    private static void EmitExplicitIndexer(
+        StringBuilder sb,
+        string indent,
+        IPropertySymbol indexer,
+        string interfaceName,
+        string target,
+        string readOnly
+    )
+    {
+        var type = indexer.Type.ToDisplayString(_typeFormat);
+        var args = ArgsCall(indexer.Parameters);
+        var parameters = ParamsDecl(indexer.Parameters);
+        var hasGet = indexer.GetMethod is not null;
+        var hasSet = indexer.SetMethod is { IsInitOnly: false };
+        sb.AppendLine();
+        if (hasGet && !hasSet)
+        {
+            sb.AppendLine($"{indent}{readOnly}{type} {interfaceName}.this[{parameters}] => {target}[{args}];");
+            return;
+        }
+
+        sb.AppendLine($"{indent}{type} {interfaceName}.this[{parameters}]");
+        sb.AppendLine($"{indent}{{");
+        if (hasGet)
+            sb.AppendLine($"{indent}    {readOnly}get => {target}[{args}];");
+        if (hasSet)
+            sb.AppendLine($"{indent}    set => {target}[{args}] = value;");
         sb.AppendLine($"{indent}}}");
     }
 
@@ -438,6 +592,13 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
     private static string ParamDecl(IParameterSymbol p)
     {
         var sb = new StringBuilder();
+        foreach (var attribute in p.GetAttributes())
+        {
+            var formatted = FormatAttribute(attribute);
+            if (formatted is not null)
+                sb.Append(formatted).Append(' ');
+        }
+
         if (p.IsParams)
             sb.Append("params ");
         sb.Append(RefPrefix(p.RefKind));
@@ -508,11 +669,101 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
     {
         foreach (var attribute in type.GetAttributes())
             if (
-                attribute.AttributeClass is { Name: "ValueWrapperAttribute", TypeArguments.Length: 1 } attributeClass
+                attribute.AttributeClass is { Name: "ValueWrapperAttribute" } attributeClass
                 && attributeClass.ContainingNamespace?.ToDisplayString() == "Vigilance.Core"
             )
-                return attributeClass.TypeArguments[0] as INamedTypeSymbol;
+                return ResolveWrapped(attribute, type);
         return null;
+    }
+
+    private static bool HasParameterlessConstructor(INamedTypeSymbol type)
+    {
+        foreach (var ctor in type.InstanceConstructors)
+            if (
+                !ctor.IsImplicitlyDeclared
+                && ctor.Parameters.Length == 0
+                && ctor.DeclaredAccessibility == Accessibility.Public
+            )
+                return true;
+        // A value wrapper generates a parameterless constructor when the type it wraps has one.
+        var wrapped = GetWrappedType(type);
+        return wrapped is not null && HasParameterlessConstructor(wrapped);
+    }
+
+    private static INamedTypeSymbol? ResolveWrapped(AttributeData attribute, INamedTypeSymbol owner)
+    {
+        if (attribute.ConstructorArguments.Length == 0)
+            return null;
+        var argument = attribute.ConstructorArguments[0];
+        if (argument.Kind != TypedConstantKind.Type || argument.Value is not INamedTypeSymbol wrapped)
+            return null;
+        if (!wrapped.IsUnboundGenericType)
+            return wrapped;
+        var definition = wrapped.OriginalDefinition;
+        if (definition.Arity == 0)
+            return definition;
+
+        var ownerArgs = owner.TypeArguments;
+        var typeParams = TypeParams(attribute);
+        var typeArguments = new ITypeSymbol[definition.Arity];
+        if (typeParams.IsDefault)
+        {
+            if (definition.Arity != ownerArgs.Length)
+                return null;
+            for (var i = 0; i < definition.Arity; i++)
+                typeArguments[i] = ownerArgs[i];
+        }
+        else
+        {
+            if (typeParams.Length != definition.Arity)
+                return null;
+            var next = 0;
+            for (var i = 0; i < definition.Arity; i++)
+            {
+                if (typeParams[i] is not { } explicitType)
+                {
+                    if (next >= ownerArgs.Length)
+                        return null;
+                    typeArguments[i] = ownerArgs[next++];
+                    continue;
+                }
+
+                var closed = CloseTypeArgument(explicitType, ownerArgs, ref next);
+                if (closed is null)
+                    return null;
+                typeArguments[i] = closed;
+            }
+        }
+
+        return definition.Construct(typeArguments);
+    }
+
+    private static ITypeSymbol? CloseTypeArgument(ITypeSymbol type, ImmutableArray<ITypeSymbol> ownerArgs, ref int next)
+    {
+        if (type is not INamedTypeSymbol { IsUnboundGenericType: true } named)
+            return type;
+        var definition = named.OriginalDefinition;
+        if (definition.Arity == 0)
+            return definition;
+        if (next + definition.Arity > ownerArgs.Length)
+            return null;
+        var arguments = new ITypeSymbol[definition.Arity];
+        for (var i = 0; i < definition.Arity; i++)
+            arguments[i] = ownerArgs[next++];
+        return definition.Construct(arguments);
+    }
+
+    private static ImmutableArray<ITypeSymbol?> TypeParams(AttributeData attribute)
+    {
+        if (attribute.ConstructorArguments.Length < 3)
+            return default;
+        var argument = attribute.ConstructorArguments[2];
+        if (argument.Kind != TypedConstantKind.Array || argument.IsNull)
+            return default;
+        var builder = ImmutableArray.CreateBuilder<ITypeSymbol?>(argument.Values.Length);
+        foreach (var value in argument.Values)
+            builder.Add(value.Value as ITypeSymbol);
+        return builder.MoveToImmutable();
     }
 
     private static string ForwardReadOnly(
@@ -585,6 +836,127 @@ public sealed class ValueWrapperGenerator : IIncrementalGenerator
             decimal m => m.ToString(CultureInfo.InvariantCulture) + "M",
             _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "default",
         };
+    }
+
+    private static void AppendAttributes(StringBuilder sb, string indent, ISymbol member)
+    {
+        foreach (var attribute in member.GetAttributes())
+        {
+            var formatted = FormatAttribute(attribute);
+            if (formatted is not null)
+                sb.AppendLine($"{indent}{formatted}");
+        }
+    }
+
+    private static string? FormatAttribute(AttributeData attribute)
+    {
+        if (attribute.AttributeClass is not { } attributeClass || attributeClass.TypeKind == TypeKind.Error)
+            return null;
+        if (IsCompilerAttribute(attributeClass))
+            return null;
+        var arguments = new List<string>();
+        foreach (var argument in attribute.ConstructorArguments)
+        {
+            if (!TryFormatConstant(argument, out var formatted))
+                return null;
+            arguments.Add(formatted);
+        }
+
+        foreach (var named in attribute.NamedArguments)
+        {
+            if (!TryFormatConstant(named.Value, out var formatted))
+                return null;
+            arguments.Add($"{named.Key} = {formatted}");
+        }
+
+        var name = attributeClass.ToDisplayString(_typeFormat);
+        return arguments.Count == 0 ? $"[{name}]" : $"[{name}({string.Join(", ", arguments)})]";
+    }
+
+    private static bool IsCompilerAttribute(INamedTypeSymbol attributeClass)
+    {
+        if (attributeClass.ContainingNamespace?.ToDisplayString() != "System.Runtime.CompilerServices")
+            return false;
+        return attributeClass.Name
+            is "NullableAttribute"
+                or "NullableContextAttribute"
+                or "IsReadOnlyAttribute"
+                or "IsUnmanagedAttribute"
+                or "IsByRefLikeAttribute"
+                or "ScopedRefAttribute"
+                or "RequiresLocationAttribute"
+                or "TupleElementNamesAttribute"
+                or "NativeIntegerAttribute"
+                or "DynamicAttribute"
+                or "CompilerGeneratedAttribute";
+    }
+
+    private static bool TryFormatConstant(TypedConstant constant, out string result)
+    {
+        result = "";
+        if (constant.Kind == TypedConstantKind.Array)
+        {
+            if (constant.IsNull)
+            {
+                result = "null";
+                return true;
+            }
+
+            if (constant.Type is not IArrayTypeSymbol arrayType)
+                return false;
+            var elements = new List<string>();
+            foreach (var value in constant.Values)
+            {
+                if (!TryFormatConstant(value, out var element))
+                    return false;
+                elements.Add(element);
+            }
+
+            result = $"new {arrayType.ElementType.ToDisplayString(_typeFormat)}[] {{ {string.Join(", ", elements)} }}";
+            return true;
+        }
+
+        if (constant.IsNull)
+        {
+            result = "null";
+            return true;
+        }
+
+        switch (constant.Kind)
+        {
+            case TypedConstantKind.Type:
+                if (constant.Value is not ITypeSymbol type || type.TypeKind == TypeKind.Error)
+                    return false;
+                result = $"typeof({type.ToDisplayString(_typeFormat)})";
+                return true;
+            case TypedConstantKind.Enum:
+                result =
+                    $"({constant.Type!.ToDisplayString(_typeFormat)}){Convert.ToString(constant.Value, CultureInfo.InvariantCulture)}";
+                return true;
+            case TypedConstantKind.Primitive:
+                return TryFormatPrimitive(constant.Value, out result);
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryFormatPrimitive(object? value, out string result)
+    {
+        result = value switch
+        {
+            bool b => b ? "true" : "false",
+            string s => SymbolDisplay.FormatLiteral(s, true),
+            char c => SymbolDisplay.FormatLiteral(c, true),
+            float f => f.ToString("R", CultureInfo.InvariantCulture) + "F",
+            double d => d.ToString("R", CultureInfo.InvariantCulture) + "D",
+            decimal m => m.ToString(CultureInfo.InvariantCulture) + "M",
+            sbyte or byte or short or ushort or int or uint or long or ulong => Convert.ToString(
+                value,
+                CultureInfo.InvariantCulture
+            )!,
+            _ => "",
+        };
+        return result.Length > 0;
     }
 
     private static string Escape(string name)

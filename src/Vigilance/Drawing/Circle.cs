@@ -3,7 +3,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueCircle>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueCircle>), "Drawable")]
 public partial struct ValueCircle : IDrawable
 {
     public ValueCircle(Color fill)
@@ -31,7 +31,7 @@ public partial struct ValueCircle : IDrawable
     }
 }
 
-[ValueWrapper<ValueCircle>]
+[ValueWrapper(typeof(ValueCircle))]
 public sealed partial class Circle : IDrawable, IFullCloneable
 {
     public override string ToString()
@@ -71,7 +71,7 @@ public static class CircleExtensions
             var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
             if (
                 colorValue == Color.Transparent
-                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
             )
                 return;
             segments = Drawing.CalculateSegments(radius, startAngle, endAngle, segments);
@@ -120,7 +120,7 @@ public static class CircleExtensions
             if (
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
-                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
             )
                 return;
             segments = Drawing.CalculateSegments(radius, startAngle, endAngle, segments);

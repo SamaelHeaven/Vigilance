@@ -144,7 +144,7 @@ public sealed partial class Scene
 
     public int Count<T>()
     {
-        return Table<T>().Count;
+        return TableOrDefault<T>()?.Count ?? 0;
     }
 
     public Query Query(bool withDisabled = false, bool deferred = true)
@@ -241,7 +241,10 @@ public sealed partial class Scene
 
     public Entity Lookup<T>()
     {
-        var entityIds = Table<T>().EntityIds;
+        var table = TableOrDefault<T>();
+        if (table is null)
+            return Core.Entity.Null;
+        var entityIds = table.EntityIds;
         return entityIds.Count == 0 ? Core.Entity.Null : new Entity(entityIds[0], this);
     }
 
@@ -277,7 +280,14 @@ public sealed partial class Scene
 
     public bool TryLookup<T>(out T component)
     {
-        var components = Table<T>().Components;
+        var table = TableOrDefault<T>();
+        if (table is null)
+        {
+            Unsafe.SkipInit(out component);
+            return false;
+        }
+
+        var components = table.Components;
         if (components.Count == 0)
         {
             Unsafe.SkipInit(out component);
@@ -290,7 +300,14 @@ public sealed partial class Scene
 
     public bool TryLookup<T>(out Entity entity, out T component)
     {
-        var table = Table<T>();
+        var table = TableOrDefault<T>();
+        if (table is null)
+        {
+            Unsafe.SkipInit(out entity);
+            Unsafe.SkipInit(out component);
+            return false;
+        }
+
         var entityIds = table.EntityIds;
         if (entityIds.Count == 0)
         {
@@ -531,6 +548,12 @@ public sealed partial class Scene
         table = new Table<T>(this);
         _tables.Add(table);
         return table;
+    }
+
+    public Table<T>? TableOrDefault<T>()
+    {
+        var index = Core.Table<T>.Index;
+        return _sparseTables.Count <= index ? null : Unsafe.As<Table?, Table<T>?>(ref _sparseTables[index]);
     }
 
     public void Clear()

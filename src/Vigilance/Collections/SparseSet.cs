@@ -307,13 +307,13 @@ public class SparseSet<TKey, TValue, TStorage>
         set => this[key] = value;
     }
 
-    ICollection<TValue> IDictionary<TKey, TValue>.Values => _sparseSet.Values.AsReadOnly();
+    ICollection<TValue> IDictionary<TKey, TValue>.Values => _sparseSet.Values;
 
-    ICollection<TKey> IDictionary<TKey, TValue>.Keys => _sparseSet.Keys.AsEnumerable().AsFastEnumerable();
+    ICollection<TKey> IDictionary<TKey, TValue>.Keys => _sparseSet.Keys.AsEnumerable();
 
-    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => _sparseSet.Keys.AsEnumerable().AsFastEnumerable();
+    IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => _sparseSet.Keys.AsEnumerable();
 
-    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => _sparseSet.Values.AsReadOnly();
+    IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => _sparseSet.Values;
 
     bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {

@@ -125,7 +125,7 @@ public readonly unsafe struct RenderCommand : IComparable<RenderCommand>
 
     public static ulong GetOrder(int layer, int sequence)
     {
-        return ((ulong)(uint)(layer ^ int.MinValue) << 32) | (uint)(sequence ^ int.MinValue);
+        return (ulong)(uint)(layer ^ int.MinValue) << 32 | (uint)(sequence ^ int.MinValue);
     }
 
     public static int GetLayer(ulong order)

@@ -99,5 +99,5 @@ public struct ValueTween
     }
 }
 
-[ValueWrapper<ValueTween>]
+[ValueWrapper(typeof(ValueTween))]
 public sealed partial class Tween;

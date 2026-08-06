@@ -3,7 +3,7 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-[ValueWrapper<Drawable<ValueLine>>("Drawable")]
+[ValueWrapper(typeof(Drawable<ValueLine>), "Drawable")]
 public partial struct ValueLine : IDrawable
 {
     public ValueLine(Color color)
@@ -43,7 +43,7 @@ public partial struct ValueLine : IDrawable
     }
 }
 
-[ValueWrapper<ValueLine>]
+[ValueWrapper(typeof(ValueLine))]
 public sealed partial class Line : IDrawable, IFullCloneable
 {
     public override string ToString()
@@ -82,10 +82,8 @@ public static class LineExtensions
             if (
                 colorValue == Color.Transparent
                 || thickValue <= 0
-                || (
-                    graphics.Culling()
+                || graphics.Culling()
                     && !graphics.IsPolygonInBounds(new Quad(start, start, end, end), camera, thickValue * 0.5f)
-                )
             )
                 return;
             graphics.BeginDrawing(camera);
