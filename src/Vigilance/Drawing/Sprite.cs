@@ -1,10 +1,10 @@
 namespace Vigilance.Drawing;
 
-public sealed class Sprite : Drawable<Sprite>
+[ValueWrapper(typeof(Drawable<ValueSprite>), "Drawable")]
+public partial struct ValueSprite : IDrawable
 {
-    public Sprite() { }
-
-    public Sprite(Texture texture)
+    public ValueSprite(Texture texture)
+        : this()
     {
         Texture = texture;
         Scale = texture.Size;
@@ -19,14 +19,23 @@ public sealed class Sprite : Drawable<Sprite>
     public TextureFilter TextureFilter { get; set; } = Drawing.DefaultTextureFilter;
     public TextureWrap TextureWrap { get; set; } = Drawing.DefaultTextureWrap;
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawSprite(transform, this);
+    }
+}
+
+[ValueWrapper(typeof(ValueSprite))]
+public sealed partial class Sprite : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 }
 
@@ -34,29 +43,29 @@ public static class SpriteExtensions
 {
     extension(Graphics graphics)
     {
-        public void DrawSprite(Sprite sprite)
+        public void DrawSprite(in ValueSprite sprite)
         {
             graphics.DrawSprite(new Transform(), sprite);
         }
 
-        public void DrawSprite(float x, float y, float width, float height, Sprite sprite)
+        public void DrawSprite(float x, float y, float width, float height, in ValueSprite sprite)
         {
             graphics.DrawSprite(new Vector2(x, y), new Vector2(width, height), sprite);
         }
 
-        public void DrawSprite(Vector2 position, Vector2 size, Sprite sprite)
+        public void DrawSprite(Vector2 position, Vector2 size, in ValueSprite sprite)
         {
             graphics.DrawSprite(new Transform(position + size * 0.5f, size), sprite);
         }
 
-        public void DrawSprite(in Box box, Sprite sprite)
+        public void DrawSprite(in Box box, in ValueSprite sprite)
         {
             graphics.DrawSprite(box.Position, box.Size, sprite);
         }
 
-        public void DrawSprite(Transform transform, Sprite sprite)
+        public void DrawSprite(Transform transform, in ValueSprite sprite)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, sprite, graphics);
+            using var _ = Drawable<ValueSprite>.EnterDrawing(ref transform, sprite.Drawable, sprite, graphics);
             var camera = sprite.Camera.Get();
             var texture = sprite.Texture;
             var textureFilter = sprite.TextureFilter;

@@ -314,13 +314,13 @@ public class EntitySparseSet<TValue, TStorage>
         set => this[key] = value;
     }
 
-    ICollection<TValue> IDictionary<Entity, TValue>.Values => _sparseSet.Values.AsReadOnly();
+    ICollection<TValue> IDictionary<Entity, TValue>.Values => _sparseSet.Values;
 
-    ICollection<Entity> IDictionary<Entity, TValue>.Keys => new KeyEnumerable(this).AsReadOnly();
+    ICollection<Entity> IDictionary<Entity, TValue>.Keys => new KeyEnumerable(this);
 
     IEnumerable<Entity> IReadOnlyDictionary<Entity, TValue>.Keys => new KeyEnumerable(this);
 
-    IEnumerable<TValue> IReadOnlyDictionary<Entity, TValue>.Values => _sparseSet.Values.AsReadOnly();
+    IEnumerable<TValue> IReadOnlyDictionary<Entity, TValue>.Values => _sparseSet.Values;
 
     bool IReadOnlyDictionary<Entity, TValue>.TryGetValue(Entity key, [MaybeNullWhen(false)] out TValue value)
     {
@@ -366,6 +366,16 @@ public class EntitySparseSet<TValue, TStorage>
     public bool TryGetValue(in Entity key, [MaybeNullWhen(false)] out TValue value)
     {
         return _sparseSet.TryGetValue(key.Id, out value);
+    }
+
+    public TValue? GetValueOrDefault(in Entity key)
+    {
+        return _sparseSet.GetValueOrDefault(key.Id);
+    }
+
+    public TValue GetValueOrDefault(in Entity key, in TValue defaultValue)
+    {
+        return _sparseSet.GetValueOrDefault(key.Id, defaultValue);
     }
 
     public bool Remove(in Entity key)
@@ -463,11 +473,41 @@ public class EntitySparseSet<TValue, TStorage>
         }
     }
 
-    public readonly struct KeyEnumerable : IReadOnlyList<Entity>, IStructEnumerable<KeyEnumerable.Enumerator, Entity>
+    public readonly struct KeyEnumerable
+        : IReadOnlyList<Entity>,
+            ICollection<Entity>,
+            IStructEnumerable<KeyEnumerable.Enumerator, Entity>
     {
         private readonly EntitySparseSet<TValue, TStorage> _sparseSet;
 
+        void ICollection<Entity>.Add(Entity item)
+        {
+            throw new NotSupportedException($"{nameof(KeyEnumerable)} is read-only.");
+        }
+
+        void ICollection<Entity>.Clear()
+        {
+            throw new NotSupportedException($"{nameof(KeyEnumerable)} is read-only.");
+        }
+
+        public bool Contains(Entity item)
+        {
+            return _sparseSet.ContainsKey(item);
+        }
+
+        public void CopyTo(Entity[] array, int arrayIndex)
+        {
+            AsValueEnumerable().CopyTo(array.AsSpan(arrayIndex));
+        }
+
+        bool ICollection<Entity>.Remove(Entity item)
+        {
+            throw new NotSupportedException($"{nameof(KeyEnumerable)} is read-only.");
+        }
+
         public int Count => _sparseSet.Count;
+
+        bool ICollection<Entity>.IsReadOnly => true;
 
         public Entity this[int index] => new(_sparseSet._sparseSet.Keys[index], _sparseSet.Scene);
 

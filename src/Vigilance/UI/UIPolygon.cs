@@ -2,7 +2,7 @@ namespace Vigilance.UI;
 
 public class UIPolygon : UIContainer
 {
-    private RegularPolygon _polygon = new();
+    private ValueRegularPolygon _polygon = new();
 
     public UIPolygon() { }
 
@@ -58,10 +58,5 @@ public class UIPolygon : UIContainer
         var size = LayoutSize;
         _polygon.Camera = camera;
         graphics.DrawRegularPolygon(new Transform(position + size * 0.5f, size), _polygon);
-    }
-
-    protected override void OnClone()
-    {
-        _polygon = _polygon.DeepClone();
     }
 }

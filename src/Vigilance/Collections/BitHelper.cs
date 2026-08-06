@@ -27,7 +27,7 @@ public readonly ref struct BitHelper
         var bitArrayIndex = (uint)bitPosition / IntSize;
         ReadOnlySpan<int> span = _span;
         return bitArrayIndex < (uint)span.Length
-            && (span[(int)bitArrayIndex] & (1 << (int)((uint)bitPosition % IntSize))) != 0;
+            && (span[(int)bitArrayIndex] & 1 << (int)((uint)bitPosition % IntSize)) != 0;
     }
 
     public static int ToIntArrayLength(int n)

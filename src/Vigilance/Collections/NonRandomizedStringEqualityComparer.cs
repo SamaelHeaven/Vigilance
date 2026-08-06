@@ -4,21 +4,21 @@ namespace Vigilance.Collections;
 
 public static class NonRandomizedStringEqualityComparer
 {
-    private static readonly FieldInfo? _comparerFieldInfo = typeof(Dictionary<string, bool>).GetField(
+    private static readonly FieldInfo? _comparerFieldInfo = typeof(Dictionary<string, byte>).GetField(
         "_comparer",
         BindingFlags.Instance | BindingFlags.NonPublic
     );
 
     private static IEqualityComparer<string>? DefaultComparer =>
-        field ??= GetDictionaryComparer(new Dictionary<string, bool>(EqualityComparer<string?>.Default));
+        field ??= GetDictionaryComparer(new Dictionary<string, byte>(EqualityComparer<string?>.Default));
 
     private static IEqualityComparer<string>? StringComparerOrdinal =>
-        field ??= GetDictionaryComparer(new Dictionary<string, bool>(StringComparer.Ordinal));
+        field ??= GetDictionaryComparer(new Dictionary<string, byte>(StringComparer.Ordinal));
 
     private static IEqualityComparer<string>? StringComparerOrdinalIgnoreCase =>
-        field ??= GetDictionaryComparer(new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase));
+        field ??= GetDictionaryComparer(new Dictionary<string, byte>(StringComparer.OrdinalIgnoreCase));
 
-    private static IEqualityComparer<string>? GetDictionaryComparer(Dictionary<string, bool> dictionary)
+    private static IEqualityComparer<string>? GetDictionaryComparer(Dictionary<string, byte> dictionary)
     {
         return (IEqualityComparer<string>?)_comparerFieldInfo?.GetValue(dictionary);
     }

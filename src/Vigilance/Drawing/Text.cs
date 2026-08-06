@@ -1,28 +1,28 @@
+using System.Runtime.CompilerServices;
 using Raylib_cs;
 using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Text : Drawable<Text>
+[ValueWrapper(typeof(Drawable<ValueText>), "Drawable")]
+public partial struct ValueText : IDrawable
 {
-    public const int UnlimitedCharacters = -1;
-
     private Vector2? _sizeCache = null;
 
-    public Text() { }
-
-    public Text(Color fill)
+    public ValueText(Color fill)
+        : this()
     {
         Fill = fill;
     }
 
-    public Text(string value)
+    public ValueText(string content)
+        : this()
     {
-        Value = value;
+        Content = content;
     }
 
-    public Text(string value, Color fill)
-        : this(value)
+    public ValueText(string content, Color fill)
+        : this(content)
     {
         Fill = fill;
     }
@@ -30,11 +30,11 @@ public sealed class Text : Drawable<Text>
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
-    public int VisibleCharacters { get; set; } = UnlimitedCharacters;
+    public int VisibleCharacters { get; set; } = Font.UnlimitedCharacters;
     public TextureFilter TextureFilter { get; set; } = Drawing.DefaultTextureFilter;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
 
-    public string Value
+    public string Content
     {
         get;
         set
@@ -94,16 +94,26 @@ public sealed class Text : Drawable<Text>
         }
     } = Font.DefaultTextHeightMode;
 
-    public Vector2 Size => _sizeCache ??= Font.MeasureText(Value, FontSize, Spacing, HeightMode);
+    public readonly Vector2 Size =>
+        Unsafe.AsRef(in this)._sizeCache ??= Font.MeasureText(Content, FontSize, Spacing, HeightMode);
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawText(transform, this);
+    }
+}
+
+[ValueWrapper(typeof(ValueText))]
+public sealed partial class Text : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 }
 
@@ -119,7 +129,7 @@ public static class TextExtensions
             Font? font = null,
             float? fontSize = null,
             in Vector2? spacing = null,
-            int visibleCharacters = Text.UnlimitedCharacters,
+            int visibleCharacters = Font.UnlimitedCharacters,
             TextureFilter? textureFilter = null,
             Camera? camera = null
         )
@@ -144,7 +154,7 @@ public static class TextExtensions
             Font? font = null,
             float? fontSize = null,
             in Vector2? spacing = null,
-            int visibleCharacters = Text.UnlimitedCharacters,
+            int visibleCharacters = Font.UnlimitedCharacters,
             TextureFilter? textureFilter = null,
             Camera? camera = null
         )
@@ -192,7 +202,7 @@ public static class TextExtensions
             float? fontSize = null,
             float? strokeWidth = null,
             in Vector2? spacing = null,
-            int visibleCharacters = Text.UnlimitedCharacters,
+            int visibleCharacters = Font.UnlimitedCharacters,
             TextureFilter? textureFilter = null,
             Camera? camera = null
         )
@@ -219,7 +229,7 @@ public static class TextExtensions
             float? fontSize = null,
             float? strokeWidth = null,
             in Vector2? spacing = null,
-            int visibleCharacters = Text.UnlimitedCharacters,
+            int visibleCharacters = Font.UnlimitedCharacters,
             TextureFilter? textureFilter = null,
             Camera? camera = null
         )
@@ -260,26 +270,26 @@ public static class TextExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawText(Text text)
+        public void DrawText(in ValueText text)
         {
             graphics.DrawText(new Transform(), text);
         }
 
-        public void DrawText(float x, float y, Text text)
+        public void DrawText(float x, float y, in ValueText text)
         {
             graphics.DrawText(new Vector2(x, y), text);
         }
 
-        public void DrawText(Vector2 position, Text text)
+        public void DrawText(Vector2 position, in ValueText text)
         {
             graphics.DrawText(new Transform(position + text.Size * 0.5f), text);
         }
 
-        public void DrawText(Transform transform, Text text)
+        public void DrawText(Transform transform, in ValueText text)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, text, graphics);
+            using var _ = Drawable<ValueText>.EnterDrawing(ref transform, text.Drawable, text, graphics);
             var camera = text.Camera.Get();
-            var value = text.Value;
+            var value = text.Content;
             var fill = text.Fill;
             var stroke = text.Stroke;
             var font = text.Font;
@@ -296,60 +306,59 @@ public static class TextExtensions
             var pivotTransform = transform;
             pivotTransform.Scale = size;
             graphics.Pivot(pivotTransform, true);
-            if (!graphics.Culling() || graphics.IsBoxInBounds(position, size * scale, camera, strokeWidth * 0.5f))
+            if (graphics.Culling() && !graphics.IsBoxInBounds(position, size * scale, camera, strokeWidth * 0.5f))
+                return;
+            if (order == DrawOrder.StrokeThenFill)
             {
-                if (order == DrawOrder.StrokeThenFill)
-                {
-                    graphics.StrokeText(
-                        value,
-                        position,
-                        stroke,
-                        font,
-                        fontSize,
-                        strokeWidth,
-                        spacing,
-                        visibleCharacters,
-                        textureFilter,
-                        camera
-                    );
-                    graphics.FillText(
-                        value,
-                        position,
-                        fill,
-                        font,
-                        fontSize,
-                        spacing,
-                        visibleCharacters,
-                        textureFilter,
-                        camera
-                    );
-                }
-                else
-                {
-                    graphics.FillText(
-                        value,
-                        position,
-                        fill,
-                        font,
-                        fontSize,
-                        spacing,
-                        visibleCharacters,
-                        textureFilter,
-                        camera
-                    );
-                    graphics.StrokeText(
-                        value,
-                        position,
-                        stroke,
-                        font,
-                        fontSize,
-                        strokeWidth,
-                        spacing,
-                        visibleCharacters,
-                        textureFilter,
-                        camera
-                    );
-                }
+                graphics.StrokeText(
+                    value,
+                    position,
+                    stroke,
+                    font,
+                    fontSize,
+                    strokeWidth,
+                    spacing,
+                    visibleCharacters,
+                    textureFilter,
+                    camera
+                );
+                graphics.FillText(
+                    value,
+                    position,
+                    fill,
+                    font,
+                    fontSize,
+                    spacing,
+                    visibleCharacters,
+                    textureFilter,
+                    camera
+                );
+            }
+            else
+            {
+                graphics.FillText(
+                    value,
+                    position,
+                    fill,
+                    font,
+                    fontSize,
+                    spacing,
+                    visibleCharacters,
+                    textureFilter,
+                    camera
+                );
+                graphics.StrokeText(
+                    value,
+                    position,
+                    stroke,
+                    font,
+                    fontSize,
+                    strokeWidth,
+                    spacing,
+                    visibleCharacters,
+                    textureFilter,
+                    camera
+                );
             }
         }
     }

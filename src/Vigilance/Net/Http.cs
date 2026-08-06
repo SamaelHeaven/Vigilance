@@ -19,12 +19,21 @@ public static class Http
 
     internal static void CompleteFetch(HttpResponse response)
     {
-        var method = Uri.EscapeDataString(response.Request.Method.ToUpper());
-        var url = HttpUtility.UrlPathEncode(response.Request.Url).Replace("\"", "%22");
-        var statusCode = response.StatusCode;
-        var statusText = response.StatusText;
-        var logLevel = response.IsSuccess ? LogLevel.Info : LogLevel.Error;
-        Log.Invoke(logLevel, $"FETCH: {method} \"{url}\"{(statusCode == 0 ? "" : $" {statusCode}")} ({statusText})");
-        Game.Defer(() => response.Request.OnComplete?.Invoke(response));
+        Game.RunLater(
+            response,
+            static response =>
+            {
+                var method = Uri.EscapeDataString(response.Request.Method.ToUpper());
+                var url = HttpUtility.UrlPathEncode(response.Request.Url).Replace("\"", "%22");
+                var statusCode = response.StatusCode;
+                var statusText = response.StatusText;
+                var logLevel = response.IsSuccess ? LogLevel.Info : LogLevel.Error;
+                Log.Invoke(
+                    logLevel,
+                    $"FETCH: {method} \"{url}\"{(statusCode == 0 ? "" : $" {statusCode}")} ({statusText})"
+                );
+                response.Request.OnComplete?.Invoke(response);
+            }
+        );
     }
 }

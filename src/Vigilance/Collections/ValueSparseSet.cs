@@ -1,5 +1,3 @@
-#pragma warning disable CS9084
-
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -38,7 +36,7 @@ public struct ValueSparseSet<T>
 
     public bool Add(in T key)
     {
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         EnsureChunk(keyIndex);
         var chunkIndex = keyIndex / _sparseChunkSize;
         var withinChunk = WithinChunk(keyIndex);
@@ -58,7 +56,7 @@ public struct ValueSparseSet<T>
 
     public readonly bool Contains(in T key)
     {
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -70,7 +68,7 @@ public struct ValueSparseSet<T>
 
     public bool Remove(in T key)
     {
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -85,7 +83,7 @@ public struct ValueSparseSet<T>
         if (sparseValue != lastDenseIndex)
         {
             var movedKey = _keys[lastDenseIndex];
-            var movedKeyIndex = _keyIndexFunc.Invoke(movedKey);
+            var movedKeyIndex = GetKeyIndex(movedKey);
             _keys[sparseValue] = movedKey;
             var movedChunk = _sparseChunks[movedKeyIndex / _sparseChunkSize]!;
             movedChunk[WithinChunk(movedKeyIndex)] = sparseValue;
@@ -98,7 +96,9 @@ public struct ValueSparseSet<T>
 
     public readonly int GetKeyIndex(in T key)
     {
-        return _keyIndexFunc.Invoke(key);
+        var keyIndex = _keyIndexFunc.Invoke(key);
+        Debug.Assert(keyIndex >= 0);
+        return keyIndex;
     }
 
     public void UnionWith(IEnumerable<T> other)
@@ -291,7 +291,7 @@ public struct ValueSparseSet<T>
             _sparseChunks.Add(null);
         if (_sparseChunks[chunkIndex] != null)
             return;
-        var chunk = new int[_sparseChunkSize];
+        var chunk = GC.AllocateUninitializedArray<int>(_sparseChunkSize);
         Array.Fill(chunk, -1);
         _sparseChunks[chunkIndex] = chunk;
     }
@@ -437,7 +437,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         set
         {
             AssertValid();
-            var keyIndex = _keyIndexFunc.Invoke(key);
+            var keyIndex = GetKeyIndex(key);
             EnsureChunk(keyIndex);
             var chunkIndex = keyIndex / _sparseChunkSize;
             var withinChunk = WithinChunk(keyIndex);
@@ -574,7 +574,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         get
         {
             AssertValid();
-            return _values.AsFastEnumerable();
+            return _values.AsReadOnly();
         }
     }
 
@@ -583,13 +583,13 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         get
         {
             AssertValid();
-            return _keys.AsFastEnumerable();
+            return Keys.AsEnumerable();
         }
     }
 
-    readonly IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => _keys.AsFastEnumerable();
+    readonly IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys => Keys.AsEnumerable();
 
-    readonly IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => _values.AsFastEnumerable();
+    readonly IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values => Values;
 
     readonly bool IReadOnlyDictionary<TKey, TValue>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
@@ -651,7 +651,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
     public readonly bool ContainsKey(in TKey key)
     {
         AssertValid();
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -666,7 +666,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
     public readonly bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
         AssertValid();
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
         {
@@ -693,10 +693,20 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         return true;
     }
 
+    public readonly TValue? GetValueOrDefault(in TKey key)
+    {
+        return TryGetValue(key, out var value) ? value : default;
+    }
+
+    public readonly TValue GetValueOrDefault(in TKey key, in TValue defaultValue)
+    {
+        return TryGetValue(key, out var value) ? value : defaultValue;
+    }
+
     public bool Remove(in TKey key)
     {
         AssertValid();
-        var keyIndex = _keyIndexFunc.Invoke(key);
+        var keyIndex = GetKeyIndex(key);
         var chunkIndex = keyIndex / _sparseChunkSize;
         if (chunkIndex >= _sparseChunks.Count)
             return false;
@@ -711,7 +721,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
         if (sparseValue != lastDenseIndex)
         {
             var movedKey = _keys[lastDenseIndex];
-            var movedKeyIndex = _keyIndexFunc.Invoke(movedKey);
+            var movedKeyIndex = GetKeyIndex(movedKey);
             _values[sparseValue] = _values[lastDenseIndex];
             _keys[sparseValue] = movedKey;
             var movedChunkIndex = movedKeyIndex / _sparseChunkSize;
@@ -729,7 +739,9 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
     public readonly int GetKeyIndex(in TKey key)
     {
         AssertValid();
-        return _keyIndexFunc.Invoke(key);
+        var keyIndex = _keyIndexFunc.Invoke(key);
+        Debug.Assert(keyIndex >= 0);
+        return keyIndex;
     }
 
     private void EnsureChunk(int index)
@@ -739,7 +751,7 @@ public struct ValueSparseSet<TKey, TValue, TStorage>
             _sparseChunks.Add(null);
         if (_sparseChunks[chunkIndex] != null)
             return;
-        var chunk = new int[_sparseChunkSize];
+        var chunk = GC.AllocateUninitializedArray<int>(_sparseChunkSize);
         Array.Fill(chunk, -1);
         _sparseChunks[chunkIndex] = chunk;
     }

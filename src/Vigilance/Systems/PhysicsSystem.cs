@@ -1,6 +1,6 @@
 namespace Vigilance.Systems;
 
-public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
+public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true, order: 1)
 {
     private Table<Body> _bodies = null!;
     public Graphics DebugDrawGraphics { get; set; } = Renderer.Graphics;
@@ -21,8 +21,9 @@ public sealed class PhysicsSystem() : GameSystem(queryWithDisabled: true)
     public override void FixedUpdate()
     {
         Scene.World.Update();
-        foreach (var (entity, body) in Entries<Body>())
+        foreach (var (entity, bodyRef) in RefEntries<Body>())
         {
+            var body = bodyRef.Read;
             if (entity != body.Entity)
                 continue;
             var transform = body.Transform;

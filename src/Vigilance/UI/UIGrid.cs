@@ -2,7 +2,7 @@ namespace Vigilance.UI;
 
 public class UIGrid : UIContainer
 {
-    private Grid _grid = new();
+    private ValueGrid _grid = new();
 
     public UIGrid() { }
 
@@ -44,10 +44,5 @@ public class UIGrid : UIContainer
     {
         _grid.Camera = camera;
         graphics.DrawGrid(LayoutPosition, LayoutSize, _grid);
-    }
-
-    protected override void OnClone()
-    {
-        _grid = _grid.DeepClone();
     }
 }

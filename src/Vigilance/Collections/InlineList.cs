@@ -32,9 +32,7 @@ public struct InlineList<TStorage, TItem>
         set => AsSpan()[index] = value;
     }
 
-#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-    public readonly unsafe int Capacity => sizeof(TStorage) / sizeof(TItem);
-#pragma warning restore CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+    public readonly int Capacity => Unsafe.SizeOf<TStorage>() / Unsafe.SizeOf<TItem>();
 
     public readonly bool IsReadOnly => false;
 

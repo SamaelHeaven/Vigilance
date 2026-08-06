@@ -3,81 +3,56 @@ using System.Runtime.CompilerServices;
 
 namespace Vigilance.Drawing;
 
-[CollectionBuilder(typeof(AnimationControllerBuilder), nameof(AnimationControllerBuilder.Create))]
-public class AnimationController<TAnimation> : AnimationController<string, TAnimation>
-    where TAnimation : IAnimation
-{
-    [OverloadResolutionPriority(1)]
-    public AnimationController(params ReadOnlySpan<(string, TAnimation)> animations)
-        : base(animations) { }
+[ValueWrapper(typeof(ValueAnimationController<,>), typeParams: [typeof(string), null])]
+public partial struct ValueAnimationController<TAnimation>
+    : IValueDictionaryView<string, TAnimation>,
+        IReadOnlyDictionary<string, TAnimation>
+    where TAnimation : IAnimation;
 
-    [OverloadResolutionPriority(1)]
-    public AnimationController(params ReadOnlySpan<KeyValuePair<string, TAnimation>> animations)
-        : base(animations) { }
-
-    public AnimationController(IEnumerable<(string, TAnimation)> animations)
-        : base(animations) { }
-
-    public AnimationController(IEnumerable<KeyValuePair<string, TAnimation>> animations)
-        : base(animations) { }
-}
-
-[CollectionBuilder(typeof(AnimationControllerBuilder), nameof(AnimationControllerBuilder.Create))]
-public class AnimationController<TKey, TAnimation>
+public struct ValueAnimationController<TKey, TAnimation>
     : IAnimation,
         IValueDictionaryView<TKey, TAnimation>,
-        IReadOnlyDictionary<TKey, TAnimation>,
-        IShallowCloneable
+        IReadOnlyDictionary<TKey, TAnimation>
     where TAnimation : IAnimation
     where TKey : notnull
 {
     private readonly ValueDictionary<TKey, TAnimation> _animations;
-    private TKey _current;
 
     [OverloadResolutionPriority(1)]
-    public AnimationController(params ReadOnlySpan<(TKey, TAnimation)> animations)
+    public ValueAnimationController(params ReadOnlySpan<(TKey, TAnimation)> animations)
     {
         if (animations.Length == 0)
-            throw new ArgumentException($"{nameof(AnimationController<,>)} must have at least one animation.");
+            throw new ArgumentException($"{nameof(ValueAnimationController<,>)} must have at least one animation.");
         _animations = animations.AsValueEnumerable().ToValueDictionary();
-        _current = animations[0].Item1;
-        Animation = _animations[Current];
+        Current = animations[0].Item1;
     }
 
     [OverloadResolutionPriority(1)]
-    public AnimationController(params ReadOnlySpan<KeyValuePair<TKey, TAnimation>> animations)
+    public ValueAnimationController(params ReadOnlySpan<KeyValuePair<TKey, TAnimation>> animations)
     {
         if (animations.Length == 0)
-            throw new ArgumentException($"{nameof(AnimationController<,>)} must have at least one animation.");
+            throw new ArgumentException($"{nameof(ValueAnimationController<,>)} must have at least one animation.");
         _animations = animations.AsValueEnumerable().ToValueDictionary();
-        _current = animations[0].Key;
-        Animation = _animations[Current];
+        Current = animations[0].Key;
     }
 
-    public AnimationController(IEnumerable<(TKey, TAnimation)> animations)
+    public ValueAnimationController(IEnumerable<(TKey, TAnimation)> animations)
         : this(animations.AsSpan()) { }
 
-    public AnimationController(IEnumerable<KeyValuePair<TKey, TAnimation>> animations)
+    public ValueAnimationController(IEnumerable<KeyValuePair<TKey, TAnimation>> animations)
         : this(animations.AsSpan()) { }
 
-    public TKey Current
-    {
-        get => _current;
-        private set
-        {
-            if (EqualityComparer<TKey>.Default.Equals(_current, value))
-                return;
-            _current = value;
-            Animation = _animations[Current];
-        }
-    }
+    public TKey Current { get; private set; }
 
-    public TAnimation Animation { get; private set; }
+    public readonly ref TAnimation Animation => ref _animations.GetValueRefOrNullRef(Current);
 
-    public ValueDictionary<TKey, TAnimation>.KeyCollection Keys => _animations.Keys;
-    public ValueDictionary<TKey, TAnimation>.ValueCollection Values => _animations.Values;
+    readonly IEnumerable<TKey> IReadOnlyDictionary<TKey, TAnimation>.Keys => _animations.Keys;
+    readonly IEnumerable<TAnimation> IReadOnlyDictionary<TKey, TAnimation>.Values => _animations.Values;
+    public readonly ValueDictionary<TKey, TAnimation>.KeyCollection Keys => _animations.Keys;
+    public readonly ValueDictionary<TKey, TAnimation>.ValueCollection Values => _animations.Values;
 
-    public TAnimation this[in TKey animation] => _animations[animation];
+    [OverloadResolutionPriority(1)]
+    public readonly ref TAnimation this[in TKey animation] => ref _animations.GetValueRefOrNullRef(animation);
 
     public bool IsPaused { get; set; }
 
@@ -98,28 +73,26 @@ public class AnimationController<TKey, TAnimation>
         Animation.Apply(entity);
     }
 
-    bool IReadOnlyDictionary<TKey, TAnimation>.ContainsKey(TKey key)
+    public readonly bool ContainsKey(TKey key)
     {
         return ContainsKey(key);
     }
 
-    bool IReadOnlyDictionary<TKey, TAnimation>.TryGetValue(TKey key, [MaybeNullWhen(false)] out TAnimation value)
+    public readonly bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TAnimation value)
     {
         return TryGetValue(key, out value);
     }
 
-    TAnimation IReadOnlyDictionary<TKey, TAnimation>.this[TKey key] => this[key];
-    IEnumerable<TKey> IReadOnlyDictionary<TKey, TAnimation>.Keys => _animations.Keys;
-    IEnumerable<TAnimation> IReadOnlyDictionary<TKey, TAnimation>.Values => _animations.Values;
+    public readonly TAnimation this[TKey key] => this[key];
 
-    public int Count => _animations.Count;
+    public readonly int Count => _animations.Count;
 
-    public ValueDictionary<TKey, TAnimation>.Enumerator GetEnumerator()
+    public readonly ValueDictionary<TKey, TAnimation>.Enumerator GetEnumerator()
     {
         return _animations.GetEnumerator();
     }
 
-    public ValueEnumerable<
+    public readonly ValueEnumerable<
         ValueDictionary<TKey, TAnimation>.Enumerator,
         KeyValuePair<TKey, TAnimation>
     > AsValueEnumerable()
@@ -127,17 +100,19 @@ public class AnimationController<TKey, TAnimation>
         return _animations.AsValueEnumerable();
     }
 
-    public bool ContainsKey(in TKey key)
+    [OverloadResolutionPriority(1)]
+    public readonly bool ContainsKey(in TKey key)
     {
         return _animations.ContainsKey(key);
     }
 
-    public bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TAnimation value)
+    [OverloadResolutionPriority(1)]
+    public readonly bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TAnimation value)
     {
         return _animations.TryGetValue(key, out value);
     }
 
-    public bool IsUsing(in TKey animation)
+    public readonly bool IsUsing(in TKey animation)
     {
         return EqualityComparer<TKey>.Default.Equals(Current, animation);
     }
@@ -150,32 +125,28 @@ public class AnimationController<TKey, TAnimation>
         if (!resetOthers)
             return;
         foreach (
-            var value in _animations
-                .AsValueEnumerable()
+            var key in _animations
+                .Keys.AsValueEnumerable()
                 .Cross(animation.AsValueSingleton())
-                .Where(cross => !EqualityComparer<TKey>.Default.Equals(cross.Left.Key, cross.Right))
-                .Select(cross => cross.Left.Value)
+                .Where(cross => !EqualityComparer<TKey>.Default.Equals(cross.Left, cross.Right))
+                .Select(cross => cross.Left)
         )
-            value.Reset();
+            this[key].Reset();
     }
 }
 
-public static class AnimationControllerBuilder
-{
-    public static AnimationController<TAnimation> Create<TAnimation>(
-        ReadOnlySpan<KeyValuePair<string, TAnimation>> animations
-    )
-        where TAnimation : IAnimation
-    {
-        return new AnimationController<TAnimation>(animations);
-    }
+[ValueWrapper(typeof(ValueAnimationController<,>), typeParams: [typeof(string), null])]
+public partial class AnimationController<TAnimation>
+    : IValueDictionaryView<string, TAnimation>,
+        IReadOnlyDictionary<string, TAnimation>,
+        IShallowCloneable
+    where TAnimation : IAnimation;
 
-    public static AnimationController<TKey, TAnimation> Create<TKey, TAnimation>(
-        ReadOnlySpan<KeyValuePair<TKey, TAnimation>> animations
-    )
-        where TAnimation : IAnimation
-        where TKey : notnull
-    {
-        return new AnimationController<TKey, TAnimation>(animations);
-    }
-}
+[ValueWrapper(typeof(ValueAnimationController<,>))]
+public partial class AnimationController<TKey, TAnimation>
+    : IAnimation,
+        IValueDictionaryView<TKey, TAnimation>,
+        IReadOnlyDictionary<TKey, TAnimation>,
+        IShallowCloneable
+    where TAnimation : IAnimation
+    where TKey : notnull;

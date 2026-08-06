@@ -16,6 +16,8 @@ public interface IGameSystem : IComparable<IGameSystem>
 
 public abstract partial class GameSystem : IGameSystem
 {
+    private Scene _scene = null!;
+
     protected GameSystem(
         bool isDisabled = false,
         int order = 0,
@@ -29,7 +31,12 @@ public abstract partial class GameSystem : IGameSystem
         QueryDeferred = queryDeferred;
     }
 
-    public Scene Scene { get; private set; } = null!;
+    public Scene Scene
+    {
+        get => _scene;
+        protected init => _scene = value;
+    }
+
     public bool IsDisabled { get; set; }
     public bool QueryWithDisabled { get; set; }
     public bool QueryDeferred { get; protected set; }
@@ -37,7 +44,7 @@ public abstract partial class GameSystem : IGameSystem
 
     public void Configure(Scene scene)
     {
-        Scene = scene;
+        _scene = scene;
         var baseType = typeof(GameSystem);
         var initialize = Initialize;
         var start = Start;
@@ -93,6 +100,7 @@ public abstract partial class GameSystem : IGameSystem
             scene.World.OnSensorBegin(worldSensorBegin);
         if (worldSensorEnd.Method.DeclaringType != baseType)
             scene.World.OnSensorEnd(worldSensorEnd);
+        InternalConfigure();
         Configure();
     }
 
@@ -136,6 +144,8 @@ public abstract partial class GameSystem : IGameSystem
     public virtual void WorldSensorBegin(Shape sensor, Shape visitor) { }
 
     public virtual void WorldSensorEnd(Shape sensor, Shape visitor) { }
+
+    protected internal virtual void InternalConfigure() { }
 
     private void InternalPreUpdate()
     {
@@ -189,5 +199,33 @@ public abstract partial class GameSystem : IGameSystem
     {
         if (!IsDisabled)
             PostRender();
+    }
+}
+
+public abstract class GameSystem<TSelf> : GameSystem
+    where TSelf : GameSystem<TSelf>
+{
+    private static readonly Dictionary<object, Action<TSelf>> _configureActions = [];
+
+    protected GameSystem(
+        bool isDisabled = false,
+        int order = 0,
+        bool queryWithDisabled = false,
+        bool queryDeferred = true
+    )
+        : base(isDisabled, order, queryWithDisabled, queryDeferred)
+    {
+        _ = (TSelf)this;
+    }
+
+    protected internal sealed override void InternalConfigure()
+    {
+        foreach (var configure in _configureActions.Values)
+            configure.SafeInvoke((TSelf)this);
+    }
+
+    protected static void ConfigureEach(object key, Action<TSelf> action)
+    {
+        _configureActions.Add(key, action);
     }
 }

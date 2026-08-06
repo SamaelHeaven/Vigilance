@@ -5,25 +5,25 @@ namespace Vigilance.Core;
 
 public sealed partial class Scene
 {
-    internal Table<Child> ChildTable;
-    internal Table<Disabled> DisabledTable;
+    internal readonly Table<Child> ChildTable;
+    internal readonly Table<Disabled> DisabledTable;
+    internal readonly Table<EntityTag> EntityTagTable;
+    internal readonly Table<Interpolation> InterpolationTable;
+    internal readonly Table<Name> NameTable;
+    internal readonly Table<Parent> ParentTable;
+    internal readonly Table<PivotPoint> PivotPointTable;
+    internal readonly Table<Position> PositionTable;
+    internal readonly Table<Rotation> RotationTable;
+    internal readonly Table<Scale> ScaleTable;
+    internal readonly Table<Transform> TransformTable;
+    internal readonly Table<ZIndex> ZIndexTable;
     internal Action<Graphics, Texture, Box>? DrawScreenAction;
-    internal Table<EntityTag> EntityTagTable;
-    internal Table<Interpolation> InterpolationTable;
-    internal Table<Name> NameTable;
-    internal Table<Parent> ParentTable;
-    internal Table<PivotPoint> PivotPointTable;
-    internal Table<Position> PositionTable;
     internal ValueList<RenderCommand> RenderCommands = [];
     internal ValueList<RenderComponents> RenderComponentsList = [];
     internal ValueList<RenderData> RenderDataList = [];
-    internal Table<Rotation> RotationTable;
-    internal Table<Scale> ScaleTable;
-    internal Table<Transform> TransformTable;
-    internal Table<ZIndex> ZIndexTable;
     private ValueDictionary<Type, (Delegate EnqueueAction, Action DequeueAction)> _customEvents = [];
-    private Action? _deferredAction;
     private int _deferredCount;
+    private ValueList<Job> _deferredJobs = [];
     private Action<Entity>? _destroyAction;
     private ValueList<bool> _destroyedEntities = [];
     private ValueList<EntityId> _entities = [];
@@ -34,6 +34,7 @@ public sealed partial class Scene
     private Action<Entity>? _instantiateAction;
     private bool _isClearing;
     private bool _isFlushing;
+    private bool _isInitializing;
     private ValueDictionary<Type, Delegate> _listeners = [];
     private ValueDictionary<string, EntityId> _nameMap = [];
     private Action? _onDispose;
@@ -143,7 +144,12 @@ public sealed partial class Scene
 
     public int Count<T>()
     {
-        return Table<T>().Count;
+        return TableOrDefault<T>()?.Count ?? 0;
+    }
+
+    public Query Query(bool withDisabled = false, bool deferred = true)
+    {
+        return new Query(this, withDisabled, deferred);
     }
 
     public void Restart()
@@ -152,7 +158,7 @@ public sealed partial class Scene
             return;
         if (Game.Scene == this)
         {
-            Game.Defer(RestartAction);
+            Game.RunNextFrame(RestartAction);
             return;
         }
 
@@ -217,28 +223,102 @@ public sealed partial class Scene
         return entity;
     }
 
-    public Entity Lookup(int index, int version)
-    {
-        ThrowIfNotConfigured();
-        if (index == 0 || (uint)index >= (uint)_entities.Count)
-            return Core.Entity.Null;
-        var id = _entities[index];
-        if (id.Index != index || id.Version != version)
-            return Core.Entity.Null;
-        return new Entity(index, version, this);
-    }
-
     public Entity Lookup(EntityId id)
     {
-        ThrowIfNotConfigured();
-        return Lookup(id.Index, id.Version);
+        if (id.Index == 0 || (uint)id.Index >= (uint)_entities.Count)
+            return Core.Entity.Null;
+        var entityId = _entities[id.Index];
+        if (entityId.Index != id.Index || entityId.Version != id.Version)
+            return Core.Entity.Null;
+        return new Entity(id.Index, id.Version, this);
     }
 
     public Entity Lookup(string name)
     {
-        ThrowIfNotConfigured();
         ref var id = ref _nameMap.GetValueRefOrNullRef(name);
         return Unsafe.IsNullRef(ref id) ? Core.Entity.Null : new Entity(id, this);
+    }
+
+    public Entity Lookup<T>()
+    {
+        var table = TableOrDefault<T>();
+        if (table is null)
+            return Core.Entity.Null;
+        var entityIds = table.EntityIds;
+        return entityIds.Count == 0 ? Core.Entity.Null : new Entity(entityIds[0], this);
+    }
+
+    public Entity Lookup(Table table)
+    {
+        var entityIds = table.EntityIds;
+        return entityIds.Count == 0 ? Core.Entity.Null : new Entity(entityIds[0], this);
+    }
+
+    public bool TryLookup(EntityId id, out Entity entity)
+    {
+        entity = Lookup(id);
+        return !entity.IsNull;
+    }
+
+    public bool TryLookup(string name, out Entity entity)
+    {
+        entity = Lookup(name);
+        return !entity.IsNull;
+    }
+
+    public bool TryLookup<T>(out Entity entity)
+    {
+        entity = Lookup<T>();
+        return !entity.IsNull;
+    }
+
+    public bool TryLookup(Table table, out Entity entity)
+    {
+        entity = Lookup(table);
+        return !entity.IsNull;
+    }
+
+    public bool TryLookup<T>(out T component)
+    {
+        var table = TableOrDefault<T>();
+        if (table is null)
+        {
+            Unsafe.SkipInit(out component);
+            return false;
+        }
+
+        var components = table.Components;
+        if (components.Count == 0)
+        {
+            Unsafe.SkipInit(out component);
+            return false;
+        }
+
+        component = components[0];
+        return true;
+    }
+
+    public bool TryLookup<T>(out Entity entity, out T component)
+    {
+        var table = TableOrDefault<T>();
+        if (table is null)
+        {
+            Unsafe.SkipInit(out entity);
+            Unsafe.SkipInit(out component);
+            return false;
+        }
+
+        var entityIds = table.EntityIds;
+        if (entityIds.Count == 0)
+        {
+            Unsafe.SkipInit(out entity);
+            Unsafe.SkipInit(out component);
+            return false;
+        }
+
+        entity = new Entity(entityIds[0], this);
+        component = table.Components[0];
+        return true;
     }
 
     public void On<T>(Action<T> action)
@@ -355,7 +435,7 @@ public sealed partial class Scene
         var type = typeof(T);
         if (!_listeners.TryGetValue(type, out var handlers))
             return;
-        Signal<T>.SafeInvoke((Func<T, bool>)handlers, @event);
+        Signal<T>.SafeInvoke(Unsafe.As<Delegate, Func<T, bool>>(ref handlers), @event);
     }
 
     public void Enqueue<T>(in T @event)
@@ -379,12 +459,13 @@ public sealed partial class Scene
                 () =>
                 {
                     if (queue.TryDequeue(out var @event))
-                        Signal<T>.SafeInvoke((Func<T, bool>)handlers, @event);
+                        Signal<T>.SafeInvoke(Unsafe.As<Delegate, Func<T, bool>>(ref handlers), @event);
                 }
             );
         }
 
-        ((Action<T>)events.EnqueueAction).Invoke(@event);
+        var action = events.EnqueueAction;
+        Unsafe.As<Delegate, Action<T>>(ref action).Invoke(@event);
         Enqueue(Event.Custom(type));
     }
 
@@ -392,11 +473,22 @@ public sealed partial class Scene
     {
         if (IsDeferred)
         {
-            _deferredAction += action;
+            _deferredJobs.Add(Job.From(action));
             return;
         }
 
         action.SafeInvoke();
+    }
+
+    public void Defer<T>(in T context, Action<T> action)
+    {
+        if (IsDeferred)
+        {
+            _deferredJobs.Add(Job.From(context, action));
+            return;
+        }
+
+        action.SafeInvoke(context);
     }
 
     public void ThrowIfNotConfigured()
@@ -450,12 +542,18 @@ public sealed partial class Scene
         var index = Core.Table<T>.Index;
         while (_sparseTables.Count <= index)
             _sparseTables.Add(null);
-        var table = (Table<T>?)_sparseTables[index];
+        ref var table = ref Unsafe.As<Table?, Table<T>?>(ref _sparseTables[index]);
         if (table is not null)
             return table;
-        _sparseTables[index] = table = new Table<T>(this);
+        table = new Table<T>(this);
         _tables.Add(table);
         return table;
+    }
+
+    public Table<T>? TableOrDefault<T>()
+    {
+        var index = Core.Table<T>.Index;
+        return _sparseTables.Count <= index ? null : Unsafe.As<Table?, Table<T>?>(ref _sparseTables[index]);
     }
 
     public void Clear()
@@ -523,15 +621,50 @@ public sealed partial class Scene
         _isClearing = false;
     }
 
+    public void Initialize()
+    {
+        if (IsInitialized || _isInitializing)
+            return;
+        _isInitializing = true;
+        if (!IsConfigured)
+        {
+            try
+            {
+                _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToArray();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+
+            foreach (var system in _systems)
+                try
+                {
+                    system.Configure(this);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+
+            IsConfigured = true;
+        }
+
+        _initializeAction?.SafeInvoke();
+        Game.InvokeJobs();
+        IsInitialized = true;
+        _isInitializing = false;
+    }
+
     internal RenderComponents<T> RenderComponents<T>()
     {
         var index = Drawing.RenderComponents<T>.Index;
         while (_sparseRenderComponentsList.Count <= index)
             _sparseRenderComponentsList.Add(null);
-        var table = (RenderComponents<T>?)_sparseRenderComponentsList[index];
+        ref var table = ref Unsafe.As<RenderComponents?, RenderComponents<T>?>(ref _sparseRenderComponentsList[index]);
         if (table is not null)
             return table;
-        _sparseRenderComponentsList[index] = table = new RenderComponents<T>();
+        table = new RenderComponents<T>();
         RenderComponentsList.Add(table);
         return table;
     }
@@ -541,6 +674,7 @@ public sealed partial class Scene
         if (!IsStarted)
             return;
         _stopAction?.SafeInvoke();
+        Game.InvokeJobs();
         IsStarted = false;
     }
 
@@ -552,12 +686,19 @@ public sealed partial class Scene
     internal void Update()
     {
         if (!IsInitialized)
+        {
             Initialize();
+            Time.Restart();
+        }
+
         if (!IsStarted)
             Start();
         _preUpdateAction?.SafeInvoke();
+        Game.InvokeJobs();
         _updateAction?.SafeInvoke();
+        Game.InvokeJobs();
         _postUpdateAction?.SafeInvoke();
+        Game.InvokeJobs();
         for (
             Time.FixedAccumulator += Time.Delta;
             Time.FixedAccumulator >= Time.FixedDelta;
@@ -569,7 +710,7 @@ public sealed partial class Scene
 
     internal void Destroy(in Entity entity)
     {
-        if (_isClearing)
+        if (_isClearing || entity.IsNull)
             return;
         if (IsDeferred)
         {
@@ -580,9 +721,7 @@ public sealed partial class Scene
         _destroyAction?.SafeInvoke(entity);
         var tables = Tables(withHidden: true).Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
         var entityTables = entity
-            .Tables()
-            .WithHidden()
-            .AsValueEnumerable()
+            .Tables(withHidden: true)
             .Where(t => t.Type != typeof(EntityTag) && t.Type != typeof(Name));
         var flag = Core.Table.Flags.SilentOnImmutable;
         do
@@ -616,32 +755,10 @@ public sealed partial class Scene
         return info.Index == entity.Index && info.Version == entity.Version;
     }
 
-    private void Initialize()
-    {
-        if (!IsConfigured)
-        {
-            try
-            {
-                _systems = Ecs.Systems.Invoke().AsValueEnumerable().Concat(SystemsFunc.Invoke()).Order().ToArray();
-            }
-            catch (Exception e)
-            {
-                Log.Error(e);
-            }
-
-            foreach (var system in _systems)
-                system.Configure(this);
-            IsConfigured = true;
-        }
-
-        IsInitialized = true;
-        _initializeAction?.SafeInvoke();
-        Time.Restart();
-    }
-
     private void Start()
     {
         _startAction?.SafeInvoke();
+        Game.InvokeJobs();
         IsStarted = true;
     }
 
@@ -649,8 +766,11 @@ public sealed partial class Scene
     {
         UpdateInterpolatedEntities();
         _preFixedUpdateAction?.SafeInvoke();
+        Game.InvokeJobs();
         _fixedUpdateAction?.SafeInvoke();
+        Game.InvokeJobs();
         _postFixedUpdateAction?.SafeInvoke();
+        Game.InvokeJobs();
     }
 
     private void RestartAction()
@@ -683,29 +803,41 @@ public sealed partial class Scene
                     Clear();
                     break;
                 case EventType.Custom:
-                    _customEvents[(Type)@event.Data].DequeueAction.SafeInvoke();
+                    _customEvents[Unsafe.As<object, Type>(ref @event.Data)].DequeueAction.SafeInvoke();
                     break;
                 case EventType.TableOperation:
-                    ((Table)@event.Data).DequeueOperation();
+                    Unsafe.As<object, Table>(ref @event.Data).DequeueOperation();
                     break;
                 case EventType.TableEvent:
-                    ((Table)@event.Data).DequeueEvent();
+                    Unsafe.As<object, Table>(ref @event.Data).DequeueEvent();
                     break;
             }
 
         _isFlushing = false;
-        var action = _deferredAction;
-        _deferredAction = null;
-        action?.SafeInvoke();
+        if (_deferredJobs.Count == 0)
+            return;
+        using var pooledJobs = _deferredJobs.AsValueEnumerable().ToArrayPool();
+        _deferredJobs.Clear();
+        foreach (var job in pooledJobs.Span)
+            try
+            {
+                job.Invoke();
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
     }
 
     private void Render()
     {
         var commands = new RenderCommands(this);
         _preRenderAction?.SafeInvoke();
+        Game.InvokeJobs();
         try
         {
             _renderAction?.SafeInvoke(commands);
+            Game.InvokeJobs();
         }
         finally
         {
@@ -713,37 +845,52 @@ public sealed partial class Scene
         }
 
         _postRenderAction?.SafeInvoke();
+        Game.InvokeJobs();
     }
 
     private void UpdateInterpolatedEntities()
     {
-        foreach (var entity in AssignableEntities<IInterpolated>(withDisabled: true))
+        BeginDefer();
+        try
         {
-            ref var interpolation = ref InterpolationTable.GetRef(entity).Value;
-            var transform = entity.Transform;
-            Interpolation oldInterpolation;
-            if (Unsafe.IsNullRef(ref interpolation))
+            foreach (var table in Tables<IInterpolated>())
+            foreach (var entityId in table.EntityIds)
             {
-                SuspendDefer();
-                interpolation = ref InterpolationTable.Set(entity, new Interpolation(transform, transform)).Value;
-                oldInterpolation = new Interpolation();
-                ResumeDefer();
-            }
-            else
-            {
-                oldInterpolation = interpolation;
-                interpolation.Start = transform;
-                if (Precision.AreEqual(interpolation.Start, oldInterpolation.Start))
-                    continue;
-            }
+                var entity = new Entity(entityId, this);
+                ref var interpolation = ref InterpolationTable.GetRef(entity).Value;
+                var transform = entity.Transform;
+                Interpolation oldInterpolation;
+                if (Unsafe.IsNullRef(ref interpolation))
+                {
+                    SuspendDefer();
+                    interpolation = ref InterpolationTable.Set(entity, new Interpolation(transform, transform)).Value;
+                    oldInterpolation = new Interpolation();
+                    ResumeDefer();
+                }
+                else
+                {
+                    oldInterpolation = interpolation;
+                    interpolation.Start = transform;
+                    if (Precision.AreEqual(interpolation.Start, oldInterpolation.Start))
+                        continue;
+                }
 
-            InterpolationTable.Enqueue(Core.Table.Event<Interpolation>.Set(entity, oldInterpolation, interpolation));
+                InterpolationTable.Enqueue(
+                    Core.Table.Event<Interpolation>.Set(entity, oldInterpolation, interpolation)
+                );
+            }
+        }
+        finally
+        {
+            EndDefer();
         }
     }
 
     ~Scene()
     {
-        Game.Defer(() => _onDispose?.SafeInvoke());
+        if (_onDispose is null)
+            return;
+        Game.RunLater(_onDispose, onDispose => onDispose.SafeInvoke());
     }
 
     public void OnInstantiate(Action action)
@@ -1281,18 +1428,19 @@ public sealed partial class Scene
         }
     }
 
-    internal readonly record struct Event
+    internal record struct Event
     {
+        public object Data;
+
+        public EntityId EntityId;
+        public EventType EventType;
+
         public Event(EventType eventType, EntityId entityId, object data)
         {
             EntityId = entityId;
             Data = data;
             EventType = eventType;
         }
-
-        public EntityId EntityId { get; }
-        public object Data { get; }
-        public EventType EventType { get; }
 
         public static Event Instantiate(in Entity entity)
         {

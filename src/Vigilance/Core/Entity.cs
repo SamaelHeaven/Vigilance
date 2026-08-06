@@ -679,19 +679,19 @@ public readonly partial record struct Entity
         return entity.Id;
     }
 
-    public TableEnumerable Tables()
+    public ValueEnumerable<TableEnumerator, Table> Tables(bool withHidden = false)
     {
-        return new TableEnumerable(this);
+        return new TableEnumerable(this).WithHidden(withHidden).AsValueEnumerable();
     }
 
-    public TableEnumerable<T> Tables<T>()
+    public ValueEnumerable<TableEnumerator<T>, Table> Tables<T>(bool withHidden = false)
     {
-        return new TableEnumerable<T>(this);
+        return new TableEnumerable<T>(this).WithHidden(withHidden).AsValueEnumerable();
     }
 
-    public ComponentEnumerable Components()
+    public ValueEnumerable<ComponentEnumerator, object> Components(bool withHidden = false)
     {
-        return new ComponentEnumerable(this);
+        return new ComponentEnumerable(this).WithHidden(withHidden).AsValueEnumerable();
     }
 
     public ValueEnumerable<ChildEnumerator, Entity> Children(bool deferred = true)
@@ -1076,7 +1076,7 @@ public readonly partial record struct Entity
         }
 
         sb.Append(", Components = ");
-        sb.Append(Components().ToString());
+        sb.Append(new ComponentEnumerable(this).ToString());
         return true;
     }
 
@@ -1085,7 +1085,7 @@ public readonly partial record struct Entity
         private readonly Entity _entity;
         private bool _withHidden;
 
-        internal TableEnumerable(in Entity entity)
+        public TableEnumerable(in Entity entity)
         {
             _entity = entity;
         }
@@ -1095,7 +1095,15 @@ public readonly partial record struct Entity
             return new TableEnumerator(_entity, _withHidden);
         }
 
-        public ValueEnumerable<StructEnumerator<TableEnumerator, Table>, Table> AsValueEnumerable()
+        public ValueEnumerable<TableEnumerator, Table> AsValueEnumerable()
+        {
+            return new ValueEnumerable<TableEnumerator, Table>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<TableEnumerator, Table>, Table> IStructEnumerable<
+            TableEnumerator,
+            Table
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<TableEnumerator, Table>(GetEnumerator());
         }
@@ -1108,7 +1116,7 @@ public readonly partial record struct Entity
         }
     }
 
-    public struct TableEnumerator : IStructEnumerator<Table>
+    public struct TableEnumerator : IStructEnumerator<Table>, IValueEnumerator<Table>
     {
         private readonly Entity _entity;
         private readonly bool _withHidden;
@@ -1148,6 +1156,32 @@ public readonly partial record struct Entity
         {
             _enumerator.Dispose();
         }
+
+        public bool TryGetNext(out Table current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = 0;
+            return false;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<Table> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<Table> destination, Index offset)
+        {
+            return false;
+        }
     }
 
     public struct TableEnumerable<T> : IStructEnumerable<TableEnumerator<T>, Table>
@@ -1155,7 +1189,7 @@ public readonly partial record struct Entity
         private readonly Entity _entity;
         private bool _withHidden;
 
-        internal TableEnumerable(in Entity entity)
+        public TableEnumerable(in Entity entity)
         {
             _entity = entity;
         }
@@ -1165,7 +1199,15 @@ public readonly partial record struct Entity
             return new TableEnumerator<T>(_entity, _withHidden);
         }
 
-        public ValueEnumerable<StructEnumerator<TableEnumerator<T>, Table>, Table> AsValueEnumerable()
+        public ValueEnumerable<TableEnumerator<T>, Table> AsValueEnumerable()
+        {
+            return new ValueEnumerable<TableEnumerator<T>, Table>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<TableEnumerator<T>, Table>, Table> IStructEnumerable<
+            TableEnumerator<T>,
+            Table
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<TableEnumerator<T>, Table>(GetEnumerator());
         }
@@ -1178,7 +1220,7 @@ public readonly partial record struct Entity
         }
     }
 
-    public struct TableEnumerator<T> : IStructEnumerator<Table>
+    public struct TableEnumerator<T> : IStructEnumerator<Table>, IValueEnumerator<Table>
     {
         private readonly Entity _entity;
         private readonly bool _withHidden;
@@ -1218,6 +1260,32 @@ public readonly partial record struct Entity
         {
             _enumerator.Dispose();
         }
+
+        public bool TryGetNext(out Table current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = 0;
+            return false;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<Table> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<Table> destination, Index offset)
+        {
+            return false;
+        }
     }
 
     public struct ComponentEnumerable : IStructEnumerable<ComponentEnumerator, object>
@@ -1225,7 +1293,7 @@ public readonly partial record struct Entity
         private readonly Entity _entity;
         private bool _withHidden;
 
-        internal ComponentEnumerable(in Entity entity)
+        public ComponentEnumerable(in Entity entity)
         {
             _entity = entity;
         }
@@ -1235,7 +1303,15 @@ public readonly partial record struct Entity
             return new ComponentEnumerator(_entity, _withHidden);
         }
 
-        public ValueEnumerable<StructEnumerator<ComponentEnumerator, object>, object> AsValueEnumerable()
+        public ValueEnumerable<ComponentEnumerator, object> AsValueEnumerable()
+        {
+            return new ValueEnumerable<ComponentEnumerator, object>(GetEnumerator());
+        }
+
+        ValueEnumerable<StructEnumerator<ComponentEnumerator, object>, object> IStructEnumerable<
+            ComponentEnumerator,
+            object
+        >.AsValueEnumerable()
         {
             return new StructEnumerator<ComponentEnumerator, object>(GetEnumerator());
         }
@@ -1252,7 +1328,7 @@ public readonly partial record struct Entity
             using var sb = new ValueStringBuilder(stackalloc char[256]);
             sb.Append('[');
             var any = false;
-            foreach (var table in _entity.Tables().WithHidden(_withHidden))
+            foreach (var table in _entity.Scene.Tables(withHidden: _withHidden))
             {
                 if (!table.TryGet(_entity, out var component))
                     continue;
@@ -1267,7 +1343,7 @@ public readonly partial record struct Entity
         }
     }
 
-    public struct ComponentEnumerator : IStructEnumerator<object>
+    public struct ComponentEnumerator : IStructEnumerator<object>, IValueEnumerator<object>
     {
         private readonly Entity _entity;
         private readonly bool _withHidden;
@@ -1306,6 +1382,32 @@ public readonly partial record struct Entity
         public void Dispose()
         {
             _enumerator.Dispose();
+        }
+
+        public bool TryGetNext(out object current)
+        {
+            Unsafe.SkipInit(out current);
+            var result = MoveNext();
+            if (result)
+                current = Current;
+            return result;
+        }
+
+        public bool TryGetNonEnumeratedCount(out int count)
+        {
+            count = 0;
+            return false;
+        }
+
+        public bool TryGetSpan(out ReadOnlySpan<object> span)
+        {
+            span = default;
+            return false;
+        }
+
+        public bool TryCopyTo(scoped Span<object> destination, Index offset)
+        {
+            return false;
         }
     }
 

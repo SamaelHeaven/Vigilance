@@ -210,13 +210,13 @@ public static unsafe class Display
     public static Viewport Viewport
     {
         get => _viewport;
-        set { Game.Defer(() => _viewport = value); }
+        set { Game.RunNextFrame(() => _viewport = value); }
     }
 
     public static RenderingMode RenderingMode
     {
         get => _renderingMode;
-        set { Game.Defer(() => _renderingMode = value); }
+        set { Game.RunNextFrame(() => _renderingMode = value); }
     }
 
     public static Color Background { get; set; } = _config.Background;

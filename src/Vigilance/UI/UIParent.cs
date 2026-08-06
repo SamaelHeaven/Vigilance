@@ -55,10 +55,11 @@ public abstract class UIParent : UIElement
 
     public void Add(IEnumerable<UIElement?> elements)
     {
-        if (elements.TryGetNonEnumeratedCount(out var count))
+        using var enumerator = elements.AsFastEnumerable().GetEnumerator();
+        if (enumerator.TryGetNonEnumeratedCount(out var count))
             _children.EnsureCapacity(_children.Count + count);
-        foreach (var element in elements)
-            Add(element);
+        while (enumerator.MoveNext())
+            Add(enumerator.Current);
     }
 
     public void Insert(int index, UIElement element)

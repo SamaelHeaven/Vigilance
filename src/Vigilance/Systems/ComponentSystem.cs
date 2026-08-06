@@ -1,13 +1,131 @@
 namespace Vigilance.Systems;
 
-public sealed class ComponentSystem : GameSystem
+public sealed class ComponentSystem : GameSystem<ComponentSystem>
 {
-    public override void PreUpdate()
+    [GenericRegistry]
+    public static void RegisterPreUpdatable<T>()
+        where T : IPreUpdatable
     {
-        foreach (var (entity, component) in AssignableEntries<IPreUpdatable>())
+        ConfigureEach(
+            (typeof(IPreUpdatable), typeof(T)),
+            system =>
+            {
+                system.Scene.OnPreUpdate(system.PreUpdate<T>);
+            }
+        );
+    }
+
+    [GenericRegistry]
+    public static void RegisterUpdatable<T>()
+        where T : IUpdatable
+    {
+        ConfigureEach(
+            (typeof(IUpdatable), typeof(T)),
+            system =>
+            {
+                system.Scene.OnUpdate(system.Update<T>);
+            }
+        );
+    }
+
+    [GenericRegistry]
+    public static void RegisterPostUpdatable<T>()
+        where T : IPostUpdatable
+    {
+        ConfigureEach(
+            (typeof(IPostUpdatable), typeof(T)),
+            system =>
+            {
+                system.Scene.OnPostUpdate(system.PostUpdate<T>);
+            }
+        );
+    }
+
+    [GenericRegistry]
+    public static void RegisterPreFixedUpdatable<T>()
+        where T : IPreFixedUpdatable
+    {
+        ConfigureEach(
+            (typeof(IPreFixedUpdatable), typeof(T)),
+            system =>
+            {
+                system.Scene.OnPreFixedUpdate(system.PreFixedUpdate<T>);
+            }
+        );
+    }
+
+    [GenericRegistry]
+    public static void RegisterFixedUpdatable<T>()
+        where T : IFixedUpdatable
+    {
+        ConfigureEach(
+            (typeof(IFixedUpdatable), typeof(T)),
+            system =>
+            {
+                system.Scene.OnFixedUpdate(system.FixedUpdate<T>);
+            }
+        );
+    }
+
+    [GenericRegistry]
+    public static void RegisterPostFixedUpdatable<T>()
+        where T : IPostFixedUpdatable
+    {
+        ConfigureEach(
+            (typeof(IPostFixedUpdatable), typeof(T)),
+            system =>
+            {
+                system.Scene.OnPostFixedUpdate(system.PostFixedUpdate<T>);
+            }
+        );
+    }
+
+    [GenericRegistry]
+    public static void RegisterPreRenderable<T>()
+        where T : IPreRenderable
+    {
+        ConfigureEach(
+            (typeof(IPreRenderable), typeof(T)),
+            system =>
+            {
+                system.Scene.OnPreRender(system.PreRender<T>);
+            }
+        );
+    }
+
+    [GenericRegistry]
+    public static void RegisterRenderable<T>()
+        where T : IRenderable
+    {
+        ConfigureEach(
+            (typeof(IRenderable), typeof(T)),
+            system =>
+            {
+                system.Scene.OnRender(system.Render<T>);
+            }
+        );
+    }
+
+    [GenericRegistry]
+    public static void RegisterPostRenderable<T>()
+        where T : IPostRenderable
+    {
+        ConfigureEach(
+            (typeof(IPostRenderable), typeof(T)),
+            system =>
+            {
+                system.Scene.OnPostRender(system.PostRender<T>);
+            }
+        );
+    }
+
+    private void PreUpdate<T>()
+        where T : IPreUpdatable
+    {
+        foreach (var (entity, componentRef) in RefEntries<T>())
             try
             {
-                component.PreUpdate(entity);
+                componentRef.AsWritable().Value.PreUpdate(entity);
             }
             catch (Exception e)
             {
@@ -15,12 +133,13 @@ public sealed class ComponentSystem : GameSystem
             }
     }
 
-    public override void Update()
+    private void Update<T>()
+        where T : IUpdatable
     {
-        foreach (var (entity, component) in AssignableEntries<IUpdatable>())
+        foreach (var (entity, componentRef) in RefEntries<T>())
             try
             {
-                component.Update(entity);
+                componentRef.AsWritable().Value.Update(entity);
             }
             catch (Exception e)
             {
@@ -28,12 +147,13 @@ public sealed class ComponentSystem : GameSystem
             }
     }
 
-    public override void PostUpdate()
+    private void PostUpdate<T>()
+        where T : IPostUpdatable
     {
-        foreach (var (entity, component) in AssignableEntries<IPostUpdatable>())
+        foreach (var (entity, componentRef) in RefEntries<T>())
             try
             {
-                component.PostUpdate(entity);
+                componentRef.AsWritable().Value.PostUpdate(entity);
             }
             catch (Exception e)
             {
@@ -41,12 +161,13 @@ public sealed class ComponentSystem : GameSystem
             }
     }
 
-    public override void PreFixedUpdate()
+    private void PreFixedUpdate<T>()
+        where T : IPreFixedUpdatable
     {
-        foreach (var (entity, component) in AssignableEntries<IPreFixedUpdatable>())
+        foreach (var (entity, componentRef) in RefEntries<T>())
             try
             {
-                component.PreFixedUpdate(entity);
+                componentRef.AsWritable().Value.PreFixedUpdate(entity);
             }
             catch (Exception e)
             {
@@ -54,12 +175,13 @@ public sealed class ComponentSystem : GameSystem
             }
     }
 
-    public override void FixedUpdate()
+    private void FixedUpdate<T>()
+        where T : IFixedUpdatable
     {
-        foreach (var (entity, component) in AssignableEntries<IFixedUpdatable>())
+        foreach (var (entity, componentRef) in RefEntries<T>())
             try
             {
-                component.FixedUpdate(entity);
+                componentRef.AsWritable().Value.FixedUpdate(entity);
             }
             catch (Exception e)
             {
@@ -67,12 +189,13 @@ public sealed class ComponentSystem : GameSystem
             }
     }
 
-    public override void PostFixedUpdate()
+    private void PostFixedUpdate<T>()
+        where T : IPostFixedUpdatable
     {
-        foreach (var (entity, component) in AssignableEntries<IPostFixedUpdatable>())
+        foreach (var (entity, componentRef) in RefEntries<T>())
             try
             {
-                component.PostFixedUpdate(entity);
+                componentRef.AsWritable().Value.PostFixedUpdate(entity);
             }
             catch (Exception e)
             {
@@ -80,12 +203,13 @@ public sealed class ComponentSystem : GameSystem
             }
     }
 
-    public override void PreRender()
+    private void PreRender<T>()
+        where T : IPreRenderable
     {
-        foreach (var (entity, component) in AssignableEntries<IPreRenderable>())
+        foreach (var (entity, componentRef) in RefEntries<T>())
             try
             {
-                component.PreRender(entity);
+                componentRef.AsWritable().Value.PreRender(entity);
             }
             catch (Exception e)
             {
@@ -93,12 +217,13 @@ public sealed class ComponentSystem : GameSystem
             }
     }
 
-    public override void Render(RenderCommands commands)
+    private void Render<T>(RenderCommands commands)
+        where T : IRenderable
     {
-        foreach (var (entity, component) in AssignableEntries<IRenderable>())
+        foreach (var (entity, componentRef) in RefEntries<T>())
             try
             {
-                component.Render(entity, commands);
+                componentRef.AsWritable().Value.Render(entity, commands);
             }
             catch (Exception e)
             {
@@ -106,12 +231,13 @@ public sealed class ComponentSystem : GameSystem
             }
     }
 
-    public override void PostRender()
+    private void PostRender<T>()
+        where T : IPostRenderable
     {
-        foreach (var (entity, component) in AssignableEntries<IPostRenderable>())
+        foreach (var (entity, componentRef) in RefEntries<T>())
             try
             {
-                component.PostRender(entity);
+                componentRef.AsWritable().Value.PostRender(entity);
             }
             catch (Exception e)
             {

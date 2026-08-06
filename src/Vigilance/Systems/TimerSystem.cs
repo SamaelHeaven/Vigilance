@@ -6,14 +6,18 @@ public sealed class TimerSystem : GameSystem
 
     public override void Update()
     {
+        var delta = Time.Delta;
+        foreach (var timerRef in RefComponents<ValueTimer>())
+            timerRef.Write.Update(delta);
         Scene.BeginDefer();
         try
         {
-            foreach (var timer in Components<Timer>())
+            foreach (var timerRef in RefComponents<Timer>())
             {
+                var timer = timerRef.Read;
                 if (timer.IsPaused)
                     continue;
-                timer.Update();
+                timer.Update(delta);
                 if (timer.IsPaused)
                     continue;
                 _resume.Add(timer);

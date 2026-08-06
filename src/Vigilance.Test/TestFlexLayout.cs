@@ -9520,9 +9520,9 @@ public sealed class TestFlexLayout
         measureCount++;
         ((TestNode)node).Context = measureCount;
 
-        if (widthMode == MeasureMode.Undefined || (widthMode == MeasureMode.AtMost && width > 10))
+        if (widthMode == MeasureMode.Undefined || widthMode == MeasureMode.AtMost && width > 10)
             width = 10;
-        if (heightMode == MeasureMode.Undefined || (heightMode == MeasureMode.AtMost && height > 10))
+        if (heightMode == MeasureMode.Undefined || heightMode == MeasureMode.AtMost && height > 10)
             height = 10;
         return new Size(width, height);
     }

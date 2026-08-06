@@ -2,7 +2,7 @@ namespace Vigilance.UI;
 
 public class UIRectangle : UIContainer
 {
-    private Rectangle _rectangle = new();
+    private ValueRectangle _rectangle = new();
 
     public UIRectangle() { }
 
@@ -48,10 +48,5 @@ public class UIRectangle : UIContainer
         _rectangle.Camera = camera;
         _rectangle.Radius = Radius.Calculate(LayoutSize.X.Abs().Min(LayoutSize.Y.Abs()));
         graphics.DrawRectangle(LayoutPosition, LayoutSize, _rectangle);
-    }
-
-    protected override void OnClone()
-    {
-        _rectangle = _rectangle.DeepClone();
     }
 }

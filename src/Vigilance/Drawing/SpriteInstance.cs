@@ -17,7 +17,7 @@ public record struct SpriteInstance
 
     public Box? Source
     {
-        get => _hasSource ? _source : null;
+        readonly get => _hasSource ? _source : null;
         set
         {
             _hasSource = value.HasValue;
@@ -25,11 +25,9 @@ public record struct SpriteInstance
         }
     }
 
-    public SpriteInstance() { }
-
     public Transform Transform
     {
-        get => new(Position, Scale, Rotation, PivotPoint);
+        readonly get => new(Position, Scale, Rotation, PivotPoint);
         set
         {
             Position = value.Position;
@@ -38,4 +36,6 @@ public record struct SpriteInstance
             PivotPoint = value.PivotPoint;
         }
     }
+
+    public SpriteInstance() { }
 }

@@ -18,6 +18,9 @@
     <LangVersion Condition="'$(TargetFramework)' == 'net11.0'">preview</LangVersion>
     <DefineConstants Condition="'$(Configuration)' == 'Debug'">$(DefineConstants);VIGILANCE_ASSERTS</DefineConstants>
   </PropertyGroup>
+  <PropertyGroup>
+    <BeforePack>PackCodegen;$(BeforePack)</BeforePack>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(VigilanceDebug)' == 'true'">
     <PackageId>Vigilance.Debug</PackageId>
     <DefineConstants>$(DefineConstants);VIGILANCE_ASSERTS</DefineConstants>
@@ -37,6 +40,18 @@
       ReferenceOutputAssembly="false"
     />
   </ItemGroup>
+  <Target Name="PackCodegen">
+    <MSBuild
+      Projects="..\Vigilance.Codegen\Vigilance.Codegen.csproj"
+      Targets="Build"
+      Properties="Configuration=$(Configuration)"
+    >
+      <Output TaskParameter="TargetOutputs" ItemName="CodegenOutput" />
+    </MSBuild>
+    <ItemGroup>
+      <None Include="@(CodegenOutput)" Pack="true" PackagePath="analyzers\dotnet\cs" Visible="false" />
+    </ItemGroup>
+  </Target>
   <ItemGroup>
     <None Include="$(PackageId).props" Pack="true" PackagePath="build\$(PackageId).props" />
     <None Include="$(MSBuildThisFileDirectory)..\..\README.MD" Pack="true" PackagePath="README.MD" />

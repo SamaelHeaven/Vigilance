@@ -3,11 +3,11 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Rectangle : Drawable<Rectangle>
+[ValueWrapper(typeof(Drawable<ValueRectangle>), "Drawable")]
+public partial struct ValueRectangle : IDrawable
 {
-    public Rectangle() { }
-
-    public Rectangle(Color fill)
+    public ValueRectangle(Color fill)
+        : this()
     {
         Fill = fill;
     }
@@ -19,14 +19,23 @@ public sealed class Rectangle : Drawable<Rectangle>
     public int Segments { get; set; } = 0;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawRectangle(transform, this);
+    }
+}
+
+[ValueWrapper(typeof(ValueRectangle))]
+public sealed partial class Rectangle : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 }
 
@@ -56,7 +65,7 @@ public static class RectangleExtensions
             var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
             if (
                 colorValue == Color.Transparent
-                || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera)
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -95,7 +104,7 @@ public static class RectangleExtensions
             if (
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
-                || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera)
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -148,7 +157,7 @@ public static class RectangleExtensions
             var radiusValue = radius ?? Drawing.DefaultRadius.Or(1);
             if (
                 colorValue == Color.Transparent
-                || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera)
             )
                 return;
             var minSize = size.Abs().Min();
@@ -214,7 +223,7 @@ public static class RectangleExtensions
             if (
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
-                || (graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera, strokeWidthValue))
+                || graphics.Culling() && !graphics.IsBoxInBounds(position, size, camera, strokeWidthValue)
             )
                 return;
             position += strokeWidthValue;
@@ -242,29 +251,29 @@ public static class RectangleExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawRectangle(Rectangle rectangle)
+        public void DrawRectangle(in ValueRectangle rectangle)
         {
             graphics.DrawRectangle(new Transform(), rectangle);
         }
 
-        public void DrawRectangle(float x, float y, float width, float height, Rectangle rectangle)
+        public void DrawRectangle(float x, float y, float width, float height, in ValueRectangle rectangle)
         {
             graphics.DrawRectangle(new Vector2(x, y), new Vector2(width, height), rectangle);
         }
 
-        public void DrawRectangle(Vector2 position, Vector2 size, Rectangle rectangle)
+        public void DrawRectangle(Vector2 position, Vector2 size, in ValueRectangle rectangle)
         {
             graphics.DrawRectangle(new Transform(position + size * 0.5f, size), rectangle);
         }
 
-        public void DrawRectangle(in Box box, Rectangle rectangle)
+        public void DrawRectangle(in Box box, in ValueRectangle rectangle)
         {
             graphics.DrawRectangle(box.Position, box.Size, rectangle);
         }
 
-        public void DrawRectangle(Transform transform, Rectangle rectangle)
+        public void DrawRectangle(Transform transform, in ValueRectangle rectangle)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, rectangle, graphics);
+            using var _ = Drawable<ValueRectangle>.EnterDrawing(ref transform, rectangle.Drawable, rectangle, graphics);
             var camera = rectangle.Camera.Get();
             var fill = rectangle.Fill;
             var stroke = rectangle.Stroke;

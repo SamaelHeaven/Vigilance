@@ -5,8 +5,8 @@ namespace Vigilance.UI;
 public class UIScrollContainer : UIContainer
 {
     private bool _layout = false;
-    private Rectangle _scrollBarThumbRectangle = new();
-    private Rectangle _scrollBarTrackRectangle = new();
+    private ValueRectangle _scrollBarThumbRectangle = new();
+    private ValueRectangle _scrollBarTrackRectangle = new();
     private float? _thumbMouseDownX = null;
     private float? _thumbMouseDownY = null;
 
@@ -293,7 +293,11 @@ public class UIScrollContainer : UIContainer
         var offset = Vector2.Zero;
         var size = Vector2.Zero;
         var direction = Direction;
-        var mousePosition = Mouse.Position;
+        var camera = RenderedCamera;
+        var localMousePosition = Mouse.Position;
+        var worldMousePosition = camera is null
+            ? localMousePosition
+            : Coordinates.LocalToWorld(localMousePosition, camera);
         var mousePressed = Mouse.IsButtonPressed(MouseButton.Left);
         var mouseReleased = Mouse.IsButtonReleased(MouseButton.Left);
         foreach (var element in Children().Where(element => element.Position != PositionType.Absolute))
@@ -315,34 +319,34 @@ public class UIScrollContainer : UIContainer
             IsMouseInside && !IsMouseInsideNestedScrollContainer ? Mouse.Scroll * MouseScrollForce : Vector2.Zero;
         if (_thumbMouseDownY.HasValue)
         {
-            var deltaY = mousePosition.Y - _thumbMouseDownY.Value;
+            var deltaY = worldMousePosition.Y - _thumbMouseDownY.Value;
             var trackBox = GetScrollBarTrackBox(ScrollBarDirection.Vertical);
             var thumbBox = GetScrollBarThumbBox(ScrollBarDirection.Vertical);
             var scrollableHeight = ChildrenLayoutSize.Y - LayoutSize.Y;
             var trackMovableHeight = trackBox.Height - thumbBox.Height;
             if (trackMovableHeight > 0)
                 scroll.Y = -(deltaY * scrollableHeight / trackMovableHeight);
-            _thumbMouseDownY = mousePosition.Y;
+            _thumbMouseDownY = worldMousePosition.Y;
         }
 
         if (_thumbMouseDownX.HasValue)
         {
-            var deltaX = mousePosition.X - _thumbMouseDownX.Value;
+            var deltaX = worldMousePosition.X - _thumbMouseDownX.Value;
             var trackBox = GetScrollBarTrackBox(ScrollBarDirection.Horizontal);
             var thumbBox = GetScrollBarThumbBox(ScrollBarDirection.Horizontal);
             var scrollableWidth = ChildrenLayoutSize.X - LayoutSize.X;
             var trackMovableWidth = trackBox.Width - thumbBox.Width;
             if (trackMovableWidth > 0)
                 scroll.X = -(deltaX * scrollableWidth / trackMovableWidth);
-            _thumbMouseDownX = mousePosition.X;
+            _thumbMouseDownX = worldMousePosition.X;
         }
 
         if (IsMouseInside && mousePressed)
         {
-            if (Collision.CheckPointQuad(mousePosition, RenderedHorizontalScrollBarThumbBounds))
-                _thumbMouseDownX = mousePosition.X;
-            if (Collision.CheckPointQuad(mousePosition, RenderedVerticalScrollBarThumbBounds))
-                _thumbMouseDownY = mousePosition.Y;
+            if (Collision.CheckPointQuad(localMousePosition, RenderedHorizontalScrollBarThumbBounds))
+                _thumbMouseDownX = worldMousePosition.X;
+            if (Collision.CheckPointQuad(localMousePosition, RenderedVerticalScrollBarThumbBounds))
+                _thumbMouseDownY = worldMousePosition.Y;
         }
 
         if (mouseReleased)
@@ -418,12 +422,6 @@ public class UIScrollContainer : UIContainer
         }
 
         _layout = false;
-    }
-
-    protected override void OnClone()
-    {
-        _scrollBarTrackRectangle = _scrollBarTrackRectangle.DeepClone();
-        _scrollBarThumbRectangle = _scrollBarThumbRectangle.DeepClone();
     }
 
     protected virtual void RenderScrollBarTrack(Graphics graphics, Box box, CameraProvider camera)

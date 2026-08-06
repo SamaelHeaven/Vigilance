@@ -65,7 +65,7 @@ public static class NumberExtensions
             if (value <= T.One)
                 return T.One;
             var bitWidth = value.GetByteCount() * 8;
-            var maxShift = T.One << (bitWidth - 1) < T.Zero ? bitWidth - 2 : bitWidth - 1;
+            var maxShift = T.One << bitWidth - 1 < T.Zero ? bitWidth - 2 : bitWidth - 1;
             var shift = int.CreateChecked(T.Log2(value - T.One) + T.One);
             if (shift >= maxShift)
                 return T.One << maxShift;

@@ -10,7 +10,8 @@ namespace Vigilance.Core;
 
 public static unsafe class Game
 {
-    private static readonly ConcurrentStack<Action> _actions = [];
+    private static readonly ConcurrentStack<Job> _jobs = [];
+    private static readonly ConcurrentStack<Job> _nextFrameJobs = [];
     private static bool _exit;
     private static Scene _scene = null!;
     private static int _threadId;
@@ -27,7 +28,7 @@ public static unsafe class Game
         set
         {
             ThrowIfNotRunning();
-            Defer(() =>
+            RunNextFrame(() =>
             {
                 if (_scene == value)
                     return;
@@ -64,9 +65,24 @@ public static unsafe class Game
             throw new InvalidOperationException($"{nameof(Game)} is already running.");
     }
 
-    public static void Defer(Action action)
+    public static void RunLater(Action action)
     {
-        _actions.Push(action);
+        _jobs.Push(Job.From(action));
+    }
+
+    public static void RunLater<T>(in T context, Action<T> action)
+    {
+        _jobs.Push(Job.From(context, action));
+    }
+
+    public static void RunNextFrame(Action action)
+    {
+        _nextFrameJobs.Push(Job.From(action));
+    }
+
+    public static void RunNextFrame<T>(in T context, Action<T> action)
+    {
+        _nextFrameJobs.Push(Job.From(context, action));
     }
 
     public static void Launch(Config config, Scene scene)
@@ -79,7 +95,7 @@ public static unsafe class Game
         Running = true;
         Config = config;
         _scene = scene;
-        UpdateActions();
+        InvokeJobs();
         try
         {
             Loop();
@@ -126,7 +142,8 @@ public static unsafe class Game
         RenderTexturePool.Update();
         UpdateExit();
         UpdateFullscreen();
-        UpdateActions();
+        InvokeJobs();
+        InvokeJobs(_nextFrameJobs);
         Renderer.BeginDrawing();
         _scene.Update();
         Renderer.EndDrawing();
@@ -137,25 +154,37 @@ public static unsafe class Game
     {
         GC.Collect();
         GC.WaitForPendingFinalizers();
-        UpdateActions();
+        InvokeJobs();
         GC.Collect();
     }
 
-    private static void UpdateActions()
+    internal static void InvokeJobs()
     {
-        var length = _actions.Count;
+        InvokeJobs(_jobs);
+    }
+
+    private static void InvokeJobs(ConcurrentStack<Job> jobs)
+    {
+        var length = jobs.Count;
         if (length == 0)
             return;
-        var actions = ArrayPool<Action>.Shared.Rent(length);
+        var array = ArrayPool<Job>.Shared.Rent(length);
         try
         {
-            var amount = _actions.TryPopRange(actions, 0, length);
+            var amount = jobs.TryPopRange(array, 0, length);
             for (var i = amount - 1; i >= 0; i--)
-                actions[i].SafeInvoke();
+                try
+                {
+                    array[i].Invoke();
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
         }
         finally
         {
-            ArrayPool<Action>.Shared.Return(actions, true);
+            ArrayPool<Job>.Shared.Return(array, true);
         }
     }
 

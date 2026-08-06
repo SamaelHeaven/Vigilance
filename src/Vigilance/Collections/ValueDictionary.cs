@@ -315,12 +315,12 @@ public struct ValueDictionary<TKey, TValue>
         return new StructEnumerator<Enumerator, KeyValuePair<TKey, TValue>>(GetEnumerator());
     }
 
-    public ref TValue GetValueRefOrNullRef(in TKey key)
+    public readonly ref TValue GetValueRefOrNullRef(scoped in TKey key)
     {
         return ref FindValue(key);
     }
 
-    public ref TValue? GetValueRefOrAddDefault(in TKey key, out bool exists)
+    public ref TValue? GetValueRefOrAddDefault(scoped in TKey key, out bool exists)
     {
         if (!typeof(TKey).IsValueType)
             ArgumentNullException.ThrowIfNull(key);
@@ -435,7 +435,7 @@ public struct ValueDictionary<TKey, TValue>
         CopyEntries(oldEntries, oldCount);
     }
 
-    internal readonly ref TValue FindValue(in TKey key)
+    internal readonly ref TValue FindValue(scoped in TKey key)
     {
         if (!typeof(TKey).IsValueType)
             ArgumentNullException.ThrowIfNull(key);

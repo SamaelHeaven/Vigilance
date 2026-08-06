@@ -800,7 +800,7 @@ public static class ValueListExtensions
 
             if (
                 enumerator.TryCopyTo(result.AsSpan(), 0)
-                || (enumerator.TryGetSpan(out var span) && span.TryCopyTo(result.AsSpan()))
+                || enumerator.TryGetSpan(out var span) && span.TryCopyTo(result.AsSpan())
             )
                 return result;
             result.Count = 0;

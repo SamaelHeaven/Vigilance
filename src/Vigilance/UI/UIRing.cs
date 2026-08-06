@@ -2,7 +2,7 @@ namespace Vigilance.UI;
 
 public class UIRing : UIContainer
 {
-    private Ring _ring = new();
+    private ValueRing _ring = new();
 
     public UIRing() { }
 
@@ -64,10 +64,5 @@ public class UIRing : UIContainer
         _ring.OuterRadius = outerRadius;
         _ring.Camera = camera;
         graphics.DrawRing(new Transform(position + size * 0.5f), _ring);
-    }
-
-    protected override void OnClone()
-    {
-        _ring = _ring.DeepClone();
     }
 }

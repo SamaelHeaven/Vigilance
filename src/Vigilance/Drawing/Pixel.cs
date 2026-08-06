@@ -50,7 +50,7 @@ public record struct PixelR5G6B5(ushort Value) : IPixel
     {
         return new Color(
             (byte)((Value >> 11) * 255 / 31),
-            (byte)(((Value >> 5) & 0b0000000000111111) * 255 / 63),
+            (byte)((Value >> 5 & 0b0000000000111111) * 255 / 63),
             (byte)((Value & 0b0000000000011111) * 255 / 31)
         );
     }
@@ -91,7 +91,7 @@ public record struct PixelR5G5B5A1(ushort Value) : IPixel
     {
         return new Color(
             (byte)((Value >> 11) * 255 / 31),
-            (byte)(((Value >> 6) & 0b0000000000011111) * 255 / 31),
+            (byte)((Value >> 6 & 0b0000000000011111) * 255 / 31),
             (byte)((Value & 0b0000000000011111) * 255 / 31),
             (Value & 0b0000000000000001) != 0 ? (byte)255 : (byte)0
         );
@@ -112,8 +112,8 @@ public record struct PixelR4G4B4A4(ushort Value) : IPixel
     {
         return new Color(
             (byte)((Value >> 12) * 255 / 15),
-            (byte)(((Value >> 8) & 0b0000000000001111) * 255 / 15),
-            (byte)(((Value >> 4) & 0b0000000000001111) * 255 / 15),
+            (byte)((Value >> 8 & 0b0000000000001111) * 255 / 15),
+            (byte)((Value >> 4 & 0b0000000000001111) * 255 / 15),
             (byte)((Value & 0b0000000000001111) * 255 / 15)
         );
     }

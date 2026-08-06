@@ -125,7 +125,7 @@ public static class HashHelpers
     public static uint FastMod(uint value, uint divisor, ulong multiplier)
     {
         Debug.Assert(divisor <= int.MaxValue);
-        var highbits = (uint)(((((multiplier * value) >> 32) + 1) * divisor) >> 32);
+        var highbits = (uint)(((multiplier * value >> 32) + 1) * divisor >> 32);
         Debug.Assert(highbits == value % divisor);
         return highbits;
     }

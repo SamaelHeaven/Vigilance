@@ -20,13 +20,24 @@ public abstract class Table
         ForceMutable = 1 << 1,
     }
 
-    internal static int CurrentIndex = -1;
+    protected internal const int SparseChunkSize = 2048;
+    protected internal static int CurrentIndex = -1;
+    protected internal ValueList<EntityId> Entities = [];
+    protected internal ValueList<int[]?> SparseChunks = [];
 
-    public abstract Scene Scene { get; }
+    protected internal Table(Scene scene, Type type)
+    {
+        Scene = scene;
+        Type = type;
+    }
 
-    public abstract Type Type { get; }
+    public Scene Scene { get; }
 
-    public abstract int Count { get; }
+    public Type Type { get; }
+
+    public ValueListView<EntityId> EntityIds => Entities;
+
+    public int Count => Entities.Count;
 
     public abstract int Capacity { get; set; }
 
@@ -48,13 +59,23 @@ public abstract class Table
 
     public abstract bool WriteImmutable { get; }
 
-    public abstract ValueListView<EntityId> EntityIds { get; }
-
     public abstract void TrimExcess();
 
     public abstract void EnsureCapacity(int capacity);
 
-    public abstract bool Has(in Entity entity);
+    public bool Has(in Entity entity)
+    {
+        entity.AssertValid();
+        var chunkIndex = entity.Index / SparseChunkSize;
+        if (chunkIndex >= SparseChunks.Count)
+            return false;
+        var chunk = SparseChunks[chunkIndex];
+        if (chunk == null)
+            return false;
+        var withinChunk = entity.Index % SparseChunkSize;
+        var sparseValue = chunk[withinChunk];
+        return sparseValue != 0;
+    }
 
     public abstract object Get(int index);
 
@@ -112,26 +133,17 @@ public sealed class Table<T>
         IReadOnlyList<KeyValuePair<Entity, T>>,
         IStructEnumerable<Table<T>.Enumerator, KeyValuePair<Entity, T>>
 {
-    private const int SparseChunkSize = 2048;
     private Action<Entity, T>? _addAction;
     private ValueList<T> _components = [];
-    private ValueList<EntityId> _entityIds = [];
     private ValueQueue<Event<T>> _events = [];
     private ValueQueue<Operation> _operations = [];
     private Action<Entity, T>? _removeAction;
     private Action<Entity, T, T>? _setAction;
-    private ValueList<int[]?> _sparseChunks = [];
 
     internal Table(Scene scene)
-    {
-        Scene = scene;
-    }
+        : base(scene, typeof(T)) { }
 
     internal static int Index { get; } = Interlocked.Increment(ref CurrentIndex);
-
-    public override Scene Scene { get; }
-
-    public override Type Type { get; } = typeof(T);
 
     public override int Capacity
     {
@@ -139,34 +151,29 @@ public sealed class Table<T>
         set
         {
             _components.Capacity = value;
-            _entityIds.Capacity = value;
+            Entities.Capacity = value;
         }
     }
 
-    public override bool IsHidden { get; } = typeof(IHiddenComponent).IsAssignableFrom(typeof(T));
+    public override bool IsHidden => typeof(IHiddenComponent).IsAssignableFrom(typeof(T));
 
-    public override bool SkipAddEvent { get; } = typeof(ISkipAddEventComponent).IsAssignableFrom(typeof(T));
+    public override bool SkipAddEvent => typeof(ISkipAddEventComponent).IsAssignableFrom(typeof(T));
 
-    public override bool SkipSetEvent { get; } = typeof(ISkipSetEventComponent).IsAssignableFrom(typeof(T));
+    public override bool SkipSetEvent => typeof(ISkipSetEventComponent).IsAssignableFrom(typeof(T));
 
-    public override bool SkipRemoveEvent { get; } = typeof(ISkipRemoveEventComponent).IsAssignableFrom(typeof(T));
+    public override bool SkipRemoveEvent => typeof(ISkipRemoveEventComponent).IsAssignableFrom(typeof(T));
 
-    public override bool SkipSetEventIfEqual { get; } =
-        typeof(ISkipSetEventIfEqualComponent).IsAssignableFrom(typeof(T));
+    public override bool SkipSetEventIfEqual => typeof(ISkipSetEventIfEqualComponent).IsAssignableFrom(typeof(T));
 
-    public override bool AddImmutable { get; } = typeof(IAddImmutableComponent).IsAssignableFrom(typeof(T));
+    public override bool AddImmutable => typeof(IAddImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public override bool SetImmutable { get; } = typeof(ISetImmutableComponent).IsAssignableFrom(typeof(T));
+    public override bool SetImmutable => typeof(ISetImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public override bool RemoveImmutable { get; } = typeof(IRemoveImmutableComponent).IsAssignableFrom(typeof(T));
+    public override bool RemoveImmutable => typeof(IRemoveImmutableComponent).IsAssignableFrom(typeof(T));
 
-    public override bool WriteImmutable { get; } = typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
-
-    public override ValueListView<EntityId> EntityIds => _entityIds;
+    public override bool WriteImmutable => typeof(IWriteImmutableComponent).IsAssignableFrom(typeof(T));
 
     public ValueListView<T> Components => _components;
-
-    public override int Count => _components.Count;
 
     bool IReadOnlyDictionary<Entity, T>.ContainsKey(Entity key)
     {
@@ -188,12 +195,11 @@ public sealed class Table<T>
 
     T IReadOnlyDictionary<Entity, T>.this[Entity key] => GetRef(key);
 
-    IEnumerable<Entity> IReadOnlyDictionary<Entity, T>.Keys =>
-        _entityIds.Select(entityId => new Entity(entityId, Scene));
+    IEnumerable<Entity> IReadOnlyDictionary<Entity, T>.Keys => Entities.Select(entityId => new Entity(entityId, Scene));
 
     IEnumerable<T> IReadOnlyDictionary<Entity, T>.Values => _components.AsReadOnly();
 
-    public KeyValuePair<Entity, T> this[int index] => new(new Entity(_entityIds[index], Scene), _components[index]);
+    public KeyValuePair<Entity, T> this[int index] => new(new Entity(Entities[index], Scene), _components[index]);
 
     public Enumerator GetEnumerator()
     {
@@ -211,8 +217,8 @@ public sealed class Table<T>
     public override void TrimExcess()
     {
         _components.TrimExcess();
-        _entityIds.TrimExcess();
-        _sparseChunks.TrimExcess();
+        Entities.TrimExcess();
+        SparseChunks.TrimExcess();
         _events.TrimExcess();
         _operations.TrimExcess();
     }
@@ -220,7 +226,7 @@ public sealed class Table<T>
     public override void EnsureCapacity(int capacity)
     {
         _components.EnsureCapacity(capacity);
-        _entityIds.EnsureCapacity(capacity);
+        Entities.EnsureCapacity(capacity);
     }
 
     public ValueEnumerable<Enumerator, KeyValuePair<Entity, T>> AsValueEnumerable()
@@ -273,20 +279,6 @@ public sealed class Table<T>
                     _removeAction?.SafeInvoke(tableEvent.Entity, tableEvent.NewValue);
                 break;
         }
-    }
-
-    public override bool Has(in Entity entity)
-    {
-        entity.AssertValid();
-        var chunkIndex = entity.Index / SparseChunkSize;
-        if (chunkIndex >= _sparseChunks.Count)
-            return false;
-        var chunk = _sparseChunks[chunkIndex];
-        if (chunk == null)
-            return false;
-        var withinChunk = entity.Index % SparseChunkSize;
-        var sparseValue = chunk[withinChunk];
-        return sparseValue != 0;
     }
 
     public override object Get(int index)
@@ -359,7 +351,7 @@ public sealed class Table<T>
                 return false;
             else
                 throw new InvalidOperationException(
-                    $"Cannot remove {Type} because it implements {nameof(IRemoveImmutableComponent)}."
+                    $"Cannot remove {typeof(T)} because it implements {nameof(IRemoveImmutableComponent)}."
                 );
         if (Scene.IsDeferred)
         {
@@ -369,9 +361,9 @@ public sealed class Table<T>
         }
 
         var chunkIndex = entity.Index / SparseChunkSize;
-        if (chunkIndex >= _sparseChunks.Count)
+        if (chunkIndex >= SparseChunks.Count)
             return false;
-        var chunk = _sparseChunks[chunkIndex];
+        var chunk = SparseChunks[chunkIndex];
         if (chunk == null)
             return false;
         var withinChunk = entity.Index % SparseChunkSize;
@@ -384,17 +376,17 @@ public sealed class Table<T>
         if (denseIndex != lastDenseIndex)
         {
             _components[denseIndex] = _components[lastDenseIndex];
-            var movedId = _entityIds[lastDenseIndex];
-            _entityIds[denseIndex] = movedId;
+            var movedId = Entities[lastDenseIndex];
+            Entities[denseIndex] = movedId;
             var movedEntityIndex = movedId.Index;
             var movedChunkIndex = movedEntityIndex / SparseChunkSize;
             var movedWithinChunk = movedEntityIndex % SparseChunkSize;
-            var movedChunk = _sparseChunks[movedChunkIndex]!;
+            var movedChunk = SparseChunks[movedChunkIndex]!;
             movedChunk[movedWithinChunk] = denseIndex + 1;
         }
 
         _components.RemoveAt(lastDenseIndex);
-        _entityIds.RemoveAt(lastDenseIndex);
+        Entities.RemoveAt(lastDenseIndex);
         chunk[withinChunk] = 0;
         Emit(Event<T>.Remove(entity, component));
         return true;
@@ -409,9 +401,9 @@ public sealed class Table<T>
     {
         entity.AssertValid();
         var chunkIndex = entity.Index / SparseChunkSize;
-        if (chunkIndex >= _sparseChunks.Count)
+        if (chunkIndex >= SparseChunks.Count)
             return ComponentRef<T>.Null;
-        var chunk = _sparseChunks[chunkIndex];
+        var chunk = SparseChunks[chunkIndex];
         if (chunk is null)
             return ComponentRef<T>.Null;
         var withinChunk = entity.Index % SparseChunkSize;
@@ -430,7 +422,7 @@ public sealed class Table<T>
                 return ComponentRef<T>.Null;
             else
                 throw new InvalidOperationException(
-                    $"Cannot set {Type} because it implements {nameof(IAddImmutableComponent)} and {nameof(ISetImmutableComponent)}."
+                    $"Cannot set {typeof(T)} because it implements {nameof(IAddImmutableComponent)} and {nameof(ISetImmutableComponent)}."
                 );
         if (!typeof(T).IsValueType)
         {
@@ -449,7 +441,7 @@ public sealed class Table<T>
         EnsureChunk(entity.Index);
         var chunkIndex = entity.Index / SparseChunkSize;
         var withinChunk = entity.Index % SparseChunkSize;
-        var chunk = _sparseChunks[chunkIndex]!;
+        var chunk = SparseChunks[chunkIndex]!;
         var sparseValue = chunk[withinChunk];
         if (sparseValue == 0)
         {
@@ -458,11 +450,11 @@ public sealed class Table<T>
                     return ComponentRef<T>.Null;
                 else
                     throw new InvalidOperationException(
-                        $"Cannot add {Type} because it implements {nameof(IAddImmutableComponent)}."
+                        $"Cannot add {typeof(T)} because it implements {nameof(IAddImmutableComponent)}."
                     );
             var index = _components.Count + 1;
             _components.Add(component);
-            _entityIds.Add(entity.Id);
+            Entities.Add(entity.Id);
             chunk[withinChunk] = index;
             Emit(Event<T>.Add(entity, component));
             index--;
@@ -474,7 +466,7 @@ public sealed class Table<T>
                 return ComponentRef<T>.Null;
             else
                 throw new InvalidOperationException(
-                    $"Cannot set {Type} because it implements {nameof(ISetImmutableComponent)}."
+                    $"Cannot set {typeof(T)} because it implements {nameof(ISetImmutableComponent)}."
                 );
         var denseIndex = sparseValue - 1;
         ref var componentRef = ref _components[denseIndex];
@@ -524,12 +516,12 @@ public sealed class Table<T>
     private void EnsureChunk(int entityIndex)
     {
         var chunkIndex = entityIndex / SparseChunkSize;
-        while (_sparseChunks.Count <= chunkIndex)
-            _sparseChunks.Add(null);
-        if (_sparseChunks[chunkIndex] != null)
+        while (SparseChunks.Count <= chunkIndex)
+            SparseChunks.Add(null);
+        if (SparseChunks[chunkIndex] != null)
             return;
         var chunk = new int[SparseChunkSize];
-        _sparseChunks[chunkIndex] = chunk;
+        SparseChunks[chunkIndex] = chunk;
     }
 
     private enum OperationType : sbyte
@@ -553,10 +545,10 @@ public sealed class Table<T>
 
         public bool MoveNext()
         {
-            if ((uint)_index < (uint)_table._entityIds.Count)
+            if ((uint)_index < (uint)_table.Entities.Count)
             {
                 Current = new KeyValuePair<Entity, T>(
-                    new Entity(_table._entityIds[_index], _table.Scene),
+                    new Entity(_table.Entities[_index], _table.Scene),
                     _table._components[_index]
                 );
                 _index++;
@@ -589,7 +581,7 @@ public sealed class Table<T>
 
         public bool TryGetNonEnumeratedCount(out int count)
         {
-            count = _table._entityIds.Count;
+            count = _table.Entities.Count;
             return true;
         }
 

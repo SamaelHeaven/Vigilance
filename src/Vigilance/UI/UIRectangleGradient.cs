@@ -2,7 +2,7 @@ namespace Vigilance.UI;
 
 public class UIRectangleGradient : UIContainer
 {
-    private RectangleGradient _rectangle = new();
+    private ValueRectangleGradient _rectangle = new();
 
     public Color TopLeftFill
     {
@@ -80,10 +80,5 @@ public class UIRectangleGradient : UIContainer
     {
         _rectangle.Camera = camera;
         graphics.DrawRectangleGradient(LayoutPosition, LayoutSize, _rectangle);
-    }
-
-    protected override void OnClone()
-    {
-        _rectangle = _rectangle.DeepClone();
     }
 }

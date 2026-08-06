@@ -3,7 +3,8 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class CircleGradient : Drawable<CircleGradient>
+[ValueWrapper(typeof(Drawable<ValueCircleGradient>), "Drawable")]
+public partial struct ValueCircleGradient : IDrawable
 {
     public Color InnerFill { get; set; } = Drawing.DefaultFill;
     public Color OuterFill { get; set; } = Drawing.DefaultFill;
@@ -14,7 +15,7 @@ public sealed class CircleGradient : Drawable<CircleGradient>
 
     public Color Fill
     {
-        get => InnerFill.Blend(OuterFill);
+        readonly get => InnerFill.Blend(OuterFill);
         set
         {
             InnerFill = value;
@@ -22,14 +23,23 @@ public sealed class CircleGradient : Drawable<CircleGradient>
         }
     }
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Fill)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawCircleGradient(transform, this);
+    }
+}
+
+[ValueWrapper(typeof(ValueCircleGradient))]
+public sealed partial class CircleGradient : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform), nameof(Fill)]), true);
     }
 }
 
@@ -48,8 +58,8 @@ public static class CircleGradientExtensions
             var innerColorValue = innerColor ?? Drawing.DefaultFill.Or(Color.White);
             var outerColorValue = outerColor ?? Drawing.DefaultFill.Or(Color.White);
             if (
-                (innerColorValue == Color.Transparent && outerColorValue == Color.Transparent)
-                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+                innerColorValue == Color.Transparent && outerColorValue == Color.Transparent
+                || graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -57,14 +67,14 @@ public static class CircleGradientExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawCircleGradient(CircleGradient circle)
+        public void DrawCircleGradient(in ValueCircleGradient circle)
         {
             graphics.DrawCircleGradient(new Transform(), circle);
         }
 
-        public void DrawCircleGradient(Transform transform, CircleGradient circle)
+        public void DrawCircleGradient(Transform transform, in ValueCircleGradient circle)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, circle, graphics);
+            using var _ = Drawable<ValueCircleGradient>.EnterDrawing(ref transform, circle.Drawable, circle, graphics);
             var camera = circle.Camera.Get();
             var innerFill = circle.InnerFill;
             var outerFill = circle.OuterFill;

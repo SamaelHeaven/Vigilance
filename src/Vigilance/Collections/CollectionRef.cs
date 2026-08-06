@@ -847,7 +847,7 @@ public ref struct ValueDictionaryRef<TKey, TValue>
         _ref.CopyTo(ref dictionary);
     }
 
-    public ref TValue GetValueRefOrNullRef(in TKey key)
+    public readonly ref TValue GetValueRefOrNullRef(in TKey key)
     {
         return ref _ref.GetValueRefOrNullRef(key);
     }
@@ -1295,6 +1295,16 @@ public ref struct ValueSparseSetRef<TKey, TValue, TStorage>
     public readonly bool TryGetValue(scoped in TKey key, [MaybeNullWhen(false)] out TValue value)
     {
         return _ref.TryGetValue(key, out value);
+    }
+
+    public readonly TValue? GetValueOrDefault(scoped in TKey key)
+    {
+        return _ref.GetValueOrDefault(key);
+    }
+
+    public readonly TValue GetValueOrDefault(scoped in TKey key, in TValue defaultValue)
+    {
+        return _ref.GetValueOrDefault(key, defaultValue);
     }
 
     public bool Remove(scoped in TKey key)
@@ -1972,6 +1982,16 @@ public ref struct ValueEntitySparseSetRef<TValue, TStorage>
     public readonly bool TryGetValue(scoped in Entity key, [MaybeNullWhen(false)] out TValue value)
     {
         return _ref.TryGetValue(key, out value);
+    }
+
+    public readonly TValue? GetValueOrDefault(scoped in Entity key)
+    {
+        return _ref.GetValueOrDefault(key);
+    }
+
+    public readonly TValue GetValueOrDefault(scoped in Entity key, in TValue defaultValue)
+    {
+        return _ref.GetValueOrDefault(key, defaultValue);
     }
 
     public bool Remove(scoped in Entity key)

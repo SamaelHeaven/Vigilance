@@ -3,11 +3,11 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Ring : Drawable<Ring>
+[ValueWrapper(typeof(Drawable<ValueRing>), "Drawable")]
+public partial struct ValueRing : IDrawable
 {
-    public Ring() { }
-
-    public Ring(Color fill)
+    public ValueRing(Color fill)
+        : this()
     {
         Fill = fill;
     }
@@ -22,14 +22,23 @@ public sealed class Ring : Drawable<Ring>
     public int Segments { get; set; } = 0;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawRing(transform, this);
+    }
+}
+
+[ValueWrapper(typeof(ValueRing))]
+public sealed partial class Ring : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 }
 
@@ -76,7 +85,7 @@ public static class RingExtensions
             var radius = innerRadius.Max(outerRadius);
             if (
                 colorValue == Color.Transparent
-                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
             )
                 return;
             segments = Drawing.CalculateSegments(radius, startAngle, endAngle, segments);
@@ -131,10 +140,8 @@ public static class RingExtensions
             if (
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
-                || (
-                    graphics.Culling()
+                || graphics.Culling()
                     && !graphics.IsBoxInBounds(center - maxRadius, new Vector2(maxRadius * 2), camera, strokeWidthValue)
-                )
             )
                 return;
             var startDirection = startAngle.Min(endAngle).DegToDirection();
@@ -173,14 +180,14 @@ public static class RingExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawRing(Ring ring)
+        public void DrawRing(in ValueRing ring)
         {
             graphics.DrawRing(new Transform(), ring);
         }
 
-        public void DrawRing(Transform transform, Ring ring)
+        public void DrawRing(Transform transform, in ValueRing ring)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, ring, graphics);
+            using var _ = Drawable<ValueRing>.EnterDrawing(ref transform, ring.Drawable, ring, graphics);
             var camera = ring.Camera.Get();
             var startAngle = ring.StartAngle;
             var endAngle = ring.EndAngle;

@@ -1,4 +1,6 @@
 using Raylib_cs;
+using Color = Raylib_cs.Color;
+using Rectangle = Raylib_cs.Rectangle;
 
 namespace Vigilance.Core;
 
@@ -7,11 +9,11 @@ public static class RaylibExtensions
     extension(Raylib)
     {
         public static void DrawRectangleRoundedLinesExShapes(
-            Raylib_cs.Rectangle rec,
+            Rectangle rec,
             float roundness,
             int segments,
             float lineThick,
-            Raylib_cs.Color color
+            Color color
         )
         {
             if (lineThick < 0)
@@ -22,7 +24,7 @@ public static class RaylibExtensions
                 // Not a rounded rectangle
                 case <= 0.0f:
                     Raylib.DrawRectangleLinesEx(
-                        new Raylib_cs.Rectangle(
+                        new Rectangle(
                             rec.X - lineThick,
                             rec.Y - lineThick,
                             rec.Width + 2 * lineThick,

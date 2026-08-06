@@ -5,20 +5,19 @@ namespace Vigilance.Audio;
 public static class Audio
 {
     private static AudioConfig _config = new();
-    private static float _masterVolume = _config.MasterVolume;
 
     public static float MasterVolume
     {
-        get => _masterVolume;
+        get;
         set
         {
             value = value.Clamp(0, 1);
-            if (!Game.Running || Precision.AreEqual(value, _masterVolume))
+            if (!Game.Running || Precision.AreEqual(value, field))
                 return;
-            _masterVolume = value;
+            field = value;
             Raylib.SetMasterVolume(value);
         }
-    }
+    } = _config.MasterVolume;
 
     public static int DefaultSoundMaxAliases
     {
@@ -40,8 +39,7 @@ public static class Audio
         }
 
         _config = Game.Config.Take<AudioConfig>() ?? _config;
-        _masterVolume = _config.MasterVolume;
-        Raylib.SetMasterVolume(_config.MasterVolume);
+        MasterVolume = _config.MasterVolume;
         DefaultSoundMaxAliases = _config.DefaultSoundMaxAliases;
     }
 

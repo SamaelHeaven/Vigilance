@@ -698,7 +698,7 @@ public static partial class Flex
             v.Unit == Unit.Auto
             || v.Unit == Unit.Undefined
             || v is { Unit: Unit.Point, Number: < 0 }
-            || (v.Unit == Unit.Percent && (v.Number < 0 || FloatIsUndefined(parentSize)));
+            || v.Unit == Unit.Percent && (v.Number < 0 || FloatIsUndefined(parentSize));
         return !isNotDefined;
     }
 
@@ -712,20 +712,16 @@ public static partial class Flex
     internal static bool NodeIsLeadingPosDefined<TStorage>(Node<TStorage> node, FlexDirection axis)
         where TStorage : IList<Node<TStorage>>
     {
-        return (
-                FlexDirectionIsRow(axis)
+        return FlexDirectionIsRow(axis)
                 && ComputedEdgeValue(node.NodeStyle.Position, Edge.Start, ValueUndefined).Unit != Unit.Undefined
-            )
             || ComputedEdgeValue(node.NodeStyle.Position, Leading[(int)axis], ValueUndefined).Unit != Unit.Undefined;
     }
 
     internal static bool NodeIsTrailingPosDefined<TStorage>(Node<TStorage> node, FlexDirection axis)
         where TStorage : IList<Node<TStorage>>
     {
-        return (
-                FlexDirectionIsRow(axis)
+        return FlexDirectionIsRow(axis)
                 && ComputedEdgeValue(node.NodeStyle.Position, Edge.End, ValueUndefined).Unit != Unit.Undefined
-            )
             || ComputedEdgeValue(node.NodeStyle.Position, Trailing[(int)axis], ValueUndefined).Unit != Unit.Undefined;
     }
 
@@ -1091,16 +1087,16 @@ public static partial class Flex
         where TStorage : IList<Node<TStorage>>
     {
         if (
-            (widthMeasureMode == MeasureMode.AtMost && availableWidth <= 0)
-            || (heightMeasureMode == MeasureMode.AtMost && availableHeight <= 0)
-            || (widthMeasureMode == MeasureMode.Exactly && heightMeasureMode == MeasureMode.Exactly)
+            widthMeasureMode == MeasureMode.AtMost && availableWidth <= 0
+            || heightMeasureMode == MeasureMode.AtMost && availableHeight <= 0
+            || widthMeasureMode == MeasureMode.Exactly && heightMeasureMode == MeasureMode.Exactly
         )
         {
             var marginAxisColumn = NodeMarginForAxis(node, FlexDirection.Column, parentWidth);
             var marginAxisRow = NodeMarginForAxis(node, FlexDirection.Row, parentWidth);
 
             var width = availableWidth - marginAxisRow;
-            if (FloatIsUndefined(availableWidth) || (widthMeasureMode == MeasureMode.AtMost && availableWidth < 0))
+            if (FloatIsUndefined(availableWidth) || widthMeasureMode == MeasureMode.AtMost && availableWidth < 0)
             {
                 width = 0;
             }
@@ -1114,7 +1110,7 @@ public static partial class Flex
             );
 
             var height = availableHeight - marginAxisColumn;
-            if (FloatIsUndefined(availableHeight) || (heightMeasureMode == MeasureMode.AtMost && availableHeight < 0))
+            if (FloatIsUndefined(availableHeight) || heightMeasureMode == MeasureMode.AtMost && availableHeight < 0)
             {
                 height = 0;
             }
@@ -1508,10 +1504,7 @@ public static partial class Flex
             childHeightMeasureMode = MeasureMode.Exactly;
         }
 
-        if (
-            (!isMainAxisRow && node.NodeStyle.Overflow == Overflow.Scroll)
-            || node.NodeStyle.Overflow != Overflow.Scroll
-        )
+        if (!isMainAxisRow && node.NodeStyle.Overflow == Overflow.Scroll || node.NodeStyle.Overflow != Overflow.Scroll)
         {
             if (FloatIsUndefined(childWidth) && !FloatIsUndefined(width))
             {
@@ -1520,7 +1513,7 @@ public static partial class Flex
             }
         }
 
-        if ((isMainAxisRow && node.NodeStyle.Overflow == Overflow.Scroll) || node.NodeStyle.Overflow != Overflow.Scroll)
+        if (isMainAxisRow && node.NodeStyle.Overflow == Overflow.Scroll || node.NodeStyle.Overflow != Overflow.Scroll)
         {
             if (FloatIsUndefined(childHeight) && !FloatIsUndefined(height))
             {
@@ -1858,7 +1851,7 @@ public static partial class Flex
                 ref var layout = ref node.NodeLayout;
 
                 var needToVisitNode =
-                    (node.IsDirty && layout.GenerationCount != CurrentGenerationCount)
+                    node.IsDirty && layout.GenerationCount != CurrentGenerationCount
                     || layout.LastParentDirection != d.ParentDirection;
 
                 if (needToVisitNode)
@@ -3352,7 +3345,7 @@ public static partial class Flex
 
                 if (
                     d.MeasureModeMainDim == MeasureMode.Undefined
-                    || (node.NodeStyle.Overflow != Overflow.Scroll && d.MeasureModeMainDim == MeasureMode.AtMost)
+                    || node.NodeStyle.Overflow != Overflow.Scroll && d.MeasureModeMainDim == MeasureMode.AtMost
                 )
                 {
                     node.NodeLayout.MeasuredDimensions[(int)Dim[(int)d.MainAxis]] = NodeBoundAxis(
@@ -3376,7 +3369,7 @@ public static partial class Flex
 
                 if (
                     d.MeasureModeCrossDim == MeasureMode.Undefined
-                    || (node.NodeStyle.Overflow != Overflow.Scroll && d.MeasureModeCrossDim == MeasureMode.AtMost)
+                    || node.NodeStyle.Overflow != Overflow.Scroll && d.MeasureModeCrossDim == MeasureMode.AtMost
                 )
                 {
                     node.NodeLayout.MeasuredDimensions[(int)Dim[(int)d.CrossAxis]] = NodeBoundAxis(

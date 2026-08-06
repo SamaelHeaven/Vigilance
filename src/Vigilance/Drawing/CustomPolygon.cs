@@ -1,69 +1,89 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Raylib_cs;
 using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class CustomPolygon : Drawable<CustomPolygon>, IDeepCloneable
+[ValueWrapper(typeof(Drawable<ValueCustomPolygon>), "Drawable")]
+public partial struct ValueCustomPolygon : IDrawable
 {
     private ValueList<Vector2> _points;
 
-    public CustomPolygon()
+    public ValueCustomPolygon()
     {
+        Drawable = new Drawable<ValueCustomPolygon>();
         _points = [];
     }
 
-    public CustomPolygon(Color fill)
+    public ValueCustomPolygon(Color fill)
         : this()
     {
         Fill = fill;
     }
 
-    public CustomPolygon(IEnumerable<Vector2> points)
+    public ValueCustomPolygon(IEnumerable<Vector2> points)
+        : this()
     {
         _points = new ValueList<Vector2>(points);
     }
 
-    public CustomPolygon(IEnumerable<Vector2> points, Color fill)
+    public ValueCustomPolygon(IEnumerable<Vector2> points, Color fill)
         : this(points)
     {
         Fill = fill;
     }
 
     [OverloadResolutionPriority(1)]
-    public CustomPolygon(in ReadOnlySpan<Vector2> points)
+    public ValueCustomPolygon(in ReadOnlySpan<Vector2> points)
+        : this()
     {
         _points = points.AsValueEnumerable().ToValueList();
     }
 
     [OverloadResolutionPriority(1)]
-    public CustomPolygon(in ReadOnlySpan<Vector2> points, Color fill)
+    public ValueCustomPolygon(in ReadOnlySpan<Vector2> points, Color fill)
         : this(points)
     {
         Fill = fill;
     }
 
-    public ValueListRef<Vector2> Points => _points.AsRef();
+    public ValueListRef<Vector2> Points
+    {
+        [UnscopedRef]
+        readonly get => Unsafe.AsRef(in _points).AsRef();
+        set => _points = value.AsValueEnumerable().ToValueList();
+    }
+
     public Color Fill { get; set; } = Drawing.DefaultFill;
     public Color Stroke { get; set; } = Drawing.DefaultStroke;
     public float StrokeWidth { get; set; } = Drawing.DefaultStrokeWidth;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
 
+    public override readonly string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
+    }
+
+    public readonly void Draw(Transform transform, Graphics graphics)
+    {
+        graphics.DrawCustomPolygon(transform, this);
+    }
+}
+
+[ValueWrapper(typeof(ValueCustomPolygon))]
+public sealed partial class CustomPolygon : IDrawable, IFullCloneable
+{
     object IDeepCloneable.DeepClone()
     {
         var result = this.ShallowClone();
-        result._points = new ValueList<Vector2>(_points);
+        result.Value.Points = Value.Points;
         return result;
     }
 
     public override string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
-    }
-
-    public override void Draw(Transform transform, Graphics graphics)
-    {
-        graphics.DrawCustomPolygon(transform, this);
     }
 }
 
@@ -87,7 +107,7 @@ public static class CustomPolygonExtensions
             if (
                 colorValue == Color.Transparent
                 || points.Length < 3
-                || (graphics.Culling() && !graphics.IsPolygonInBounds(points, camera))
+                || graphics.Culling() && !graphics.IsPolygonInBounds(points, camera)
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -123,7 +143,7 @@ public static class CustomPolygonExtensions
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
                 || points.Length < 3
-                || (graphics.Culling() && !graphics.IsPolygonInBounds(points, camera, strokeWidthValue * 0.5f))
+                || graphics.Culling() && !graphics.IsPolygonInBounds(points, camera, strokeWidthValue * 0.5f)
             )
                 return;
             graphics.BeginDrawing(camera);
@@ -138,14 +158,14 @@ public static class CustomPolygonExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawCustomPolygon(CustomPolygon polygon)
+        public void DrawCustomPolygon(in ValueCustomPolygon polygon)
         {
             graphics.DrawCustomPolygon(new Transform(), polygon);
         }
 
-        public unsafe void DrawCustomPolygon(Transform transform, CustomPolygon polygon)
+        public unsafe void DrawCustomPolygon(Transform transform, in ValueCustomPolygon polygon)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, polygon, graphics);
+            using var _ = Drawable<ValueCustomPolygon>.EnterDrawing(ref transform, polygon.Drawable, polygon, graphics);
             var camera = polygon.Camera.Get();
             var position = transform.Position;
             var scale = transform.Scale;

@@ -15,6 +15,7 @@ public interface ISparseSet<TValue, TStorage> : ISparseSet
 {
     public readonly struct ValueEnumerable
         : IReadOnlyList<TValue>,
+            ICollection<TValue>,
             IStructEnumerable<ValueEnumerable.Enumerator, TValue>
     {
         private readonly TStorage _values;
@@ -90,21 +91,25 @@ public interface ISparseSet<TValue, TStorage> : ISparseSet
 
             public bool TryGetSpan(out ReadOnlySpan<TValue> span)
             {
-                if (typeof(IReadOnlySpan<TValue>).IsAssignableFrom(typeof(TStorage)))
+                switch (_values)
                 {
-                    span = ((IReadOnlySpan<TValue>)_values).AsSpan();
-                    return true;
+                    case IReadOnlySpan<TValue> values:
+                        span = values.AsSpan();
+                        return true;
+                    case List<TValue> list:
+                        span = list.AsSpan();
+                        return true;
+                    default:
+                        span = default;
+                        return false;
                 }
-
-                span = default;
-                return false;
             }
 
             public bool TryCopyTo(scoped Span<TValue> destination, Index offset)
             {
-                if (!typeof(IReadOnlySpan<TValue>).IsAssignableFrom(typeof(TStorage)))
+                if (!TryGetSpan(out var span))
                     return false;
-                ((IReadOnlySpan<TValue>)_values).AsSpan().TryCopyTo(destination, offset);
+                span.TryCopyTo(destination, offset);
                 return true;
             }
 
@@ -117,7 +122,34 @@ public interface ISparseSet<TValue, TStorage> : ISparseSet
             public void Dispose() { }
         }
 
+        void ICollection<TValue>.Add(TValue item)
+        {
+            throw new NotSupportedException($"{nameof(ValueEnumerable)} is read-only.");
+        }
+
+        void ICollection<TValue>.Clear()
+        {
+            throw new NotSupportedException($"{nameof(ValueEnumerable)} is read-only.");
+        }
+
+        bool ICollection<TValue>.Remove(TValue item)
+        {
+            throw new NotSupportedException($"{nameof(ValueEnumerable)} is read-only.");
+        }
+
+        public bool Contains(TValue item)
+        {
+            return _values.Contains(item);
+        }
+
+        public void CopyTo(TValue[] array, int arrayIndex)
+        {
+            _values.CopyTo(array, arrayIndex);
+        }
+
         public int Count => _values.Count;
+
+        bool ICollection<TValue>.IsReadOnly => true;
 
         public TValue this[int index] => _values[index];
     }
@@ -148,6 +180,10 @@ public interface ISparseSet<TKey, TValue, TStorage> : ISparseSet<TValue, TStorag
     bool ContainsKey(in TKey key);
 
     bool TryGetValue(in TKey key, [MaybeNullWhen(false)] out TValue value);
+
+    TValue? GetValueOrDefault(in TKey key);
+
+    TValue GetValueOrDefault(in TKey key, in TValue defaultValue);
 
     bool Remove(in TKey key);
 

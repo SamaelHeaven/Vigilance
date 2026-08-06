@@ -1,12 +1,14 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Vigilance.Drawing;
 
-public readonly ref partial struct RenderCommands
+public readonly partial struct RenderCommands
 {
     public Scene Scene { get; }
 
-    internal RenderCommands(Scene scene)
+    public RenderCommands(Scene scene)
     {
         Scene = scene;
     }
@@ -50,6 +52,12 @@ public readonly ref partial struct RenderCommands
             Add(entity, component, action);
     }
 
+    public void AddEntries<TComponent>(Scene.RefEntryEnumerable<TComponent> entries, Action<Entity, TComponent> action)
+    {
+        foreach (var (entity, component) in entries)
+            Add(entity, component.Read, action);
+    }
+
     public void AddEntries<TSystem, TComponent>(
         TSystem system,
         ValueEnumerable<Scene.EntryEnumerator<TComponent>, (Entity Entity, TComponent Component)> entries,
@@ -60,15 +68,24 @@ public readonly ref partial struct RenderCommands
             Add(system, entity, component, action);
     }
 
-    internal void Execute()
+    public void AddEntries<TSystem, TComponent>(
+        TSystem system,
+        Scene.RefEntryEnumerable<TComponent> entries,
+        Action<TSystem, Entity, TComponent> action
+    )
     {
-        var scene = Scene;
-        ref var commands = ref scene.RenderCommands;
+        foreach (var (entity, component) in entries)
+            Add(system, entity, component.Read, action);
+    }
+
+    public void Execute()
+    {
+        ref var commands = ref Scene.RenderCommands;
         commands.Sort();
         foreach (ref var command in commands.AsSpan())
             try
             {
-                command.Invoke(scene);
+                command.Invoke(Scene);
             }
             catch (Exception e)
             {
@@ -76,12 +93,13 @@ public readonly ref partial struct RenderCommands
             }
 
         commands.Clear();
-        scene.RenderDataList.Clear();
+        Scene.RenderDataList.Clear();
         foreach (var table in Scene.RenderComponentsList)
             table.Clear();
     }
 }
 
+[StructLayout(LayoutKind.Sequential, Pack = 1)]
 public readonly unsafe struct RenderCommand : IComparable<RenderCommand>
 {
     private readonly ulong _order;
@@ -89,7 +107,7 @@ public readonly unsafe struct RenderCommand : IComparable<RenderCommand>
 
     private RenderCommand(
         Scene scene,
-        delegate* <ref readonly RenderCommand, ref readonly RenderData, Scene, void> invoker,
+        delegate* <ref readonly RenderCommand, ref RenderData, Scene, void> invoker,
         Delegate action,
         in Entity entity = default,
         object? system = null,
@@ -107,7 +125,7 @@ public readonly unsafe struct RenderCommand : IComparable<RenderCommand>
 
     public static ulong GetOrder(int layer, int sequence)
     {
-        return ((ulong)(uint)(layer ^ int.MinValue) << 32) | (uint)(sequence ^ int.MinValue);
+        return (ulong)(uint)(layer ^ int.MinValue) << 32 | (uint)(sequence ^ int.MinValue);
     }
 
     public static int GetLayer(ulong order)
@@ -181,66 +199,70 @@ public readonly unsafe struct RenderCommand : IComparable<RenderCommand>
     internal void Invoke(Scene scene)
     {
         ref var data = ref scene.RenderDataList[_dataIndex];
-        data.Invoker(in this, in data, scene);
+        data.Invoker(in this, ref data, scene);
     }
 
-    private static void VoidInvoker(ref readonly RenderCommand command, ref readonly RenderData data, Scene scene)
+    private static void VoidInvoker(ref readonly RenderCommand command, ref RenderData data, Scene scene)
     {
-        ((Action)data.Action).Invoke();
+        Unsafe.As<Delegate, Action>(ref data.Action).Invoke();
     }
 
-    private static void EntityInvoker(ref readonly RenderCommand command, ref readonly RenderData data, Scene scene)
-    {
-        var entity =
-            data.EntityVersion == -1 ? Entity.Null : new Entity(GetSequence(command._order), data.EntityVersion, scene);
-        ((Action<Entity>)data.Action).Invoke(entity);
-    }
-
-    private static void MonoInvoker<TComponent>(
-        ref readonly RenderCommand command,
-        ref readonly RenderData data,
-        Scene scene
-    )
+    private static void EntityInvoker(ref readonly RenderCommand command, ref RenderData data, Scene scene)
     {
         var entity =
             data.EntityVersion == -1 ? Entity.Null : new Entity(GetSequence(command._order), data.EntityVersion, scene);
-        ((Action<Entity, TComponent>)data.Action).Invoke(
-            entity,
-            data.ComponentIndex == -1
-                ? (TComponent)data.Components!
-                : ((RenderComponents<TComponent>)data.Components!).Components[data.ComponentIndex]
-        );
+        Unsafe.As<Delegate, Action<Entity>>(ref data.Action).Invoke(entity);
+    }
+
+    private static void MonoInvoker<TComponent>(ref readonly RenderCommand command, ref RenderData data, Scene scene)
+    {
+        var entity =
+            data.EntityVersion == -1 ? Entity.Null : new Entity(GetSequence(command._order), data.EntityVersion, scene);
+        Unsafe
+            .As<Delegate, Action<Entity, TComponent>>(ref data.Action)
+            .Invoke(
+                entity,
+                data.ComponentIndex == -1
+                    ? Unsafe.As<object, TComponent>(ref data.Components!)
+                    : Unsafe.As<object, RenderComponents<TComponent>>(ref data.Components!).Components[
+                        data.ComponentIndex
+                    ]
+            );
     }
 
     private static void BiInvoker<TSystem, TComponent>(
         ref readonly RenderCommand command,
-        ref readonly RenderData data,
+        ref RenderData data,
         Scene scene
     )
     {
         var entity =
             data.EntityVersion == -1 ? Entity.Null : new Entity(GetSequence(command._order), data.EntityVersion, scene);
-        ((Action<TSystem, Entity, TComponent>)data.Action).Invoke(
-            (TSystem)data.System!,
-            entity,
-            data.ComponentIndex == -1
-                ? (TComponent)data.Components!
-                : ((RenderComponents<TComponent>)data.Components!).Components[data.ComponentIndex]
-        );
+        Unsafe
+            .As<Delegate, Action<TSystem, Entity, TComponent>>(ref data.Action)
+            .Invoke(
+                Unsafe.As<object, TSystem>(ref data.System!),
+                entity,
+                data.ComponentIndex == -1
+                    ? Unsafe.As<object, TComponent>(ref data.Components!)
+                    : Unsafe.As<object, RenderComponents<TComponent>>(ref data.Components!).Components[
+                        data.ComponentIndex
+                    ]
+            );
     }
 }
 
-internal readonly unsafe struct RenderData
+internal unsafe struct RenderData
 {
-    internal readonly delegate* <ref readonly RenderCommand, ref readonly RenderData, Scene, void> Invoker;
-    internal readonly Delegate Action;
-    internal readonly object? Components;
-    internal readonly object? System;
-    internal readonly int EntityVersion;
-    internal readonly int ComponentIndex;
+    internal delegate* <ref readonly RenderCommand, ref RenderData, Scene, void> Invoker;
+    internal Delegate Action;
+    internal object? Components;
+    internal object? System;
+    internal int EntityVersion;
+    internal int ComponentIndex;
 
     internal RenderData(
-        delegate* <ref readonly RenderCommand, ref readonly RenderData, Scene, void> invoker,
+        delegate* <ref readonly RenderCommand, ref RenderData, Scene, void> invoker,
         Delegate action,
         object? components,
         object? system,

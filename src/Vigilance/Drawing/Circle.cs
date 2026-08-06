@@ -3,11 +3,11 @@ using Transform = Vigilance.Math.Transform;
 
 namespace Vigilance.Drawing;
 
-public sealed class Circle : Drawable<Circle>
+[ValueWrapper(typeof(Drawable<ValueCircle>), "Drawable")]
+public partial struct ValueCircle : IDrawable
 {
-    public Circle() { }
-
-    public Circle(Color fill)
+    public ValueCircle(Color fill)
+        : this()
     {
         Fill = fill;
     }
@@ -20,14 +20,23 @@ public sealed class Circle : Drawable<Circle>
     public int Segments { get; set; } = 0;
     public DrawOrder DrawOrder { get; set; } = Drawing.DefaultOrder;
 
-    public override string ToString()
+    public override readonly string ToString()
     {
         return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 
-    public override void Draw(Transform transform, Graphics graphics)
+    public readonly void Draw(Transform transform, Graphics graphics)
     {
         graphics.DrawCircle(transform, this);
+    }
+}
+
+[ValueWrapper(typeof(ValueCircle))]
+public sealed partial class Circle : IDrawable, IFullCloneable
+{
+    public override string ToString()
+    {
+        return ObjectPrinter.Print(this, ObjectPrinter.Exclude([nameof(Transform)]), true);
     }
 }
 
@@ -62,7 +71,7 @@ public static class CircleExtensions
             var colorValue = color ?? Drawing.DefaultFill.Or(Color.White);
             if (
                 colorValue == Color.Transparent
-                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
             )
                 return;
             segments = Drawing.CalculateSegments(radius, startAngle, endAngle, segments);
@@ -111,7 +120,7 @@ public static class CircleExtensions
             if (
                 colorValue == Color.Transparent
                 || strokeWidthValue <= 0
-                || (graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera))
+                || graphics.Culling() && !graphics.IsBoxInBounds(center - radius, new Vector2(radius * 2), camera)
             )
                 return;
             segments = Drawing.CalculateSegments(radius, startAngle, endAngle, segments);
@@ -128,14 +137,14 @@ public static class CircleExtensions
             graphics.EndDrawing();
         }
 
-        public void DrawCircle(Circle circle)
+        public void DrawCircle(in ValueCircle circle)
         {
             graphics.DrawCircle(new Transform(), circle);
         }
 
-        public void DrawCircle(Transform transform, Circle circle)
+        public void DrawCircle(Transform transform, in ValueCircle circle)
         {
-            using var _ = Drawable.EnterDrawing(ref transform, circle, graphics);
+            using var _ = Drawable<ValueCircle>.EnterDrawing(ref transform, circle.Drawable, circle, graphics);
             var camera = circle.Camera.Get();
             var fill = circle.Fill;
             var stroke = circle.Stroke;

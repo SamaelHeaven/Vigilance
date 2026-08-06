@@ -12,6 +12,7 @@ public sealed unsafe class ObjectPool<[DynamicallyAccessedMembers(DynamicallyAcc
     [ThreadStatic]
     private static ObjectPool<T>? _shared;
 
+    private bool _objectMarshalUnavailable;
     private ValueStack<T> _pool = [];
 
     static ObjectPool()
@@ -42,7 +43,7 @@ public sealed unsafe class ObjectPool<[DynamicallyAccessedMembers(DynamicallyAcc
     public void Return(T item)
     {
         Debug.Assert(item is not null);
-        if ((T?)item is null)
+        if ((T?)item is null || _objectMarshalUnavailable)
             return;
         try
         {
@@ -52,6 +53,7 @@ public sealed unsafe class ObjectPool<[DynamicallyAccessedMembers(DynamicallyAcc
         catch (Exception e)
         {
             Log.Error(e);
+            _objectMarshalUnavailable = true;
         }
     }
 

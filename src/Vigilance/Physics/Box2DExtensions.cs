@@ -106,7 +106,7 @@ public static class Box2DExtensions
         public Color ToColor()
         {
             var value = (uint)hexColor;
-            return new Color((byte)((value >> 16) & 0xff), (byte)((value >> 8) & 0xff), (byte)(value & 0xff));
+            return new Color((byte)(value >> 16 & 0xff), (byte)(value >> 8 & 0xff), (byte)(value & 0xff));
         }
     }
 
@@ -117,6 +117,54 @@ public static class Box2DExtensions
             var x = transform.q.c * vertex.X - transform.q.s * vertex.Y + transform.p.X;
             var y = transform.q.s * vertex.X + transform.q.c * vertex.Y + transform.p.Y;
             return World.MetersToPixels(new Vector2(x, y));
+        }
+    }
+
+    extension(in B2UserData userData)
+    {
+        public static B2UserData FromPrimitive(in Primitive primitive)
+        {
+            return primitive.Type switch
+            {
+                PrimitiveType.Long => new B2UserData(primitive.Long),
+                PrimitiveType.ULong => new B2UserData(primitive.ULong),
+                PrimitiveType.Double => new B2UserData(primitive.Double),
+                PrimitiveType.Object => new B2UserData(primitive.Object),
+                PrimitiveType.Bool => new B2UserData(primitive.Bool ? 1 : 0),
+                PrimitiveType.SByte => new B2UserData(primitive.SByte),
+                PrimitiveType.Byte => new B2UserData(primitive.Byte),
+                PrimitiveType.Short => new B2UserData(primitive.Short),
+                PrimitiveType.UShort => new B2UserData(primitive.UShort),
+                PrimitiveType.Int => new B2UserData(primitive.Int),
+                PrimitiveType.UInt => new B2UserData(primitive.UInt),
+                PrimitiveType.Float => new B2UserData(primitive.Float),
+                PrimitiveType.IntPtr => new B2UserData(primitive.IntPtr),
+                PrimitiveType.UIntPtr => new B2UserData(primitive.UIntPtr),
+                _ => B2UserData.Empty,
+            };
+        }
+
+        public Primitive ToPrimitive()
+        {
+            var type = (PrimitiveType)userData.type;
+            return type switch
+            {
+                PrimitiveType.Long => userData.iValue,
+                PrimitiveType.ULong => userData.ulValue,
+                PrimitiveType.Double => userData.dValue,
+                PrimitiveType.Object => Primitive.From(userData.oValue),
+                PrimitiveType.Bool => userData.iValue != 0,
+                PrimitiveType.SByte => (sbyte)userData.iValue,
+                PrimitiveType.Byte => (byte)userData.iValue,
+                PrimitiveType.Short => (short)userData.iValue,
+                PrimitiveType.UShort => (ushort)userData.iValue,
+                PrimitiveType.Int => (int)userData.iValue,
+                PrimitiveType.UInt => (uint)userData.iValue,
+                PrimitiveType.Float => (float)userData.dValue,
+                PrimitiveType.IntPtr => (nint)userData.iValue,
+                PrimitiveType.UIntPtr => (nuint)userData.ulValue,
+                _ => new Primitive { Type = type },
+            };
         }
     }
 }

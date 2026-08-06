@@ -156,6 +156,23 @@ public static class Collision
     {
         if (polygon1.Length < 3 || polygon2.Length < 3)
             return false;
+        for (int i = 0, j = polygon1.Length - 1; i < polygon1.Length; j = i++)
+        for (int k = 0, l = polygon2.Length - 1; k < polygon2.Length; l = k++)
+            if (CheckLines(polygon1[j], polygon1[i], polygon2[l], polygon2[k]))
+                return true;
+        return CheckPointPolygon(polygon1[0], polygon2) || CheckPointPolygon(polygon2[0], polygon1);
+    }
+
+    public static bool CheckConvexPolygons(IEnumerable<Vector2> polygon1, IEnumerable<Vector2> polygon2)
+    {
+        return CheckConvexPolygons(polygon1.AsSpan(), polygon2.AsSpan());
+    }
+
+    [OverloadResolutionPriority(1)]
+    public static bool CheckConvexPolygons(in ReadOnlySpan<Vector2> polygon1, in ReadOnlySpan<Vector2> polygon2)
+    {
+        if (polygon1.Length < 3 || polygon2.Length < 3)
+            return false;
         return !HasSeparatingAxis(polygon1, polygon2) && !HasSeparatingAxis(polygon2, polygon1);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -196,6 +213,104 @@ public static class Collision
         return CheckPolygons(a, b);
     }
 
+    public static bool CheckConvexQuads(in Quad a, in Quad b)
+    {
+        return !HasSeparatingAxis(a, b) && !HasSeparatingAxis(b, a);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static bool HasSeparatingAxis(in Quad quadA, in Quad quadB)
+        {
+            var edge = quadA.BottomLeft - quadA.TopLeft;
+            var axis = new Vector2(-edge.Y, edge.X);
+            ProjectQuad(quadA, axis, out var minA, out var maxA);
+            ProjectQuad(quadB, axis, out var minB, out var maxB);
+            if (maxA < minB || maxB < minA)
+                return true;
+            edge = quadA.BottomRight - quadA.BottomLeft;
+            axis = new Vector2(-edge.Y, edge.X);
+            ProjectQuad(quadA, axis, out minA, out maxA);
+            ProjectQuad(quadB, axis, out minB, out maxB);
+            if (maxA < minB || maxB < minA)
+                return true;
+            edge = quadA.TopRight - quadA.BottomRight;
+            axis = new Vector2(-edge.Y, edge.X);
+            ProjectQuad(quadA, axis, out minA, out maxA);
+            ProjectQuad(quadB, axis, out minB, out maxB);
+            if (maxA < minB || maxB < minA)
+                return true;
+            edge = quadA.TopLeft - quadA.TopRight;
+            axis = new Vector2(-edge.Y, edge.X);
+            ProjectQuad(quadA, axis, out minA, out maxA);
+            ProjectQuad(quadB, axis, out minB, out maxB);
+            return maxA < minB || maxB < minA;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void ProjectQuad(in Quad quad, Vector2 axis, out float min, out float max)
+        {
+            var dot = quad.TopLeft.Dot(axis);
+            min = max = dot;
+            dot = quad.BottomLeft.Dot(axis);
+            if (dot < min)
+                min = dot;
+            if (dot > max)
+                max = dot;
+            dot = quad.BottomRight.Dot(axis);
+            if (dot < min)
+                min = dot;
+            if (dot > max)
+                max = dot;
+            dot = quad.TopRight.Dot(axis);
+            if (dot < min)
+                min = dot;
+            if (dot > max)
+                max = dot;
+        }
+    }
+
+    public static bool CheckParallelograms(in Quad a, in Quad b)
+    {
+        return !HasSeparatingAxis(a, b) && !HasSeparatingAxis(b, a);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static bool HasSeparatingAxis(in Quad quadA, in Quad quadB)
+        {
+            var edge = quadA.BottomLeft - quadA.TopLeft;
+            var axis = new Vector2(-edge.Y, edge.X);
+            ProjectQuad(quadA, axis, out var minA, out var maxA);
+            ProjectQuad(quadB, axis, out var minB, out var maxB);
+            if (maxA < minB || maxB < minA)
+                return true;
+            edge = quadA.BottomRight - quadA.BottomLeft;
+            axis = new Vector2(-edge.Y, edge.X);
+            ProjectQuad(quadA, axis, out minA, out maxA);
+            ProjectQuad(quadB, axis, out minB, out maxB);
+            return maxA < minB || maxB < minA;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void ProjectQuad(in Quad quad, Vector2 axis, out float min, out float max)
+        {
+            var dot = quad.TopLeft.Dot(axis);
+            min = max = dot;
+            dot = quad.BottomLeft.Dot(axis);
+            if (dot < min)
+                min = dot;
+            if (dot > max)
+                max = dot;
+            dot = quad.BottomRight.Dot(axis);
+            if (dot < min)
+                min = dot;
+            if (dot > max)
+                max = dot;
+            dot = quad.TopRight.Dot(axis);
+            if (dot < min)
+                min = dot;
+            if (dot > max)
+                max = dot;
+        }
+    }
+
     public static bool CheckLines(Vector2 start1, Vector2 end1, Vector2 start2, Vector2 end2)
     {
         return CheckLines(start1, end1, start2, end2, out _);
@@ -226,10 +341,10 @@ public static class Collision
                 - (start1.Y - end1.Y) * (start2.X * end2.Y - start2.Y * end2.X)
             ) / div;
         if (
-            ((start1.X - end1.X).Abs() > float.Epsilon && (xi < start1.X.Min(end1.X) || xi > start1.X.Max(end1.X)))
-            || ((start2.X - end2.X).Abs() > float.Epsilon && (xi < start2.X.Min(end2.X) || xi > start2.X.Max(end2.X)))
-            || ((start1.Y - end1.Y).Abs() > float.Epsilon && (yi < start1.Y.Min(end1.Y) || yi > start1.Y.Max(end1.Y)))
-            || ((start2.Y - end2.Y).Abs() > float.Epsilon && (yi < start2.Y.Min(end2.Y) || yi > start2.Y.Max(end2.Y)))
+            (start1.X - end1.X).Abs() > float.Epsilon && (xi < start1.X.Min(end1.X) || xi > start1.X.Max(end1.X))
+            || (start2.X - end2.X).Abs() > float.Epsilon && (xi < start2.X.Min(end2.X) || xi > start2.X.Max(end2.X))
+            || (start1.Y - end1.Y).Abs() > float.Epsilon && (yi < start1.Y.Min(end1.Y) || yi > start1.Y.Max(end1.Y))
+            || (start2.Y - end2.Y).Abs() > float.Epsilon && (yi < start2.Y.Min(end2.Y) || yi > start2.Y.Max(end2.Y))
         )
             collision = false;
         if (collision)

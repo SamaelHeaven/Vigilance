@@ -1,15 +1,15 @@
 namespace Vigilance.Core;
 
-public sealed class Tween
+public struct ValueTween
 {
     public const int InfiniteCycleCount = -1;
 
-    public Tween()
+    public ValueTween()
     {
         CycleCount = InfiniteCycleCount;
     }
 
-    public Tween(
+    public ValueTween(
         TimeSpan duration,
         TimeSpan elapsed = default,
         int cycleCount = InfiniteCycleCount,
@@ -33,38 +33,38 @@ public sealed class Tween
     public bool DidTick { get; private set; }
     public int CurrentCycle { get; private set; }
 
-    public bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
+    public readonly bool IsCompleted => CycleCount > InfiniteCycleCount && CurrentCycle >= CycleCount;
 
-    public float Progress =>
+    public readonly float Progress =>
         Duration == TimeSpan.Zero ? 1f : ((float)(Elapsed.TotalSeconds / Duration.TotalSeconds)).Clamp(0f, 1f);
 
-    public float Value(Func<float, float>? ease = null)
+    public readonly float Value(Func<float, float>? ease = null)
     {
         var progress = IsReversed ? 1f - Progress : Progress;
         return ease?.SafeInvoke(progress) ?? Ease.Linear(progress);
     }
 
-    public T Interpolate<T>(T start, T end, Func<T, T, float, T> interpolate, Func<float, float>? ease = null)
+    public readonly T Interpolate<T>(T start, T end, Func<T, T, float, T> interpolate, Func<float, float>? ease = null)
     {
         return interpolate.SafeInvoke(start, end, Value(ease));
     }
 
-    public float Interpolate(float start, float end, Func<float, float>? ease = null)
+    public readonly float Interpolate(float start, float end, Func<float, float>? ease = null)
     {
         return Interpolate(start, end, float.Lerp, ease);
     }
 
-    public Vector2 Interpolate(Vector2 start, Vector2 end, Func<float, float>? ease = null)
+    public readonly Vector2 Interpolate(Vector2 start, Vector2 end, Func<float, float>? ease = null)
     {
         return Interpolate(start, end, Vector2.Lerp, ease);
     }
 
-    public Transform Interpolate(in Transform start, in Transform end, Func<float, float>? ease = null)
+    public readonly Transform Interpolate(in Transform start, in Transform end, Func<float, float>? ease = null)
     {
         return Interpolate(start, end, Transform.Lerp, ease);
     }
 
-    public Color Interpolate(Color start, Color end, Func<float, float>? ease = null)
+    public readonly Color Interpolate(Color start, Color end, Func<float, float>? ease = null)
     {
         return Interpolate(start, end, Color.Lerp, ease);
     }
@@ -98,3 +98,6 @@ public sealed class Tween
         DidTick = false;
     }
 }
+
+[ValueWrapper(typeof(ValueTween))]
+public sealed partial class Tween;

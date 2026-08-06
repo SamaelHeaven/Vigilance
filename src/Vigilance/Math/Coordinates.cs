@@ -91,7 +91,7 @@ public static class Coordinates
         }
     }
 
-    public static Vector2 ScreenToWorld(Vector2 coordinates, Viewport? viewport = null, Camera? camera = null)
+    public static Vector2 ScreenToWorld(Vector2 coordinates, Camera? camera = null, Viewport? viewport = null)
     {
         return LocalToWorld(ScreenToLocal(coordinates, viewport), camera);
     }
