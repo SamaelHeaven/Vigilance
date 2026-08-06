@@ -335,8 +335,6 @@ public sealed class GenericRegistryGenerator : IIncrementalGenerator
             return false;
         if (type.IsStatic || IsOpen(type))
             return false;
-        if (type.IsAbstract || type.TypeKind == TypeKind.Interface)
-            return false;
         return !type.IsRefLikeType || parameter.AllowsRefLikeType;
     }
 
@@ -461,6 +459,8 @@ public sealed class GenericRegistryGenerator : IIncrementalGenerator
     {
         if (type.IsValueType)
             return true;
+        if (type.IsAbstract || type.TypeKind == TypeKind.Interface)
+            return false;
         return type.InstanceConstructors.Any(static constructor =>
             constructor is { Parameters.Length: 0, DeclaredAccessibility: Accessibility.Public }
         );
