@@ -37,5 +37,12 @@ public static class PlatformExtensions
                 return platform == Platform.Unknown;
             }
         }
+
+        public bool SupportsThreads =>
+            platform switch
+            {
+                Platform.Desktop => true,
+                _ => false,
+            };
     }
 }

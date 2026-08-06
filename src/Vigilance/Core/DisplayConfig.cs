@@ -10,7 +10,7 @@ public sealed class DisplayConfig
     public Vector2? MaxScreenSize { get; set; } = null;
     public Vector2? Position { get; set; } = null;
     public Viewport Viewport { get; set; } = Viewport.Fit;
-    public RenderingMode RenderingMode { get; set; } = RenderingMode.Native();
+    public RenderingMode RenderingMode { get; set; } = RenderingMode.Buffer();
     public Color Background { get; set; } = Color.Black;
     public int FpsTarget { get; set; } = 0;
     public bool Fullscreen { get; set; } = false;

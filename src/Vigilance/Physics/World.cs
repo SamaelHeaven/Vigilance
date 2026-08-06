@@ -26,7 +26,7 @@ public sealed class World
     public World(in WorldDef def)
     {
         Scene = def.Scene!;
-        Multithreaded = def.Multithreaded && Platform.Desktop.IsCurrent;
+        Multithreaded = def.Multithreaded && Platform.Current.SupportsThreads;
         var worldRef = new WeakReference<World>(this);
         var b2Def = B2Types.b2DefaultWorldDef();
         b2Def.userData = new B2UserData(
